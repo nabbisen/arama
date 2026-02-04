@@ -51,7 +51,11 @@ impl ImageTensor {
                 let target_tensor = model.get_image_features(&target_image)?;
 
                 // println!("4. 類似度（コサイン類似度）の計算");
-                let similarity = calculate_cosine_similarity(&source_tensor, &target_tensor)?;
+                let similarity = if source.as_path().eq(target.as_path()) {
+                    1.0
+                } else {
+                    calculate_cosine_similarity(&source_tensor, &target_tensor)?
+                };
 
                 Ok((target, similarity))
             })
