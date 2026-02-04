@@ -11,6 +11,11 @@ impl Gallery {
             .view()
             .map(|message| Message::MenusMessage(message));
 
+        let root_dir_select = self
+            .root_dir_select
+            .view()
+            .map(|message| Message::RootDirSelectMessage(message));
+
         let content = if self.image_paths.is_empty() {
             container(text("No images found in this folder."))
         } else {
@@ -25,7 +30,7 @@ impl Gallery {
         // スクロール可能にする
         let scrollable = scrollable(container);
 
-        column![menus, scrollable].into()
+        column![menus, root_dir_select, scrollable].into()
     }
 
     // グリッドレイアウトの計算ロジック
