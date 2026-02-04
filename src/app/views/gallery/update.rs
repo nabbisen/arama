@@ -1,6 +1,9 @@
 use iced::Task;
 
-use crate::app::components::gallery::{menus, root_dir_select};
+use crate::app::{
+    components::gallery::{menus, root_dir_select},
+    image_tensor::ImageTensor,
+};
 
 use super::{Gallery, message::Message};
 
@@ -9,7 +12,22 @@ impl Gallery {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::ImagesLoaded(paths) => {
-                self.image_paths = paths;
+                self.image_paths = paths.into_iter().map(|x| (x, None)).collect();
+
+                if 0 < self.image_paths.len() {
+                    let image_tensor = ImageTensor::new(
+                        self.image_paths[0].0.as_path(),
+                        self.image_paths.iter().map(|x| x.0.as_path()).collect(),
+                    );
+                    // println!("{:?}", image_tensor);
+                    if let Ok(image_tensor) = image_tensor {
+                        if let Ok(targets) = image_tensor.targets {
+                            self.image_paths =
+                                targets.into_iter().map(|x| (x.0, Some(x.1))).collect();
+                        }
+                    }
+                }
+
                 Task::none()
             }
             Message::MenusMessage(message) => match message {

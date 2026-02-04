@@ -52,11 +52,19 @@ impl Gallery {
                     .map(|path| {
                         // 画像ウィジェットの作成
                         // ContentFit::Coverで正方形にトリミング表示
-                        image(path)
+                        let image = image(path.0.as_path())
                             .width(self.thumbnail_size)
                             .height(self.thumbnail_size)
-                            .content_fit(iced::ContentFit::Cover)
-                            .into()
+                            .content_fit(iced::ContentFit::Cover);
+                        column![
+                            image,
+                            text(if let Some(similarity) = path.1 {
+                                similarity.to_string()
+                            } else {
+                                "".into()
+                            })
+                        ]
+                        .into()
                     })
                     .collect();
 

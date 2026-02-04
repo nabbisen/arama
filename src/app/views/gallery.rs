@@ -12,7 +12,7 @@ mod view;
 // アプリケーションの状態
 pub struct Gallery {
     root_dir: PathBuf,
-    pub image_paths: Vec<PathBuf>,
+    pub image_paths: Vec<(PathBuf, Option<f32>)>,
     thumbnail_size: u32,
     spacing: u32,
     menus: Menus,
