@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use iced::Task;
 
+use crate::app::components::gallery::menus::Menus;
+
 pub mod message;
 mod update;
 mod util;
@@ -13,6 +15,7 @@ pub struct Gallery {
     pub image_paths: Vec<PathBuf>,
     thumbnail_size: u32,
     spacing: u32,
+    menus: Menus,
 }
 
 impl Gallery {
@@ -31,6 +34,7 @@ impl Default for Gallery {
             image_paths: Vec::new(),
             thumbnail_size: 160, // サムネイルの正方形サイズ
             spacing: 10,         // 画像間の隙間
+            menus: Menus::default(),
         }
     }
 }
