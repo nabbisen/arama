@@ -1,25 +1,22 @@
-use std::path::PathBuf;
-
 use iced::{Element, Task};
 
 use crate::app::gallery::{self, Gallery};
-use crate::app::util::load_images;
 
-#[derive(Default)]
 pub struct Window {
     gallery: Gallery,
 }
 
 pub enum Message {
     GalleryMessage(gallery::message::Message),
-    ImagesLoaded(Vec<PathBuf>),
 }
 
 impl Window {
     pub fn new() -> (Self, Task<Message>) {
         (
-            Self::default(),
-            Task::perform(load_images("."), Message::ImagesLoaded), // カレントディレクトリをスキャン
+            Self {
+                gallery: Gallery::default(),
+            },
+            Gallery::default_task().map(|message| Message::GalleryMessage(message)),
         )
     }
 
@@ -37,10 +34,6 @@ impl Window {
                 .gallery
                 .update(message)
                 .map(|message| Message::GalleryMessage(message)),
-            Message::ImagesLoaded(paths) => {
-                self.gallery.image_paths = paths;
-                Task::none()
-            }
         }
     }
 }

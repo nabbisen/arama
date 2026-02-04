@@ -1,5 +1,4 @@
 mod gallery;
-mod util;
 mod window;
 
 pub fn start() -> iced::Result {
