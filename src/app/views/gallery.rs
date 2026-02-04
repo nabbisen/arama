@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use iced::Task;
 
-use crate::app::components::gallery::menus::Menus;
+use crate::app::components::gallery::{menus::Menus, root_dir_select::RootDirSelect};
 
 pub mod message;
 mod update;
@@ -16,6 +16,7 @@ pub struct Gallery {
     thumbnail_size: u32,
     spacing: u32,
     menus: Menus,
+    root_dir_select: RootDirSelect,
 }
 
 impl Gallery {
@@ -35,6 +36,7 @@ impl Default for Gallery {
             thumbnail_size: 160, // サムネイルの正方形サイズ
             spacing: 10,         // 画像間の隙間
             menus: Menus::default(),
+            root_dir_select: RootDirSelect::default(),
         }
     }
 }
