@@ -1,4 +1,4 @@
-use iced::widget::{Responsive, column, container, image, row, scrollable, text};
+use iced::widget::{Responsive, column, container, image, mouse_area, row, scrollable, text};
 use iced::{Element, Length, Size};
 
 use super::{Gallery, message::Message};
@@ -30,7 +30,19 @@ impl Gallery {
         // スクロール可能にする
         let scrollable = scrollable(container);
 
-        column![menus, root_dir_select, scrollable].into()
+        column![
+            menus,
+            root_dir_select,
+            text(
+                if let Some(selected_source_image) = self.selected_source_image.as_ref() {
+                    selected_source_image.to_string_lossy()
+                } else {
+                    "".into()
+                }
+            ),
+            scrollable
+        ]
+        .into()
     }
 
     // グリッドレイアウトの計算ロジック
@@ -57,7 +69,7 @@ impl Gallery {
                             .height(self.thumbnail_size)
                             .content_fit(iced::ContentFit::Cover);
                         column![
-                            image,
+                            mouse_area(image).on_double_click(Message::ImageSelect(path.0.clone())),
                             text(if let Some(similarity) = path.1 {
                                 similarity.to_string()
                             } else {

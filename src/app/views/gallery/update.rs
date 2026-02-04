@@ -14,21 +14,7 @@ impl Gallery {
             Message::ImagesLoaded(paths) => {
                 self.image_paths = paths.into_iter().map(|x| (x, None)).collect();
 
-                if 0 < self.image_paths.len() {
-                    let image_tensor = ImageTensor::new(
-                        self.image_paths[0].0.as_path(),
-                        self.image_paths.iter().map(|x| x.0.as_path()).collect(),
-                    );
-                    // println!("{:?}", image_tensor);
-                    if let Ok(image_tensor) = image_tensor {
-                        if let Ok(targets) = image_tensor.targets {
-                            self.image_paths =
-                                targets.into_iter().map(|x| (x.0, Some(x.1))).collect();
-                        }
-                    }
-                }
-
-                Task::none()
+                self.image_similarity_update()
             }
             Message::MenusMessage(message) => match message {
                 menus::message::Message::ScaleUp => {
@@ -66,6 +52,47 @@ impl Gallery {
 
                 task
             }
+            Message::ImageSelect(path) => {
+                self.selected_source_image = Some(path);
+
+                self.image_similarity_update()
+            }
+            Message::ImageSimilarityCompleted(image_paths) => {
+                self.image_paths = image_paths;
+                Task::none()
+            }
         }
+    }
+
+    fn image_similarity_update(&mut self) -> Task<Message> {
+        let selected_source_image = match self.selected_source_image.as_ref() {
+            Some(x) => x.clone(),
+            None => return Task::none(),
+        };
+
+        self.image_paths = self
+            .image_paths
+            .clone()
+            .into_iter()
+            .map(|x| (x.0, None))
+            .collect();
+
+        let image_paths = self.image_paths.clone();
+        Task::perform(
+            async move {
+                let image_tensor = ImageTensor::new(
+                    selected_source_image.as_path(),
+                    image_paths.iter().map(|x| x.0.as_path()).collect(),
+                );
+                // println!("{:?}", image_tensor);
+                if let Ok(image_tensor) = image_tensor {
+                    if let Ok(targets) = image_tensor.targets {
+                        return targets.into_iter().map(|x| (x.0, Some(x.1))).collect();
+                    }
+                }
+                image_paths
+            },
+            Message::ImageSimilarityCompleted,
+        )
     }
 }
