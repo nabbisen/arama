@@ -1,0 +1,20 @@
+[package]
+name = "arama"
+version = "0.1.0"
+edition = "2024"
+
+[profile.release]     # shrink executable size
+opt-level = "z"
+lto = true
+# panic = "abort"
+strip = true
+codegen-units = 1
+
+[profile.dev]         # to improve productivity
+opt-level = 1         # slightly optimize
+lto = false           # disable link-time optimizations
+incremental = false
+
+[dependencies]
+iced = { version = "0.14", features = ["image", "tokio"] }
+tokio = { version = "1", features = ["fs", "macros", "rt-multi-thread"] }
