@@ -12,12 +12,11 @@ pub enum Message {
 
 impl Window {
     pub fn new() -> (Self, Task<Message>) {
-        (
-            Self {
-                gallery: Gallery::default(),
-            },
-            Gallery::default_task().map(|message| Message::GalleryMessage(message)),
-        )
+        let gallery = Gallery::default();
+        let task = gallery
+            .default_task()
+            .map(|message| Message::GalleryMessage(message));
+        (Self { gallery }, task)
     }
 
     pub fn view(&self) -> Element<'_, Message> {
