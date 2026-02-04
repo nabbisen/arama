@@ -1,4 +1,5 @@
-mod gallery;
+pub(super) mod components;
+mod views;
 mod window;
 
 pub fn start() -> iced::Result {

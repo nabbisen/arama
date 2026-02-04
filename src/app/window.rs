@@ -1,6 +1,6 @@
 use iced::{Element, Task};
 
-use crate::app::gallery::{self, Gallery};
+use super::views::gallery::{self, Gallery};
 
 pub struct Window {
     gallery: Gallery,

@@ -1,4 +1,4 @@
-use iced::widget::{Responsive, button, column, container, image, row, scrollable, text};
+use iced::widget::{Responsive, column, container, image, row, scrollable, text};
 use iced::{Element, Length, Size};
 
 use super::{Gallery, message::Message};
@@ -6,11 +6,10 @@ use super::{Gallery, message::Message};
 impl Gallery {
     // ビュー（UI描画）
     pub fn view(&self) -> Element<'_, Message> {
-        let menus = row![
-            button("+").on_press(Message::ScaleUp),
-            button("-").on_press(Message::ScaleDown),
-            button("x").on_press(Message::Quit),
-        ];
+        let menus = self
+            .menus
+            .view()
+            .map(|message| Message::MenusMessage(message));
 
         let content = if self.image_paths.is_empty() {
             container(text("No images found in this folder."))

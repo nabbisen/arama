@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
+use crate::app::components::gallery::menus;
+
 #[derive(Debug, Clone)]
 pub enum Message {
     ImagesLoaded(Vec<PathBuf>),
-    ScaleUp,
-    ScaleDown,
-    Quit,
+    MenusMessage(menus::message::Message),
 }
