@@ -1,8 +1,9 @@
 use iced::Task;
+use swdir::DirNode;
 
 use crate::app::{
     components::gallery::{menus, root_dir_select},
-    image_tensor::ImageTensor,
+    utils::gallery::image_similarity::ImageSimilarity,
 };
 
 use super::{Gallery, message::Message};
@@ -11,8 +12,8 @@ impl Gallery {
     // アプリケーション初期化時に画像を読み込むTaskを発行
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::ImagesLoaded(paths) => {
-                self.image_paths = paths.into_iter().map(|x| (x, None)).collect();
+            Message::ImagesLoaded(dir_node) => {
+                self.dir_node = dir_node;
 
                 self.image_similarity_update()
             }
@@ -40,9 +41,9 @@ impl Gallery {
                 match message {
                     root_dir_select::message::Message::DialogClose(path) => {
                         if let Some(path) = path {
-                            self.root_dir = path;
+                            self.dir_node = DirNode::with_path(path);
                             return Task::perform(
-                                super::util::load_images(self.root_dir.clone()),
+                                super::util::load_images(self.dir_node.path.clone()),
                                 super::message::Message::ImagesLoaded,
                             );
                         }
@@ -57,8 +58,8 @@ impl Gallery {
 
                 self.image_similarity_update()
             }
-            Message::ImageSimilarityCompleted(image_paths) => {
-                self.image_paths = image_paths;
+            Message::ImageSimilarityCompleted(image_similarity) => {
+                self.image_similarity = image_similarity;
                 Task::none()
             }
         }
@@ -70,27 +71,18 @@ impl Gallery {
             None => return Task::none(),
         };
 
-        self.image_paths = self
-            .image_paths
-            .clone()
-            .into_iter()
-            .map(|x| (x.0, None))
-            .collect();
+        self.image_similarity = ImageSimilarity::default();
 
-        let image_paths = self.image_paths.clone();
+        let dir_node = self.dir_node.clone();
         Task::perform(
             async move {
-                let image_tensor = ImageTensor::new(
-                    selected_source_image.as_path(),
-                    image_paths.iter().map(|x| x.0.as_path()).collect(),
-                );
+                let image_similarity =
+                    ImageSimilarity::calculate(selected_source_image.as_path(), &dir_node);
                 // println!("{:?}", image_tensor);
-                if let Ok(image_tensor) = image_tensor {
-                    if let Ok(targets) = image_tensor.targets {
-                        return targets.into_iter().map(|x| (x.0, Some(x.1))).collect();
-                    }
+                match image_similarity {
+                    Ok(image_similarity) => image_similarity,
+                    Err(_) => ImageSimilarity::default(), // todo: error handling
                 }
-                image_paths
             },
             Message::ImageSimilarityCompleted,
         )

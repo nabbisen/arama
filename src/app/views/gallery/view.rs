@@ -1,5 +1,10 @@
-use iced::widget::{Responsive, column, container, image, mouse_area, row, scrollable, text};
+use iced::widget::{
+    Responsive, column, container, image, mouse_area, row, scrollable, space, text,
+};
 use iced::{Element, Length, Size};
+use swdir::DirNode;
+
+use crate::app::utils::gallery::image_similarity::ImageSimilarity;
 
 use super::{Gallery, message::Message};
 
@@ -16,8 +21,8 @@ impl Gallery {
             .view()
             .map(|message| Message::RootDirSelectMessage(message));
 
-        let content = if self.image_paths.is_empty() {
-            container(text("No images found in this folder."))
+        let content = if self.dir_node.sub_dirs.is_empty() && self.dir_node.files.is_empty() {
+            container(text("No images found in folder(s)."))
         } else {
             // Responsiveウィジェットを使って、現在のウィンドウ幅(size)を取得する
             container(Responsive::new(move |size| self.view_grid(size)))
@@ -54,38 +59,90 @@ impl Gallery {
         let columns = (total_width / item_width).floor() as usize;
         let columns = columns.max(1);
 
-        // 画像パスのリストを、カラム数ごとに分割（チャンク化）して行を作成
-        let rows: Vec<Element<Message>> = self
-            .image_paths
-            .chunks(columns)
-            .map(|chunk| {
-                let images: Vec<Element<Message>> = chunk
-                    .iter()
-                    .map(|path| {
-                        // 画像ウィジェットの作成
-                        // ContentFit::Coverで正方形にトリミング表示
-                        let image = image(path.0.as_path())
-                            .width(self.thumbnail_size)
-                            .height(self.thumbnail_size)
-                            .content_fit(iced::ContentFit::Cover);
-                        column![
-                            mouse_area(image).on_double_click(Message::ImageSelect(path.0.clone())),
-                            text(if let Some(similarity) = path.1 {
-                                similarity.to_string()
-                            } else {
-                                "".into()
-                            })
-                        ]
-                        .into()
-                    })
-                    .collect();
-
-                // 画像を横に並べる
-                row(images).spacing(self.spacing).into()
-            })
-            .collect();
-
-        // 行を縦に並べる
-        column(rows).spacing(self.spacing).into()
+        if let Some(image_columns) = image_columns(
+            &self.dir_node,
+            &self.image_similarity,
+            columns,
+            self.thumbnail_size,
+            self.spacing,
+        ) {
+            image_columns
+        } else {
+            space().into()
+        }
     }
+}
+
+fn image_columns<'a>(
+    dir_node: &'a DirNode,
+    image_similarity: &'a ImageSimilarity,
+    columns: usize,
+    thumbnail_size: u32,
+    spacing: u32,
+) -> Option<Element<'a, Message>> {
+    // 画像パスのリストを、カラム数ごとに分割（チャンク化）して行を作成
+    let files_rows: Vec<Element<Message>> = dir_node
+        .files
+        .chunks(columns)
+        .map(|chunk| {
+            let images: Vec<Element<Message>> = chunk
+                .iter()
+                .map(|path| {
+                    // 画像ウィジェットの作成
+                    // ContentFit::Coverで正方形にトリミング表示
+                    let image = image(path.as_path())
+                        .width(thumbnail_size)
+                        .height(thumbnail_size)
+                        .content_fit(iced::ContentFit::Cover);
+                    let image_similarity =
+                        if let Some(image_similarity) = image_similarity.get_score(path) {
+                            image_similarity.to_string()
+                        } else {
+                            "".into()
+                        };
+                    column![
+                        mouse_area(image).on_double_click(Message::ImageSelect(path.clone())),
+                        text(image_similarity)
+                    ]
+                    .into()
+                })
+                .collect();
+
+            // 画像を横に並べる
+            row(images).spacing(spacing).into()
+        })
+        .collect();
+
+    let sub_dirs_rows = dir_node
+        .sub_dirs
+        .iter()
+        .map(|sub_dir_node| {
+            image_columns(
+                sub_dir_node,
+                image_similarity,
+                columns,
+                thumbnail_size,
+                spacing,
+            )
+        })
+        .filter(|x| x.is_some())
+        .collect::<Vec<Option<Element<Message>>>>();
+
+    if files_rows.is_empty() && sub_dirs_rows.is_empty() {
+        return None;
+    }
+
+    // 行を縦に並べる
+    let mut ret = column![];
+
+    if !files_rows.is_empty() {
+        ret = ret.push(text(dir_node.path.to_string_lossy()));
+        ret = ret.extend(files_rows);
+    }
+
+    if !sub_dirs_rows.is_empty() {
+        ret = ret.extend(sub_dirs_rows.into_iter().map(|x| x.unwrap()));
+    }
+
+    Some(ret.spacing(spacing).into())
 }
