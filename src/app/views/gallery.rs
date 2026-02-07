@@ -22,6 +22,7 @@ pub struct Gallery {
     menus: Menus,
     root_dir_select: RootDirSelect,
     selected_source_image: Option<PathBuf>,
+    running: bool,
 }
 
 impl Gallery {
@@ -43,6 +44,7 @@ impl Default for Gallery {
             menus: Menus::default(),
             root_dir_select: RootDirSelect::default(),
             selected_source_image: None,
+            running: false,
         }
     }
 }

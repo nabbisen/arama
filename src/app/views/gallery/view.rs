@@ -40,7 +40,11 @@ impl Gallery {
             root_dir_select,
             text(
                 if let Some(selected_source_image) = self.selected_source_image.as_ref() {
-                    selected_source_image.to_string_lossy()
+                    let mut ret = selected_source_image.to_string_lossy().to_string();
+                    if self.running {
+                        ret = format!("{} (calculating...)", ret);
+                    }
+                    ret
                 } else {
                     "".into()
                 }
