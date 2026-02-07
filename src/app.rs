@@ -1,4 +1,5 @@
 pub(super) mod components;
+mod utils;
 mod views;
 mod window;
 

@@ -1,22 +1,20 @@
 use std::path::PathBuf;
 
+use swdir::{DirNode, Recurse};
+
 // フォルダ内の画像を非同期で検索するヘルパー関数
-pub async fn load_images(dir: PathBuf) -> Vec<PathBuf> {
-    let mut paths = Vec::new();
-    if let Ok(mut entries) = tokio::fs::read_dir(dir).await {
-        while let Ok(Some(entry)) = entries.next_entry().await {
-            let path = entry.path();
-            if path.is_file() {
-                // 拡張子で画像のみをフィルタリング
-                if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-                    match ext.to_lowercase().as_str() {
-                        "png" | "jpg" | "jpeg" | "webp" | "gif" | "bmp" => paths.push(path),
-                        _ => {}
-                    }
-                }
-            }
-        }
-    }
-    paths.sort(); // 名前順にソート
-    paths
+pub async fn load_images(path: PathBuf) -> DirNode {
+    const EXTENSION_ALLOWLIST: &[&str; 6] = &["png", "jpg", "jpeg", "webp", "gif", "bmp"];
+
+    let dir_node = swdir::Swdir::default()
+        .set_root_path(path)
+        .set_recurse(Recurse {
+            is_recurse: true,
+            depth_limit: None,
+        })
+        .set_extension_allowlist(EXTENSION_ALLOWLIST)
+        .expect("failed to set extension allowlist")
+        .scan();
+
+    dir_node
 }
