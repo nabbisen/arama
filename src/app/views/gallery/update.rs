@@ -54,12 +54,18 @@ impl Gallery {
                 task
             }
             Message::ImageSelect(path) => {
+                if self.running {
+                    return Task::none();
+                }
+
+                self.running = true;
                 self.selected_source_image = Some(path);
 
                 self.image_similarity_update()
             }
             Message::ImageSimilarityCompleted(image_similarity) => {
                 self.image_similarity = image_similarity;
+                self.running = false;
                 Task::none()
             }
         }
