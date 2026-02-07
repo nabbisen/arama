@@ -1,5 +1,5 @@
 pub(super) mod components;
-mod image_tensor;
+mod utils;
 mod views;
 mod window;
 
