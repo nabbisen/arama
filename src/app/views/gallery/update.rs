@@ -13,7 +13,7 @@ impl Gallery {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::ImagesLoaded(dir_node) => {
-                self.dir_node = dir_node;
+                self.dir_node = Some(dir_node);
 
                 self.image_similarity_update()
             }
@@ -42,10 +42,11 @@ impl Gallery {
                     root_dir_select::message::Message::DialogClose(path) => {
                         if let Some(path) = path {
                             self.clear();
-                            self.dir_node = DirNode::with_path(path);
+                            let dir_node = DirNode::with_path(path);
+                            self.dir_node = Some(dir_node.clone());
 
                             return Task::perform(
-                                super::util::load_images(self.dir_node.path.clone()),
+                                super::util::load_images(dir_node.path.clone()),
                                 super::message::Message::ImagesLoaded,
                             );
                         }
@@ -81,18 +82,21 @@ impl Gallery {
 
         self.image_similarity = ImageSimilarity::default();
 
-        let dir_node = self.dir_node.clone();
-        Task::perform(
-            async move {
-                let image_similarity =
-                    ImageSimilarity::calculate(selected_source_image.as_path(), &dir_node);
-                // println!("{:?}", image_tensor);
-                match image_similarity {
-                    Ok(image_similarity) => image_similarity,
-                    Err(_) => ImageSimilarity::default(), // todo: error handling
-                }
-            },
-            Message::ImageSimilarityCompleted,
-        )
+        if let Some(dir_node) = self.dir_node.clone() {
+            Task::perform(
+                async move {
+                    let image_similarity =
+                        ImageSimilarity::calculate(selected_source_image.as_path(), &dir_node);
+                    // println!("{:?}", image_tensor);
+                    match image_similarity {
+                        Ok(image_similarity) => image_similarity,
+                        Err(_) => ImageSimilarity::default(), // todo: error handling
+                    }
+                },
+                Message::ImageSimilarityCompleted,
+            )
+        } else {
+            Task::none()
+        }
     }
 }

@@ -21,7 +21,13 @@ impl Gallery {
             .view()
             .map(|message| Message::RootDirSelectMessage(message));
 
-        let content = if self.dir_node.sub_dirs.is_empty() && self.dir_node.files.is_empty() {
+        let content = if self.dir_node.is_none() {
+            container(text(""))
+        } else if self
+            .dir_node
+            .as_ref()
+            .is_some_and(|dir_node| dir_node.sub_dirs.is_empty() && dir_node.files.is_empty())
+        {
             container(text("No images found in folder(s)."))
         } else {
             // Responsiveウィジェットを使って、現在のウィンドウ幅(size)を取得する
@@ -56,6 +62,10 @@ impl Gallery {
 
     // グリッドレイアウトの計算ロジック
     fn view_grid(&self, size: Size) -> Element<'_, Message> {
+        if self.dir_node.is_none() {
+            return space().into();
+        }
+
         let total_width = size.width;
         let item_width = self.thumbnail_size as f32 + self.spacing as f32;
 
@@ -64,7 +74,7 @@ impl Gallery {
         let columns = columns.max(1);
 
         if let Some(image_columns) = image_columns(
-            &self.dir_node,
+            self.dir_node.as_ref().unwrap(),
             &self.image_similarity,
             columns,
             self.thumbnail_size,
