@@ -36,7 +36,6 @@ pt2safetensors = "0"
 
 # ai model loader
 reqwest = { version = "0.13", default-features = false, features = ["multipart", "rustls"] }
-safetensors = { version = "0", default-features = false }
 tokio = { version = "1.49", default-features = false, features = ["fs"] }
 
 # image comparison
