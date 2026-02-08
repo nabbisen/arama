@@ -1,10 +1,9 @@
-use candle_core::pickle;
 use iced::{
     Element, Task,
     widget::{button, column, container, space, text},
 };
 
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
 #[derive(Clone)]
 pub enum Message {
@@ -60,24 +59,10 @@ impl ModelLoader {
                     return Task::none();
                 };
 
-                // 1. .binファイルを読み込む（内部でPickleパースとZip展開を行う）
-                let weights = pickle::read_all(&path).expect("failed to read .pt");
-
-                // 2. テンソルマップを構築
-                let mut tensors = std::collections::HashMap::new();
-                for (name, tensor) in weights {
-                    tensors.insert(name, tensor);
-                }
-
-                // 3. .safetensorsとして保存
-                safetensors::tensor::serialize_to_file(
-                    &tensors,
-                    None,
-                    crate::app::SAFETENSORS_MODEL.as_ref(),
-                )
-                .expect("failed to write .safetensors");
-
-                fs::remove_file(path).expect("failed to remove .pt");
+                pt2safetensors::Pt2Safetensors::default()
+                    .removes_pt_at_conversion_success()
+                    .convert(&path, &crate::app::SAFETENSORS_MODEL.into())
+                    .expect("failed to convert pytorch to safetensors");
 
                 Task::none()
             }
