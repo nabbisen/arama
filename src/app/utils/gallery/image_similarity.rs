@@ -30,7 +30,11 @@ impl ImageSimilarity {
         let config = clip::ClipConfig::vit_base_patch32();
         let vb = unsafe {
             // todo: requires safetensors from openai/clip-vit-base-patch32
-            VarBuilder::from_mmaped_safetensors(&["models/model.safetensors"], DType::F32, &device)?
+            VarBuilder::from_mmaped_safetensors(
+                &[crate::app::SAFETENSORS_MODEL],
+                DType::F32,
+                &device,
+            )?
         };
         let model = clip::ClipModel::new(vb, &config)?;
 
