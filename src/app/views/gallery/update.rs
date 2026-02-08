@@ -41,7 +41,9 @@ impl Gallery {
                 match message {
                     root_dir_select::message::Message::DialogClose(path) => {
                         if let Some(path) = path {
+                            self.clear();
                             self.dir_node = DirNode::with_path(path);
+
                             return Task::perform(
                                 super::util::load_images(self.dir_node.path.clone()),
                                 super::message::Message::ImagesLoaded,
