@@ -1,14 +1,19 @@
 use std::path::Path;
 
+use app_json_settings::ConfigManager;
 use iced::{Element, Task};
 
 pub(super) mod components;
+mod settings;
 mod utils;
 mod views;
 
 use views::gallery::{self, Gallery};
 
-use crate::app::components::common::model_loader::{self, ModelLoader};
+use crate::app::{
+    components::common::model_loader::{self, ModelLoader},
+    settings::Settings,
+};
 
 const SAFETENSORS_MODEL: &str = "model.safetensors";
 const PYTORCH_MODEL: &str = "pytorch_model.bin";
@@ -30,7 +35,13 @@ impl App {
     }
 
     fn new() -> (Self, Task<Message>) {
-        let gallery = Gallery::default();
+        let settings = ConfigManager::<Settings>::new().load_or_default();
+        let gallery = if let Ok(settings) = settings {
+            Gallery::new(&settings.root_dir_path)
+        } else {
+            Gallery::default()
+        };
+
         let model_loader = ModelLoader::default();
 
         let task = gallery
