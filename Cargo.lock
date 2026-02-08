@@ -145,7 +145,6 @@ dependencies = [
  "pt2safetensors",
  "reqwest",
  "rfd",
- "safetensors",
  "serde",
  "swdir",
  "tokio",
