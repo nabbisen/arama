@@ -14,6 +14,10 @@ pub struct ImageSimilarity {
 }
 
 impl ImageSimilarity {
+    pub fn is_empty(&self) -> bool {
+        self.files.is_empty()
+    }
+
     pub fn get_score(&self, path: &Path) -> Option<f32> {
         self.files.get(path).copied()
     }

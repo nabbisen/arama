@@ -32,6 +32,10 @@ impl Gallery {
                 }
                 menus::message::Message::Quit => iced::exit(),
             },
+            Message::GallerySettingsMessage(message) => {
+                let _ = self.gallery_settings.update(message);
+                Task::none()
+            }
             Message::RootDirSelectMessage(message) => {
                 let task = self
                     .root_dir_select
