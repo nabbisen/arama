@@ -21,6 +21,18 @@ impl Gallery {
             .view()
             .map(|message| Message::RootDirSelectMessage(message));
 
+        let selected_source_image_label = text(
+            if let Some(selected_source_image) = self.selected_source_image.as_ref() {
+                let mut ret = selected_source_image.to_string_lossy().to_string();
+                if self.running {
+                    ret = format!("{} (calculating...)", ret);
+                }
+                ret
+            } else {
+                "".into()
+            },
+        );
+
         let content = if self.dir_node.is_none() {
             container(text(""))
         } else if self
@@ -41,21 +53,22 @@ impl Gallery {
         // スクロール可能にする
         let scrollable = scrollable(container);
 
+        // settings
+        let mut scrollable_with_settings = column![];
+        if !self.image_similarity.is_empty() {
+            scrollable_with_settings = scrollable_with_settings.push(
+                self.gallery_settings
+                    .view()
+                    .map(Message::GallerySettingsMessage),
+            );
+        }
+        scrollable_with_settings = scrollable_with_settings.push(scrollable);
+
         column![
             menus,
             root_dir_select,
-            text(
-                if let Some(selected_source_image) = self.selected_source_image.as_ref() {
-                    let mut ret = selected_source_image.to_string_lossy().to_string();
-                    if self.running {
-                        ret = format!("{} (calculating...)", ret);
-                    }
-                    ret
-                } else {
-                    "".into()
-                }
-            ),
-            scrollable
+            selected_source_image_label,
+            scrollable_with_settings
         ]
         .into()
     }
@@ -76,6 +89,7 @@ impl Gallery {
         if let Some(image_columns) = image_columns(
             self.dir_node.as_ref().unwrap(),
             &self.image_similarity,
+            self.gallery_settings.similarity_quality(),
             columns,
             self.thumbnail_size,
             self.spacing,
@@ -90,6 +104,7 @@ impl Gallery {
 fn image_columns<'a>(
     dir_node: &'a DirNode,
     image_similarity: &'a ImageSimilarity,
+    similarity_quality: f32,
     columns: usize,
     thumbnail_size: u32,
     spacing: u32,
@@ -101,6 +116,13 @@ fn image_columns<'a>(
         .map(|chunk| {
             let images: Vec<Element<Message>> = chunk
                 .iter()
+                .filter(|path| {
+                    if let Some(image_similarity) = image_similarity.get_score(path) {
+                        similarity_quality <= image_similarity
+                    } else {
+                        true
+                    }
+                })
                 .map(|path| {
                     // 画像ウィジェットの作成
                     // ContentFit::Coverで正方形にトリミング表示
@@ -134,6 +156,7 @@ fn image_columns<'a>(
             image_columns(
                 sub_dir_node,
                 image_similarity,
+                similarity_quality,
                 columns,
                 thumbnail_size,
                 spacing,

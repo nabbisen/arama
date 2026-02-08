@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use swdir::DirNode;
 
 use crate::app::{
-    components::gallery::{menus, root_dir_select},
+    components::gallery::{gallery_settings, menus, root_dir_select},
     utils::gallery::image_similarity::ImageSimilarity,
 };
 
@@ -14,4 +14,5 @@ pub enum Message {
     RootDirSelectMessage(root_dir_select::message::Message),
     ImageSelect(PathBuf),
     ImageSimilarityCompleted(ImageSimilarity),
+    GallerySettingsMessage(gallery_settings::message::Message),
 }

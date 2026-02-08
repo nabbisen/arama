@@ -4,7 +4,9 @@ use swdir::DirNode;
 use std::path::PathBuf;
 
 use crate::app::{
-    components::gallery::{menus::Menus, root_dir_select::RootDirSelect},
+    components::gallery::{
+        gallery_settings::GallerySettings, menus::Menus, root_dir_select::RootDirSelect,
+    },
     utils::gallery::image_similarity::ImageSimilarity,
 };
 
@@ -16,13 +18,14 @@ mod view;
 // アプリケーションの状態
 pub struct Gallery {
     dir_node: Option<DirNode>,
+    selected_source_image: Option<PathBuf>,
+    running: bool,
     image_similarity: ImageSimilarity,
     thumbnail_size: u32,
     spacing: u32,
     menus: Menus,
     root_dir_select: RootDirSelect,
-    selected_source_image: Option<PathBuf>,
-    running: bool,
+    gallery_settings: GallerySettings,
 }
 
 impl Gallery {
@@ -49,13 +52,14 @@ impl Default for Gallery {
         Self {
             // todo: load from config if saved
             dir_node: None,
+            selected_source_image: None,
+            running: false,
             image_similarity: ImageSimilarity::default(),
             thumbnail_size: 160, // サムネイルの正方形サイズ
             spacing: 10,         // 画像間の隙間
             menus: Menus::default(),
             root_dir_select: RootDirSelect::default(),
-            selected_source_image: None,
-            running: false,
+            gallery_settings: GallerySettings::default(),
         }
     }
 }
