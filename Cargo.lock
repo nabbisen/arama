@@ -122,10 +122,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5f0e0fee31ef5ed1ba1316088939cea399010ed7731dba877ed44aeb407a75ea"
 
 [[package]]
+name = "app-json-settings"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69bb0116736e46fc78d126961b6acbc2053c94ce8968669488301290d6b6c8e6"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "arama"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
+ "app-json-settings",
  "candle-core",
  "candle-nn",
  "candle-transformers",
@@ -134,6 +145,7 @@ dependencies = [
  "reqwest",
  "rfd",
  "safetensors",
+ "serde",
  "swdir",
  "tokio",
 ]

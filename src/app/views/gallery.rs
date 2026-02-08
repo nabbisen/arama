@@ -29,6 +29,12 @@ pub struct Gallery {
 }
 
 impl Gallery {
+    pub fn new(root_dir_path: &str) -> Self {
+        let mut ret: Gallery = Self::default();
+        ret.dir_node = Some(DirNode::with_path(root_dir_path));
+        ret
+    }
+
     pub fn default_task(&self) -> Task<message::Message> {
         if let Some(dir_node) = &self.dir_node {
             Task::perform(

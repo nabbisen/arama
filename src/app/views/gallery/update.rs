@@ -1,8 +1,10 @@
+use app_json_settings::ConfigManager;
 use iced::Task;
 use swdir::DirNode;
 
 use crate::app::{
     components::gallery::{menus, root_dir_select},
+    settings::Settings,
     utils::gallery::image_similarity::ImageSimilarity,
 };
 
@@ -45,6 +47,12 @@ impl Gallery {
                 match message {
                     root_dir_select::message::Message::DialogClose(path) => {
                         if let Some(path) = path {
+                            ConfigManager::new()
+                                .save(&Settings {
+                                    root_dir_path: path.to_string_lossy().into(),
+                                })
+                                .expect("failed to save config");
+
                             self.clear();
                             let dir_node = DirNode::with_path(path);
                             self.dir_node = Some(dir_node.clone());
