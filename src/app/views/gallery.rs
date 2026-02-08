@@ -15,7 +15,7 @@ mod view;
 
 // アプリケーションの状態
 pub struct Gallery {
-    dir_node: DirNode,
+    dir_node: Option<DirNode>,
     image_similarity: ImageSimilarity,
     thumbnail_size: u32,
     spacing: u32,
@@ -27,13 +27,18 @@ pub struct Gallery {
 
 impl Gallery {
     pub fn default_task(&self) -> Task<message::Message> {
-        Task::perform(
-            util::load_images(self.dir_node.path.clone()),
-            message::Message::ImagesLoaded,
-        )
+        if let Some(dir_node) = &self.dir_node {
+            Task::perform(
+                util::load_images(dir_node.path.clone()),
+                message::Message::ImagesLoaded,
+            )
+        } else {
+            Task::none()
+        }
     }
 
     fn clear(&mut self) {
+        self.dir_node = None;
         self.image_similarity = ImageSimilarity::default();
         self.selected_source_image = None;
     }
@@ -42,7 +47,8 @@ impl Gallery {
 impl Default for Gallery {
     fn default() -> Self {
         Self {
-            dir_node: DirNode::with_path("."),
+            // todo: load from config if saved
+            dir_node: None,
             image_similarity: ImageSimilarity::default(),
             thumbnail_size: 160, // サムネイルの正方形サイズ
             spacing: 10,         // 画像間の隙間
