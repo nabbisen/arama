@@ -1,7 +1,7 @@
-use std::path::PathBuf;
-
 use iced::Task;
 use swdir::DirNode;
+
+use std::path::PathBuf;
 
 use crate::app::{
     components::gallery::{menus::Menus, root_dir_select::RootDirSelect},
@@ -31,6 +31,11 @@ impl Gallery {
             util::load_images(self.dir_node.path.clone()),
             message::Message::ImagesLoaded,
         )
+    }
+
+    fn clear(&mut self) {
+        self.image_similarity = ImageSimilarity::default();
+        self.selected_source_image = None;
     }
 }
 

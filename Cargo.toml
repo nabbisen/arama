@@ -28,7 +28,6 @@ incremental = false
 [dependencies]
 iced = { version = "0.14", features = ["image", "tokio"] }
 rfd = "0.17"
-tokio = { version = "1", features = ["fs", "macros", "rt-multi-thread"] }
 
 # image comparison
 candle-core = "0.9"
@@ -37,3 +36,4 @@ candle-transformers = "0.9" # 一般的なモデルの実装が含まれる
 anyhow = "1"
 image = "0"
 swdir = "0"
+# app-json-settings = { path = "../app-json-settings-rs" }
