@@ -3,7 +3,10 @@ use iced::Task;
 use swdir::DirNode;
 
 use crate::app::{
-    components::gallery::{menus, root_dir_select},
+    components::gallery::{
+        gallery_settings::{self, swdir_depth_limit},
+        menus, root_dir_select,
+    },
     settings::Settings,
     utils::gallery::image_similarity::ImageSimilarity,
 };
@@ -35,7 +38,27 @@ impl Gallery {
                 menus::message::Message::Quit => iced::exit(),
             },
             Message::GallerySettingsMessage(message) => {
-                let _ = self.gallery_settings.update(message);
+                let _ = self.gallery_settings.update(message.clone());
+
+                match message {
+                    gallery_settings::message::Message::SwdirDepthLimitMessage(message) => {
+                        match message {
+                            swdir_depth_limit::message::Message::ValueChanged(_) => {
+                                if let Some(dir_node) = self.dir_node.as_ref() {
+                                    return Task::perform(
+                                        super::util::load_images(
+                                            dir_node.path.clone(),
+                                            self.gallery_settings.swdir_depth_limit(),
+                                        ),
+                                        super::message::Message::ImagesLoaded,
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    _ => (),
+                }
+
                 Task::none()
             }
             Message::RootDirSelectMessage(message) => {
@@ -58,7 +81,10 @@ impl Gallery {
                             self.dir_node = Some(dir_node.clone());
 
                             return Task::perform(
-                                super::util::load_images(dir_node.path.clone()),
+                                super::util::load_images(
+                                    dir_node.path.clone(),
+                                    self.gallery_settings.swdir_depth_limit(),
+                                ),
                                 super::message::Message::ImagesLoaded,
                             );
                         }
