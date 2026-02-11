@@ -9,7 +9,8 @@ pub async fn load_images(path: PathBuf) -> DirNode {
     let dir_node = swdir::Swdir::default()
         .set_root_path(path)
         .set_recurse(Recurse {
-            is_recurse: true,
+            enabled: true,
+            skip_hidden: true,
             depth_limit: None,
         })
         .set_extension_allowlist(EXTENSION_ALLOWLIST)
