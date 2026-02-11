@@ -2,16 +2,15 @@ use app_json_settings::ConfigManager;
 use iced::Task;
 use swdir::DirNode;
 
+use super::{Gallery, message::Message, subscription::Input};
 use crate::app::{
     components::gallery::{
         gallery_settings::{self, swdir_depth_limit},
         menus, root_dir_select,
     },
     settings::Settings,
-    utils::gallery::image_similarity::ImageSimilarity,
+    utils::gallery::image_similarity::ImageSimilarityMap,
 };
-
-use super::{Gallery, message::Message};
 
 impl Gallery {
     // アプリケーション初期化時に画像を読み込むTaskを発行
@@ -19,8 +18,7 @@ impl Gallery {
         match message {
             Message::ImagesLoaded(dir_node) => {
                 self.dir_node = Some(dir_node);
-
-                self.image_similarity_update()
+                Task::none()
             }
             Message::MenusMessage(message) => match message {
                 menus::message::Message::ScaleUp => {
@@ -95,46 +93,47 @@ impl Gallery {
                 task
             }
             Message::ImageSelect(path) => {
-                if self.running {
+                if self.processing {
                     return Task::none();
                 }
 
-                self.running = true;
-                self.selected_source_image = Some(path);
+                self.processing = true;
+                self.selected_source_image = Some(path.clone());
 
-                self.image_similarity_update()
-            }
-            Message::ImageSimilarityCompleted(image_similarity) => {
-                self.image_similarity = image_similarity;
-                self.running = false;
+                if let Some(tx) = &mut self.subscription_worker_tx {
+                    if let Some(dir_node) = self.dir_node.clone() {
+                        let _ = tx.try_send(Input::ImageSimilarity((path, dir_node)));
+                    }
+                }
+
                 Task::none()
             }
-        }
-    }
+            Message::SubscriptionWorkerReady(tx) => {
+                self.subscription_worker_tx = Some(tx);
 
-    fn image_similarity_update(&mut self) -> Task<Message> {
-        let selected_source_image = match self.selected_source_image.as_ref() {
-            Some(x) => x.clone(),
-            None => return Task::none(),
-        };
-
-        self.image_similarity = ImageSimilarity::default();
-
-        if let Some(dir_node) = self.dir_node.clone() {
-            Task::perform(
-                async move {
-                    let image_similarity =
-                        ImageSimilarity::calculate(selected_source_image.as_path(), &dir_node);
-                    // println!("{:?}", image_tensor);
-                    match image_similarity {
-                        Ok(image_similarity) => image_similarity,
-                        Err(_) => ImageSimilarity::default(), // todo: error handling
+                if let Some(tx) = &mut self.subscription_worker_tx {
+                    if let Some(path) = self.selected_source_image.clone() {
+                        if let Some(dir_node) = self.dir_node.clone() {
+                            let _ = tx.try_send(Input::ImageSimilarity((path, dir_node)));
+                        }
                     }
-                },
-                Message::ImageSimilarityCompleted,
-            )
-        } else {
-            Task::none()
+                }
+
+                Task::none()
+            }
+            Message::SubscriptionWorkerFinished(image_similarity) => {
+                self.image_similarity_map
+                    .set_score(image_similarity.path.as_path(), image_similarity.score);
+                self.processing = false;
+                Task::none()
+            }
+            Message::SubscriptionWorkerFailed => {
+                // error handling
+                eprintln!("failed to calculate image similarity in background");
+                self.image_similarity_map = ImageSimilarityMap::default();
+                self.processing = false;
+                Task::none()
+            }
         }
     }
 }

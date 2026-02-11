@@ -1,4 +1,4 @@
-use iced::Task;
+use iced::{Task, futures::channel::mpsc::Sender};
 use swdir::DirNode;
 
 use std::path::PathBuf;
@@ -7,10 +7,12 @@ use crate::app::{
     components::gallery::{
         gallery_settings::GallerySettings, menus::Menus, root_dir_select::RootDirSelect,
     },
-    utils::gallery::image_similarity::ImageSimilarity,
+    utils::gallery::image_similarity::ImageSimilarityMap,
 };
+use subscription::Input;
 
 pub mod message;
+mod subscription;
 mod update;
 mod util;
 mod view;
@@ -19,13 +21,14 @@ mod view;
 pub struct Gallery {
     dir_node: Option<DirNode>,
     selected_source_image: Option<PathBuf>,
-    running: bool,
-    image_similarity: ImageSimilarity,
+    processing: bool,
+    image_similarity_map: ImageSimilarityMap,
     thumbnail_size: u32,
     spacing: u32,
     menus: Menus,
     root_dir_select: RootDirSelect,
     gallery_settings: GallerySettings,
+    subscription_worker_tx: Option<Sender<Input>>,
 }
 
 impl Gallery {
@@ -51,7 +54,7 @@ impl Gallery {
 
     fn clear(&mut self) {
         self.dir_node = None;
-        self.image_similarity = ImageSimilarity::default();
+        self.image_similarity_map = ImageSimilarityMap::default();
         self.selected_source_image = None;
     }
 }
@@ -62,13 +65,14 @@ impl Default for Gallery {
             // todo: load from config if saved
             dir_node: None,
             selected_source_image: None,
-            running: false,
-            image_similarity: ImageSimilarity::default(),
+            processing: false,
+            image_similarity_map: ImageSimilarityMap::default(),
             thumbnail_size: 160, // サムネイルの正方形サイズ
             spacing: 10,         // 画像間の隙間
             menus: Menus::default(),
             root_dir_select: RootDirSelect::default(),
             gallery_settings: GallerySettings::default(),
+            subscription_worker_tx: None,
         }
     }
 }

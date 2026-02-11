@@ -4,7 +4,7 @@ use iced::widget::{
 use iced::{Element, Length, Size};
 use swdir::DirNode;
 
-use crate::app::utils::gallery::image_similarity::ImageSimilarity;
+use crate::app::utils::gallery::image_similarity::ImageSimilarityMap;
 
 use super::{Gallery, message::Message};
 
@@ -24,7 +24,7 @@ impl Gallery {
         let selected_source_image_label = text(
             if let Some(selected_source_image) = self.selected_source_image.as_ref() {
                 let mut ret = selected_source_image.to_string_lossy().to_string();
-                if self.running {
+                if self.processing {
                     ret = format!("{} (calculating...)", ret);
                 }
                 ret
@@ -51,7 +51,7 @@ impl Gallery {
             .center_y(Length::Fill);
 
         // スクロール可能にする
-        let has_image_similarity = !self.image_similarity.is_empty();
+        let has_image_similarity = !self.image_similarity_map.is_empty();
         let settings = self
             .gallery_settings
             .view(has_image_similarity)
@@ -82,7 +82,7 @@ impl Gallery {
 
         if let Some(image_columns) = image_columns(
             self.dir_node.as_ref().unwrap(),
-            &self.image_similarity,
+            &self.image_similarity_map,
             self.gallery_settings.similarity_quality(),
             columns,
             self.thumbnail_size,
@@ -97,7 +97,7 @@ impl Gallery {
 
 fn image_columns<'a>(
     dir_node: &'a DirNode,
-    image_similarity: &'a ImageSimilarity,
+    image_similarity: &'a ImageSimilarityMap,
     similarity_quality: f32,
     columns: usize,
     thumbnail_size: u32,

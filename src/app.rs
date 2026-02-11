@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use app_json_settings::ConfigManager;
-use iced::{Element, Task};
+use iced::{Element, Subscription, Task};
 
 pub(super) mod components;
 mod settings;
@@ -31,7 +31,9 @@ pub enum Message {
 
 impl App {
     pub fn start() -> iced::Result {
-        iced::application(App::new, App::update, App::view).run()
+        iced::application(App::new, App::update, App::view)
+            .subscription(App::subscription)
+            .run()
     }
 
     fn new() -> (Self, Task<Message>) {
@@ -84,5 +86,10 @@ impl App {
                 task.map(Message::ModelLoaderMessage)
             }
         }
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        let subscriptions = [self.gallery.subscription().map(Message::GalleryMessage)];
+        Subscription::batch(subscriptions)
     }
 }
