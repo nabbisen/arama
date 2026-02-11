@@ -38,7 +38,10 @@ impl Gallery {
     pub fn default_task(&self) -> Task<message::Message> {
         if let Some(dir_node) = &self.dir_node {
             Task::perform(
-                util::load_images(dir_node.path.clone()),
+                util::load_images(
+                    dir_node.path.clone(),
+                    self.gallery_settings.swdir_depth_limit(),
+                ),
                 message::Message::ImagesLoaded,
             )
         } else {

@@ -51,18 +51,12 @@ impl Gallery {
             .center_y(Length::Fill);
 
         // スクロール可能にする
-        let scrollable = scrollable(container);
-
-        // settings
-        let mut scrollable_with_settings = column![];
-        if !self.image_similarity.is_empty() {
-            scrollable_with_settings = scrollable_with_settings.push(
-                self.gallery_settings
-                    .view()
-                    .map(Message::GallerySettingsMessage),
-            );
-        }
-        scrollable_with_settings = scrollable_with_settings.push(scrollable);
+        let has_image_similarity = !self.image_similarity.is_empty();
+        let settings = self
+            .gallery_settings
+            .view(has_image_similarity)
+            .map(Message::GallerySettingsMessage);
+        let scrollable_with_settings = column![settings, scrollable(container)];
 
         column![
             menus,
