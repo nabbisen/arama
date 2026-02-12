@@ -10,7 +10,6 @@ pub async fn load_images(path: PathBuf, swdir_depth_limit: Option<usize>) -> Dir
         .set_root_path(path)
         .set_recurse(Recurse {
             enabled: true,
-            skip_hidden: true,
             depth_limit: swdir_depth_limit,
         })
         .set_extension_allowlist(EXTENSION_ALLOWLIST)
