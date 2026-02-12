@@ -87,6 +87,7 @@ impl Gallery {
             columns,
             self.thumbnail_size,
             self.spacing,
+            self.processing,
         ) {
             image_columns
         } else {
@@ -102,6 +103,7 @@ fn image_columns<'a>(
     columns: usize,
     thumbnail_size: u32,
     spacing: u32,
+    processing: bool,
 ) -> Option<Element<'a, Message>> {
     // 画像パスのリストを、カラム数ごとに分割（チャンク化）して行を作成
     let files_rows: Vec<Element<Message>> = dir_node
@@ -131,7 +133,11 @@ fn image_columns<'a>(
                             "".into()
                         };
                     column![
-                        mouse_area(image).on_double_click(Message::ImageSelect(path.clone())),
+                        if !processing {
+                            mouse_area(image).on_double_click(Message::ImageSelect(path.clone()))
+                        } else {
+                            mouse_area(image)
+                        },
                         text(image_similarity)
                     ]
                     .into()
@@ -154,6 +160,7 @@ fn image_columns<'a>(
                 columns,
                 thumbnail_size,
                 spacing,
+                processing,
             )
         })
         .filter(|x| x.is_some())

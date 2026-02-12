@@ -93,10 +93,6 @@ impl Gallery {
                 task
             }
             Message::ImageSelect(path) => {
-                if self.processing {
-                    return Task::none();
-                }
-
                 self.processing = true;
                 self.selected_source_image = Some(path.clone());
 
