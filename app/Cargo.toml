@@ -33,17 +33,6 @@ rfd = "0.17"
 
 anyhow = "1"
 app-json-settings = "2"
-image = "0"
-pt2safetensors = "0"
 rayon = "1"
 serde = { version = "1", features = ["derive"] }
 swdir = "0"
-
-# image comparison
-candle-core = "0.9"
-candle-nn = "0.9"
-candle-transformers = "0.9" # 一般的なモデルの実装が含まれる
-
-# ai model loader
-reqwest = { version = "0.13", default-features = false, features = ["multipart", "rustls"] }
-tokio = { version = "1.49", default-features = false, features = ["fs"] }

@@ -1,6 +1,5 @@
-use std::path::Path;
-
 use app_json_settings::ConfigManager;
+use arama_engine::model::clip::has_model;
 use iced::{Element, Subscription, Task};
 
 pub(super) mod components;
@@ -13,9 +12,6 @@ use crate::core::{
     components::common::model_loader::{self, ModelLoader},
     settings::Settings,
 };
-
-const PYTORCH_MODEL: &str = "pytorch_model.bin";
-const URL: &str = "https://huggingface.co/openai/clip-vit-base-patch32/resolve/main/pytorch_model.bin?download=true";
 
 pub struct App {
     gallery: Gallery,
@@ -44,9 +40,13 @@ impl App {
 
         let model_loader = ModelLoader::default();
 
-        let task = gallery
-            .default_task()
-            .map(|message| Message::GalleryMessage(message));
+        let task = if has_model() {
+            gallery
+                .default_task()
+                .map(|message| Message::GalleryMessage(message))
+        } else {
+            Task::none()
+        };
 
         (
             Self {
@@ -58,7 +58,7 @@ impl App {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        if !Path::new(arama_engine::SAFETENSORS_MODEL).exists() {
+        if !has_model() {
             return self
                 .model_loader
                 .view()
