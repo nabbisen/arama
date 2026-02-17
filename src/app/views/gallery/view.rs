@@ -1,10 +1,12 @@
+use std::path::PathBuf;
+
 use iced::widget::{
     Responsive, column, container, image, mouse_area, row, scrollable, space, text,
 };
 use iced::{Element, Length, Size};
 use swdir::DirNode;
 
-use crate::app::utils::gallery::image_similarity::ImageSimilarityMap;
+use crate::engine::store::file::file_embedding_map::FileEmbeddingMap;
 
 use super::{Gallery, message::Message};
 
@@ -51,7 +53,7 @@ impl Gallery {
             .center_y(Length::Fill);
 
         // スクロール可能にする
-        let has_image_similarity = !self.image_similarity_map.is_empty();
+        let has_image_similarity = !self.file_embedding_map.is_empty();
         let settings = self
             .gallery_settings
             .view(has_image_similarity)
@@ -81,13 +83,14 @@ impl Gallery {
         let columns = columns.max(1);
 
         if let Some(image_columns) = image_columns(
-            self.dir_node.as_ref().unwrap(),
-            &self.image_similarity_map,
-            self.gallery_settings.similarity_quality(),
+            &self.file_similar_pairs,
+            // self.dir_node.as_ref().unwrap(),
+            // &self.file_embedding_map,
+            // self.gallery_settings.similarity_quality(),
             columns,
             self.thumbnail_size,
-            self.spacing,
-            self.processing,
+            // self.spacing,
+            // self.processing,
         ) {
             image_columns
         } else {
@@ -97,90 +100,125 @@ impl Gallery {
 }
 
 fn image_columns<'a>(
-    dir_node: &'a DirNode,
-    image_similarity: &'a ImageSimilarityMap,
-    similarity_quality: f32,
+    similar_pairs: &Vec<(PathBuf, PathBuf, f32)>,
+    // dir_node: &'a DirNode,
+    // image_similarity: &'a FileEmbeddingMap,
+    // similarity_quality: f32,
     columns: usize,
     thumbnail_size: u32,
-    spacing: u32,
-    processing: bool,
+    // spacing: u32,
+    // processing: bool,
 ) -> Option<Element<'a, Message>> {
-    // 画像パスのリストを、カラム数ごとに分割（チャンク化）して行を作成
-    let files_rows: Vec<Element<Message>> = dir_node
-        .files
+    if similar_pairs.is_empty() {
+        return None;
+    }
+    let ret = similar_pairs
         .chunks(columns)
+        // .iter()
         .map(|chunk| {
-            let images: Vec<Element<Message>> = chunk
+            row(chunk
                 .iter()
-                .filter(|path| {
-                    if let Some(image_similarity) = image_similarity.get_score(path) {
-                        similarity_quality <= image_similarity
-                    } else {
-                        true
-                    }
-                })
-                .map(|path| {
-                    // 画像ウィジェットの作成
-                    // ContentFit::Coverで正方形にトリミング表示
-                    let image = image(path.as_path())
-                        .width(thumbnail_size)
-                        .height(thumbnail_size)
-                        .content_fit(iced::ContentFit::Cover);
-                    let image_similarity =
-                        if let Some(image_similarity) = image_similarity.get_score(path) {
-                            image_similarity.to_string()
-                        } else {
-                            "".into()
-                        };
+                .map(|(path1, path2, similarity)| {
                     column![
-                        if !processing {
-                            mouse_area(image).on_double_click(Message::ImageSelect(path.clone()))
-                        } else {
-                            mouse_area(image)
-                        },
-                        text(image_similarity)
+                        image(path1.as_path())
+                            .width(thumbnail_size)
+                            .height(thumbnail_size)
+                            .content_fit(iced::ContentFit::Cover),
+                        image(path2.as_path())
+                            .width(thumbnail_size)
+                            .height(thumbnail_size)
+                            .content_fit(iced::ContentFit::Cover),
+                        text(similarity.to_string())
                     ]
                     .into()
                 })
-                .collect();
-
-            // 画像を横に並べる
-            row(images).spacing(spacing).into()
+                .collect::<Vec<Element<Message>>>())
+            .into()
         })
-        .collect();
+        .collect::<Vec<Element<Message>>>();
+    Some(column(ret).into())
+    // // 画像パスのリストを、カラム数ごとに分割（チャンク化）して行を作成
+    // let files_rows: Vec<Element<Message>> = dir_node
+    //     .files
+    //     .chunks(columns)
+    //     .map(|chunk| {
+    //         let images: Vec<Element<Message>> = chunk
+    //             .iter()
+    //             // todo
+    //             // .filter(|path| {
+    //             //     if let Some(image_similarity) = image_similarity.get_score(path) {
+    //             //         similarity_quality <= image_similarity
+    //             //     } else {
+    //             //         true
+    //             //     }
+    //             // })
+    //             .map(|path| {
+    //                 // 画像ウィジェットの作成
+    //                 // ContentFit::Coverで正方形にトリミング表示
+    //                 let image = image(path.as_path())
+    //                     .width(thumbnail_size)
+    //                     .height(thumbnail_size)
+    //                     .content_fit(iced::ContentFit::Cover);
+    //                 let image_similarity =
+    //                     if let Some(embedding) = image_similarity.get_embedding(path) {
+    //                         embedding
+    //                             .iter()
+    //                             .map(|x| x * x)
+    //                             .sum::<f32>()
+    //                             .sqrt()
+    //                             .to_string()
+    //                     } else {
+    //                         "".into()
+    //                     };
+    //                 column![
+    //                     if !processing {
+    //                         mouse_area(image).on_double_click(Message::ImageSelect(path.clone()))
+    //                     } else {
+    //                         mouse_area(image)
+    //                     },
+    //                     text(image_similarity)
+    //                 ]
+    //                 .into()
+    //             })
+    //             .collect();
 
-    let sub_dirs_rows = dir_node
-        .sub_dirs
-        .iter()
-        .map(|sub_dir_node| {
-            image_columns(
-                sub_dir_node,
-                image_similarity,
-                similarity_quality,
-                columns,
-                thumbnail_size,
-                spacing,
-                processing,
-            )
-        })
-        .filter(|x| x.is_some())
-        .collect::<Vec<Option<Element<Message>>>>();
+    //         // 画像を横に並べる
+    //         row(images).spacing(spacing).into()
+    //     })
+    //     .collect();
 
-    if files_rows.is_empty() && sub_dirs_rows.is_empty() {
-        return None;
-    }
+    // let sub_dirs_rows = dir_node
+    //     .sub_dirs
+    //     .iter()
+    //     .map(|sub_dir_node| {
+    //         image_columns(
+    //             sub_dir_node,
+    //             image_similarity,
+    //             similarity_quality,
+    //             columns,
+    //             thumbnail_size,
+    //             spacing,
+    //             processing,
+    //         )
+    //     })
+    //     .filter(|x| x.is_some())
+    //     .collect::<Vec<Option<Element<Message>>>>();
 
-    // 行を縦に並べる
-    let mut ret = column![];
+    // if files_rows.is_empty() && sub_dirs_rows.is_empty() {
+    //     return None;
+    // }
 
-    if !files_rows.is_empty() {
-        ret = ret.push(text(dir_node.path.to_string_lossy()));
-        ret = ret.extend(files_rows);
-    }
+    // // 行を縦に並べる
+    // let mut ret = column![];
 
-    if !sub_dirs_rows.is_empty() {
-        ret = ret.extend(sub_dirs_rows.into_iter().map(|x| x.unwrap()));
-    }
+    // if !files_rows.is_empty() {
+    //     ret = ret.push(text(dir_node.path.to_string_lossy()));
+    //     ret = ret.extend(files_rows);
+    // }
 
-    Some(ret.spacing(spacing).into())
+    // if !sub_dirs_rows.is_empty() {
+    //     ret = ret.extend(sub_dirs_rows.into_iter().map(|x| x.unwrap()));
+    // }
+
+    // Some(ret.spacing(spacing).into())
 }

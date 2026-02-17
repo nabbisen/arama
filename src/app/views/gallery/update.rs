@@ -3,13 +3,15 @@ use iced::Task;
 use swdir::DirNode;
 
 use super::{Gallery, message::Message, subscription::Input};
-use crate::app::{
-    components::gallery::{
-        gallery_settings::{self, swdir_depth_limit},
-        menus, root_dir_select,
+use crate::{
+    app::{
+        components::gallery::{
+            gallery_settings::{self, swdir_depth_limit},
+            menus, root_dir_select,
+        },
+        settings::Settings,
     },
-    settings::Settings,
-    utils::gallery::image_similarity::ImageSimilarityMap,
+    engine::store::file::file_embedding_map::FileEmbeddingMap,
 };
 
 impl Gallery {
@@ -17,7 +19,18 @@ impl Gallery {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::ImagesLoaded(dir_node) => {
-                self.dir_node = Some(dir_node);
+                self.dir_node = Some(dir_node.clone());
+                Task::perform(
+                    super::util::calculate_embedding(
+                        dir_node,
+                        self.gallery_settings.similarity_quality(),
+                    ),
+                    super::message::Message::EmbeddingCalculated,
+                )
+            }
+            Message::EmbeddingCalculated(calculated) => {
+                self.file_embedding_map = calculated.0;
+                self.file_similar_pairs = calculated.1;
                 Task::none()
             }
             Message::MenusMessage(message) => match message {
@@ -98,7 +111,8 @@ impl Gallery {
 
                 if let Some(tx) = &mut self.subscription_worker_tx {
                     if let Some(dir_node) = self.dir_node.clone() {
-                        let _ = tx.try_send(Input::ImageSimilarity((path, dir_node)));
+                        // let _ = tx.try_send(Input::ImageSimilarity((path, dir_node)));
+                        let _ = tx.try_send(Input::ImageSimilarity(dir_node));
                     }
                 }
 
@@ -108,25 +122,25 @@ impl Gallery {
                 self.subscription_worker_tx = Some(tx);
 
                 if let Some(tx) = &mut self.subscription_worker_tx {
-                    if let Some(path) = self.selected_source_image.clone() {
-                        if let Some(dir_node) = self.dir_node.clone() {
-                            let _ = tx.try_send(Input::ImageSimilarity((path, dir_node)));
-                        }
+                    // if let Some(path) = self.selected_source_image.clone() {
+                    if let Some(dir_node) = self.dir_node.clone() {
+                        // let _ = tx.try_send(Input::ImageSimilarity((path, dir_node)));
+                        let _ = tx.try_send(Input::ImageSimilarity(dir_node));
                     }
+                    // }
                 }
 
                 Task::none()
             }
-            Message::SubscriptionWorkerFinished(image_similarity) => {
-                self.image_similarity_map
-                    .set_score(image_similarity.path.as_path(), image_similarity.score);
+            Message::SubscriptionWorkerFinished(file_embedding) => {
+                self.file_embedding_map.set_embedding(&file_embedding);
                 self.processing = false;
                 Task::none()
             }
             Message::SubscriptionWorkerFailed => {
                 // error handling
                 eprintln!("failed to calculate image similarity in background");
-                self.image_similarity_map = ImageSimilarityMap::default();
+                self.file_embedding_map = FileEmbeddingMap::default();
                 self.processing = false;
                 Task::none()
             }

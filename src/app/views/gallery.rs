@@ -3,11 +3,11 @@ use swdir::DirNode;
 
 use std::path::PathBuf;
 
-use crate::app::{
-    components::gallery::{
+use crate::{
+    app::components::gallery::{
         gallery_settings::GallerySettings, menus::Menus, root_dir_select::RootDirSelect,
     },
-    utils::gallery::image_similarity::ImageSimilarityMap,
+    engine::store::file::file_embedding_map::FileEmbeddingMap,
 };
 use subscription::Input;
 
@@ -22,7 +22,8 @@ pub struct Gallery {
     dir_node: Option<DirNode>,
     selected_source_image: Option<PathBuf>,
     processing: bool,
-    image_similarity_map: ImageSimilarityMap,
+    file_embedding_map: FileEmbeddingMap,
+    file_similar_pairs: Vec<(PathBuf, PathBuf, f32)>,
     thumbnail_size: u32,
     spacing: u32,
     menus: Menus,
@@ -54,7 +55,7 @@ impl Gallery {
 
     fn clear(&mut self) {
         self.dir_node = None;
-        self.image_similarity_map = ImageSimilarityMap::default();
+        self.file_embedding_map = FileEmbeddingMap::default();
         self.selected_source_image = None;
     }
 }
@@ -66,7 +67,8 @@ impl Default for Gallery {
             dir_node: None,
             selected_source_image: None,
             processing: false,
-            image_similarity_map: ImageSimilarityMap::default(),
+            file_embedding_map: FileEmbeddingMap::default(),
+            file_similar_pairs: vec![],
             thumbnail_size: 160, // サムネイルの正方形サイズ
             spacing: 10,         // 画像間の隙間
             menus: Menus::default(),
