@@ -1,0 +1,42 @@
+[package]
+name = "arama-engine"
+version = "0.6.0"
+edition = "2024"
+
+description = "Image viewer and similarity calculator with offline AI power"
+authors = ["nabbisen <nabbisen@scqr.net>"]
+license = "Apache-2.0"
+
+categories = ["gui"]
+keywords = ["image", "walk", "filter"]
+repository = "https://github.com/nabbisen/arama"
+readme = "README.md"
+rust-version = "1.90.0"
+
+[profile.release]     # shrink executable size
+opt-level = "z"
+lto = true
+# panic = "abort"
+strip = true
+codegen-units = 1
+
+[profile.dev]         # to improve productivity
+opt-level = 1         # slightly optimize
+lto = false           # disable link-time optimizations
+incremental = false
+
+[dependencies]
+anyhow = "1"
+image = "0"
+naga = "28"
+rayon = "1"
+
+# image comparison
+candle-core = "0.9"
+candle-nn = "0.9"
+candle-transformers = "0.9" # 一般的なモデルの実装が含まれる
+
+# ai model loader
+reqwest = { version = "0.13", default-features = false, features = ["multipart", "rustls"] }
+tokio = { version = "1.49", default-features = false, features = ["fs"] }
+pt2safetensors = "0"
