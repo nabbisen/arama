@@ -61,7 +61,7 @@ impl ModelLoader {
 
                 pt2safetensors::Pt2Safetensors::default()
                     .removes_pt_at_conversion_success()
-                    .convert(&path, &crate::app::SAFETENSORS_MODEL.into())
+                    .convert(&path, &crate::engine::SAFETENSORS_MODEL.into())
                     .expect("failed to convert pytorch to safetensors");
 
                 Task::none()
