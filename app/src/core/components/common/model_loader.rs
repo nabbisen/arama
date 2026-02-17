@@ -1,14 +1,13 @@
+use arama_engine::model::clip::get_model;
 use iced::{
     Element, Task,
     widget::{button, column, container, space, text},
 };
 
-use std::path::PathBuf;
-
 #[derive(Clone)]
 pub enum Message {
     LoadStart,
-    Loaded(Result<PathBuf, String>),
+    Loaded(Result<(), String>),
 }
 
 #[derive(Default)]
@@ -31,39 +30,12 @@ impl ModelLoader {
             Message::LoadStart => {
                 self.message = "loading...".to_owned();
 
-                Task::perform(
-                    async {
-                        let response = reqwest::get(crate::core::URL).await;
-                        match response {
-                            Ok(response) => {
-                                let bytes =
-                                    response.bytes().await.expect("failed to get model bytes");
-                                let path = crate::core::PYTORCH_MODEL;
-                                match tokio::fs::write(path, &bytes).await {
-                                    Ok(_) => Ok(PathBuf::from(path)),
-                                    Err(err) => Err(err.to_string()),
-                                }
-                            }
-                            Err(err) => Err(err.to_string()),
-                        }
-                    },
-                    Message::Loaded,
-                )
+                Task::perform(get_model(), Message::Loaded)
             }
-            Message::Loaded(path) => {
-                self.message = String::default();
-
-                let path = if let Ok(path) = path {
-                    path
-                } else {
-                    return Task::none();
-                };
-
-                pt2safetensors::Pt2Safetensors::default()
-                    .removes_pt_at_conversion_success()
-                    .convert(&path, &arama_engine::SAFETENSORS_MODEL.into())
-                    .expect("failed to convert pytorch to safetensors");
-
+            Message::Loaded(result) => {
+                if let Err(err) = result {
+                    self.message = err;
+                }
                 Task::none()
             }
         }

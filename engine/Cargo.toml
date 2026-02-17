@@ -29,7 +29,6 @@ incremental = false
 anyhow = "1"
 image = "0"
 naga = "28"
-rayon = "1"
 
 # image comparison
 candle-core = "0.9"

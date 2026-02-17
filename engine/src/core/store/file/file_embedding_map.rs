@@ -25,7 +25,7 @@ impl FileEmbeddingMap {
     }
 
     pub fn similar_pairs(&self, threshold: f32) -> anyhow::Result<Vec<(PathBuf, PathBuf, f32)>> {
-        crate::core::pipeline::clip::inference::clip_calculator::find_similar_pairs(
+        crate::core::pipeline::infer::clip::clip_calculator::find_similar_pairs(
             &self.files,
             threshold,
         )

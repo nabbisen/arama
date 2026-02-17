@@ -13,7 +13,6 @@ use crate::core::{
 use arama_engine::store::file::file_embedding_map::FileEmbeddingMap;
 
 impl Gallery {
-    // アプリケーション初期化時に画像を読み込むTaskを発行
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::ImagesLoaded(dir_node) => {
