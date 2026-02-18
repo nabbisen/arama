@@ -133,7 +133,7 @@ dependencies = [
 
 [[package]]
 name = "arama-app"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "app-json-settings",
@@ -148,7 +148,7 @@ dependencies = [
 
 [[package]]
 name = "arama-embedding"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "candle-core",
@@ -163,7 +163,7 @@ dependencies = [
 
 [[package]]
 name = "arama-widget"
-version = "0.1.0"
+version = "0.7.0"
 dependencies = [
  "iced",
 ]
