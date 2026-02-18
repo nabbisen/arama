@@ -6,5 +6,5 @@ use super::FileNode;
 pub enum Message {
     TreeLoaded(FileNode),
     ToggleExpand((PathBuf, bool, bool)), // フォルダの開閉
-    SelectFolder(PathBuf),               // フォルダの選択
+    DirectoryClick(PathBuf),             // フォルダの選択
 }

@@ -24,11 +24,7 @@ impl FileNode {
                 self.update_tree_lazy(&path, include_file, include_hidden);
                 Task::none()
             }
-            Message::SelectFolder(_) => {
-                // self.selected_path = Some(path);
-                // // ここでファイル一覧の取得などの処理を走らせる
-                Task::none()
-            }
+            _ => Task::none(),
         }
     }
 
