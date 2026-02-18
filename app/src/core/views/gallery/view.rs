@@ -56,10 +56,7 @@ impl Gallery {
             .map(Message::GallerySettingsMessage);
         let scrollable_with_settings = column![settings, scrollable(container)];
 
-        let directory_tree = self
-            .directory_tree
-            .view()
-            .map(Message::DirectoryTreeMessage);
+        let directory_tree = self.directory_tree.view().map(Message::DirTreeMessage);
 
         row![
             scrollable(directory_tree).width(400).height(Fill),

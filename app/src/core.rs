@@ -31,12 +31,14 @@ impl App {
     }
 
     fn new() -> (Self, Task<Message>) {
-        let settings = ConfigManager::<Settings>::new().load_or_default();
-        let gallery = if let Ok(settings) = settings {
-            Gallery::new(&settings.root_dir_path)
-        } else {
-            Gallery::default()
+        let settings = match ConfigManager::<Settings>::new().load_or_default() {
+            Ok(x) => Some(x),
+            Err(err) => {
+                eprintln!("failed to load settings: {:?}", err);
+                None
+            }
         };
+        let gallery = Gallery::new(settings.as_ref());
 
         let model_loader = ModelLoader::default();
 

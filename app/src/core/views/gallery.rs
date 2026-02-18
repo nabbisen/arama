@@ -1,10 +1,13 @@
-use arama_widget::directory_tree::DirectoryTree;
+use arama_widget::dir_tree::DirTree;
 use iced::{Task, futures::channel::mpsc::Sender};
 use swdir::DirNode;
 
 use std::path::PathBuf;
 
-use crate::core::components::gallery::{gallery_settings::GallerySettings, menus::Menus};
+use crate::core::{
+    components::gallery::{gallery_settings::GallerySettings, menus::Menus},
+    settings::Settings,
+};
 use arama_embedding::store::file::file_embedding_map::FileEmbeddingMap;
 use subscription::Input;
 
@@ -26,14 +29,30 @@ pub struct Gallery {
     menus: Menus,
     gallery_settings: GallerySettings,
     subscription_worker_tx: Option<Sender<Input>>,
-    directory_tree: DirectoryTree,
+    directory_tree: DirTree,
 }
 
 impl Gallery {
-    pub fn new(root_dir_path: &str) -> Self {
-        let mut ret: Gallery = Self::default();
-        ret.dir_node = Some(DirNode::with_path(root_dir_path));
-        ret
+    pub fn new(settings: Option<&Settings>) -> Self {
+        let path = if let Some(settings) = settings {
+            &settings.root_dir_path
+        } else {
+            "."
+        };
+
+        Self {
+            dir_node: Some(DirNode::with_path(path)),
+            selected_source_image: None,
+            processing: false,
+            file_embedding_map: FileEmbeddingMap::default(),
+            file_similar_pairs: vec![],
+            thumbnail_size: 160, // サムネイルの正方形サイズ
+            spacing: 10,         // 画像間の隙間
+            menus: Menus::default(),
+            gallery_settings: GallerySettings::default(),
+            subscription_worker_tx: None,
+            directory_tree: DirTree::new(path, false, false),
+        }
     }
 
     pub fn default_task(&self) -> Task<message::Message> {
@@ -54,24 +73,5 @@ impl Gallery {
         self.dir_node = None;
         self.file_embedding_map = FileEmbeddingMap::default();
         self.selected_source_image = None;
-    }
-}
-
-impl Default for Gallery {
-    fn default() -> Self {
-        Self {
-            // todo: load from config if saved
-            dir_node: None,
-            selected_source_image: None,
-            processing: false,
-            file_embedding_map: FileEmbeddingMap::default(),
-            file_similar_pairs: vec![],
-            thumbnail_size: 160, // サムネイルの正方形サイズ
-            spacing: 10,         // 画像間の隙間
-            menus: Menus::default(),
-            gallery_settings: GallerySettings::default(),
-            subscription_worker_tx: None,
-            directory_tree: DirectoryTree::new(".", false, false),
-        }
     }
 }

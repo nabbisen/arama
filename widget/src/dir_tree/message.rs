@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::directory_tree::file_node;
+use super::file_node;
 
 #[derive(Debug, Clone)]
 pub enum Message {

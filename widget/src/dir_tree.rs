@@ -3,7 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::directory_tree::file_node::FileNode;
+use file_node::FileNode;
 
 mod file_node;
 pub mod message;
@@ -13,7 +13,7 @@ pub mod view;
 const DOUBLE_CLICK_INTERVAL_MILLIS: Duration = Duration::from_millis(600);
 
 #[derive(Clone, Debug)]
-pub struct DirectoryTree {
+pub struct DirTree {
     root: FileNode,
     include_file: bool,
     include_hidden: bool,
@@ -21,7 +21,7 @@ pub struct DirectoryTree {
     selected_path: Option<PathBuf>,
 }
 
-impl DirectoryTree {
+impl DirTree {
     /// 指定したパスからノードを作成（再帰的に読み込む場合は recursive = true）
     pub fn new<T: Into<PathBuf>>(path: T, include_file: bool, include_hidden: bool) -> Self {
         Self {

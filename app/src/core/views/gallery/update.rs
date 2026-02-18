@@ -1,5 +1,5 @@
 use app_json_settings::ConfigManager;
-use arama_widget::directory_tree;
+use arama_widget::dir_tree;
 use iced::Task;
 use swdir::DirNode;
 
@@ -109,11 +109,11 @@ impl Gallery {
                 self.processing = false;
                 Task::none()
             }
-            Message::DirectoryTreeMessage(message) => {
+            Message::DirTreeMessage(message) => {
                 let task = self.directory_tree.update(message.clone());
 
                 match message {
-                    arama_widget::directory_tree::message::Message::DirectoryDoubleClick(path) => {
+                    dir_tree::message::Message::DirectoryDoubleClick(path) => {
                         ConfigManager::new()
                             .save(&Settings {
                                 root_dir_path: path.to_string_lossy().into(),
@@ -135,7 +135,7 @@ impl Gallery {
                     _ => (),
                 }
 
-                task.map(Message::DirectoryTreeMessage)
+                task.map(Message::DirTreeMessage)
             }
         }
     }

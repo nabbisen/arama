@@ -1,9 +1,9 @@
 use iced::Element;
 
-use super::DirectoryTree;
+use super::DirTree;
 use super::message::Message;
 
-impl DirectoryTree {
+impl DirTree {
     pub fn view(&self) -> Element<'static, Message> {
         self.root
             .view(

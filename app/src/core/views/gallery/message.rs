@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use arama_widget::dir_tree;
 use iced::futures::channel::mpsc::Sender;
 use swdir::DirNode;
 
@@ -19,5 +20,5 @@ pub enum Message {
     SubscriptionWorkerReady(Sender<Input>),
     SubscriptionWorkerFinished(FileEmbedding),
     SubscriptionWorkerFailed,
-    DirectoryTreeMessage(arama_widget::directory_tree::message::Message),
+    DirTreeMessage(dir_tree::message::Message),
 }
