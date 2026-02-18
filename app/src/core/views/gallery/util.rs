@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use swdir::{DirNode, Recurse};
 
-use arama_engine::{
+use arama_embedding::{
     pipeline::infer::clip::{clip, clip_calculator},
     store::file::file_embedding_map::FileEmbeddingMap,
 };

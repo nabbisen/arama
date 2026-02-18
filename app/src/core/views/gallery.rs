@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use crate::core::components::gallery::{
     gallery_settings::GallerySettings, menus::Menus, root_dir_select::RootDirSelect,
 };
-use arama_engine::store::file::file_embedding_map::FileEmbeddingMap;
+use arama_embedding::store::file::file_embedding_map::FileEmbeddingMap;
 use subscription::Input;
 
 pub mod message;

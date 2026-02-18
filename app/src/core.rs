@@ -1,5 +1,5 @@
 use app_json_settings::ConfigManager;
-use arama_engine::model::clip::has_model;
+use arama_embedding::model::clip::has_model;
 use iced::{Element, Subscription, Task};
 
 pub(super) mod components;

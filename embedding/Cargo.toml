@@ -1,5 +1,5 @@
 [package]
-name = "arama-engine"
+name = "arama-embedding"
 version = "0.6.0"
 edition = "2024"
 

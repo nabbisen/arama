@@ -11,7 +11,7 @@ use swdir::DirNode;
 
 use std::path::PathBuf;
 
-use arama_engine::{
+use arama_embedding::{
     store::file::file_embedding::FileEmbedding,
     // pipeline::clip::inference::{self, calculator::Calculator, clip},
 };

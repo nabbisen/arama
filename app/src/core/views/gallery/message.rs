@@ -5,7 +5,7 @@ use swdir::DirNode;
 
 use super::subscription::Input;
 use crate::core::components::gallery::{gallery_settings, menus, root_dir_select};
-use arama_engine::store::file::{
+use arama_embedding::store::file::{
     file_embedding::FileEmbedding, file_embedding_map::FileEmbeddingMap,
 };
 

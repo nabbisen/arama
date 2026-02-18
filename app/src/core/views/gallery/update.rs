@@ -10,7 +10,7 @@ use crate::core::{
     },
     settings::Settings,
 };
-use arama_engine::store::file::file_embedding_map::FileEmbeddingMap;
+use arama_embedding::store::file::file_embedding_map::FileEmbeddingMap;
 
 impl Gallery {
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -139,6 +139,10 @@ impl Gallery {
                 eprintln!("failed to calculate image similarity in background");
                 self.file_embedding_map = FileEmbeddingMap::default();
                 self.processing = false;
+                Task::none()
+            }
+            Message::DirectoryTreeMessage(message) => {
+                let _ = self.directory_tree.update(message);
                 Task::none()
             }
         }
