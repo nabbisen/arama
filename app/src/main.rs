@@ -1,3 +1,3 @@
 fn main() {
-    let _ = arama_app::start();
+    let _ = arama::start();
 }

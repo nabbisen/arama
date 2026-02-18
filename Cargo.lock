@@ -132,7 +132,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "arama-app"
+name = "arama"
 version = "0.7.1"
 dependencies = [
  "anyhow",
