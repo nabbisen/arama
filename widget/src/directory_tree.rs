@@ -19,7 +19,7 @@ impl DirectoryTree {
     /// 指定したパスからノードを作成（再帰的に読み込む場合は recursive = true）
     pub fn new<T: Into<PathBuf>>(path: T, include_file: bool, include_hidden: bool) -> Self {
         Self {
-            root: FileNode::new(path, true),
+            root: FileNode::new(path, true, true),
             include_file,
             include_hidden,
             selected_path: None,

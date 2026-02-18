@@ -37,8 +37,10 @@ impl FileNode {
             self.is_expanded = !self.is_expanded;
 
             // フォルダが開かれ、かつ中身がまだ空なら読み込む
-            if self.is_expanded && self.children.is_empty() {
+            if self.is_expanded {
                 if let Ok(entries) = fs::read_dir(&self.path) {
+                    self.children.clear();
+
                     for entry in entries.flatten() {
                         if !include_file {
                             if let Ok(file_type) = entry.file_type() {
@@ -54,7 +56,8 @@ impl FileNode {
                             }
                         }
 
-                        self.children.push(FileNode::new(entry.path(), false)); // 子のさらに下は読み込まない
+                        self.children
+                            .push(FileNode::new(entry.path(), false, false)); // 子のさらに下は読み込まない
                     }
                 }
             }

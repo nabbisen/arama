@@ -68,7 +68,7 @@ impl Gallery {
             .map(Message::DirectoryTreeMessage);
 
         row![
-            scrollable(directory_tree).height(Fill),
+            scrollable(directory_tree).width(400).height(Fill),
             column![
                 menus,
                 root_dir_select,
