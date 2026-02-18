@@ -1,3 +1,4 @@
+use arama_widget::directory_tree::DirectoryTree;
 use iced::{Task, futures::channel::mpsc::Sender};
 use swdir::DirNode;
 
@@ -28,6 +29,7 @@ pub struct Gallery {
     root_dir_select: RootDirSelect,
     gallery_settings: GallerySettings,
     subscription_worker_tx: Option<Sender<Input>>,
+    directory_tree: DirectoryTree,
 }
 
 impl Gallery {
@@ -73,6 +75,7 @@ impl Default for Gallery {
             root_dir_select: RootDirSelect::default(),
             gallery_settings: GallerySettings::default(),
             subscription_worker_tx: None,
+            directory_tree: DirectoryTree::new(".", false, false),
         }
     }
 }

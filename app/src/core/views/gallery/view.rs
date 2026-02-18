@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use iced::Length::Fill;
 use iced::widget::{
     Responsive, column, container, image, mouse_area, row, scrollable, space, text,
 };
@@ -7,6 +8,7 @@ use iced::{Element, Length, Size};
 use swdir::DirNode;
 
 use arama_engine::store::file::file_embedding_map::FileEmbeddingMap;
+use arama_widget::directory_tree;
 
 use super::{Gallery, message::Message};
 
@@ -60,11 +62,19 @@ impl Gallery {
             .map(Message::GallerySettingsMessage);
         let scrollable_with_settings = column![settings, scrollable(container)];
 
-        column![
-            menus,
-            root_dir_select,
-            selected_source_image_label,
-            scrollable_with_settings
+        let directory_tree = self
+            .directory_tree
+            .view()
+            .map(Message::DirectoryTreeMessage);
+
+        row![
+            scrollable(directory_tree).height(Fill),
+            column![
+                menus,
+                root_dir_select,
+                selected_source_image_label,
+                scrollable_with_settings
+            ]
         ]
         .into()
     }
