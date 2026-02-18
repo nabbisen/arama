@@ -1,5 +1,5 @@
 # arama
 
-![Rust](https://img.shields.io/badge/Rust-%23CE412B?style=flat&logo=rust&logoColor=white)
+[![License](https://img.shields.io/github/license/nabbisen/arama)](https://github.com/nabbisen/arama/blob/main/LICENSE)
 
 Image viewer and similarity calculator with offline AI power
