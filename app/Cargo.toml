@@ -27,6 +27,7 @@ incremental = false
 
 [dependencies]
 arama-engine = { path = "../engine" }
+arama-widget = { path = "../widget" }
 
 iced = { version = "0.14", features = ["image", "tokio"] }
 rfd = "0.17"

@@ -2,5 +2,6 @@
 members = [
     "app",
     "engine",
+    "widget",
 ]
 resolver = "2"

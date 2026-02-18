@@ -1,0 +1,72 @@
+use std::path::PathBuf;
+
+use iced::Element;
+use iced::widget::{Column, button, container, row, text};
+
+use super::FileNode;
+use super::message::Message;
+
+impl FileNode {
+    pub fn view(
+        &self,
+        selected_path: &Option<PathBuf>,
+        depth: u32,
+        include_file: bool,
+        include_hidden: bool,
+    ) -> Element<'static, Message> {
+        let mut content = Column::new().spacing(5);
+
+        // 1行分の表示（アイコン + 名前）
+        let icon = if !self.is_dir {
+            "📄"
+        } else if self.is_expanded {
+            "📂"
+        } else {
+            "📁"
+        };
+
+        let is_selected = selected_path.as_ref() == Some(&self.path);
+
+        // フォルダ名部分のボタン（クリックで選択）
+        let label = button(text(format!("{} {}", icon, self.name)))
+            .on_press(Message::SelectFolder(self.path.clone()))
+            .style(if is_selected {
+                button::primary
+            } else {
+                button::text
+            })
+            .padding([2, 5]);
+
+        // 開閉切り替えボタン（ディレクトリの場合のみ）
+        let row_content = if self.is_dir {
+            let toggle_btn = button(text(if self.is_expanded { "▼" } else { "▶" }))
+                .on_press(Message::ToggleExpand((
+                    self.path.clone(),
+                    include_file,
+                    include_hidden,
+                )))
+                .style(button::text);
+            row![toggle_btn, label].spacing(5)
+        } else {
+            row![text("  "), label].spacing(5)
+        };
+
+        // インデントの適用
+        let row_container = container(row_content).padding([0, (depth * 20) as u16]);
+        content = content.push(row_container);
+
+        // 展開されている場合、子要素を再帰的に描画
+        if self.is_expanded && self.is_dir {
+            for child in &self.children {
+                content = content.push(child.view(
+                    selected_path,
+                    depth + 1,
+                    include_file,
+                    include_hidden,
+                ));
+            }
+        }
+
+        content.into()
+    }
+}

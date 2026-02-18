@@ -20,4 +20,5 @@ pub enum Message {
     SubscriptionWorkerReady(Sender<Input>),
     SubscriptionWorkerFinished(FileEmbedding),
     SubscriptionWorkerFailed,
+    DirectoryTreeMessage(arama_widget::directory_tree::message::Message),
 }
