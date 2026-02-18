@@ -1,1 +1,1 @@
-pub mod directory_tree;
+pub mod dir_tree;

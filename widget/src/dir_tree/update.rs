@@ -2,12 +2,12 @@ use std::time::Instant;
 
 use iced::Task;
 
-use crate::directory_tree::{DOUBLE_CLICK_INTERVAL_MILLIS, file_node};
+use super::{DOUBLE_CLICK_INTERVAL_MILLIS, file_node};
 
-use super::DirectoryTree;
+use super::DirTree;
 use super::message::Message;
 
-impl DirectoryTree {
+impl DirTree {
     // update 関数内での処理例
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
