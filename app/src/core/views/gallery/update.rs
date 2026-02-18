@@ -1,4 +1,5 @@
 use app_json_settings::ConfigManager;
+use arama_widget::directory_tree;
 use iced::Task;
 use swdir::DirNode;
 
@@ -6,7 +7,7 @@ use super::{Gallery, message::Message, subscription::Input};
 use crate::core::{
     components::gallery::{
         gallery_settings::{self, swdir_depth_limit},
-        menus, root_dir_select,
+        menus,
     },
     settings::Settings,
 };
@@ -69,39 +70,6 @@ impl Gallery {
 
                 Task::none()
             }
-            Message::RootDirSelectMessage(message) => {
-                let task = self
-                    .root_dir_select
-                    .update(message.clone())
-                    .map(|message| Message::RootDirSelectMessage(message));
-
-                match message {
-                    root_dir_select::message::Message::DialogClose(path) => {
-                        if let Some(path) = path {
-                            ConfigManager::new()
-                                .save(&Settings {
-                                    root_dir_path: path.to_string_lossy().into(),
-                                })
-                                .expect("failed to save config");
-
-                            self.clear();
-                            let dir_node = DirNode::with_path(path);
-                            self.dir_node = Some(dir_node.clone());
-
-                            return Task::perform(
-                                super::util::load_images(
-                                    dir_node.path.clone(),
-                                    self.gallery_settings.swdir_depth_limit(),
-                                ),
-                                super::message::Message::ImagesLoaded,
-                            );
-                        }
-                    }
-                    _ => (),
-                }
-
-                task
-            }
             Message::ImageSelect(path) => {
                 self.processing = true;
                 self.selected_source_image = Some(path.clone());
@@ -142,8 +110,32 @@ impl Gallery {
                 Task::none()
             }
             Message::DirectoryTreeMessage(message) => {
-                let _ = self.directory_tree.update(message);
-                Task::none()
+                let task = self.directory_tree.update(message.clone());
+
+                match message {
+                    arama_widget::directory_tree::message::Message::DirectoryDoubleClick(path) => {
+                        ConfigManager::new()
+                            .save(&Settings {
+                                root_dir_path: path.to_string_lossy().into(),
+                            })
+                            .expect("failed to save config");
+
+                        self.clear();
+                        let dir_node = DirNode::with_path(path);
+                        self.dir_node = Some(dir_node.clone());
+
+                        return Task::perform(
+                            super::util::load_images(
+                                dir_node.path.clone(),
+                                self.gallery_settings.swdir_depth_limit(),
+                            ),
+                            super::message::Message::ImagesLoaded,
+                        );
+                    }
+                    _ => (),
+                }
+
+                task.map(Message::DirectoryTreeMessage)
             }
         }
     }

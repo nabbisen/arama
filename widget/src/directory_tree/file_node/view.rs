@@ -29,7 +29,7 @@ impl FileNode {
 
         // フォルダ名部分のボタン（クリックで選択）
         let label = button(text(format!("{} {}", icon, self.name)))
-            .on_press(Message::SelectFolder(self.path.clone()))
+            .on_press(Message::DirectoryClick(self.path.clone()))
             .style(if is_selected {
                 button::primary
             } else {

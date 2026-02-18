@@ -4,9 +4,7 @@ use swdir::DirNode;
 
 use std::path::PathBuf;
 
-use crate::core::components::gallery::{
-    gallery_settings::GallerySettings, menus::Menus, root_dir_select::RootDirSelect,
-};
+use crate::core::components::gallery::{gallery_settings::GallerySettings, menus::Menus};
 use arama_embedding::store::file::file_embedding_map::FileEmbeddingMap;
 use subscription::Input;
 
@@ -26,7 +24,6 @@ pub struct Gallery {
     thumbnail_size: u32,
     spacing: u32,
     menus: Menus,
-    root_dir_select: RootDirSelect,
     gallery_settings: GallerySettings,
     subscription_worker_tx: Option<Sender<Input>>,
     directory_tree: DirectoryTree,
@@ -72,7 +69,6 @@ impl Default for Gallery {
             thumbnail_size: 160, // サムネイルの正方形サイズ
             spacing: 10,         // 画像間の隙間
             menus: Menus::default(),
-            root_dir_select: RootDirSelect::default(),
             gallery_settings: GallerySettings::default(),
             subscription_worker_tx: None,
             directory_tree: DirectoryTree::new(".", false, false),

@@ -8,7 +8,6 @@ use iced::{Element, Length, Size};
 use swdir::DirNode;
 
 use arama_embedding::store::file::file_embedding_map::FileEmbeddingMap;
-use arama_widget::directory_tree;
 
 use super::{Gallery, message::Message};
 
@@ -19,11 +18,6 @@ impl Gallery {
             .menus
             .view()
             .map(|message| Message::MenusMessage(message));
-
-        let root_dir_select = self
-            .root_dir_select
-            .view()
-            .map(|message| Message::RootDirSelectMessage(message));
 
         let selected_source_image_label = text(
             if let Some(selected_source_image) = self.selected_source_image.as_ref() {
@@ -69,12 +63,7 @@ impl Gallery {
 
         row![
             scrollable(directory_tree).width(400).height(Fill),
-            column![
-                menus,
-                root_dir_select,
-                selected_source_image_label,
-                scrollable_with_settings
-            ]
+            column![menus, selected_source_image_label, scrollable_with_settings]
         ]
         .into()
     }
