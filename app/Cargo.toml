@@ -26,7 +26,7 @@ lto = false           # disable link-time optimizations
 incremental = false
 
 [dependencies]
-arama-engine = { path = "../engine" }
+arama-embedding = { path = "../embedding" }
 arama-widget = { path = "../widget" }
 
 iced = { version = "0.14", features = ["image", "tokio"] }

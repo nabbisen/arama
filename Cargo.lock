@@ -137,7 +137,8 @@ version = "0.6.0"
 dependencies = [
  "anyhow",
  "app-json-settings",
- "arama-engine",
+ "arama-embedding",
+ "arama-widget",
  "iced",
  "rayon",
  "rfd",
@@ -146,7 +147,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "arama-engine"
+name = "arama-embedding"
 version = "0.6.0"
 dependencies = [
  "anyhow",
@@ -158,6 +159,13 @@ dependencies = [
  "pt2safetensors",
  "reqwest",
  "tokio",
+]
+
+[[package]]
+name = "arama-widget"
+version = "0.1.0"
+dependencies = [
+ "iced",
 ]
 
 [[package]]

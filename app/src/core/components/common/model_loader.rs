@@ -1,4 +1,4 @@
-use arama_engine::model::clip::get_model;
+use arama_embedding::model::clip::get_model;
 use iced::{
     Element, Task,
     widget::{button, column, container, space, text},

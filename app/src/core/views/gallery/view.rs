@@ -7,7 +7,7 @@ use iced::widget::{
 use iced::{Element, Length, Size};
 use swdir::DirNode;
 
-use arama_engine::store::file::file_embedding_map::FileEmbeddingMap;
+use arama_embedding::store::file::file_embedding_map::FileEmbeddingMap;
 use arama_widget::directory_tree;
 
 use super::{Gallery, message::Message};
