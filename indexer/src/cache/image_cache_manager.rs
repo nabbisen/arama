@@ -48,10 +48,23 @@ impl ImageCacheManager {
             })
         }) {
             Ok(row) => {
-                if row.last_modified == last_modified {
-                    let cache_file_path = cache_file_path(row.id)?;
-                    return Ok(cache_file_path);
+                let cache_file_path = cache_file_path(row.id)?;
+
+                if row.last_modified != last_modified {
+                    let img = image::open(path).expect("failed to open as image").resize(
+                        self.thumbnail_width,
+                        self.thumbnail_height,
+                        ::image::imageops::FilterType::Lanczos3,
+                    );
+                    img.save_with_format(&cache_file_path, ImageFormat::Png)?;
+
+                    conn.execute(
+                        "UPDATE cache SET last_modified = ?1 WHERE id = ?2",
+                        (&last_modified, &row.id),
+                    )?;
                 }
+
+                return Ok(cache_file_path);
             }
             Err(_) => (),
         };
@@ -87,6 +100,8 @@ impl ImageCacheManager {
 
         Ok(cache_file_path)
     }
+
+    pub fn clear() {}
 }
 
 fn cache_dir() -> Result<PathBuf> {
