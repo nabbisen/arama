@@ -1,6 +1,6 @@
 [package]
 name = "arama"
-version = "0.8.0"
+version = "0.8.1"
 edition = "2024"
 
 description = "Image viewer and similarity calculator with offline AI power"
@@ -27,6 +27,7 @@ incremental = false
 
 [dependencies]
 arama-embedding = { path = "../embedding" }
+arama-indexer = { path = "../indexer" }
 arama-widget = { path = "../widget" }
 
 iced = { version = "0.14", features = ["image", "tokio"] }

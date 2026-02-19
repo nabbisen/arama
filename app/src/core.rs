@@ -107,11 +107,9 @@ impl App {
                 match message {
                     dir_tree::message::Message::DirClick(path) => {
                         // todo dir_node should be got from dir_tree
-                        const EXTENSION_ALLOWLIST: &[&str; 6] =
-                            &["png", "jpg", "jpeg", "webp", "gif", "bmp"];
                         let dir_node = Swdir::default()
                             .set_root_path(path)
-                            .set_extension_allowlist(EXTENSION_ALLOWLIST)
+                            .set_extension_allowlist(gallery::EXTENSION_ALLOWLIST)
                             .expect("failed to set allowlist")
                             .walk();
                         let _ = self

@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use arama_indexer::ImageCacheManager;
 use iced::Length::Fill;
 use iced::widget::image::Handle;
 use iced::widget::{Responsive, column, container, image, row, scrollable, space, text};
@@ -62,8 +63,18 @@ impl Gallery {
             .map(|chunk| {
                 row(chunk
                     .iter()
-                    .map(|path| image_cell(path.as_path().as_ref(), thumbnail_width_height))
+                    .map(|path| {
+                        image_cell(
+                            path.as_path().as_ref(),
+                            thumbnail_width_height,
+                            &self.image_cache_manager,
+                        )
+                    })
+                    // todo: error handling
+                    .filter(|x| x.is_ok())
+                    .map(|x| x.unwrap())
                     .collect::<Vec<Element<Message>>>())
+                .spacing(SPACING as u32)
                 .into()
             })
             .collect::<Vec<Element<Message>>>();
@@ -71,30 +82,22 @@ impl Gallery {
         if content.len() == 0 {
             None
         } else {
-            Some(column(content).into())
+            Some(column(content).spacing(SPACING as u32).into())
         }
     }
 }
 
-fn image_cell<'a>(path: &'a Path, thumbnail_width_height: u32) -> Element<'a, Message> {
-    let img = ::image::open(path)
-        .expect("failed to open as image")
-        .resize(
-            thumbnail_width_height,
-            thumbnail_width_height,
-            ::image::imageops::FilterType::Lanczos3,
-        );
+fn image_cell<'a>(
+    path: &'a Path,
+    thumbnail_width_height: u32,
+    image_cache_manager: &'a ImageCacheManager,
+) -> anyhow::Result<Element<'a, Message>> {
+    let cache_file_path = image_cache_manager.cache_path(&path)?;
+    let handle = Handle::from_path(cache_file_path);
 
-    let rgba_img = img.into_rgba8();
-    let width = rgba_img.width();
-    let height = rgba_img.height();
-    let pixels = rgba_img.into_raw();
-    //  生のRGBAピクセルデータとサイズ情報を元にHandleを生成する
-    let handle = Handle::from_rgba(width, height, pixels);
-
-    image(handle)
+    Ok(image(handle)
         .width(thumbnail_width_height)
         .height(thumbnail_width_height)
         .content_fit(iced::ContentFit::Cover)
-        .into()
+        .into())
 }

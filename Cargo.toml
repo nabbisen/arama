@@ -2,6 +2,7 @@
 members = [
     "app",
     "embedding",
+    "indexer",
     "widget",
 ]
 resolver = "2"
