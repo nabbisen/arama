@@ -65,7 +65,7 @@ impl ImageCacheManager {
             "INSERT INTO cache (path, last_modified) VALUES (?1, ?2)",
             (&canonicalized_path_str, &last_modified),
         )?;
-        let cache_file_name = stmt
+        let id = stmt
             .query_one([path.canonicalize()?.to_string_lossy()], |row| {
                 Ok(Cache {
                     id: row.get(0)?,
@@ -73,10 +73,9 @@ impl ImageCacheManager {
                     last_modified: row.get(2)?,
                 })
             })?
-            .id
-            .to_string();
+            .id;
 
-        let cache_file_path = cache_dir()?.join(&format!("{}.png", cache_file_name));
+        let cache_file_path = cache_dir()?.join(&format!("{}.png", id));
 
         img.save_with_format(&cache_file_path, ImageFormat::Png)?;
 
