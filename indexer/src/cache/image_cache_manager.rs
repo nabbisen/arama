@@ -7,7 +7,7 @@ use std::{
 use image::ImageFormat;
 use rusqlite::Connection;
 
-use super::{Cache, dir::validate_dir};
+use super::{Cache, CacheKind, dir::validate_dir};
 
 const CACHE_SUBDIR: &str = "image";
 
@@ -37,13 +37,14 @@ impl ImageCacheManager {
 
         let conn: Connection = Connection::open(super::database_file()?)?;
 
-        let mut stmt =
-            conn.prepare("SELECT id, path, last_modified FROM cache WHERE path = (?1)")?;
+        let mut stmt = conn
+            .prepare("SELECT id, path, last_modified, cache_kind FROM cache WHERE path = (?1)")?;
         match stmt.query_one([&canonicalized_path_str], |row| {
             Ok(Cache {
                 id: row.get(0)?,
                 path: row.get(1)?,
                 last_modified: row.get(2)?,
+                cache_kind: row.get(3)?,
             })
         }) {
             Ok(row) => {
@@ -62,8 +63,12 @@ impl ImageCacheManager {
         );
 
         conn.execute(
-            "INSERT INTO cache (path, last_modified) VALUES (?1, ?2)",
-            (&canonicalized_path_str, &last_modified),
+            "INSERT INTO cache (path, last_modified, cache_kind) VALUES (?1, ?2, ?3)",
+            (
+                &canonicalized_path_str,
+                &last_modified,
+                CacheKind::Image as u32,
+            ),
         )?;
         let id = stmt
             .query_one([path.canonicalize()?.to_string_lossy()], |row| {
@@ -71,6 +76,7 @@ impl ImageCacheManager {
                     id: row.get(0)?,
                     path: row.get(1)?,
                     last_modified: row.get(2)?,
+                    cache_kind: row.get(3)?,
                 })
             })?
             .id;
