@@ -11,7 +11,7 @@ pub struct GallerySettings {
 }
 
 impl GallerySettings {
-    pub fn thumbnail_size(&self) -> u32 {
+    pub fn thumbnail_size(&self) -> u16 {
         self.thumbnail_size.value
     }
 }
