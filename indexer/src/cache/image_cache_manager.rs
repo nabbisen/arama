@@ -48,7 +48,7 @@ impl ImageCacheManager {
         }) {
             Ok(row) => {
                 if row.last_modified == last_modified {
-                    let cache_file_path = cache_dir()?.join(format!("{}.png", row.id));
+                    let cache_file_path = cache_file_path(row.id)?;
                     return Ok(cache_file_path);
                 }
             }
@@ -75,7 +75,7 @@ impl ImageCacheManager {
             })?
             .id;
 
-        let cache_file_path = cache_dir()?.join(&format!("{}.png", id));
+        let cache_file_path = cache_file_path(id)?;
 
         img.save_with_format(&cache_file_path, ImageFormat::Png)?;
 
@@ -87,4 +87,8 @@ fn cache_dir() -> Result<PathBuf> {
     let path = super::cache_dir()?.join(CACHE_SUBDIR);
     validate_dir(&path)?;
     Ok(path)
+}
+
+fn cache_file_path(id: u32) -> Result<PathBuf> {
+    Ok(cache_dir()?.join(&format!("{}.png", id)))
 }
