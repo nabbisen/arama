@@ -1,5 +1,5 @@
 [package]
-name = "arama-widget"
+name = "arama-indexer"
 version = "0.8.1"
 edition = "2024"
 
@@ -14,4 +14,6 @@ readme = "README.md"
 rust-version = "1.90.0"
 
 [dependencies]
-iced = "0.14"
+anyhow = "1"
+image = "0.25"
+rusqlite = { version = "0.38", default-features = false }
