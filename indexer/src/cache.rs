@@ -17,7 +17,7 @@ const CREATE_TABLE_STMT: &str = "CREATE TABLE cache (
 #[derive(Debug)]
 struct Cache {
     #[allow(dead_code)]
-    id: i32,
+    id: u32,
     #[allow(dead_code)]
     path: String,
     last_modified: u32,
