@@ -11,7 +11,8 @@ const DATABASE_FILE: &str = "cache.sqlite3";
 const CREATE_TABLE_STMT: &str = "CREATE TABLE cache (
         id   INTEGER PRIMARY KEY,
         path TEXT NOT NULL,
-        last_modified INTEGER NOT NULL
+        last_modified INTEGER NOT NULL,
+        cache_kind INTEGER NOT NULL
     )";
 
 #[derive(Debug)]
@@ -21,6 +22,12 @@ struct Cache {
     #[allow(dead_code)]
     path: String,
     last_modified: u32,
+    #[allow(dead_code)]
+    cache_kind: u32,
+}
+
+enum CacheKind {
+    Image,
 }
 
 pub fn cache_dir() -> Result<PathBuf> {
