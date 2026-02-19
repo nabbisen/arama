@@ -1,4 +1,4 @@
 #[derive(Debug, Clone)]
 pub enum Message {
-    ValueChanged(u8),
+    ValueChanged(u32),
 }

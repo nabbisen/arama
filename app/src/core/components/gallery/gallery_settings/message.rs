@@ -1,7 +1,6 @@
-use super::{similarity_slider, swdir_depth_limit};
+use super::thumbnail_size_slider;
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    SwdirDepthLimitMessage(swdir_depth_limit::message::Message),
-    SimilaritySliderMessage(similarity_slider::message::Message),
+    ThumbnailSizeSliderMessage(thumbnail_size_slider::message::Message),
 }

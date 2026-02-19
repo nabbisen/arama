@@ -36,3 +36,4 @@ app-json-settings = "2"
 rayon = "1"
 serde = { version = "1", features = ["derive"] }
 swdir = "0"
+image = "0.25"
