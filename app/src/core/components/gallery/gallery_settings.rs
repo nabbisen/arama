@@ -1,25 +1,17 @@
-use super::gallery_settings::{
-    similarity_slider::SimilaritySlider, swdir_depth_limit::SwdirDepthLimit,
-};
+use crate::core::components::gallery::gallery_settings::thumbnail_size_slider::ThumbnailSizeSlider;
 
 pub mod message;
-pub mod similarity_slider;
-pub mod swdir_depth_limit;
+pub mod thumbnail_size_slider;
 mod update;
 mod view;
 
 #[derive(Default)]
 pub struct GallerySettings {
-    swdir_depth_limit: SwdirDepthLimit,
-    similarity_slider: SimilaritySlider,
+    thumbnail_size: ThumbnailSizeSlider,
 }
 
 impl GallerySettings {
-    pub fn swdir_depth_limit(&self) -> Option<usize> {
-        self.swdir_depth_limit.value
-    }
-
-    pub fn similarity_quality(&self) -> f32 {
-        self.similarity_slider.similarity_quality.value()
+    pub fn thumbnail_size(&self) -> u32 {
+        self.thumbnail_size.value
     }
 }

@@ -140,6 +140,7 @@ dependencies = [
  "arama-embedding",
  "arama-widget",
  "iced",
+ "image",
  "rayon",
  "serde",
  "swdir",
@@ -408,9 +409,9 @@ dependencies = [
 
 [[package]]
 name = "aws-lc-rs"
-version = "1.15.4"
+version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b7b6141e96a8c160799cc2d5adecd5cbbe5054cb8c7c4af53da0f83bb7ad256"
+checksum = "d9a7b350e3bb1767102698302bc37256cbd48422809984b98d292c40e2579aa9"
 dependencies = [
  "aws-lc-sys",
  "zeroize",
@@ -521,9 +522,9 @@ checksum = "f4ad8f11f288f48ca24471bbd51ac257aaeaaa07adae295591266b792902ae64"
 
 [[package]]
 name = "bumpalo"
-version = "3.19.1"
+version = "3.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5dd9dc738b7a8311c7ade152424974d8115f2cdad61e8dab8dac9f2362298510"
+checksum = "5c6f81257d10a0f602a294ae4182251151ff97dbb504ef9afcdda4a64b24d9b4"
 
 [[package]]
 name = "bytemuck"
@@ -3435,9 +3436,9 @@ dependencies = [
 
 [[package]]
 name = "pt2safetensors"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85a32cf669ed05cd034996da76e9e489eaf340b78890fbe6819b86df943fc2c9"
+checksum = "fee463d61e6619aa32f6e71abef2a37a61a41cdd59439a30c4510eb47459644a"
 dependencies = [
  "anyhow",
  "candle-core",
@@ -4341,9 +4342,9 @@ dependencies = [
 
 [[package]]
 name = "swdir"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e52fa7e38c7627adb9e36ad5258962d7b9bd2fd64d90a04bd36ee37bea597f24"
+checksum = "30b7c993fe5007320db2eed7ade77fac49e0166d4009e79aa5ebc3d40e0efb27"
 dependencies = [
  "rayon",
 ]

@@ -15,26 +15,26 @@ impl DirTree {
                 let _ = self.root.update(file_node_message.clone());
 
                 match file_node_message {
-                    file_node::message::Message::DirectoryClick(path) => {
+                    file_node::message::Message::DirClick(path) => {
                         let now = Instant::now();
 
-                        let (last_path, last_time) = match self.directory_last_clicked.clone() {
-                            Some(directory_last_clicked) => directory_last_clicked,
+                        let (last_path, last_time) = match self.dir_last_clicked.clone() {
+                            Some(dir_last_clicked) => dir_last_clicked,
                             None => {
-                                self.directory_last_clicked = Some((path, now));
-                                return Task::none();
+                                self.dir_last_clicked = Some((path.to_owned(), now));
+                                return Task::done(Message::DirClick(path));
                             }
                         };
 
                         if last_path == path
                             && now.duration_since(last_time) <= DOUBLE_CLICK_INTERVAL_MILLIS
                         {
-                            self.directory_last_clicked = None;
-                            return Task::done(Message::DirectoryDoubleClick(path.to_owned()));
+                            self.dir_last_clicked = None;
+                            return Task::done(Message::DirDoubleClick(path));
                         }
 
-                        self.directory_last_clicked = None;
-                        Task::none()
+                        self.dir_last_clicked = None;
+                        Task::done(Message::DirClick(path))
                     }
                     _ => Task::none(),
                 }

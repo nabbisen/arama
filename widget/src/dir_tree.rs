@@ -17,7 +17,7 @@ pub struct DirTree {
     root: FileNode,
     include_file: bool,
     include_hidden: bool,
-    directory_last_clicked: Option<(PathBuf, Instant)>,
+    dir_last_clicked: Option<(PathBuf, Instant)>,
     selected_path: Option<PathBuf>,
 }
 
@@ -28,7 +28,7 @@ impl DirTree {
             root: FileNode::new(path, true, true),
             include_file,
             include_hidden,
-            directory_last_clicked: None,
+            dir_last_clicked: None,
             selected_path: None,
         }
     }
