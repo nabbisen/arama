@@ -5,3 +5,15 @@ members = [
     "widget",
 ]
 resolver = "2"
+
+[profile.release]     # shrink executable size
+opt-level = "z"
+lto = true
+# panic = "abort"
+strip = true
+codegen-units = 1
+
+[profile.dev]         # to improve productivity
+opt-level = 1         # slightly optimize
+lto = false           # disable link-time optimizations
+incremental = false
