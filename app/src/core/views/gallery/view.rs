@@ -51,7 +51,7 @@ impl Gallery {
     }
 
     fn columns_in_rows(&self, num_of_columns_in_row: usize) -> Option<Element<'_, Message>> {
-        let thumbnail_width_height = self.gallery_settings.thumbnail_size();
+        let thumbnail_width_height = self.gallery_settings.thumbnail_size() as u32;
 
         let content = self
             .dir_node
@@ -62,7 +62,7 @@ impl Gallery {
             .map(|chunk| {
                 row(chunk
                     .iter()
-                    .map(|path| image_column(path.as_path().as_ref(), thumbnail_width_height))
+                    .map(|path| image_cell(path.as_path().as_ref(), thumbnail_width_height))
                     .collect::<Vec<Element<Message>>>())
                 .into()
             })
@@ -76,7 +76,7 @@ impl Gallery {
     }
 }
 
-fn image_column<'a>(path: &'a Path, thumbnail_width_height: u32) -> Element<'a, Message> {
+fn image_cell<'a>(path: &'a Path, thumbnail_width_height: u32) -> Element<'a, Message> {
     let img = ::image::open(path)
         .expect("failed to open as image")
         .resize(

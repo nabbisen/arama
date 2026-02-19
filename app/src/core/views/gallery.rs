@@ -9,7 +9,7 @@ mod update;
 // mod util;
 mod view;
 
-const SPACING: u32 = 10;
+const SPACING: u16 = 10;
 
 // アプリケーションの状態
 pub struct Gallery {
