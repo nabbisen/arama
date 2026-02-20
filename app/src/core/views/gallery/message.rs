@@ -12,6 +12,7 @@ use crate::core::components::gallery::gallery_settings;
 #[derive(Debug, Clone)]
 pub enum Message {
     ImageCached(Option<String>),
+    EmbeddingCached(Option<String>),
     // EmbeddingCalculated((FileEmbeddingMap, Vec<(PathBuf, PathBuf, f32)>)),
     // MenusMessage(menus::message::Message),
     // ImageSelect(PathBuf),

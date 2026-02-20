@@ -1,3 +1,4 @@
+mod byte;
 mod database;
 pub mod image_cache_manager;
 mod path;
@@ -11,6 +12,8 @@ struct Cache {
     last_modified: u32,
     #[allow(dead_code)]
     cache_kind: u32,
+    #[allow(dead_code)]
+    embedding: Option<Vec<u8>>,
 }
 
 enum CacheKind {

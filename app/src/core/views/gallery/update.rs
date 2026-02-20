@@ -19,13 +19,19 @@ impl Gallery {
                     // todo error handling
                     eprintln!("{}", err);
                 }
-                // Task::perform(
-                //     super::util::calculate_embedding(
-                //         dir_node,
-                //         self.gallery_settings.similarity_quality(),
-                //     ),
-                //     super::message::Message::EmbeddingCalculated,
-                // )
+                Task::perform(
+                    super::util::image_embedding(
+                        self.dir_node.clone().unwrap(),
+                        self.image_cache_manager.clone(),
+                    ),
+                    super::message::Message::EmbeddingCached,
+                )
+            }
+            Message::EmbeddingCached(err) => {
+                if let Some(err) = err {
+                    // todo error handling
+                    eprintln!("{}", err);
+                }
                 Task::none()
             }
             // Message::EmbeddingCalculated(calculated) => {

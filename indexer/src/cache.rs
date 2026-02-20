@@ -2,7 +2,6 @@ use std::{io::Result, path::PathBuf};
 
 use arama_env::local_dir;
 
-// pub mod embedding;
 pub mod image;
 
 const CACHE_DIR: &str = "cache";
