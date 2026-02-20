@@ -63,13 +63,7 @@ impl Gallery {
             .map(|chunk| {
                 row(chunk
                     .iter()
-                    .map(|path| {
-                        image_cell(
-                            path.as_path().as_ref(),
-                            thumbnail_width_height,
-                            &self.image_cache_manager,
-                        )
-                    })
+                    .map(|path| image_cell(path.as_path().as_ref(), thumbnail_width_height))
                     // todo: error handling
                     .filter(|x| x.is_ok())
                     .map(|x| x.unwrap())
@@ -90,9 +84,8 @@ impl Gallery {
 fn image_cell<'a>(
     path: &'a Path,
     thumbnail_width_height: u32,
-    image_cache_manager: &'a ImageCacheManager,
 ) -> anyhow::Result<Element<'a, Message>> {
-    let path = match image_cache_manager.get_cache_file_path(&path)? {
+    let path = match ImageCacheManager::get_cache_file_path(&path)? {
         Some(x) => x,
         None => path.to_path_buf(),
     };

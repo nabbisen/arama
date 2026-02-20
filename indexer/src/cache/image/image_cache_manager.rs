@@ -41,7 +41,7 @@ impl ImageCacheManager {
         })
     }
 
-    pub fn get_cache(&self, path: &Path) -> anyhow::Result<Option<Cache>> {
+    pub fn get_cache(path: &Path) -> anyhow::Result<Option<Cache>> {
         let canonicalized_path = path.canonicalize()?;
         let canonicalized_path_str = canonicalized_path.to_string_lossy();
         let conn: Connection = connection()?;
@@ -60,7 +60,7 @@ impl ImageCacheManager {
         }
     }
 
-    pub fn get_cache_file_path(&self, path: &Path) -> anyhow::Result<Option<PathBuf>> {
+    pub fn get_cache_file_path(path: &Path) -> anyhow::Result<Option<PathBuf>> {
         let canonicalized_path = path.canonicalize()?;
         let canonicalized_path_str = canonicalized_path.to_string_lossy();
         let conn: Connection = connection()?;
@@ -71,7 +71,7 @@ impl ImageCacheManager {
         }
     }
 
-    pub fn get_embedding(&self, id: u32) -> anyhow::Result<Option<Vec<f32>>> {
+    pub fn get_embedding(id: u32) -> anyhow::Result<Option<Vec<f32>>> {
         let conn: Connection = connection()?;
         let mut stmt = conn.prepare(SELECT_EMBEDDING_BY_ID_STMT)?;
         let embedding = stmt.query_one([id], |row| row.get::<usize, Vec<u8>>(0));
@@ -81,7 +81,7 @@ impl ImageCacheManager {
         }
     }
 
-    pub fn set_embedding(&self, id: u32, embedding: Vec<f32>) -> anyhow::Result<()> {
+    pub fn set_embedding(id: u32, embedding: Vec<f32>) -> anyhow::Result<()> {
         let blob = vector_to_blob(embedding);
         let conn: Connection = connection()?;
         conn.execute(UPDATE_EMBEDDING_STMT, (blob, id))?;

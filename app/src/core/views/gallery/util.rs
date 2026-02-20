@@ -15,17 +15,14 @@ use swdir::DirNode;
 //     None
 // }
 
-pub async fn image_embedding(
-    dir_node: DirNode,
-    image_cache_manager: ImageCacheManager,
-) -> Option<String> {
+pub async fn image_embedding(dir_node: DirNode) -> Option<String> {
     let calculator = match clip_calculator() {
         Ok(x) => x,
         Err(err) => return Some(format!("failed to load clip calculator: {}", err)),
     };
 
     for path in dir_node.files {
-        match image_cache_manager.get_cache(&path) {
+        match ImageCacheManager::get_cache(&path) {
             Ok(cache) => {
                 let cache = if let Some(cache) = cache {
                     cache
@@ -38,7 +35,7 @@ pub async fn image_embedding(
                     Ok(x) => x,
                     Err(err) => return Some(format!("failed to clip calculation: {}", err)),
                 };
-                match image_cache_manager.set_embedding(cache.id(), embedding.embedding) {
+                match ImageCacheManager::set_embedding(cache.id(), embedding.embedding) {
                     Ok(_) => (),
                     Err(err) => return Some(format!("failed to set embedding: {}", err)),
                 }
