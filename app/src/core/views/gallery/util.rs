@@ -2,18 +2,18 @@ use arama_embedding::pipeline::infer::clip::{clip, clip_calculator};
 use arama_indexer::ImageCacheManager;
 use swdir::DirNode;
 
-pub async fn image_cache(
-    dir_node: DirNode,
-    image_cache_manager: ImageCacheManager,
-) -> Option<String> {
-    for path in dir_node.files {
-        match image_cache_manager.refresh_cache(&path) {
-            Ok(_) => (),
-            Err(err) => return Some(err.to_string()),
-        }
-    }
-    None
-}
+// pub async fn image_cache(
+//     dir_node: DirNode,
+//     image_cache_manager: ImageCacheManager,
+// ) -> Option<String> {
+//     for path in dir_node.files {
+//         match image_cache_manager.refresh_cache(&path) {
+//             Ok(_) => (),
+//             Err(err) => return Some(err.to_string()),
+//         }
+//     }
+//     None
+// }
 
 pub async fn image_embedding(
     dir_node: DirNode,
@@ -25,8 +25,15 @@ pub async fn image_embedding(
     };
 
     for path in dir_node.files {
-        match image_cache_manager.refresh_cache(&path) {
+        match image_cache_manager.get_cache(&path) {
             Ok(cache) => {
+                let cache = if let Some(cache) = cache {
+                    cache
+                } else {
+                    // todo error handling
+                    return Some("failed to get cache".to_string());
+                };
+
                 let embedding = match clip(&path, &calculator) {
                     Ok(x) => x,
                     Err(err) => return Some(format!("failed to clip calculation: {}", err)),

@@ -133,7 +133,7 @@ dependencies = [
 
 [[package]]
 name = "arama"
-version = "0.8.7"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "app-json-settings",
@@ -149,7 +149,7 @@ dependencies = [
 
 [[package]]
 name = "arama-embedding"
-version = "0.8.7"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "arama-env",
@@ -165,21 +165,24 @@ dependencies = [
 
 [[package]]
 name = "arama-env"
-version = "0.8.7"
+version = "0.9.0"
 
 [[package]]
 name = "arama-indexer"
-version = "0.8.7"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "arama-env",
  "image",
+ "rayon",
  "rusqlite",
+ "swdir",
+ "tokio",
 ]
 
 [[package]]
 name = "arama-widget"
-version = "0.8.7"
+version = "0.9.0"
 dependencies = [
  "iced",
 ]

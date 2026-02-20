@@ -45,6 +45,9 @@ pub const SELECT_ROW_BY_PATH_STMT: &str = concat!(
     " WHERE path = (?1)"
 );
 
+pub const SELECT_ID_BY_PATH_STMT: &str =
+    concat!("SELECT id FROM ", table_name!(), " WHERE path = (?1)");
+
 pub const SELECT_EMBEDDING_BY_ID_STMT: &str =
     concat!("SELECT embedding FROM ", table_name!(), " WHERE id = (?1)");
 
