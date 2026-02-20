@@ -57,13 +57,9 @@ impl App {
 
         let model_loader = ModelLoader::default();
 
-        // let task = if has_model() {
-        //     gallery
-        //         .default_task()
-        //         .map(|message| Message::GalleryMessage(message))
-        // } else {
-        //     Task::none()
-        // };
+        let task = gallery
+            .default_task()
+            .map(|message| Message::GalleryMessage(message));
 
         (
             Self {
@@ -71,8 +67,7 @@ impl App {
                 dir_tree,
                 model_loader,
             },
-            // task,
-            Task::none(),
+            task,
         )
     }
 

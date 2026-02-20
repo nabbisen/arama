@@ -14,16 +14,20 @@ use super::{
 impl Gallery {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            // Message::ImagesLoaded(dir_node) => {
-            //     self.dir_node = Some(dir_node.clone());
-            //     Task::perform(
-            //         super::util::calculate_embedding(
-            //             dir_node,
-            //             self.gallery_settings.similarity_quality(),
-            //         ),
-            //         super::message::Message::EmbeddingCalculated,
-            //     )
-            // }
+            Message::ImageCached(err) => {
+                if let Some(err) = err {
+                    // todo error handling
+                    eprintln!("{}", err);
+                }
+                // Task::perform(
+                //     super::util::calculate_embedding(
+                //         dir_node,
+                //         self.gallery_settings.similarity_quality(),
+                //     ),
+                //     super::message::Message::EmbeddingCalculated,
+                // )
+                Task::none()
+            }
             // Message::EmbeddingCalculated(calculated) => {
             //     self.file_embedding_map = calculated.0;
             //     self.file_similar_pairs = calculated.1;
