@@ -1,6 +1,6 @@
 mod cache;
 
-pub use cache::image_cache_manager::ImageCacheManager;
+pub use cache::image::image_cache_manager::ImageCacheManager;
 
 // #[cfg(test)]
 // mod tests {
