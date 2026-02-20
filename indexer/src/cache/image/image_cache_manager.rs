@@ -1,5 +1,5 @@
 use std::{
-    io::Result,
+    io::{Error, ErrorKind, Result},
     path::{Path, PathBuf},
     time::UNIX_EPOCH,
 };
@@ -8,9 +8,11 @@ use arama_env::validate_dir;
 use image::ImageFormat;
 use rusqlite::Connection;
 
-use super::{Cache, CacheKind};
-
-const CACHE_SUBDIR: &str = "image";
+use super::{
+    Cache, CacheKind,
+    database::{INSERT_STMT, SELECT_STMT, UPDATE_STMT, connection, table_prepare_if_necessary},
+    path::{cache_thumbnail_dir, cache_thumbnail_file_path},
+};
 
 pub struct ImageCacheManager {
     thumbnail_width: u32,
@@ -19,7 +21,11 @@ pub struct ImageCacheManager {
 
 impl ImageCacheManager {
     pub fn new(thumbnail_width: u32, thumbnail_height: u32) -> Result<Self> {
-        validate_dir(&cache_dir()?)?;
+        validate_dir(&cache_thumbnail_dir()?)?;
+        match table_prepare_if_necessary() {
+            Ok(_) => (),
+            Err(err) => return Err(Error::new(ErrorKind::Other, err.to_string())),
+        };
 
         Ok(Self {
             thumbnail_width,
@@ -38,10 +44,9 @@ impl ImageCacheManager {
         let canonicalized_path = path.canonicalize()?;
         let canonicalized_path_str = canonicalized_path.to_string_lossy();
 
-        let conn: Connection = Connection::open(super::database_file()?)?;
+        let conn: Connection = connection()?;
 
-        let mut stmt = conn
-            .prepare("SELECT id, path, last_modified, cache_kind FROM cache WHERE path = (?1)")?;
+        let mut stmt = conn.prepare(SELECT_STMT)?;
         match stmt.query_one([&canonicalized_path_str], |row| {
             Ok(Cache {
                 id: row.get(0)?,
@@ -51,7 +56,7 @@ impl ImageCacheManager {
             })
         }) {
             Ok(row) => {
-                let cache_file_path = cache_file_path(row.id)?;
+                let cache_file_path = cache_thumbnail_file_path(row.id)?;
 
                 if row.last_modified != last_modified {
                     let img = image::open(path).expect("failed to open as image").resize(
@@ -61,10 +66,7 @@ impl ImageCacheManager {
                     );
                     img.save_with_format(&cache_file_path, ImageFormat::Png)?;
 
-                    conn.execute(
-                        "UPDATE cache SET last_modified = ?1 WHERE id = ?2",
-                        (&last_modified, &row.id),
-                    )?;
+                    conn.execute(UPDATE_STMT, (&last_modified, &row.id))?;
                 }
 
                 return Ok(cache_file_path);
@@ -79,7 +81,7 @@ impl ImageCacheManager {
         );
 
         conn.execute(
-            "INSERT INTO cache (path, last_modified, cache_kind) VALUES (?1, ?2, ?3)",
+            INSERT_STMT,
             (
                 &canonicalized_path_str,
                 &last_modified,
@@ -97,21 +99,13 @@ impl ImageCacheManager {
             })?
             .id;
 
-        let cache_file_path = cache_file_path(id)?;
+        let cache_file_path = cache_thumbnail_file_path(id)?;
 
         img.save_with_format(&cache_file_path, ImageFormat::Png)?;
 
         Ok(cache_file_path)
     }
 
+    // todo: delete where cache_kind = 'image'
     pub fn clear() {}
-}
-
-fn cache_dir() -> Result<PathBuf> {
-    let path = super::cache_dir()?.join(CACHE_SUBDIR);
-    Ok(path)
-}
-
-fn cache_file_path(id: u32) -> Result<PathBuf> {
-    Ok(cache_dir()?.join(&format!("{}.png", id)))
 }

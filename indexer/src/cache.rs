@@ -1,48 +1,13 @@
 use std::{io::Result, path::PathBuf};
 
 use arama_env::local_dir;
-use rusqlite::Connection;
 
-pub mod image_cache_manager;
+// pub mod embedding;
+pub mod image;
 
 const CACHE_DIR: &str = "cache";
-const DATABASE_FILE: &str = "cache.sqlite3";
 
-const CREATE_TABLE_STMT: &str = "CREATE TABLE cache (
-        id   INTEGER PRIMARY KEY,
-        path TEXT NOT NULL,
-        last_modified INTEGER NOT NULL,
-        cache_kind INTEGER NOT NULL
-    )";
-
-#[derive(Debug)]
-struct Cache {
-    #[allow(dead_code)]
-    id: u32,
-    #[allow(dead_code)]
-    path: String,
-    last_modified: u32,
-    #[allow(dead_code)]
-    cache_kind: u32,
-}
-
-enum CacheKind {
-    Image,
-}
-
-pub fn cache_dir() -> Result<PathBuf> {
+pub fn caches_dir() -> Result<PathBuf> {
     let path = local_dir()?.join(CACHE_DIR);
-    Ok(path.to_path_buf())
-}
-
-pub fn database_file() -> anyhow::Result<PathBuf> {
-    let path = local_dir()?.join(DATABASE_FILE);
-
-    if !path.exists() {
-        let conn = Connection::open(&path)?;
-        conn.execute(CREATE_TABLE_STMT, ())?;
-        let _ = conn.close();
-    }
-
     Ok(path.to_path_buf())
 }
