@@ -133,7 +133,7 @@ dependencies = [
 
 [[package]]
 name = "arama"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "anyhow",
  "app-json-settings",
@@ -149,9 +149,10 @@ dependencies = [
 
 [[package]]
 name = "arama-embedding"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "anyhow",
+ "arama-env",
  "candle-core",
  "candle-nn",
  "candle-transformers",
@@ -164,11 +165,11 @@ dependencies = [
 
 [[package]]
 name = "arama-env"
-version = "0.8.2"
+version = "0.8.3"
 
 [[package]]
 name = "arama-indexer"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "anyhow",
  "arama-env",
@@ -178,7 +179,7 @@ dependencies = [
 
 [[package]]
 name = "arama-widget"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "iced",
 ]

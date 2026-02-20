@@ -1,7 +1,10 @@
 use app_json_settings::ConfigManager;
-use arama_embedding::model::clip::has_model;
+use arama_embedding::model::clip;
 use arama_widget::dir_tree::{self, DirTree};
-use iced::{Element, Subscription, Task, widget::row};
+use iced::{
+    Element, Subscription, Task,
+    widget::{row, text},
+};
 
 pub(super) mod components;
 mod settings;
@@ -74,7 +77,11 @@ impl App {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        if !has_model() {
+        let has_model = match clip::model().ready() {
+            Ok(x) => x,
+            Err(err) => return text(err.to_string()).into(),
+        };
+        if !has_model {
             return self
                 .model_loader
                 .view()
