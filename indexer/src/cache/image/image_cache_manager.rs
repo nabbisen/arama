@@ -1,19 +1,22 @@
 use std::{
     io::{Error, ErrorKind, Result},
-    path::Path,
-    time::UNIX_EPOCH,
+    path::{Path, PathBuf},
 };
 
 use arama_env::validate_dir;
-use image::ImageFormat;
 use rusqlite::Connection;
+use swdir::DirNode;
+
+mod refresh;
+
+use refresh::refresh_caches;
 
 use super::{
-    Cache, CacheKind,
+    Cache,
     byte::{blob_to_vector, vector_to_blob},
     database::{
-        INSERT_STMT, SELECT_EMBEDDING_BY_ID_STMT, SELECT_ROW_BY_PATH_STMT, UPDATE_EMBEDDING_STMT,
-        UPDATE_LAST_MODIFIED_STMT, connection, table_prepare_if_necessary,
+        SELECT_EMBEDDING_BY_ID_STMT, SELECT_ID_BY_PATH_STMT, SELECT_ROW_BY_PATH_STMT,
+        UPDATE_EMBEDDING_STMT, connection, table_prepare_if_necessary,
     },
     path::{cache_thumbnail_dir, cache_thumbnail_file_path},
 };
@@ -38,19 +41,10 @@ impl ImageCacheManager {
         })
     }
 
-    pub fn refresh_cache(&self, path: &Path) -> anyhow::Result<Cache> {
-        let last_modified = path
-            .metadata()?
-            .modified()?
-            .duration_since(UNIX_EPOCH)
-            .expect("failed to get unix timestamp")
-            .as_secs() as u32;
-
+    pub fn get_cache(&self, path: &Path) -> anyhow::Result<Option<Cache>> {
         let canonicalized_path = path.canonicalize()?;
         let canonicalized_path_str = canonicalized_path.to_string_lossy();
-
         let conn: Connection = connection()?;
-
         let mut stmt = conn.prepare(SELECT_ROW_BY_PATH_STMT)?;
         match stmt.query_one([&canonicalized_path_str], |row| {
             Ok(Cache {
@@ -61,57 +55,20 @@ impl ImageCacheManager {
                 embedding: row.get(4)?,
             })
         }) {
-            Ok(mut row) => {
-                let cache_file_path = cache_thumbnail_file_path(row.id)?;
+            Ok(row) => Ok(Some(row)),
+            Err(_) => Ok(None),
+        }
+    }
 
-                if row.last_modified != last_modified {
-                    let img = image::open(path).expect("failed to open as image").resize(
-                        self.thumbnail_width,
-                        self.thumbnail_height,
-                        ::image::imageops::FilterType::Lanczos3,
-                    );
-                    img.save_with_format(&cache_file_path, ImageFormat::Png)?;
-
-                    conn.execute(UPDATE_LAST_MODIFIED_STMT, (&last_modified, &row.id))?;
-
-                    row.last_modified = last_modified;
-                    row.embedding = None;
-                }
-
-                return Ok(row);
-            }
-            Err(_) => (),
-        };
-
-        let img = image::open(path).expect("failed to open as image").resize(
-            self.thumbnail_width,
-            self.thumbnail_height,
-            ::image::imageops::FilterType::Lanczos3,
-        );
-
-        conn.execute(
-            INSERT_STMT,
-            (
-                &canonicalized_path_str,
-                &last_modified,
-                CacheKind::Image as u32,
-            ),
-        )?;
-        let row = stmt.query_one([path.canonicalize()?.to_string_lossy()], |row| {
-            Ok(Cache {
-                id: row.get(0)?,
-                path: row.get(1)?,
-                last_modified: row.get(2)?,
-                cache_kind: row.get(3)?,
-                embedding: row.get(4)?,
-            })
-        })?;
-
-        let cache_file_path = cache_thumbnail_file_path(row.id)?;
-
-        img.save_with_format(&cache_file_path, ImageFormat::Png)?;
-
-        Ok(row)
+    pub fn get_cache_file_path(&self, path: &Path) -> anyhow::Result<Option<PathBuf>> {
+        let canonicalized_path = path.canonicalize()?;
+        let canonicalized_path_str = canonicalized_path.to_string_lossy();
+        let conn: Connection = connection()?;
+        let mut stmt = conn.prepare(SELECT_ID_BY_PATH_STMT)?;
+        match stmt.query_one([&canonicalized_path_str], |row| row.get::<usize, u32>(0)) {
+            Ok(id) => Ok(Some(cache_thumbnail_file_path(id)?)),
+            Err(_) => Ok(None),
+        }
     }
 
     pub fn get_embedding(&self, id: u32) -> anyhow::Result<Option<Vec<f32>>> {
@@ -129,6 +86,13 @@ impl ImageCacheManager {
         let conn: Connection = connection()?;
         conn.execute(UPDATE_EMBEDDING_STMT, (blob, id))?;
         Ok(())
+    }
+
+    pub async fn refresh(self, dir_node: DirNode) -> Vec<String> {
+        match refresh_caches(dir_node, self.thumbnail_width, self.thumbnail_height).await {
+            Ok(x) => x,
+            Err(err) => vec![err.to_string()],
+        }
     }
 
     // todo: delete where cache_kind = 'image'

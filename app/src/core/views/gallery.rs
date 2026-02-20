@@ -52,7 +52,7 @@ impl Gallery {
     pub fn default_task(&self) -> Task<message::Message> {
         if let Some(dir_node) = self.dir_node.as_ref() {
             Task::perform(
-                util::image_cache(dir_node.clone(), self.image_cache_manager.clone()),
+                self.image_cache_manager.clone().refresh(dir_node.clone()),
                 message::Message::ImageCached,
             )
         } else {

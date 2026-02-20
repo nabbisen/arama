@@ -15,9 +15,9 @@ impl Gallery {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::ImageCached(err) => {
-                if let Some(err) = err {
+                if 0 < err.len() {
                     // todo error handling
-                    eprintln!("{}", err);
+                    eprintln!("{}", err.join("\n"));
                 }
                 Task::perform(
                     super::util::image_embedding(
@@ -79,8 +79,11 @@ impl Gallery {
                 Task::none()
             }
             Message::DirSelect(dir_node) => {
-                self.dir_node = Some(dir_node);
-                Task::none()
+                self.dir_node = Some(dir_node.clone());
+                Task::perform(
+                    self.image_cache_manager.clone().refresh(dir_node),
+                    Message::ImageCached,
+                )
             } // Message::ImageSelect(path) => {
               //     self.processing = true;
               //     self.selected_source_image = Some(path.clone());
