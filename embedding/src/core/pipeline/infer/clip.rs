@@ -1,10 +1,13 @@
 use std::path::Path;
 
-use candle_core::{DType, Device, IndexOp, Tensor};
+use candle_core::{DType, IndexOp, Tensor};
 use candle_nn::VarBuilder;
 use candle_transformers::models::clip::{ClipConfig, ClipModel};
 
-use crate::{ModelManager, core::store::file::file_embedding::FileEmbedding, model::clip};
+use crate::{
+    ModelManager, core::store::file::file_embedding::FileEmbedding, model::clip,
+    pipeline::infer::device,
+};
 
 pub mod clip_calculator;
 
@@ -12,7 +15,7 @@ use clip_calculator::{ClipCalculator, load_image_as_tensor};
 
 // pub fn calculator(source: &Path) -> anyhow::Result<Calculator> {
 pub fn clip_calculator() -> anyhow::Result<ClipCalculator> {
-    let device = Device::new_cuda(0).unwrap_or(Device::Cpu); // GPUを使う場合は Device::new_cuda(0)
+    let device = device();
 
     // println!("1. モデルのロード");
     // 事前に openai/clip-vit-base-patch32 などから config.json と model.safetensors を入手してください
