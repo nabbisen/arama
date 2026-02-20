@@ -26,7 +26,7 @@ pub struct Gallery {
 }
 
 impl Gallery {
-    pub fn new(settings: Option<&Settings>) -> Self {
+    pub fn new(settings: Option<&Settings>) -> anyhow::Result<Self> {
         let path = if let Some(settings) = settings {
             &settings.root_dir_path
         } else {
@@ -35,18 +35,17 @@ impl Gallery {
 
         let dir_node = Swdir::default()
             .set_root_path(path)
-            .set_extension_allowlist(EXTENSION_ALLOWLIST)
-            .expect("failed to set allowlist")
+            .set_extension_allowlist(EXTENSION_ALLOWLIST)?
             .walk();
 
-        Self {
+        Ok(Self {
             dir_node: Some(dir_node),
             gallery_settings: GallerySettings::default(),
             image_cache_manager: ImageCacheManager::new(
                 MAX_THUMBNAIL_SIZE as u32,
                 MAX_THUMBNAIL_SIZE as u32,
-            ),
-        }
+            )?,
+        })
     }
 
     // pub fn default_task(&self) -> Task<message::Message> {

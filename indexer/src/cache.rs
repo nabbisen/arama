@@ -1,11 +1,11 @@
-use std::{env, io::Result, path::PathBuf};
+use std::{io::Result, path::PathBuf};
 
+use arama_env::local_dir;
 use rusqlite::Connection;
 
-mod dir;
 pub mod image_cache_manager;
 
-const CACHE_DIR: &str = ".cache";
+const CACHE_DIR: &str = "cache";
 const DATABASE_FILE: &str = "cache.sqlite3";
 
 const CREATE_TABLE_STMT: &str = "CREATE TABLE cache (
@@ -31,15 +31,12 @@ enum CacheKind {
 }
 
 pub fn cache_dir() -> Result<PathBuf> {
-    let path = exe_parent_dir()?.join(CACHE_DIR);
-
-    dir::validate_dir(&path)?;
-
+    let path = local_dir()?.join(CACHE_DIR);
     Ok(path.to_path_buf())
 }
 
 pub fn database_file() -> anyhow::Result<PathBuf> {
-    let path = exe_parent_dir()?.join(DATABASE_FILE);
+    let path = local_dir()?.join(DATABASE_FILE);
 
     if !path.exists() {
         let conn = Connection::open(&path)?;
@@ -47,13 +44,5 @@ pub fn database_file() -> anyhow::Result<PathBuf> {
         let _ = conn.close();
     }
 
-    Ok(path.to_path_buf())
-}
-
-fn exe_parent_dir() -> Result<PathBuf> {
-    let current_exe = env::current_exe()?;
-    let path = current_exe
-        .parent()
-        .expect("failed to get exe parent directory");
     Ok(path.to_path_buf())
 }

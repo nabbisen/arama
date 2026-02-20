@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "app",
+    "env",
     "embedding",
     "indexer",
     "widget",

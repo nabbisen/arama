@@ -4,10 +4,11 @@ use std::{
     time::UNIX_EPOCH,
 };
 
+use arama_env::validate_dir;
 use image::ImageFormat;
 use rusqlite::Connection;
 
-use super::{Cache, CacheKind, dir::validate_dir};
+use super::{Cache, CacheKind};
 
 const CACHE_SUBDIR: &str = "image";
 
@@ -17,11 +18,13 @@ pub struct ImageCacheManager {
 }
 
 impl ImageCacheManager {
-    pub fn new(thumbnail_width: u32, thumbnail_height: u32) -> Self {
-        Self {
+    pub fn new(thumbnail_width: u32, thumbnail_height: u32) -> Result<Self> {
+        validate_dir(&cache_dir()?)?;
+
+        Ok(Self {
             thumbnail_width,
             thumbnail_height,
-        }
+        })
     }
 
     pub fn cache_path(&self, path: &Path) -> anyhow::Result<PathBuf> {
@@ -106,7 +109,6 @@ impl ImageCacheManager {
 
 fn cache_dir() -> Result<PathBuf> {
     let path = super::cache_dir()?.join(CACHE_SUBDIR);
-    validate_dir(&path)?;
     Ok(path)
 }
 
