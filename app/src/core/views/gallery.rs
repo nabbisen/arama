@@ -1,4 +1,5 @@
 use arama_indexer::ImageCacheManager;
+use iced::Task;
 // use iced::Task;
 use swdir::{DirNode, Swdir};
 
@@ -12,7 +13,7 @@ use crate::core::{
 pub mod message;
 // mod subscription;
 mod update;
-// mod util;
+mod util;
 mod view;
 
 pub const EXTENSION_ALLOWLIST: &[&str; 6] = &["png", "jpg", "jpeg", "webp", "gif", "bmp"];
@@ -48,16 +49,16 @@ impl Gallery {
         })
     }
 
-    // pub fn default_task(&self) -> Task<message::Message> {
-    //     if let Some(dir_node) = &self.dir_node {
-    //         Task::perform(
-    //             util::load_images(dir_node.path.clone()),
-    //             message::Message::ImagesLoaded,
-    //         )
-    //     } else {
-    //         Task::none()
-    //     }
-    // }
+    pub fn default_task(&self) -> Task<message::Message> {
+        if let Some(dir_node) = self.dir_node.as_ref() {
+            Task::perform(
+                util::image_cache(dir_node.clone(), self.image_cache_manager.clone()),
+                message::Message::ImageCached,
+            )
+        } else {
+            Task::none()
+        }
+    }
 
     // fn clear(&mut self) {
     //     self.dir_node = None;
