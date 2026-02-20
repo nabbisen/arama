@@ -30,7 +30,7 @@ pub const INSERT_STMT: &str = concat!(
 pub const UPDATE_LAST_MODIFIED_STMT: &str = concat!(
     "UPDATE ",
     table_name!(),
-    " SET last_modified = ?1 WHERE id = ?2"
+    " SET last_modified = ?1, embedding = NULL WHERE id = ?2"
 );
 
 pub const UPDATE_EMBEDDING_STMT: &str = concat!(

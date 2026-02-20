@@ -1,6 +1,6 @@
 use std::{
     io::{Error, ErrorKind, Result},
-    path::{Path, PathBuf},
+    path::Path,
     time::UNIX_EPOCH,
 };
 
@@ -38,7 +38,7 @@ impl ImageCacheManager {
         })
     }
 
-    pub fn cache_id_and_path(&self, path: &Path) -> anyhow::Result<(u32, PathBuf)> {
+    pub fn refresh_cache(&self, path: &Path) -> anyhow::Result<Cache> {
         let last_modified = path
             .metadata()?
             .modified()?
@@ -61,7 +61,7 @@ impl ImageCacheManager {
                 embedding: row.get(4)?,
             })
         }) {
-            Ok(row) => {
+            Ok(mut row) => {
                 let cache_file_path = cache_thumbnail_file_path(row.id)?;
 
                 if row.last_modified != last_modified {
@@ -73,9 +73,12 @@ impl ImageCacheManager {
                     img.save_with_format(&cache_file_path, ImageFormat::Png)?;
 
                     conn.execute(UPDATE_LAST_MODIFIED_STMT, (&last_modified, &row.id))?;
+
+                    row.last_modified = last_modified;
+                    row.embedding = None;
                 }
 
-                return Ok((row.id, cache_file_path));
+                return Ok(row);
             }
             Err(_) => (),
         };
@@ -94,23 +97,21 @@ impl ImageCacheManager {
                 CacheKind::Image as u32,
             ),
         )?;
-        let id = stmt
-            .query_one([path.canonicalize()?.to_string_lossy()], |row| {
-                Ok(Cache {
-                    id: row.get(0)?,
-                    path: row.get(1)?,
-                    last_modified: row.get(2)?,
-                    cache_kind: row.get(3)?,
-                    embedding: row.get(4)?,
-                })
-            })?
-            .id;
+        let row = stmt.query_one([path.canonicalize()?.to_string_lossy()], |row| {
+            Ok(Cache {
+                id: row.get(0)?,
+                path: row.get(1)?,
+                last_modified: row.get(2)?,
+                cache_kind: row.get(3)?,
+                embedding: row.get(4)?,
+            })
+        })?;
 
-        let cache_file_path = cache_thumbnail_file_path(id)?;
+        let cache_file_path = cache_thumbnail_file_path(row.id)?;
 
         img.save_with_format(&cache_file_path, ImageFormat::Png)?;
 
-        Ok((id, cache_file_path))
+        Ok(row)
     }
 
     pub fn get_embedding(&self, id: u32) -> anyhow::Result<Option<Vec<f32>>> {

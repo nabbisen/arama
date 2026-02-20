@@ -92,8 +92,8 @@ fn image_cell<'a>(
     thumbnail_width_height: u32,
     image_cache_manager: &'a ImageCacheManager,
 ) -> anyhow::Result<Element<'a, Message>> {
-    let (_, cache_file_path) = image_cache_manager.cache_id_and_path(&path)?;
-    let handle = Handle::from_path(cache_file_path);
+    let cache = image_cache_manager.refresh_cache(&path)?;
+    let handle = Handle::from_path(cache.cache_file_path()?);
 
     Ok(image(handle)
         .width(thumbnail_width_height)

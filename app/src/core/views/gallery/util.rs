@@ -7,7 +7,7 @@ pub async fn image_cache(
     image_cache_manager: ImageCacheManager,
 ) -> Option<String> {
     for path in dir_node.files {
-        match image_cache_manager.cache_id_and_path(&path) {
+        match image_cache_manager.refresh_cache(&path) {
             Ok(_) => (),
             Err(err) => return Some(err.to_string()),
         }
@@ -25,13 +25,13 @@ pub async fn image_embedding(
     };
 
     for path in dir_node.files {
-        match image_cache_manager.cache_id_and_path(&path) {
-            Ok((id, path)) => {
+        match image_cache_manager.refresh_cache(&path) {
+            Ok(cache) => {
                 let embedding = match clip(&path, &calculator) {
                     Ok(x) => x,
                     Err(err) => return Some(format!("failed to clip calculation: {}", err)),
                 };
-                match image_cache_manager.set_embedding(id, embedding.embedding) {
+                match image_cache_manager.set_embedding(cache.id(), embedding.embedding) {
                     Ok(_) => (),
                     Err(err) => return Some(format!("failed to set embedding: {}", err)),
                 }

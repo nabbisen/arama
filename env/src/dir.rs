@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-const LOCAL_DIR: &str = ".local";
+const LOCAL_DIR: &str = ".arama-local";
 
 pub fn local_dir() -> Result<PathBuf> {
     let current_exe = env::current_exe()?;
