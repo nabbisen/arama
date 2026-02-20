@@ -20,10 +20,7 @@ impl Gallery {
                     eprintln!("{}", err.join("\n"));
                 }
                 Task::perform(
-                    super::util::image_embedding(
-                        self.dir_node.clone().unwrap(),
-                        self.image_cache_manager.clone(),
-                    ),
+                    super::util::image_embedding(self.dir_node.clone().unwrap()),
                     super::message::Message::EmbeddingCached,
                 )
             }
