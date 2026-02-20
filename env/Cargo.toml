@@ -1,0 +1,6 @@
+[package]
+name = "arama-env"
+version = "0.8.2"
+edition = "2024"
+
+[dependencies]

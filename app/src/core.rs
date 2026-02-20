@@ -42,7 +42,7 @@ impl App {
                 None
             }
         };
-        let gallery = Gallery::new(settings.as_ref());
+        let gallery = Gallery::new(settings.as_ref()).expect("failed to init gallery");
 
         let path = if let Some(settings) = settings.as_ref() {
             settings.root_dir_path.as_str()
