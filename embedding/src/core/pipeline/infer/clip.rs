@@ -4,7 +4,7 @@ use candle_core::{DType, Device, IndexOp, Tensor};
 use candle_nn::VarBuilder;
 use candle_transformers::models::clip::{ClipConfig, ClipModel};
 
-use crate::core::store::file::file_embedding::FileEmbedding;
+use crate::{ModelManager, core::store::file::file_embedding::FileEmbedding, model::clip};
 
 pub mod clip_calculator;
 
@@ -17,9 +17,14 @@ pub fn clip_calculator() -> anyhow::Result<ClipCalculator> {
     // println!("1. モデルのロード");
     // 事前に openai/clip-vit-base-patch32 などから config.json と model.safetensors を入手してください
     let config = ClipConfig::vit_base_patch32();
+    let clip_model_manager = ModelManager::new(clip::model())?;
     let vb = unsafe {
         // todo: requires safetensors from openai/clip-vit-base-patch32
-        VarBuilder::from_mmaped_safetensors(&[crate::SAFETENSORS_MODEL], DType::F32, &device)?
+        VarBuilder::from_mmaped_safetensors(
+            &[clip_model_manager.safetensors_path()?],
+            DType::F32,
+            &device,
+        )?
     };
     let model = ClipModel::new(vb, &config)?;
 

@@ -1,1 +1,1 @@
-pub mod clip;
+pub mod model_manager;

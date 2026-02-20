@@ -1,4 +1,4 @@
-use arama_embedding::model::clip::get_model;
+use arama_embedding::{ModelManager, model::clip};
 use iced::{
     Element, Task,
     widget::{button, column, container, space, text},
@@ -7,7 +7,7 @@ use iced::{
 #[derive(Clone)]
 pub enum Message {
     LoadStart,
-    Loaded(Result<(), String>),
+    Loaded(Option<String>),
 }
 
 #[derive(Default)]
@@ -30,10 +30,22 @@ impl ModelLoader {
             Message::LoadStart => {
                 self.message = "loading...".to_owned();
 
-                Task::perform(get_model(), Message::Loaded)
+                Task::perform(
+                    async {
+                        let clip_model_manager = match ModelManager::new(clip::model()) {
+                            Ok(x) => x,
+                            Err(err) => return Some(err.to_string()),
+                        };
+                        match clip_model_manager.get_safetensors_from_pytorch().await {
+                            Ok(_) => None,
+                            Err(err) => Some(err.to_string()),
+                        }
+                    },
+                    Message::Loaded,
+                )
             }
             Message::Loaded(result) => {
-                if let Err(err) = result {
+                if let Some(err) = result {
                     self.message = err;
                 }
                 Task::none()
