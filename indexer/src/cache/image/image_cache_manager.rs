@@ -10,10 +10,15 @@ use rusqlite::Connection;
 
 use super::{
     Cache, CacheKind,
-    database::{INSERT_STMT, SELECT_STMT, UPDATE_STMT, connection, table_prepare_if_necessary},
+    byte::{blob_to_vector, vector_to_blob},
+    database::{
+        INSERT_STMT, SELECT_EMBEDDING_BY_ID_STMT, SELECT_ROW_BY_PATH_STMT, UPDATE_EMBEDDING_STMT,
+        UPDATE_LAST_MODIFIED_STMT, connection, table_prepare_if_necessary,
+    },
     path::{cache_thumbnail_dir, cache_thumbnail_file_path},
 };
 
+#[derive(Clone)]
 pub struct ImageCacheManager {
     thumbnail_width: u32,
     thumbnail_height: u32,
@@ -33,7 +38,7 @@ impl ImageCacheManager {
         })
     }
 
-    pub fn cache_path(&self, path: &Path) -> anyhow::Result<PathBuf> {
+    pub fn cache_id_and_path(&self, path: &Path) -> anyhow::Result<(u32, PathBuf)> {
         let last_modified = path
             .metadata()?
             .modified()?
@@ -46,13 +51,14 @@ impl ImageCacheManager {
 
         let conn: Connection = connection()?;
 
-        let mut stmt = conn.prepare(SELECT_STMT)?;
+        let mut stmt = conn.prepare(SELECT_ROW_BY_PATH_STMT)?;
         match stmt.query_one([&canonicalized_path_str], |row| {
             Ok(Cache {
                 id: row.get(0)?,
                 path: row.get(1)?,
                 last_modified: row.get(2)?,
                 cache_kind: row.get(3)?,
+                embedding: row.get(4)?,
             })
         }) {
             Ok(row) => {
@@ -66,10 +72,10 @@ impl ImageCacheManager {
                     );
                     img.save_with_format(&cache_file_path, ImageFormat::Png)?;
 
-                    conn.execute(UPDATE_STMT, (&last_modified, &row.id))?;
+                    conn.execute(UPDATE_LAST_MODIFIED_STMT, (&last_modified, &row.id))?;
                 }
 
-                return Ok(cache_file_path);
+                return Ok((row.id, cache_file_path));
             }
             Err(_) => (),
         };
@@ -95,6 +101,7 @@ impl ImageCacheManager {
                     path: row.get(1)?,
                     last_modified: row.get(2)?,
                     cache_kind: row.get(3)?,
+                    embedding: row.get(4)?,
                 })
             })?
             .id;
@@ -103,7 +110,24 @@ impl ImageCacheManager {
 
         img.save_with_format(&cache_file_path, ImageFormat::Png)?;
 
-        Ok(cache_file_path)
+        Ok((id, cache_file_path))
+    }
+
+    pub fn get_embedding(&self, id: u32) -> anyhow::Result<Option<Vec<f32>>> {
+        let conn: Connection = connection()?;
+        let mut stmt = conn.prepare(SELECT_EMBEDDING_BY_ID_STMT)?;
+        let embedding = stmt.query_one([id], |row| row.get::<usize, Vec<u8>>(0));
+        match embedding {
+            Ok(x) => Ok(Some(blob_to_vector(x))),
+            Err(_) => Ok(None),
+        }
+    }
+
+    pub fn set_embedding(&self, id: u32, embedding: Vec<f32>) -> anyhow::Result<()> {
+        let blob = vector_to_blob(embedding);
+        let conn: Connection = connection()?;
+        conn.execute(UPDATE_EMBEDDING_STMT, (blob, id))?;
+        Ok(())
     }
 
     // todo: delete where cache_kind = 'image'

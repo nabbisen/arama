@@ -16,14 +16,9 @@ const CREATE_TABLE_STMT: &str = concat!(
         id   INTEGER PRIMARY KEY,
         path TEXT NOT NULL,
         last_modified INTEGER NOT NULL,
-        cache_kind INTEGER NOT NULL
+        cache_kind INTEGER NOT NULL,
+        embedding BLOB
     )"
-);
-
-pub const SELECT_STMT: &str = concat!(
-    "SELECT id, path, last_modified, cache_kind FROM ",
-    table_name!(),
-    " WHERE path = (?1)"
 );
 
 pub const INSERT_STMT: &str = concat!(
@@ -32,11 +27,26 @@ pub const INSERT_STMT: &str = concat!(
     " (path, last_modified, cache_kind) VALUES (?1, ?2, ?3)"
 );
 
-pub const UPDATE_STMT: &str = concat!(
+pub const UPDATE_LAST_MODIFIED_STMT: &str = concat!(
     "UPDATE ",
     table_name!(),
     " SET last_modified = ?1 WHERE id = ?2"
 );
+
+pub const UPDATE_EMBEDDING_STMT: &str = concat!(
+    "UPDATE ",
+    table_name!(),
+    " SET embedding = ?1 WHERE id = ?2"
+);
+
+pub const SELECT_ROW_BY_PATH_STMT: &str = concat!(
+    "SELECT id, path, last_modified, cache_kind, embedding FROM ",
+    table_name!(),
+    " WHERE path = (?1)"
+);
+
+pub const SELECT_EMBEDDING_BY_ID_STMT: &str =
+    concat!("SELECT embedding FROM ", table_name!(), " WHERE id = (?1)");
 
 pub fn table_prepare_if_necessary() -> anyhow::Result<()> {
     let conn = connection()?;
