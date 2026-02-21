@@ -1,5 +1,5 @@
 pub mod message;
-pub mod update;
+mod update;
 pub mod view;
 
 const DEFAULT_THUMBNAIL_SIZE: u16 = 224;

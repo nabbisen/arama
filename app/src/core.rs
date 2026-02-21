@@ -1,5 +1,5 @@
 use app_json_settings::ConfigManager;
-use arama_widget::dir_tree::DirTree;
+use arama_widget::{aside::Aside, footer::Footer, header::Header};
 use iced::Task;
 
 pub(super) mod components;
@@ -12,12 +12,13 @@ mod views;
 use message::Message;
 use views::gallery::{self, Gallery};
 
-use crate::core::{components::common::model_loader::ModelLoader, settings::Settings};
+use crate::core::settings::Settings;
 
 pub struct App {
     gallery: Gallery,
-    dir_tree: DirTree,
-    model_loader: ModelLoader,
+    header: Header,
+    aside: Aside,
+    footer: Footer,
 }
 
 impl App {
@@ -43,9 +44,9 @@ impl App {
             "."
         };
 
-        let dir_tree = DirTree::new(path, false, false);
-
-        let model_loader = ModelLoader::default();
+        let header = Header::default();
+        let aside = Aside::new(path, false, false);
+        let footer = Footer::default();
 
         let task = gallery
             .default_task()
@@ -54,8 +55,9 @@ impl App {
         (
             Self {
                 gallery,
-                dir_tree,
-                model_loader,
+                header,
+                aside,
+                footer,
             },
             task,
         )

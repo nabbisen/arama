@@ -1,34 +1,29 @@
 use iced::{
     Element,
-    widget::{row, text},
+    Length::Fill,
+    widget::{column, container, row},
 };
 
 pub mod gallery;
 
 use super::{App, message::Message};
-use arama_embedding::model::clip;
 
 impl App {
     pub fn view(&self) -> Element<'_, Message> {
-        let has_model = match clip::model().ready() {
-            Ok(x) => x,
-            Err(err) => return text(err.to_string()).into(),
-        };
-        if !has_model {
-            return self
-                .model_loader
-                .view()
-                .map(Message::ModelLoaderMessage)
-                .into();
-        }
-
         let gallery = self
             .gallery
             .view()
             .map(|message| Message::GalleryMessage(message));
 
-        let dir_tree = self.dir_tree.view().map(Message::DirTreeMessage);
+        let header = self.header.view().map(Message::HeaderMessage);
+        let aside = self.aside.view().map(Message::AsideMessage);
+        let footer = self.footer.view().map(Message::FooterMessage);
 
-        row([dir_tree.into(), gallery.into()]).into()
+        column![
+            container(header).height(60),
+            container(row![aside, gallery]).height(Fill),
+            container(footer).height(40)
+        ]
+        .into()
     }
 }

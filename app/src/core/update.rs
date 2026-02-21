@@ -2,7 +2,7 @@ use iced::Task;
 use swdir::Swdir;
 
 use super::{App, gallery, message::Message};
-use arama_widget::dir_tree;
+use arama_widget::aside;
 
 impl App {
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -11,14 +11,18 @@ impl App {
                 .gallery
                 .update(message)
                 .map(|message| Message::GalleryMessage(message)),
-            Message::DirTreeMessage(message) => {
+            Message::HeaderMessage(message) => self
+                .header
+                .update(message)
+                .map(|message| Message::HeaderMessage(message)),
+            Message::AsideMessage(message) => {
                 let task = self
-                    .dir_tree
+                    .aside
                     .update(message.clone())
-                    .map(|message| Message::DirTreeMessage(message));
+                    .map(|message| Message::AsideMessage(message));
 
                 match message {
-                    dir_tree::message::Message::DirClick(path) => {
+                    aside::message::Message::DirClick(path) => {
                         // todo dir_node should be got from dir_tree
                         let dir_node = Swdir::default()
                             .set_root_path(path)
@@ -35,10 +39,10 @@ impl App {
 
                 task
             }
-            Message::ModelLoaderMessage(message) => {
-                let task = self.model_loader.update(message);
-                task.map(Message::ModelLoaderMessage)
-            }
+            Message::FooterMessage(message) => self
+                .footer
+                .update(message)
+                .map(|message| Message::FooterMessage(message)),
         }
     }
 }

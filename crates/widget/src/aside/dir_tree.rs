@@ -7,7 +7,7 @@ use file_node::FileNode;
 
 mod file_node;
 pub mod message;
-pub mod update;
+mod update;
 pub mod view;
 
 const DOUBLE_CLICK_INTERVAL_MILLIS: Duration = Duration::from_millis(600);
@@ -22,7 +22,6 @@ pub struct DirTree {
 }
 
 impl DirTree {
-    /// 指定したパスからノードを作成（再帰的に読み込む場合は recursive = true）
     pub fn new<T: Into<PathBuf>>(path: T, include_file: bool, include_hidden: bool) -> Self {
         Self {
             root: FileNode::new(path, true, true),
