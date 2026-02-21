@@ -14,7 +14,7 @@ readme = "README.md"
 rust-version = "1.90.0"
 
 [dependencies]
-arama-env = { path = "../env" }
+arama-env = { path = "../../env" }
 
 anyhow = "1"
 image = "0"
