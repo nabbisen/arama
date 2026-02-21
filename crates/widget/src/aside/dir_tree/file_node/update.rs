@@ -7,7 +7,6 @@ use super::FileNode;
 use super::message::Message;
 
 impl FileNode {
-    // update 関数内での処理例
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::TreeLoaded(file_node) => {

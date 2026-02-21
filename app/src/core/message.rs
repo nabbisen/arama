@@ -1,10 +1,10 @@
-use arama_widget::dir_tree;
+use arama_widget::{aside, footer, header};
 
 use super::gallery;
-use crate::core::components::common::model_loader;
 
 pub enum Message {
     GalleryMessage(gallery::message::Message),
-    DirTreeMessage(dir_tree::message::Message),
-    ModelLoaderMessage(model_loader::Message),
+    HeaderMessage(header::message::Message),
+    AsideMessage(aside::message::Message),
+    FooterMessage(footer::message::Message),
 }
