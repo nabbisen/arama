@@ -3,4 +3,4 @@ pub(super) mod update;
 pub(super) mod view;
 
 #[derive(Clone, Debug, Default)]
-pub struct Settings {}
+pub struct SettingsNav {}

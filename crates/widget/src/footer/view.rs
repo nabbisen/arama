@@ -4,6 +4,7 @@ use super::{Footer, message::Message};
 
 impl Footer {
     pub fn view(&self) -> Element<'static, Message> {
+        // todo
         container("test").width(Fill).into()
     }
 }

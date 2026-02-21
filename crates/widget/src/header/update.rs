@@ -8,9 +8,10 @@ impl Header {
             Message::DirNavMessage(message) => {
                 self.dir_nav.update(message).map(Message::DirNavMessage)
             }
-            Message::SettingsMessage(message) => {
-                self.settings.update(message).map(Message::SettingsMessage)
-            }
+            Message::SettingsNavMessage(message) => self
+                .settings_nav
+                .update(message)
+                .map(Message::SettingsNavMessage),
         }
     }
 }
