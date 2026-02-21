@@ -32,7 +32,6 @@ impl FileNode {
         if self.path == *path {
             self.is_expanded = !self.is_expanded;
 
-            // フォルダが開かれ、かつ中身がまだ空なら読み込む
             if self.is_expanded {
                 if let Ok(entries) = fs::read_dir(&self.path) {
                     self.children.clear();
@@ -47,7 +46,7 @@ impl FileNode {
                         }
 
                         if !include_hidden {
-                            if is_hidden(path) {
+                            if is_hidden(&entry.path()) {
                                 continue;
                             }
                         }
