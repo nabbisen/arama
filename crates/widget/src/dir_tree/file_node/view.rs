@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use iced::Element;
-use iced::widget::{Column, button, container, row, text};
+use iced::widget::{Column, button, container, row, scrollable, text};
 
 use super::FileNode;
 use super::message::Message;
@@ -67,6 +67,6 @@ impl FileNode {
             }
         }
 
-        content.into()
+        scrollable(content).into()
     }
 }
