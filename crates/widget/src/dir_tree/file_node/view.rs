@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
+use iced::Element;
 use iced::widget::{Column, button, container, row, scrollable, text};
-use iced::{Element, Length};
 
 use super::FileNode;
 use super::message::Message;
