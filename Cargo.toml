@@ -1,10 +1,10 @@
 [workspace]
 members = [
     "app",
+    "crates/embedding",
+    "crates/indexer",
+    "crates/widget",
     "env",
-    "embedding",
-    "indexer",
-    "widget",
 ]
 resolver = "2"
 

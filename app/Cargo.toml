@@ -26,9 +26,9 @@ lto = false           # disable link-time optimizations
 incremental = false
 
 [dependencies]
-arama-embedding = { path = "../embedding" }
-arama-indexer = { path = "../indexer" }
-arama-widget = { path = "../widget" }
+arama-embedding = { path = "../crates/embedding" }
+arama-indexer = { path = "../crates/indexer" }
+arama-widget = { path = "../crates/widget" }
 
 iced = { version = "0.14", features = ["image", "tokio"] }
 
