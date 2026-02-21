@@ -1,33 +1,23 @@
 use app_json_settings::ConfigManager;
-use arama_embedding::model::clip;
-use arama_widget::dir_tree::{self, DirTree};
-use iced::{
-    Element, Subscription, Task,
-    widget::{row, text},
-};
+use arama_widget::dir_tree::DirTree;
+use iced::Task;
 
 pub(super) mod components;
+mod message;
 mod settings;
+mod subscription;
+mod update;
 mod views;
 
-use swdir::Swdir;
+use message::Message;
 use views::gallery::{self, Gallery};
 
-use crate::core::{
-    components::common::model_loader::{self, ModelLoader},
-    settings::Settings,
-};
+use crate::core::{components::common::model_loader::ModelLoader, settings::Settings};
 
 pub struct App {
     gallery: Gallery,
     dir_tree: DirTree,
     model_loader: ModelLoader,
-}
-
-pub enum Message {
-    GalleryMessage(gallery::message::Message),
-    DirTreeMessage(dir_tree::message::Message),
-    ModelLoaderMessage(model_loader::Message),
 }
 
 impl App {
@@ -69,71 +59,5 @@ impl App {
             },
             task,
         )
-    }
-
-    fn view(&self) -> Element<'_, Message> {
-        let has_model = match clip::model().ready() {
-            Ok(x) => x,
-            Err(err) => return text(err.to_string()).into(),
-        };
-        if !has_model {
-            return self
-                .model_loader
-                .view()
-                .map(Message::ModelLoaderMessage)
-                .into();
-        }
-
-        let gallery = self
-            .gallery
-            .view()
-            .map(|message| Message::GalleryMessage(message));
-
-        let dir_tree = self.dir_tree.view().map(Message::DirTreeMessage);
-
-        row([dir_tree.into(), gallery.into()]).into()
-    }
-
-    fn update(&mut self, message: Message) -> Task<Message> {
-        match message {
-            Message::GalleryMessage(message) => self
-                .gallery
-                .update(message)
-                .map(|message| Message::GalleryMessage(message)),
-            Message::DirTreeMessage(message) => {
-                let task = self
-                    .dir_tree
-                    .update(message.clone())
-                    .map(|message| Message::DirTreeMessage(message));
-
-                match message {
-                    dir_tree::message::Message::DirClick(path) => {
-                        // todo dir_node should be got from dir_tree
-                        let dir_node = Swdir::default()
-                            .set_root_path(path)
-                            .set_extension_allowlist(gallery::EXTENSION_ALLOWLIST)
-                            .expect("failed to set allowlist")
-                            .walk();
-                        let _ = self
-                            .gallery
-                            .update(gallery::message::Message::DirSelect(dir_node));
-                        return Task::none();
-                    }
-                    _ => (),
-                }
-
-                task
-            }
-            Message::ModelLoaderMessage(message) => {
-                let task = self.model_loader.update(message);
-                task.map(Message::ModelLoaderMessage)
-            }
-        }
-    }
-
-    fn subscription(&self) -> Subscription<Message> {
-        // let subscriptions = [self.gallery.subscription().map(Message::GalleryMessage)];
-        // Subscription::batch(subscriptions)
-        Subscription::batch([])
     }
 }
