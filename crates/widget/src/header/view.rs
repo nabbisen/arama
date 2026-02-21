@@ -6,7 +6,7 @@ impl Header {
     pub fn view(&self) -> Element<'static, Message> {
         row![
             self.dir_nav.view().map(Message::DirNavMessage),
-            self.settings.view().map(Message::SettingsMessage)
+            self.settings_nav.view().map(Message::SettingsNavMessage)
         ]
         .into()
     }
