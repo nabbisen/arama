@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use iced::Element;
 use iced::widget::{Column, button, container, row, scrollable, text};
+use iced::{Element, Length};
 
 use super::FileNode;
 use super::message::Message;
@@ -58,15 +58,11 @@ impl FileNode {
         // 展開されている場合、子要素を再帰的に描画
         if self.is_expanded && self.is_dir {
             for child in &self.children {
-                content = content.push(child.view(
-                    selected_path,
-                    depth + 1,
-                    include_file,
-                    include_hidden,
-                ));
+                content =
+                    content.push(child.view(selected_path, depth + 1, include_file, include_hidden))
             }
         }
 
-        scrollable(content).into()
+        scrollable(content).width(320).into()
     }
 }
