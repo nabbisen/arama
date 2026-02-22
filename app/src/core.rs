@@ -23,6 +23,7 @@ pub struct App {
 }
 
 enum Dialog {
+    MediaFocus(dialog::media_focus::MediaFocus),
     Settings(dialog::settings::Settings),
 }
 

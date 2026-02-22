@@ -75,6 +75,7 @@ impl Gallery {
 
                 Task::none()
             }
+            Message::ImageSelect(_) => Task::none(),
             Message::DirSelect(dir_node) => {
                 self.dir_node = Some(dir_node.clone());
                 Task::perform(
