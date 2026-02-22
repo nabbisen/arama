@@ -2,7 +2,14 @@ use iced::Task;
 use swdir::Swdir;
 
 use super::{App, Dialog, gallery, message::Message};
-use arama_widget::{aside, dialog, header};
+use arama_widget::{
+    aside,
+    dialog::{
+        self,
+        similar_pairs::{self, SimilarPairs},
+    },
+    header,
+};
 
 impl App {
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -17,6 +24,17 @@ impl App {
                         self.dialog = Some(Dialog::MediaFocus(
                             dialog::media_focus::MediaFocus::new(path),
                         ));
+                    }
+                    gallery::message::Message::SimilarPairsOpen => {
+                        // todo: error handling
+                        let dialog = dialog::similar_pairs::SimilarPairs::new(
+                            self.gallery.dir_node().unwrap(),
+                            None,
+                        );
+                        self.dialog = Some(Dialog::SimilarPairs(dialog.clone()));
+                        return dialog
+                            .default_task()
+                            .map(Message::SimilarPairsDialogMessage);
                     }
                     _ => (),
                 }
@@ -67,6 +85,24 @@ impl App {
                         }
                     }
                 }
+                Task::none()
+            }
+            Message::SimilarPairsDialogMessage(message) => {
+                let _ = match &self.dialog {
+                    Some(Dialog::SimilarPairs(dialog)) => {
+                        let output = dialog.to_owned().update(message);
+                        match output {
+                            Some(similar_pairs::output::Output::EmbeddingsReady(pairs)) => {
+                                self.dialog = Some(Dialog::SimilarPairs(SimilarPairs::new(
+                                    self.gallery.dir_node().unwrap(),
+                                    Some(pairs),
+                                )));
+                            }
+                            None => (),
+                        }
+                    }
+                    _ => (),
+                };
                 Task::none()
             }
             Message::SettingsDialogMessage(_message) => {

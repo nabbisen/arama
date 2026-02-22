@@ -60,6 +60,10 @@ impl Gallery {
         }
     }
 
+    pub fn dir_node(&self) -> Option<DirNode> {
+        self.dir_node.clone()
+    }
+
     // fn clear(&mut self) {
     //     self.dir_node = None;
     // }

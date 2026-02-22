@@ -25,4 +25,5 @@ pub enum Message {
     // DirTreeMessage(dir_tree::message::Message),
     ImageSelect(PathBuf),
     DirSelect(DirNode),
+    SimilarPairsOpen,
 }

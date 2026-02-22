@@ -10,6 +10,7 @@ use crate::{
 };
 
 pub mod clip_calculator;
+pub mod util;
 
 use clip_calculator::{ClipCalculator, load_image_as_tensor};
 

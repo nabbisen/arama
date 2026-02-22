@@ -27,14 +27,9 @@ impl App {
         ];
 
         let dialog = match &self.dialog {
-            Some(Dialog::MediaFocus(x)) => {
-                // state.view() が返す Element<settings::Msg> を Element<Msg> に変換
-                Some(x.view().map(Message::MediaFocusDialogMessage))
-            }
-            Some(Dialog::Settings(x)) => {
-                // state.view() が返す Element<settings::Msg> を Element<Msg> に変換
-                Some(x.view().map(Message::SettingsDialogMessage))
-            }
+            Some(Dialog::MediaFocus(x)) => Some(x.view().map(Message::MediaFocusDialogMessage)),
+            Some(Dialog::SimilarPairs(x)) => Some(x.view().map(Message::SimilarPairsDialogMessage)),
+            Some(Dialog::Settings(x)) => Some(x.view().map(Message::SettingsDialogMessage)),
             None => None,
         };
 

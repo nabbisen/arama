@@ -1,12 +1,18 @@
-use iced::Element;
+use iced::{
+    Element,
+    widget::{button, row},
+};
 
 use super::{GallerySettings, message::Message};
 
 impl GallerySettings {
     pub fn view(&self) -> Element<'_, Message> {
-        self.thumbnail_size
-            .view()
-            .map(Message::ThumbnailSizeSliderMessage)
-            .into()
+        row![
+            self.thumbnail_size
+                .view()
+                .map(Message::ThumbnailSizeSliderMessage),
+            button("Similar Pairs").on_press(Message::SimilarPairsOpen)
+        ]
+        .into()
     }
 }

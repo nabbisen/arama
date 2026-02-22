@@ -3,6 +3,8 @@
 use iced::Task;
 // use swdir::DirNode;
 
+use crate::core::components::gallery::gallery_settings;
+
 use super::{
     Gallery,
     message::Message,
@@ -54,24 +56,27 @@ impl Gallery {
             Message::GallerySettingsMessage(message) => {
                 let _ = self.gallery_settings.update(message.clone());
 
-                // match message {
-                //     gallery_settings::message::Message::SwdirDepthLimitMessage(message) => {
-                //         match message {
-                //             swdir_depth_limit::message::Message::ValueChanged(_) => {
-                //                 if let Some(dir_node) = self.dir_node.as_ref() {
-                //                     return Task::perform(
-                //                         super::util::load_images(
-                //                             dir_node.path.clone(),
-                //                             self.gallery_settings.swdir_depth_limit(),
-                //                         ),
-                //                         super::message::Message::ImagesLoaded,
-                //                     );
-                //                 }
-                //             }
-                //         }
-                //     }
-                //     _ => (),
-                // }
+                match message {
+                    gallery_settings::message::Message::SimilarPairsOpen => {
+                        return Task::done(Message::SimilarPairsOpen);
+                    }
+                    //     gallery_settings::message::Message::SwdirDepthLimitMessage(message) => {
+                    //         match message {
+                    //             swdir_depth_limit::message::Message::ValueChanged(_) => {
+                    //                 if let Some(dir_node) = self.dir_node.as_ref() {
+                    //                     return Task::perform(
+                    //                         super::util::load_images(
+                    //                             dir_node.path.clone(),
+                    //                             self.gallery_settings.swdir_depth_limit(),
+                    //                         ),
+                    //                         super::message::Message::ImagesLoaded,
+                    //                     );
+                    //                 }
+                    //             }
+                    //         }
+                    //     }
+                    _ => (),
+                }
 
                 Task::none()
             }
@@ -82,73 +87,75 @@ impl Gallery {
                     self.image_cache_manager.clone().refresh(dir_node),
                     Message::ImageCached,
                 )
-            } // Message::ImageSelect(path) => {
-              //     self.processing = true;
-              //     self.selected_source_image = Some(path.clone());
+            }
+            Message::SimilarPairsOpen => Task::none(),
+            // Message::ImageSelect(path) => {
+            //     self.processing = true;
+            //     self.selected_source_image = Some(path.clone());
 
-              //     if let Some(tx) = &mut self.subscription_worker_tx {
-              //         if let Some(dir_node) = self.dir_node.clone() {
-              //             // let _ = tx.try_send(Input::ImageSimilarity((path, dir_node)));
-              //             let _ = tx.try_send(Input::ImageSimilarity(dir_node));
-              //         }
-              //     }
+            //     if let Some(tx) = &mut self.subscription_worker_tx {
+            //         if let Some(dir_node) = self.dir_node.clone() {
+            //             // let _ = tx.try_send(Input::ImageSimilarity((path, dir_node)));
+            //             let _ = tx.try_send(Input::ImageSimilarity(dir_node));
+            //         }
+            //     }
 
-              //     Task::none()
-              // }
-              // Message::SubscriptionWorkerReady(tx) => {
-              //     self.subscription_worker_tx = Some(tx);
+            //     Task::none()
+            // }
+            // Message::SubscriptionWorkerReady(tx) => {
+            //     self.subscription_worker_tx = Some(tx);
 
-              //     if let Some(tx) = &mut self.subscription_worker_tx {
-              //         // if let Some(path) = self.selected_source_image.clone() {
-              //         if let Some(dir_node) = self.dir_node.clone() {
-              //             // let _ = tx.try_send(Input::ImageSimilarity((path, dir_node)));
-              //             let _ = tx.try_send(Input::ImageSimilarity(dir_node));
-              //         }
-              //         // }
-              //     }
+            //     if let Some(tx) = &mut self.subscription_worker_tx {
+            //         // if let Some(path) = self.selected_source_image.clone() {
+            //         if let Some(dir_node) = self.dir_node.clone() {
+            //             // let _ = tx.try_send(Input::ImageSimilarity((path, dir_node)));
+            //             let _ = tx.try_send(Input::ImageSimilarity(dir_node));
+            //         }
+            //         // }
+            //     }
 
-              //     Task::none()
-              // }
-              // Message::SubscriptionWorkerFinished(file_embedding) => {
-              //     self.file_embedding_map.set_embedding(&file_embedding);
-              //     self.processing = false;
-              //     Task::none()
-              // }
-              // Message::SubscriptionWorkerFailed => {
-              //     // error handling
-              //     eprintln!("failed to calculate image similarity in background");
-              //     self.file_embedding_map = FileEmbeddingMap::default();
-              //     self.processing = false;
-              //     Task::none()
-              // }
-              // Message::DirTreeMessage(message) => {
-              //     let task = self.directory_tree.update(message.clone());
+            //     Task::none()
+            // }
+            // Message::SubscriptionWorkerFinished(file_embedding) => {
+            //     self.file_embedding_map.set_embedding(&file_embedding);
+            //     self.processing = false;
+            //     Task::none()
+            // }
+            // Message::SubscriptionWorkerFailed => {
+            //     // error handling
+            //     eprintln!("failed to calculate image similarity in background");
+            //     self.file_embedding_map = FileEmbeddingMap::default();
+            //     self.processing = false;
+            //     Task::none()
+            // }
+            // Message::DirTreeMessage(message) => {
+            //     let task = self.directory_tree.update(message.clone());
 
-              //     match message {
-              //         dir_tree::message::Message::DirectoryDoubleClick(path) => {
-              //             ConfigManager::new()
-              //                 .save(&Settings {
-              //                     root_dir_path: path.to_string_lossy().into(),
-              //                 })
-              //                 .expect("failed to save config");
+            //     match message {
+            //         dir_tree::message::Message::DirectoryDoubleClick(path) => {
+            //             ConfigManager::new()
+            //                 .save(&Settings {
+            //                     root_dir_path: path.to_string_lossy().into(),
+            //                 })
+            //                 .expect("failed to save config");
 
-              //             self.clear();
-              //             let dir_node = DirNode::with_path(path);
-              //             self.dir_node = Some(dir_node.clone());
+            //             self.clear();
+            //             let dir_node = DirNode::with_path(path);
+            //             self.dir_node = Some(dir_node.clone());
 
-              //             return Task::perform(
-              //                 super::util::load_images(
-              //                     dir_node.path.clone(),
-              //                     self.gallery_settings.swdir_depth_limit(),
-              //                 ),
-              //                 super::message::Message::ImagesLoaded,
-              //             );
-              //         }
-              //         _ => (),
-              //     }
+            //             return Task::perform(
+            //                 super::util::load_images(
+            //                     dir_node.path.clone(),
+            //                     self.gallery_settings.swdir_depth_limit(),
+            //                 ),
+            //                 super::message::Message::ImagesLoaded,
+            //             );
+            //         }
+            //         _ => (),
+            //     }
 
-              //     task.map(Message::DirTreeMessage)
-              // }
+            //     task.map(Message::DirTreeMessage)
+            // }
         }
     }
 }
