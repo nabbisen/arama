@@ -6,5 +6,4 @@ use super::file_node;
 pub enum Message {
     FileNodeMessage(file_node::message::Message),
     DirClick(PathBuf),
-    DirDoubleClick(PathBuf),
 }

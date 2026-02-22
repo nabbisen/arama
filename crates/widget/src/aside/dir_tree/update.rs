@@ -1,14 +1,11 @@
 use std::time::Instant;
 
-use iced::Task;
-
 use super::{DOUBLE_CLICK_INTERVAL_MILLIS, file_node};
 
-use super::DirTree;
-use super::message::Message;
+use super::{DirTree, message::Message, output::Output};
 
 impl DirTree {
-    pub fn update(&mut self, message: Message) -> Task<Message> {
+    pub fn update(&mut self, message: Message) -> Option<Output> {
         match message {
             Message::FileNodeMessage(file_node_message) => {
                 let _ = self.root.update(file_node_message.clone());
@@ -21,7 +18,7 @@ impl DirTree {
                             Some(dir_last_clicked) => dir_last_clicked,
                             None => {
                                 self.dir_last_clicked = Some((path.to_owned(), now));
-                                return Task::done(Message::DirClick(path));
+                                return Some(Output::DirClick(path));
                             }
                         };
 
@@ -29,16 +26,17 @@ impl DirTree {
                             && now.duration_since(last_time) <= DOUBLE_CLICK_INTERVAL_MILLIS
                         {
                             self.dir_last_clicked = None;
-                            return Task::done(Message::DirDoubleClick(path));
+                            return Some(Output::DirDoubleClick(path));
                         }
 
                         self.dir_last_clicked = None;
-                        Task::done(Message::DirClick(path))
+                        return Some(Output::DirClick(path));
                     }
-                    _ => Task::none(),
+                    _ => (),
                 }
             }
-            _ => Task::none(),
+            _ => (),
         }
+        None
     }
 }

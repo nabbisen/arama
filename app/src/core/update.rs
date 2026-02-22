@@ -16,28 +16,25 @@ impl App {
                 .update(message)
                 .map(|message| Message::HeaderMessage(message)),
             Message::AsideMessage(message) => {
-                let task = self
-                    .aside
-                    .update(message.clone())
-                    .map(|message| Message::AsideMessage(message));
+                let output = self.aside.update(message.clone());
 
-                match message {
-                    aside::message::Message::DirClick(path) => {
+                match output {
+                    Some(aside::output::Output::DirClick(path)) => {
                         // todo dir_node should be got from dir_tree
                         let dir_node = Swdir::default()
                             .set_root_path(path)
                             .set_extension_allowlist(gallery::EXTENSION_ALLOWLIST)
                             .expect("failed to set allowlist")
                             .walk();
-                        let _ = self
+                        let task = self
                             .gallery
-                            .update(gallery::message::Message::DirSelect(dir_node));
-                        return Task::none();
+                            .update(gallery::message::Message::DirSelect(dir_node))
+                            .map(Message::GalleryMessage);
+                        return task;
                     }
                     _ => (),
                 }
-
-                task
+                Task::none()
             }
             Message::FooterMessage(message) => self
                 .footer
