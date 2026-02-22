@@ -1,5 +1,6 @@
 mod dir_nav;
 pub mod message;
+pub mod output;
 mod settings_nav;
 mod update;
 pub mod view;

@@ -1,5 +1,5 @@
 use app_json_settings::ConfigManager;
-use arama_widget::{aside::Aside, footer::Footer, header::Header};
+use arama_widget::{aside::Aside, dialog, footer::Footer, header::Header};
 use iced::Task;
 
 pub(super) mod components;
@@ -19,6 +19,11 @@ pub struct App {
     header: Header,
     aside: Aside,
     footer: Footer,
+    dialog: Option<Dialog>,
+}
+
+enum Dialog {
+    Settings(dialog::settings::Settings),
 }
 
 impl App {
@@ -47,6 +52,7 @@ impl App {
         let header = Header::default();
         let aside = Aside::new(path, false, false);
         let footer = Footer::default();
+        let dialog = None;
 
         let task = gallery
             .default_task()
@@ -58,6 +64,7 @@ impl App {
                 header,
                 aside,
                 footer,
+                dialog,
             },
             task,
         )
