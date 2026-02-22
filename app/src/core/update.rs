@@ -7,10 +7,21 @@ use arama_widget::{aside, dialog, header};
 impl App {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::GalleryMessage(message) => self
-                .gallery
-                .update(message)
-                .map(|message| Message::GalleryMessage(message)),
+            Message::GalleryMessage(message) => {
+                let task = self
+                    .gallery
+                    .update(message.clone())
+                    .map(|message| Message::GalleryMessage(message));
+                match message {
+                    gallery::message::Message::ImageSelect(path) => {
+                        self.dialog = Some(Dialog::MediaFocus(
+                            dialog::media_focus::MediaFocus::new(path),
+                        ));
+                    }
+                    _ => (),
+                }
+                task
+            }
             Message::HeaderMessage(message) => {
                 let output = self.header.update(message);
                 match output {
@@ -46,6 +57,18 @@ impl App {
                 .footer
                 .update(message)
                 .map(|message| Message::FooterMessage(message)),
+            Message::MediaFocusDialogMessage(message) => {
+                if let Some(Dialog::MediaFocus(x)) = &mut self.dialog {
+                    // ここでダイアログの `Output`（閉じるとか保存するとか）を受け取って処理することも可能
+                    let output = x.update(message);
+                    match output {
+                        dialog::media_focus::output::Output::CloseClick => {
+                            self.dialog = None;
+                        }
+                    }
+                }
+                Task::none()
+            }
             Message::SettingsDialogMessage(_message) => {
                 // // Settingsダイアログが開いている時だけupdateを伝播
                 // if let Some(Dialog::Settings(settings)) = &mut self.dialog {

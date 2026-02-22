@@ -27,9 +27,13 @@ impl App {
         ];
 
         let dialog = match &self.dialog {
-            Some(Dialog::Settings(settings)) => {
+            Some(Dialog::MediaFocus(x)) => {
                 // state.view() が返す Element<settings::Msg> を Element<Msg> に変換
-                Some(settings.view().map(Message::SettingsDialogMessage))
+                Some(x.view().map(Message::MediaFocusDialogMessage))
+            }
+            Some(Dialog::Settings(x)) => {
+                // state.view() が返す Element<settings::Msg> を Element<Msg> に変換
+                Some(x.view().map(Message::SettingsDialogMessage))
             }
             None => None,
         };

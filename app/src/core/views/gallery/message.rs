@@ -4,6 +4,8 @@
 // use iced::futures::channel::mpsc::Sender;
 // use swdir::DirNode;
 
+use std::path::PathBuf;
+
 use swdir::DirNode;
 
 // use super::subscription::Input;
@@ -21,5 +23,6 @@ pub enum Message {
     // SubscriptionWorkerFinished(FileEmbedding),
     // SubscriptionWorkerFailed,
     // DirTreeMessage(dir_tree::message::Message),
+    ImageSelect(PathBuf),
     DirSelect(DirNode),
 }

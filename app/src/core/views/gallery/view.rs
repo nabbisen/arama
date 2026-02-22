@@ -3,7 +3,9 @@ use std::path::Path;
 use arama_indexer::ImageCacheManager;
 use iced::Length::Fill;
 use iced::widget::image::Handle;
-use iced::widget::{Responsive, column, container, image, row, scrollable, space, text};
+use iced::widget::{
+    Responsive, column, container, image, mouse_area, row, scrollable, space, text,
+};
 use iced::{Element, Size};
 
 use super::{Gallery, SPACING, message::Message};
@@ -85,16 +87,19 @@ fn image_cell<'a>(
     path: &'a Path,
     thumbnail_width_height: u32,
 ) -> anyhow::Result<Element<'a, Message>> {
-    let path = match ImageCacheManager::get_cache_file_path(&path)? {
+    let thumbnail_path = match ImageCacheManager::get_cache_file_path(path)? {
         Some(x) => x,
         None => path.to_path_buf(),
     };
 
-    let handle = Handle::from_path(path);
+    let handle = Handle::from_path(thumbnail_path);
 
-    Ok(image(handle)
-        .width(thumbnail_width_height)
-        .height(thumbnail_width_height)
-        .content_fit(iced::ContentFit::Cover)
-        .into())
+    Ok(mouse_area(
+        image(handle)
+            .width(thumbnail_width_height)
+            .height(thumbnail_width_height)
+            .content_fit(iced::ContentFit::Cover),
+    )
+    .on_double_click(Message::ImageSelect(path.to_path_buf()))
+    .into())
 }

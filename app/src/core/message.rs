@@ -8,6 +8,7 @@ pub enum Message {
     HeaderMessage(header::message::Message),
     AsideMessage(aside::message::Message),
     FooterMessage(footer::message::Message),
+    MediaFocusDialogMessage(dialog::media_focus::message::Message),
     SettingsDialogMessage(dialog::settings::message::Message),
     DialogClose,
 }
