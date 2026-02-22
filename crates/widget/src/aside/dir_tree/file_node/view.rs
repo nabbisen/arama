@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 
-use iced::Element;
-use iced::widget::{Column, button, container, row, scrollable, text};
+use iced::font::Weight;
+use iced::widget::{Column, container, mouse_area, row, scrollable, text};
+use iced::{Element, Font, mouse};
 
 use super::FileNode;
 use super::message::Message;
@@ -24,28 +25,39 @@ impl FileNode {
         } else {
             "📁"
         };
-
-        let is_selected = selected_path.as_ref() == Some(&self.path);
-
         // フォルダ名部分のボタン（クリックで選択）
-        let label = button(text(format!("{} {}", icon, self.name)))
-            .on_press(Message::DirClick(self.path.clone()))
-            .style(if is_selected {
-                button::primary
+        let txt = format!("{} {}", icon, self.name);
+
+        let selected = selected_path.as_ref() == Some(&self.path);
+
+        let label = mouse_area(
+            container(text(txt).font(if selected {
+                Font {
+                    weight: Weight::Bold,
+                    ..Font::DEFAULT
+                }
             } else {
-                button::text
-            })
-            .padding([2, 5]);
+                Font::DEFAULT
+            }))
+            .padding([2, 5]),
+        )
+        .interaction(mouse::Interaction::Pointer)
+        .on_press(Message::DirClick(self.path.clone()))
+        .on_double_click(Message::ToggleExpand((
+            self.path.clone(),
+            include_file,
+            include_hidden,
+        )));
 
         // 開閉切り替えボタン（ディレクトリの場合のみ）
         let row_content = if self.is_dir {
-            let toggle_btn = button(text(if self.is_expanded { "▼" } else { "▶" }))
+            let toggle_btn = mouse_area(text(if self.is_expanded { "▼" } else { "▶" }))
                 .on_press(Message::ToggleExpand((
                     self.path.clone(),
                     include_file,
                     include_hidden,
                 )))
-                .style(button::text);
+                .interaction(mouse::Interaction::Pointer);
             row![toggle_btn, label].spacing(5)
         } else {
             row![text("  "), label].spacing(5)
