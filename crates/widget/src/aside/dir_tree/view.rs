@@ -4,7 +4,7 @@ use super::DirTree;
 use super::message::Message;
 
 impl DirTree {
-    pub fn view(&self) -> Element<'static, Message> {
+    pub fn view(&self) -> Element<'_, Message> {
         self.root
             .view(
                 &self.selected_path,
