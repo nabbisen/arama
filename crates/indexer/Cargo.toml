@@ -1,6 +1,6 @@
 [package]
 name = "arama-indexer"
-version = "0.9.1"
+version = "0.9.2"
 edition = "2024"
 
 description = "Image viewer and similarity calculator with offline AI power"
