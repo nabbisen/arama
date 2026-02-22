@@ -1,13 +1,10 @@
 use std::fs;
 use std::path::PathBuf;
 
-use iced::Task;
-
-use super::FileNode;
-use super::message::Message;
+use super::{FileNode, message::Message, output::Output};
 
 impl FileNode {
-    pub fn update(&mut self, message: Message) -> Task<Message> {
+    pub fn update(&mut self, message: Message) -> Option<Output> {
         match message {
             Message::TreeLoaded(file_node) => {
                 self.name = file_node.name;
@@ -15,15 +12,14 @@ impl FileNode {
                 self.is_dir = file_node.is_dir;
                 self.is_expanded = file_node.is_expanded;
                 self.children = file_node.children;
-
-                Task::none()
+                None
             }
             Message::ToggleExpand((path, include_file, include_hidden)) => {
                 // 再帰的にツリーを更新して is_expanded を切り替える
                 self.update_tree_lazy(&path, include_file, include_hidden);
-                Task::none()
+                None
             }
-            _ => Task::none(),
+            Message::DirClick(path) => Some(Output::DirClick(path)),
         }
     }
 

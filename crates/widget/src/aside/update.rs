@@ -1,28 +1,21 @@
-use iced::Task;
-
 use crate::aside::dir_tree;
 
-use super::{Aside, message::Message};
+use super::{Aside, message::Message, output::Output};
 
 impl Aside {
-    pub fn update(&mut self, message: Message) -> Task<Message> {
+    pub fn update(&mut self, message: Message) -> Option<Output> {
         match message {
             Message::DirTreeMessage(message) => {
-                let task = self
-                    .dir_tree
-                    .update(message.clone())
-                    .map(Message::DirTreeMessage);
+                let output = self.dir_tree.update(message.clone());
 
-                match message {
-                    dir_tree::message::Message::DirClick(path) => {
-                        return Task::done(Message::DirClick(path));
+                match output {
+                    Some(dir_tree::output::Output::DirClick(path)) => {
+                        return Some(Output::DirClick(path));
                     }
                     _ => (),
                 }
-
-                task
             }
-            _ => Task::none(),
         }
+        None
     }
 }

@@ -6,9 +6,10 @@ use std::{
 use file_node::FileNode;
 
 mod file_node;
-pub mod message;
+pub(super) mod message;
+pub mod output;
 mod update;
-pub mod view;
+mod view;
 
 const DOUBLE_CLICK_INTERVAL_MILLIS: Duration = Duration::from_millis(600);
 

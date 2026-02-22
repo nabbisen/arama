@@ -2,8 +2,9 @@ use std::fs;
 use std::path::PathBuf;
 
 pub(super) mod message;
-pub(super) mod update;
-pub(super) mod view;
+mod output;
+mod update;
+mod view;
 
 #[derive(Debug, Clone)]
 pub struct FileNode {

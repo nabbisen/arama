@@ -1,5 +1,6 @@
 mod dir_tree;
 pub mod message;
+pub mod output;
 mod update;
 pub mod view;
 
