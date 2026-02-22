@@ -1,4 +1,4 @@
 #[derive(Debug, Clone)]
-pub enum Message {
+pub enum Output {
     SettingsClick,
 }

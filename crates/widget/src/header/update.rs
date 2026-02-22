@@ -1,17 +1,22 @@
-use iced::Task;
+use crate::header::{dir_nav, settings_nav};
 
-use super::{Header, message::Message};
+use super::{Header, message::Message, output::Output};
 
 impl Header {
-    pub fn update(&mut self, message: Message) -> Task<Message> {
+    pub fn update(&mut self, message: Message) -> Output {
         match message {
             Message::DirNavMessage(message) => {
-                self.dir_nav.update(message).map(Message::DirNavMessage)
+                let output = self.dir_nav.update(message);
+                match output {
+                    dir_nav::output::Output::DirSelect(path) => Output::DirSelect(path),
+                }
             }
-            Message::SettingsNavMessage(message) => self
-                .settings_nav
-                .update(message)
-                .map(Message::SettingsNavMessage),
+            Message::SettingsNavMessage(message) => {
+                let output = self.settings_nav.update(message);
+                match output {
+                    settings_nav::output::Output::SettingsClick => Output::SettingsClick,
+                }
+            }
         }
     }
 }

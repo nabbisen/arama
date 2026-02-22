@@ -1,7 +1,7 @@
-use super::DirNav;
+use super::Settings;
 use super::{message::Message, output::Output};
 
-impl DirNav {
+impl Settings {
     pub fn update(&mut self, message: Message) -> Output {
         match message {}
     }

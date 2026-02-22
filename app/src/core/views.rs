@@ -1,3 +1,4 @@
+use arama_widget::dialog::overlay;
 use iced::{
     Element,
     Length::Fill,
@@ -6,11 +7,11 @@ use iced::{
 
 pub mod gallery;
 
-use super::{App, message::Message};
+use super::{App, Dialog, message::Message};
 
 impl App {
     pub fn view(&self) -> Element<'_, Message> {
-        let gallery = self
+        let content = self
             .gallery
             .view()
             .map(|message| Message::GalleryMessage(message));
@@ -19,11 +20,20 @@ impl App {
         let aside = self.aside.view().map(Message::AsideMessage);
         let footer = self.footer.view().map(Message::FooterMessage);
 
-        column![
+        let layout = column![
             container(header).height(60),
-            container(row![aside, gallery]).height(Fill),
+            container(row![aside, content]).height(Fill),
             container(footer).height(40)
-        ]
-        .into()
+        ];
+
+        let dialog = match &self.dialog {
+            Some(Dialog::Settings(settings)) => {
+                // state.view() が返す Element<settings::Msg> を Element<Msg> に変換
+                Some(settings.view().map(Message::SettingsDialogMessage))
+            }
+            None => None,
+        };
+
+        overlay(layout.into(), dialog, Some(Message::DialogClose)).into()
     }
 }

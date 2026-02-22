@@ -7,6 +7,6 @@ use super::message::Message;
 impl SettingsNav {
     pub fn view(&self) -> Element<'static, Message> {
         // todo
-        row![button("⏱️"), button("✏️")].into()
+        row![button("⏱️"), button("⚙️").on_press(Message::SettingsClick)].into()
     }
 }

@@ -1,10 +1,10 @@
-use iced::Task;
-
 use super::SettingsNav;
-use super::message::Message;
+use super::{message::Message, output::Output};
 
 impl SettingsNav {
-    pub fn update(&mut self, message: Message) -> Task<Message> {
-        match message {}
+    pub fn update(&mut self, message: Message) -> Output {
+        match message {
+            Message::SettingsClick => Output::SettingsClick,
+        }
     }
 }
