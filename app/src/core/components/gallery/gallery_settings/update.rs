@@ -6,6 +6,7 @@ impl GallerySettings {
             Message::ThumbnailSizeSliderMessage(message) => {
                 let _ = self.thumbnail_size.update(message);
             }
+            Message::SimilarPairsOpen => (),
         }
     }
 }

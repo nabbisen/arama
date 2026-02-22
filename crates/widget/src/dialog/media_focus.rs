@@ -5,6 +5,7 @@ pub mod output;
 mod update;
 mod view;
 
+#[derive(Clone, Debug)]
 pub struct MediaFocus {
     path: PathBuf,
 }

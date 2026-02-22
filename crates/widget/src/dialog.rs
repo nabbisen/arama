@@ -6,6 +6,7 @@ use iced::{
 
 pub mod media_focus;
 pub mod settings;
+pub mod similar_pairs;
 
 pub fn overlay<'a, Msg: Clone + 'a>(
     base: Element<'a, Msg>,

@@ -9,6 +9,7 @@ pub enum Message {
     AsideMessage(aside::message::Message),
     FooterMessage(footer::message::Message),
     MediaFocusDialogMessage(dialog::media_focus::message::Message),
+    SimilarPairsDialogMessage(dialog::similar_pairs::message::Message),
     SettingsDialogMessage(dialog::settings::message::Message),
     DialogClose,
 }
