@@ -13,7 +13,7 @@ impl FileNode {
         depth: u32,
         include_file: bool,
         include_hidden: bool,
-    ) -> Element<'static, Message> {
+    ) -> Element<'_, Message> {
         let mut content = Column::new().spacing(5);
 
         // 1行分の表示（アイコン + 名前）
