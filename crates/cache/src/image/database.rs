@@ -48,10 +48,11 @@ pub const UPDATE_EMBEDDING_STMT: &str = concat!(
     " SET embedding = ?1 WHERE id = ?2"
 );
 
-pub const SELECT_ROW_BY_PATH_STMT: &str = concat!(
+pub const SELECT_ROW_BY_PATH_LIMIT_1_STMT: &str = concat!(
     "SELECT id, path, last_modified, cache_kind, embedding FROM ",
     table_name!(TableName::Image),
-    " WHERE path = (?1)"
+    " WHERE path = (?1)",
+    " LIMIT 1"
 );
 
 pub const SELECT_ID_BY_PATH_STMT: &str = concat!(

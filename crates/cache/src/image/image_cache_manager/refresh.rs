@@ -11,7 +11,9 @@ use swdir::DirNode;
 
 use super::super::{
     Cache, CacheKind,
-    database::{INSERT_STMT, SELECT_ROW_BY_PATH_STMT, UPDATE_LAST_MODIFIED_STMT, connection},
+    database::{
+        INSERT_STMT, SELECT_ROW_BY_PATH_LIMIT_1_STMT, UPDATE_LAST_MODIFIED_STMT, connection,
+    },
     path::cache_thumbnail_file_path,
 };
 
@@ -61,8 +63,8 @@ fn refresh_cache(
 
     let conn = conn.lock().unwrap();
 
-    let mut stmt = conn.prepare(SELECT_ROW_BY_PATH_STMT)?;
-    match stmt.query_one([&canonicalized_path_str], |row| {
+    let mut stmt = conn.prepare(SELECT_ROW_BY_PATH_LIMIT_1_STMT)?;
+    match stmt.query_row([&canonicalized_path_str], |row| {
         Ok(Cache {
             id: row.get(0)?,
             path: row.get(1)?,
