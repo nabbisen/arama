@@ -4,10 +4,7 @@ use swdir::Swdir;
 
 use super::{App, Dialog, message::Message};
 use arama_ui_layout::{aside, header};
-use arama_ui_widgets::dialog::{
-    self,
-    similar_pairs::{self, SimilarPairs},
-};
+use arama_ui_widgets::dialog::{media_focus_dialog, settings_dialog, similar_pairs_dialog};
 
 impl App {
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -19,17 +16,17 @@ impl App {
                     .map(|message| Message::GalleryMessage(message));
                 match message {
                     gallery::message::Message::ImageSelect(path) => {
-                        self.dialog = Some(Dialog::MediaFocus(
-                            dialog::media_focus::MediaFocus::new(path),
+                        self.dialog = Some(Dialog::MediaFocusDialog(
+                            media_focus_dialog::MediaFocusDialog::new(path),
                         ));
                     }
                     gallery::message::Message::SimilarPairsOpen => {
                         // todo: error handling
-                        let dialog = dialog::similar_pairs::SimilarPairs::new(
+                        let dialog = similar_pairs_dialog::SimilarPairsDialog::new(
                             self.gallery.dir_node().unwrap(),
                             None,
                         );
-                        self.dialog = Some(Dialog::SimilarPairs(dialog.clone()));
+                        self.dialog = Some(Dialog::SimilarPairsDialog(dialog.clone()));
                         return dialog
                             .default_task()
                             .map(Message::SimilarPairsDialogMessage);
@@ -42,7 +39,9 @@ impl App {
                 let output = self.header.update(message);
                 match output {
                     header::output::Output::SettingsClick => {
-                        self.dialog = Some(Dialog::Settings(dialog::settings::Settings::default()))
+                        self.dialog = Some(Dialog::SettingsDialog(
+                            settings_dialog::SettingsDialog::default(),
+                        ))
                     }
                     _ => (),
                 }
@@ -74,11 +73,11 @@ impl App {
                 .update(message)
                 .map(|message| Message::FooterMessage(message)),
             Message::MediaFocusDialogMessage(message) => {
-                if let Some(Dialog::MediaFocus(x)) = &mut self.dialog {
+                if let Some(Dialog::MediaFocusDialog(x)) = &mut self.dialog {
                     // ここでダイアログの `Output`（閉じるとか保存するとか）を受け取って処理することも可能
                     let output = x.update(message);
                     match output {
-                        dialog::media_focus::output::Output::CloseClick => {
+                        media_focus_dialog::output::Output::CloseClick => {
                             self.dialog = None;
                         }
                     }
@@ -87,14 +86,16 @@ impl App {
             }
             Message::SimilarPairsDialogMessage(message) => {
                 let _ = match &self.dialog {
-                    Some(Dialog::SimilarPairs(dialog)) => {
+                    Some(Dialog::SimilarPairsDialog(dialog)) => {
                         let output = dialog.to_owned().update(message);
                         match output {
-                            Some(similar_pairs::output::Output::EmbeddingsReady(pairs)) => {
-                                self.dialog = Some(Dialog::SimilarPairs(SimilarPairs::new(
-                                    self.gallery.dir_node().unwrap(),
-                                    Some(pairs),
-                                )));
+                            Some(similar_pairs_dialog::output::Output::EmbeddingsReady(pairs)) => {
+                                self.dialog = Some(Dialog::SimilarPairsDialog(
+                                    similar_pairs_dialog::SimilarPairsDialog::new(
+                                        self.gallery.dir_node().unwrap(),
+                                        Some(pairs),
+                                    ),
+                                ));
                             }
                             None => (),
                         }
@@ -105,7 +106,7 @@ impl App {
             }
             Message::SettingsDialogMessage(message) => {
                 // Settingsダイアログが開いている時だけupdateを伝播
-                if let Some(Dialog::Settings(settings)) = &mut self.dialog {
+                if let Some(Dialog::SettingsDialog(settings)) = &mut self.dialog {
                     // ここでダイアログの `Output`（閉じるとか保存するとか）を受け取って処理することも可能
                     let task = settings.update(message.clone());
                     return task.map(Message::SettingsDialogMessage);

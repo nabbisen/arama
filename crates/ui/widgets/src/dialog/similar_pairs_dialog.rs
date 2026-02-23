@@ -11,12 +11,12 @@ mod update;
 mod view;
 
 #[derive(Clone, Debug)]
-pub struct SimilarPairs {
+pub struct SimilarPairsDialog {
     dir_node: DirNode,
     pairs: Option<Vec<(PathBuf, PathBuf, f32)>>,
 }
 
-impl SimilarPairs {
+impl SimilarPairsDialog {
     pub fn new<T: Into<DirNode>>(dir_node: T, pairs: Option<Vec<(PathBuf, PathBuf, f32)>>) -> Self {
         Self {
             dir_node: dir_node.into(),

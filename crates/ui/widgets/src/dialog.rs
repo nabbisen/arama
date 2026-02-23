@@ -4,9 +4,9 @@ use iced::{
     widget::{container, mouse_area, opaque, space, stack},
 };
 
-pub mod media_focus;
-pub mod settings;
-pub mod similar_pairs;
+pub mod media_focus_dialog;
+pub mod settings_dialog;
+pub mod similar_pairs_dialog;
 
 pub fn overlay<'a, Msg: Clone + 'a>(
     base: Element<'a, Msg>,

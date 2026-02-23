@@ -1,8 +1,8 @@
 use iced::Task;
 
-use super::{Settings, message::Message};
+use super::{SettingsDialog, message::Message};
 
-impl Settings {
+impl SettingsDialog {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::TabSelect(tab) => self.tab = tab,

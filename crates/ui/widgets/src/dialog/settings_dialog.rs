@@ -10,7 +10,7 @@ use tab::{
 };
 
 #[derive(Clone, Debug, Default)]
-pub struct Settings {
+pub struct SettingsDialog {
     tab: Tab,
     general_settings: GeneralSettings,
     ai_settings: AiSettings,
