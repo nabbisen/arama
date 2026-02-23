@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use super::path::{DATABASE_FILE, cache_dir};
+use crate::env::path::image::{DATABASE_FILE, cache_dir};
 use rusqlite::Connection;
 
 #[allow(dead_code)]
@@ -87,7 +87,7 @@ pub const INSERT_TMP_IMAGE_PATHS_STMT: &str = concat!(
     " (path) VALUES (?1)"
 );
 
-pub fn table_prepare_if_necessary() -> anyhow::Result<()> {
+pub fn table_ensure() -> anyhow::Result<()> {
     let conn = connection()?;
     if !conn.table_exists(None, table_name!(TableName::Image))? {
         conn.execute(CREATE_TABLE_STMT, ())?;

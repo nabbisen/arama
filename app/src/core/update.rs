@@ -1,4 +1,7 @@
-use arama_ui_main::views::gallery;
+use arama_ui_main::{
+    components::gallery::gallery_settings,
+    views::gallery::{self, IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST},
+};
 use iced::Task;
 use swdir::Swdir;
 
@@ -69,9 +72,17 @@ impl App {
                         self.processing = true;
 
                         // todo dir_node should be got from dir_tree
+                        let mut extension_allowlist: Vec<&str> = vec![];
+                        if self.media_type.include_image {
+                            extension_allowlist.extend(IMAGE_EXTENSION_ALLOWLIST);
+                        }
+                        if self.media_type.include_video {
+                            extension_allowlist.extend(VIDEO_EXTENSION_ALLOWLIST);
+                        }
+
                         let dir_node = Swdir::default()
                             .set_root_path(path)
-                            .set_extension_allowlist(gallery::EXTENSION_ALLOWLIST)
+                            .set_extension_allowlist(&extension_allowlist)
                             .expect("failed to set allowlist")
                             .walk();
 

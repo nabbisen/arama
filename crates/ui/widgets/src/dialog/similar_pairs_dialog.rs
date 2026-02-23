@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use arama_ai::pipeline::infer::clip::util::find_similar_pairs_efficient;
-use arama_cache::ImageCacheManager;
+use arama_cache::CacheConcumer;
 use iced::Task;
 use swdir::DirNode;
 
@@ -36,7 +36,7 @@ impl SimilarPairsDialog {
             async {
                 // todo: error handling
                 let path_embeddings =
-                    ImageCacheManager::get_embeddings(dir_node).expect("failed to get embeddings");
+                    CacheConcumer::get_embeddings(dir_node).expect("failed to get embeddings");
                 // todo params
                 find_similar_pairs_efficient(&path_embeddings, 0.81, 20).await
             },
