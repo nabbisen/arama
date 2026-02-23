@@ -13,11 +13,20 @@ impl SimilarPairsDialog {
         let rows: Vec<Element<Message>> = pairs
             .iter()
             .map(|(path1, path2, score)| {
-                row![
-                    image(path1.to_owned()),
-                    image(path2.to_owned()),
-                    text(score.to_string())
+                column![
+                    text(score.to_string()),
+                    row![
+                        image(path1.to_owned())
+                            .width(self.thumbnail_size)
+                            .height(self.thumbnail_size)
+                            .content_fit(iced::ContentFit::Cover),
+                        image(path2.to_owned())
+                            .width(self.thumbnail_size)
+                            .height(self.thumbnail_size)
+                            .content_fit(iced::ContentFit::Cover),
+                    ]
                 ]
+                .padding([10, 0])
                 .into()
             })
             .collect();

@@ -25,6 +25,7 @@ impl App {
                         let dialog = similar_pairs_dialog::SimilarPairsDialog::new(
                             self.gallery.dir_node().unwrap(),
                             None,
+                            self.gallery.thumbnail_size(),
                         );
                         self.dialog = Some(Dialog::SimilarPairsDialog(dialog.clone()));
                         return dialog
@@ -94,6 +95,7 @@ impl App {
                                     similar_pairs_dialog::SimilarPairsDialog::new(
                                         self.gallery.dir_node().unwrap(),
                                         Some(pairs),
+                                        self.gallery.thumbnail_size(),
                                     ),
                                 ));
                             }

@@ -57,6 +57,10 @@ impl Gallery {
         self.dir_node.clone()
     }
 
+    pub fn thumbnail_size(&self) -> u16 {
+        self.gallery_settings.thumbnail_size()
+    }
+
     // fn clear(&mut self) {
     //     self.dir_node = None;
     // }
