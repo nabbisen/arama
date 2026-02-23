@@ -1,5 +1,5 @@
 use arama_ai::model::clip;
-use arama_cache::VideoEngine;
+use arama_cache::{FfmpegStatus, VideoEngine};
 use iced::{
     Element,
     widget::{button, column, container, space, text},
@@ -21,7 +21,7 @@ impl AiSettings {
             ].into()
         };
 
-        let ffmpeg: Element<Message> = if VideoEngine::ready() {
+        let ffmpeg: Element<Message> = if VideoEngine::ready() != FfmpegStatus::NotExists {
             text("ffmpeg is ready.").into()
         } else {
             column![
