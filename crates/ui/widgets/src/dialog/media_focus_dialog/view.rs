@@ -31,7 +31,9 @@ impl MediaFocusDialog {
             .width(Fill)
             .height(Fill)
         } else {
-            scrollable(img).width(Fill).height(Fill)
+            scrollable(container(img).width(Fill).center(Fill))
+                .width(Fill)
+                .height(Fill)
         };
 
         let view_size_toggler = toggler(self.actual_size).on_toggle(Message::ViewSizeToggle);
