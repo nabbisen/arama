@@ -36,6 +36,15 @@ impl App {
                             .default_task()
                             .map(Message::SimilarPairsDialogMessage);
                     }
+                    gallery::message::Message::GallerySettingsMessage(message) => {
+                        let output = self.gallery.gallery_settings.update(message);
+                        match output {
+                            Some(gallery_settings::output::Output::MediaTypeChange(media_type)) => {
+                                self.media_type = media_type;
+                            }
+                            _ => (),
+                        }
+                    }
                     _ => (),
                 }
                 task
