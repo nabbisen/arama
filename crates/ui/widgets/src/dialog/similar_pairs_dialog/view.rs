@@ -1,9 +1,9 @@
 use iced::widget::{column, container, image, row, space, text};
 use iced::{Element, widget::scrollable};
 
-use super::{SimilarPairs, message::Message};
+use super::{SimilarPairsDialog, message::Message};
 
-impl SimilarPairs {
+impl SimilarPairsDialog {
     pub fn view(&self) -> Element<'_, Message> {
         let pairs = match &self.pairs {
             Some(x) => x,

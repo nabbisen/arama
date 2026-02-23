@@ -25,9 +25,13 @@ impl App {
         ];
 
         let dialog = match &self.dialog {
-            Some(Dialog::MediaFocus(x)) => Some(x.view().map(Message::MediaFocusDialogMessage)),
-            Some(Dialog::SimilarPairs(x)) => Some(x.view().map(Message::SimilarPairsDialogMessage)),
-            Some(Dialog::Settings(x)) => Some(x.view().map(Message::SettingsDialogMessage)),
+            Some(Dialog::MediaFocusDialog(x)) => {
+                Some(x.view().map(Message::MediaFocusDialogMessage))
+            }
+            Some(Dialog::SimilarPairsDialog(x)) => {
+                Some(x.view().map(Message::SimilarPairsDialogMessage))
+            }
+            Some(Dialog::SettingsDialog(x)) => Some(x.view().map(Message::SettingsDialogMessage)),
             None => None,
         };
 

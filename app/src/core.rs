@@ -24,9 +24,9 @@ pub struct App {
 
 #[derive(Clone, Debug)]
 enum Dialog {
-    MediaFocus(dialog::media_focus::MediaFocus),
-    SimilarPairs(dialog::similar_pairs::SimilarPairs),
-    Settings(dialog::settings::Settings),
+    MediaFocusDialog(dialog::media_focus_dialog::MediaFocusDialog),
+    SimilarPairsDialog(dialog::similar_pairs_dialog::SimilarPairsDialog),
+    SettingsDialog(dialog::settings_dialog::SettingsDialog),
 }
 
 impl App {

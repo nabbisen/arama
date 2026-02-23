@@ -3,9 +3,9 @@ use iced::{
     widget::{button, column, row},
 };
 
-use super::{Settings, Tab, message::Message};
+use super::{SettingsDialog, Tab, message::Message};
 
-impl Settings {
+impl SettingsDialog {
     pub fn view(&self) -> Element<'_, Message> {
         let tab_menus: Vec<Element<Message>> = Tab::all()
             .iter()

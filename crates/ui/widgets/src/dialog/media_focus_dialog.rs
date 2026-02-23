@@ -6,11 +6,11 @@ mod update;
 mod view;
 
 #[derive(Clone, Debug)]
-pub struct MediaFocus {
+pub struct MediaFocusDialog {
     path: PathBuf,
 }
 
-impl MediaFocus {
+impl MediaFocusDialog {
     pub fn new<T: Into<PathBuf>>(path: T) -> Self {
         Self { path: path.into() }
     }

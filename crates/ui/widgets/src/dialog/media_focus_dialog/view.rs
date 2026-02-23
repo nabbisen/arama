@@ -3,9 +3,9 @@ use iced::Length::Fill;
 use iced::widget::image::Handle;
 use iced::widget::{button, column, container, image, scrollable};
 
-use super::{MediaFocus, message::Message};
+use super::{MediaFocusDialog, message::Message};
 
-impl MediaFocus {
+impl MediaFocusDialog {
     pub fn view(&self) -> Element<'_, Message> {
         let handle = Handle::from_path(&self.path);
         // todo: improve view
