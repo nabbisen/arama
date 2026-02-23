@@ -2,7 +2,7 @@ use iced::widget::{
     image::Handle,
     row,
     scrollable::{Direction, Scrollbar},
-    toggler,
+    text, toggler,
 };
 use iced::{
     Element,
@@ -35,7 +35,9 @@ impl MediaFocusDialog {
         };
 
         let view_size_toggler = toggler(self.actual_size).on_toggle(Message::ViewSizeToggle);
-        let header = container(view_size_toggler).center_x(Fill).padding(10);
+        let header = container(row![text("Actual size"), view_size_toggler].spacing(10))
+            .center_x(Fill)
+            .padding(10);
 
         let close_button = button("Close").on_press(Message::CloseClick);
         let footer = container(close_button).center_x(Fill).padding(10);
