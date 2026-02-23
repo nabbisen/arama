@@ -249,6 +249,9 @@ dependencies = [
 [[package]]
 name = "arama-env"
 version = "0.10.2"
+dependencies = [
+ "libc",
+]
 
 [[package]]
 name = "arama-ui-layout"
@@ -278,6 +281,7 @@ version = "0.10.2"
 dependencies = [
  "arama-ai",
  "arama-cache",
+ "arama-env",
  "iced",
  "swdir",
 ]

@@ -3,8 +3,20 @@ pub mod output;
 mod update;
 mod view;
 
+mod tab;
+
+use tab::{
+    Tab, ai_settings::AiSettings, file_system_settings::FileSystemSettings,
+    general_settings::GeneralSettings,
+};
+
 #[derive(Clone, Debug, Default)]
-pub struct Settings {}
+pub struct Settings {
+    tab: Tab,
+    general_settings: GeneralSettings,
+    ai_settings: AiSettings,
+    file_system_settings: FileSystemSettings,
+}
 
 // src/dialog/rename.rs ── 完全自己完結
 
