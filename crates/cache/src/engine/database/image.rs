@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
-use crate::env::path::image::{DATABASE_FILE, cache_dir};
+use crate::env::path::image::DATABASE_FILE;
+use arama_env::cache_dir;
 use rusqlite::Connection;
 
 #[allow(dead_code)]
