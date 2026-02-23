@@ -17,7 +17,8 @@ use super::{
     database::{
         CREATE_TABLE_TMP_IMAGE_PATHS_STMT, INSERT_TMP_IMAGE_PATHS_STMT,
         SELECT_EMBEDDING_BY_ID_STMT, SELECT_ID_BY_PATH_STMT, SELECT_ID_EMBEDDING_BY_PATHS_STMT,
-        SELECT_ROW_BY_PATH_STMT, UPDATE_EMBEDDING_STMT, connection, table_prepare_if_necessary,
+        SELECT_ROW_BY_PATH_LIMIT_1_STMT, UPDATE_EMBEDDING_STMT, connection,
+        table_prepare_if_necessary,
     },
     path::{cache_thumbnail_dir, cache_thumbnail_file_path},
 };
@@ -46,8 +47,8 @@ impl ImageCacheManager {
         let canonicalized_path = path.canonicalize()?;
         let canonicalized_path_str = canonicalized_path.to_string_lossy();
         let conn: Connection = connection()?;
-        let mut stmt = conn.prepare(SELECT_ROW_BY_PATH_STMT)?;
-        match stmt.query_one([&canonicalized_path_str], |row| {
+        let mut stmt = conn.prepare(SELECT_ROW_BY_PATH_LIMIT_1_STMT)?;
+        match stmt.query_row([&canonicalized_path_str], |row| {
             Ok(Cache {
                 id: row.get(0)?,
                 path: row.get(1)?,
