@@ -1,6 +1,6 @@
-use super::media_type::MediaType;
+use super::target_media_type::TargetMediaType;
 
 #[derive(Debug, Clone)]
 pub enum Output {
-    MediaTypeChange(MediaType),
+    TargetMediaTypeChange(TargetMediaType),
 }

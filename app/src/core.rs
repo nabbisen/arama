@@ -1,7 +1,8 @@
 use app_json_settings::ConfigManager;
 use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
 use arama_ui_main::{
-    components::gallery::gallery_settings::media_type::MediaType, views::gallery::Gallery,
+    components::gallery::gallery_settings::target_media_type::TargetMediaType,
+    views::gallery::Gallery,
 };
 use arama_ui_widgets::dialog;
 use iced::Task;
@@ -22,7 +23,7 @@ pub struct App {
     aside: Aside,
     footer: Footer,
     dialog: Option<Dialog>,
-    media_type: MediaType,
+    target_media_type: TargetMediaType,
     processing: bool,
 }
 
@@ -42,7 +43,7 @@ impl App {
 
     fn new() -> (Self, Task<Message>) {
         let processing = true;
-        let media_type = MediaType::default();
+        let target_media_type = TargetMediaType::default();
 
         let settings = match ConfigManager::<Settings>::new().load_or_default() {
             Ok(x) => Some(x),
@@ -55,7 +56,8 @@ impl App {
             Some(x) => x.root_dir_path.as_str(),
             None => ".",
         };
-        let gallery = Gallery::new(root_dir_path, &media_type).expect("failed to init gallery");
+        let gallery =
+            Gallery::new(root_dir_path, &target_media_type).expect("failed to init gallery");
 
         let path = if let Some(settings) = settings.as_ref() {
             settings.root_dir_path.as_str()
@@ -79,7 +81,7 @@ impl App {
                 aside,
                 footer,
                 dialog,
-                media_type,
+                target_media_type,
                 processing,
             },
             task,

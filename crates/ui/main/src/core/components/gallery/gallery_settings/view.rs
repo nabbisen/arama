@@ -9,9 +9,9 @@ impl GallerySettings {
     pub fn view(&self) -> Element<'_, Message> {
         let media_types = row![
             text("Image"),
-            checkbox(self.media_type.include_image).on_toggle(Message::IncludeImage),
+            checkbox(self.target_media_type.include_image).on_toggle(Message::IncludeImage),
             text("Video"),
-            checkbox(self.media_type.include_video).on_toggle(Message::IncludeVideo)
+            checkbox(self.target_media_type.include_video).on_toggle(Message::IncludeVideo)
         ]
         .spacing(4);
 

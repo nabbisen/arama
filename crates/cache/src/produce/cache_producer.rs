@@ -10,7 +10,7 @@ use crate::{
         database::image::{UPDATE_EMBEDDING_STMT, connection, table_ensure},
     },
     env::path::image::cache_thumbnail_dir,
-    produce::refresh::refresh_caches,
+    produce::cache_refresh::CacheRefresh,
 };
 
 #[derive(Clone)]
@@ -41,7 +41,10 @@ impl CacheProducer {
     }
 
     pub async fn refresh(self, dir_node: DirNode) -> Vec<String> {
-        match refresh_caches(dir_node, self.thumbnail_width, self.thumbnail_height).await {
+        match CacheRefresh::new(dir_node, self.thumbnail_width, self.thumbnail_height)
+            .caches_refresh()
+            .await
+        {
             Ok(x) => x,
             Err(err) => vec![err.to_string()],
         }

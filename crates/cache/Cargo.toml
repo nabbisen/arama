@@ -17,6 +17,7 @@ rust-version = "1.90.0"
 arama-env = { workspace = true }
 
 anyhow = { workspace = true }
+ffmpeg-sidecar = { version = "2.4", features = ["named_pipes"] }
 image = { workspace = true }
 rayon = { workspace = true }
 rusqlite = { version = "0.38", default-features = false, features = ["bundled"] }

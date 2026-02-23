@@ -1,7 +1,5 @@
-use arama_ui_main::{
-    components::gallery::gallery_settings,
-    views::gallery::{self, IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST},
-};
+use arama_env::{IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST};
+use arama_ui_main::{components::gallery::gallery_settings, views::gallery};
 use iced::Task;
 use swdir::Swdir;
 
@@ -42,8 +40,10 @@ impl App {
                     gallery::message::Message::GallerySettingsMessage(message) => {
                         let output = self.gallery.gallery_settings.update(message);
                         match output {
-                            Some(gallery_settings::output::Output::MediaTypeChange(media_type)) => {
-                                self.media_type = media_type;
+                            Some(gallery_settings::output::Output::TargetMediaTypeChange(
+                                media_type,
+                            )) => {
+                                self.target_media_type = media_type;
                             }
                             _ => (),
                         }
@@ -73,10 +73,10 @@ impl App {
 
                         // todo dir_node should be got from dir_tree
                         let mut extension_allowlist: Vec<&str> = vec![];
-                        if self.media_type.include_image {
+                        if self.target_media_type.include_image {
                             extension_allowlist.extend(IMAGE_EXTENSION_ALLOWLIST);
                         }
-                        if self.media_type.include_video {
+                        if self.target_media_type.include_video {
                             extension_allowlist.extend(VIDEO_EXTENSION_ALLOWLIST);
                         }
 
