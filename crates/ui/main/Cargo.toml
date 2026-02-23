@@ -1,0 +1,14 @@
+[package]
+name = "arama-ui-main"
+version = "0.10.2"
+edition = "2024"
+
+[dependencies]
+arama-ai = { workspace = true }
+arama-cache = { workspace = true }
+arama-ui-widgets = { workspace = true }
+
+iced = { workspace = true }
+
+anyhow = { workspace = true }
+swdir = { workspace = true }

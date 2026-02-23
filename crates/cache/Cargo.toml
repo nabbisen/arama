@@ -1,5 +1,5 @@
 [package]
-name = "arama"
+name = "arama-cache"
 version = "0.10.2"
 edition = "2024"
 
@@ -14,16 +14,11 @@ readme = "README.md"
 rust-version = "1.90.0"
 
 [dependencies]
-arama-ai = { workspace = true }
-arama-cache = { workspace = true }
-arama-ui-layout = { workspace = true }
-arama-ui-main = { workspace = true }
-arama-ui-widgets = { workspace = true }
-
-iced = { workspace = true }
+arama-env = { workspace = true }
 
 anyhow = { workspace = true }
-app-json-settings = { workspace = true }
+image = { workspace = true }
 rayon = { workspace = true }
-serde = { workspace = true }
+rusqlite = { version = "0.38", default-features = false, features = ["bundled"] }
 swdir = { workspace = true }
+tokio = { workspace = true }

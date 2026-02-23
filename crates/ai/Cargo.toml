@@ -1,5 +1,5 @@
 [package]
-name = "arama"
+name = "arama-ai"
 version = "0.10.2"
 edition = "2024"
 
@@ -14,16 +14,21 @@ readme = "README.md"
 rust-version = "1.90.0"
 
 [dependencies]
-arama-ai = { workspace = true }
-arama-cache = { workspace = true }
-arama-ui-layout = { workspace = true }
-arama-ui-main = { workspace = true }
-arama-ui-widgets = { workspace = true }
+arama-env = { workspace = true }
 
-iced = { workspace = true }
+# image comparison
+candle-core = "0.9"
+candle-nn = "0.9"
+candle-transformers = "0.9" # 一般的なモデルの実装が含まれる
 
+# ai model loader
+reqwest = { version = "0.13", default-features = false, features = ["multipart", "rustls"] }
+tokio = { workspace = true }
+pt2safetensors = "0"
+
+# general
 anyhow = { workspace = true }
-app-json-settings = { workspace = true }
+hnsw_rs = "0"
+image = { workspace = true }
+naga = "28"
 rayon = { workspace = true }
-serde = { workspace = true }
-swdir = { workspace = true }

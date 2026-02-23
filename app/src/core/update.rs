@@ -1,14 +1,12 @@
+use arama_ui_main::views::gallery;
 use iced::Task;
 use swdir::Swdir;
 
-use super::{App, Dialog, gallery, message::Message};
-use arama_widget::{
-    aside,
-    dialog::{
-        self,
-        similar_pairs::{self, SimilarPairs},
-    },
-    header,
+use super::{App, Dialog, message::Message};
+use arama_ui_layout::{aside, header};
+use arama_ui_widgets::dialog::{
+    self,
+    similar_pairs::{self, SimilarPairs},
 };
 
 impl App {

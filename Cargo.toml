@@ -1,9 +1,11 @@
 [workspace]
 members = [
     "app",
-    "crates/embedding",
-    "crates/indexer",
-    "crates/widget",
+    "crates/ai",
+    "crates/cache",
+    "crates/ui/layout",
+    "crates/ui/main",
+    "crates/ui/widgets",
     "env",
 ]
 resolver = "2"
@@ -19,3 +21,22 @@ codegen-units = 1
 opt-level = 1         # slightly optimize
 lto = false           # disable link-time optimizations
 incremental = false
+
+[workspace.dependencies]
+arama-env = { path = "env" }
+
+arama-ai = { path = "crates/ai" }
+arama-cache = { path = "crates/cache" }
+arama-ui-layout = { path = "crates/ui/layout" }
+arama-ui-main = { path = "crates/ui/main" }
+arama-ui-widgets = { path = "crates/ui/widgets" }
+
+iced = { version = "0.14", features = ["image", "tokio"] }
+
+anyhow = "1"
+app-json-settings = "2"
+image = "0.25"
+rayon = "1"
+serde = { version = "1", features = ["derive"] }
+swdir = "0"
+tokio = { version = "1.49", default-features = false, features = ["fs", "sync"] }
