@@ -11,6 +11,7 @@ impl DirTree {
                 0,
                 self.include_file,
                 self.include_hidden,
+                self.processing,
             )
             .map(Message::FileNodeMessage)
     }

@@ -15,6 +15,10 @@ impl App {
                     .update(message.clone())
                     .map(|message| Message::GalleryMessage(message));
                 match message {
+                    gallery::message::Message::ImageCached(_) => {
+                        self.processing = false;
+                        self.aside.set_processing(self.processing);
+                    }
                     gallery::message::Message::ImageSelect(path) => {
                         self.dialog = Some(Dialog::MediaFocusDialog(
                             media_focus_dialog::MediaFocusDialog::new(path),
@@ -53,12 +57,15 @@ impl App {
 
                 match output {
                     Some(aside::output::Output::DirClick(path)) => {
+                        self.processing = true;
+
                         // todo dir_node should be got from dir_tree
                         let dir_node = Swdir::default()
                             .set_root_path(path)
                             .set_extension_allowlist(gallery::EXTENSION_ALLOWLIST)
                             .expect("failed to set allowlist")
                             .walk();
+
                         let task = self
                             .gallery
                             .update(gallery::message::Message::DirSelect(dir_node))
