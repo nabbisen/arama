@@ -1,5 +1,5 @@
 use arama_ai::pipeline::infer::clip::{clip, clip_calculator};
-use arama_cache::ImageCacheManager;
+use arama_cache::{CacheConcumer, CacheProducer};
 use swdir::DirNode;
 
 // pub async fn image_cache(
@@ -22,7 +22,7 @@ pub async fn image_embedding(dir_node: DirNode) -> Option<String> {
     };
 
     for path in dir_node.files {
-        match ImageCacheManager::get_cache(&path) {
+        match CacheConcumer::get_cache(&path) {
             Ok(cache) => {
                 let cache = if let Some(cache) = cache {
                     cache
@@ -35,7 +35,7 @@ pub async fn image_embedding(dir_node: DirNode) -> Option<String> {
                     Ok(x) => x,
                     Err(err) => return Some(format!("failed to clip calculation: {}", err)),
                 };
-                match ImageCacheManager::set_embedding(cache.id(), embedding.embedding) {
+                match CacheProducer::set_embedding(cache.id(), embedding.embedding) {
                     Ok(_) => (),
                     Err(err) => return Some(format!("failed to set embedding: {}", err)),
                 }

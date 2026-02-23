@@ -90,7 +90,7 @@ impl Gallery {
             Message::DirSelect(dir_node) => {
                 self.dir_node = Some(dir_node.clone());
                 Task::perform(
-                    self.image_cache_manager.clone().refresh(dir_node),
+                    self.cache_producer.clone().refresh(dir_node),
                     Message::ImageCached,
                 )
             }

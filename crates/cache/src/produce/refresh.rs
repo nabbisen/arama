@@ -9,12 +9,14 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rusqlite::Connection;
 use swdir::DirNode;
 
-use super::super::{
-    Cache, CacheKind,
-    database::{
+use crate::{
+    engine::database::image::{
         INSERT_STMT, SELECT_ROW_BY_PATH_LIMIT_1_STMT, UPDATE_LAST_MODIFIED_STMT, connection,
     },
-    path::cache_thumbnail_file_path,
+    env::{
+        cache::{CacheKind, image::Cache},
+        path::image::cache_thumbnail_file_path,
+    },
 };
 
 pub async fn refresh_caches(

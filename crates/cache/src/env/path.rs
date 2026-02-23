@@ -1,19 +1,12 @@
 use std::{io::Result, path::PathBuf};
 
-const CACHE_DIR: &str = "image";
-pub const DATABASE_FILE: &str = "cache.image.sqlite3";
-const CACHE_THUMBNAIL_DIR: &str = "thumbnail";
+use arama_env::local_dir;
 
-pub fn cache_dir() -> Result<PathBuf> {
-    let path = crate::caches_dir()?.join(CACHE_DIR);
-    Ok(path)
-}
+pub mod image;
 
-pub fn cache_thumbnail_dir() -> Result<PathBuf> {
-    let path = cache_dir()?.join(CACHE_THUMBNAIL_DIR);
-    Ok(path)
-}
+const CACHES_DIR: &str = "cache";
 
-pub fn cache_thumbnail_file_path(id: u32) -> Result<PathBuf> {
-    Ok(cache_thumbnail_dir()?.join(&format!("{}.png", id)))
+pub fn caches_dir() -> Result<PathBuf> {
+    let path = local_dir()?.join(CACHES_DIR);
+    Ok(path.to_path_buf())
 }

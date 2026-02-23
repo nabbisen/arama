@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use arama_cache::ImageCacheManager;
+use arama_cache::CacheConcumer;
 use iced::Length::Fill;
 use iced::widget::image::Handle;
 use iced::widget::{
@@ -84,7 +84,7 @@ impl Gallery {
 }
 
 fn image_cell<'a>(path: &'a Path, thumbnail_size: u32) -> anyhow::Result<Element<'a, Message>> {
-    let thumbnail_path = match ImageCacheManager::get_cache_file_path(path)? {
+    let thumbnail_path = match CacheConcumer::get_cache_file_path(path)? {
         Some(x) => x,
         None => path.to_path_buf(),
     };
