@@ -126,7 +126,6 @@ impl CacheRefresh {
     }
 
     fn thumbnail_store(&self, original_path: &Path, cache_path: &Path) -> anyhow::Result<()> {
-        println!("-- {:?}, {:?}", original_path, cache_path);
         let media_type = MediaType::inspect(original_path);
 
         let img = match media_type {
