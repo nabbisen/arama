@@ -1,7 +1,9 @@
+use arama_env::MAX_THUMBNAIL_SIZE;
+use arama_env::MIN_THUMBNAIL_SIZE;
 use iced::Element;
 use iced::widget::slider;
 
-use super::{MAX_THUMBNAIL_SIZE, MIN_THUMBNAIL_SIZE, SLIDER_STEP};
+use super::SLIDER_STEP;
 
 use super::ThumbnailSizeSlider;
 use super::message::Message;

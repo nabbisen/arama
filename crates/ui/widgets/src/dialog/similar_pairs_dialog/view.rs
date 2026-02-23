@@ -1,3 +1,4 @@
+use arama_env::MAX_THUMBNAIL_SIZE;
 use iced::widget::{column, container, image, row, space, text};
 use iced::{Element, widget::scrollable};
 
@@ -17,12 +18,12 @@ impl SimilarPairsDialog {
                     text(score.to_string()),
                     row![
                         image(path1.to_owned())
-                            .width(self.thumbnail_size)
-                            .height(self.thumbnail_size)
+                            .width(MAX_THUMBNAIL_SIZE as u32)
+                            .height(MAX_THUMBNAIL_SIZE as u32)
                             .content_fit(iced::ContentFit::Cover),
                         image(path2.to_owned())
-                            .width(self.thumbnail_size)
-                            .height(self.thumbnail_size)
+                            .width(MAX_THUMBNAIL_SIZE as u32)
+                            .height(MAX_THUMBNAIL_SIZE as u32)
                             .content_fit(iced::ContentFit::Cover),
                     ]
                 ]

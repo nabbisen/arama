@@ -14,19 +14,13 @@ mod view;
 pub struct SimilarPairsDialog {
     dir_node: DirNode,
     pairs: Option<Vec<(PathBuf, PathBuf, f32)>>,
-    thumbnail_size: u32,
 }
 
 impl SimilarPairsDialog {
-    pub fn new<T: Into<DirNode>>(
-        dir_node: T,
-        pairs: Option<Vec<(PathBuf, PathBuf, f32)>>,
-        thumbnail_size: u16,
-    ) -> Self {
+    pub fn new<T: Into<DirNode>>(dir_node: T, pairs: Option<Vec<(PathBuf, PathBuf, f32)>>) -> Self {
         Self {
             dir_node: dir_node.into(),
             pairs,
-            thumbnail_size: thumbnail_size.into(),
         }
     }
 

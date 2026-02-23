@@ -1,0 +1,3 @@
+pub const DEFAULT_THUMBNAIL_SIZE: u16 = 224;
+pub const MIN_THUMBNAIL_SIZE: u16 = 128;
+pub const MAX_THUMBNAIL_SIZE: u16 = 384;

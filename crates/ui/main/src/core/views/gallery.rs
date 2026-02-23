@@ -1,16 +1,14 @@
 use std::path::PathBuf;
 
 use arama_cache::CacheProducer;
-use arama_env::{IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST};
+use arama_env::{IMAGE_EXTENSION_ALLOWLIST, MAX_THUMBNAIL_SIZE, VIDEO_EXTENSION_ALLOWLIST};
 use iced::Task;
 // use iced::Task;
 use swdir::{DirNode, Swdir};
 
 use crate::{
     components::gallery::gallery_settings::target_media_type::TargetMediaType,
-    core::components::gallery::gallery_settings::{
-        GallerySettings, thumbnail_size_slider::MAX_THUMBNAIL_SIZE,
-    },
+    core::components::gallery::gallery_settings::GallerySettings,
 };
 
 pub mod message;
