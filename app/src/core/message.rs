@@ -1,6 +1,6 @@
-use arama_widget::{aside, dialog, footer, header};
-
-use super::gallery;
+use arama_ui_layout::{aside, footer, header};
+use arama_ui_main::views::gallery;
+use arama_ui_widgets::dialog;
 
 #[derive(Debug, Clone)]
 pub enum Message {

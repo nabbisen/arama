@@ -1,16 +1,16 @@
 use app_json_settings::ConfigManager;
-use arama_widget::{aside::Aside, dialog, footer::Footer, header::Header};
+use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
+use arama_ui_main::views::gallery::Gallery;
+use arama_ui_widgets::dialog;
 use iced::Task;
 
-pub(super) mod components;
 mod message;
 mod settings;
 mod subscription;
 mod update;
-mod views;
+mod view;
 
 use message::Message;
-use views::gallery::{self, Gallery};
 
 use crate::core::settings::Settings;
 
@@ -44,7 +44,11 @@ impl App {
                 None
             }
         };
-        let gallery = Gallery::new(settings.as_ref()).expect("failed to init gallery");
+        let root_dir_path = match settings.as_ref() {
+            Some(x) => x.root_dir_path.as_str(),
+            None => ".",
+        };
+        let gallery = Gallery::new(root_dir_path).expect("failed to init gallery");
 
         let path = if let Some(settings) = settings.as_ref() {
             settings.root_dir_path.as_str()

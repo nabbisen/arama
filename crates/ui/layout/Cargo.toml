@@ -1,5 +1,5 @@
 [package]
-name = "arama"
+name = "arama-ui-layout"
 version = "0.10.2"
 edition = "2024"
 
@@ -14,16 +14,8 @@ readme = "README.md"
 rust-version = "1.90.0"
 
 [dependencies]
-arama-ai = { workspace = true }
-arama-cache = { workspace = true }
-arama-ui-layout = { workspace = true }
-arama-ui-main = { workspace = true }
-arama-ui-widgets = { workspace = true }
+arama-ai = { path = "../../ai" }
+arama-cache = { path = "../../cache" }
 
 iced = { workspace = true }
-
-anyhow = { workspace = true }
-app-json-settings = { workspace = true }
-rayon = { workspace = true }
-serde = { workspace = true }
 swdir = { workspace = true }
