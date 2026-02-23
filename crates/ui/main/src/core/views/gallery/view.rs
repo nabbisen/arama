@@ -54,7 +54,7 @@ impl Gallery {
     }
 
     fn columns_in_rows(&self, num_of_columns_in_row: usize) -> Option<Element<'_, Message>> {
-        let thumbnail_width_height = self.gallery_settings.thumbnail_size() as u32;
+        let thumbnail_size = self.gallery_settings.thumbnail_size() as u32;
 
         let content = self
             .dir_node
@@ -65,7 +65,7 @@ impl Gallery {
             .map(|chunk| {
                 row(chunk
                     .iter()
-                    .map(|path| image_cell(path.as_path().as_ref(), thumbnail_width_height))
+                    .map(|path| image_cell(path.as_path().as_ref(), thumbnail_size))
                     // todo: error handling
                     .filter(|x| x.is_ok())
                     .map(|x| x.unwrap())
@@ -83,10 +83,7 @@ impl Gallery {
     }
 }
 
-fn image_cell<'a>(
-    path: &'a Path,
-    thumbnail_width_height: u32,
-) -> anyhow::Result<Element<'a, Message>> {
+fn image_cell<'a>(path: &'a Path, thumbnail_size: u32) -> anyhow::Result<Element<'a, Message>> {
     let thumbnail_path = match ImageCacheManager::get_cache_file_path(path)? {
         Some(x) => x,
         None => path.to_path_buf(),
@@ -96,8 +93,8 @@ fn image_cell<'a>(
 
     Ok(mouse_area(
         image(handle)
-            .width(thumbnail_width_height)
-            .height(thumbnail_width_height)
+            .width(thumbnail_size)
+            .height(thumbnail_size)
             .content_fit(iced::ContentFit::Cover),
     )
     .on_double_click(Message::ImageSelect(path.to_path_buf()))
