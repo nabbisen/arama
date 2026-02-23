@@ -14,8 +14,8 @@ readme = "README.md"
 rust-version = "1.90.0"
 
 [dependencies]
-arama-ai = { path = "../../ai" }
-arama-cache = { path = "../../cache" }
+arama-ai = { workspace = true }
+arama-cache = { workspace = true }
 
 iced = { workspace = true }
 swdir = { workspace = true }
