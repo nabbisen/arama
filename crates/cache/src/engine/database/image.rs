@@ -36,6 +36,12 @@ pub const INSERT_STMT: &str = concat!(
     " (path, last_modified, cache_kind) VALUES (?1, ?2, ?3)"
 );
 
+pub const DELETE_BY_ID_STMT: &str = concat!(
+    "DELETE FROM ",
+    table_name!(TableName::Image),
+    " WHERE id = ?1"
+);
+
 pub const UPDATE_LAST_MODIFIED_STMT: &str = concat!(
     "UPDATE ",
     table_name!(TableName::Image),

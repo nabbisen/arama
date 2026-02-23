@@ -6,6 +6,7 @@ use std::{
 };
 
 const LOCAL_DIR: &str = ".arama-local";
+const BIN_DIR: &str = "bin";
 
 pub fn local_dir() -> Result<PathBuf> {
     let current_exe = env::current_exe()?;
@@ -13,6 +14,12 @@ pub fn local_dir() -> Result<PathBuf> {
         .parent()
         .expect("failed to get exe parent directory")
         .join(LOCAL_DIR);
+    Ok(path.to_path_buf())
+}
+
+pub fn local_bin_dir() -> Result<PathBuf> {
+    let local_dir = local_dir()?;
+    let path = local_dir.join(BIN_DIR);
     Ok(path.to_path_buf())
 }
 

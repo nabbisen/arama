@@ -1,12 +1,13 @@
 use std::path::PathBuf;
 
 use arama_cache::CacheProducer;
+use arama_env::{IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST};
 use iced::Task;
 // use iced::Task;
 use swdir::{DirNode, Swdir};
 
 use crate::{
-    components::gallery::gallery_settings::media_type::MediaType,
+    components::gallery::gallery_settings::target_media_type::TargetMediaType,
     core::components::gallery::gallery_settings::{
         GallerySettings, thumbnail_size_slider::MAX_THUMBNAIL_SIZE,
     },
@@ -18,9 +19,6 @@ mod update;
 mod util;
 mod view;
 
-pub const IMAGE_EXTENSION_ALLOWLIST: &[&str; 6] = &["png", "jpg", "jpeg", "webp", "gif", "bmp"];
-pub const VIDEO_EXTENSION_ALLOWLIST: &[&str; 1] = &["mp4"];
-
 const SPACING: u16 = 10;
 
 // アプリケーションの状態
@@ -31,12 +29,15 @@ pub struct Gallery {
 }
 
 impl Gallery {
-    pub fn new<T: Into<PathBuf>>(root_dir_path: T, media_type: &MediaType) -> anyhow::Result<Self> {
+    pub fn new<T: Into<PathBuf>>(
+        root_dir_path: T,
+        target_media_type: &TargetMediaType,
+    ) -> anyhow::Result<Self> {
         let mut extension_allowlist: Vec<&str> = vec![];
-        if media_type.include_image {
+        if target_media_type.include_image {
             extension_allowlist.extend(IMAGE_EXTENSION_ALLOWLIST);
         }
-        if media_type.include_video {
+        if target_media_type.include_video {
             extension_allowlist.extend(VIDEO_EXTENSION_ALLOWLIST);
         }
 

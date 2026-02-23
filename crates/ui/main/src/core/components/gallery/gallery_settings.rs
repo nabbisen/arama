@@ -1,17 +1,17 @@
 use crate::core::components::gallery::gallery_settings::thumbnail_size_slider::ThumbnailSizeSlider;
 
-pub mod media_type;
 pub mod message;
 pub mod output;
+pub mod target_media_type;
 pub mod thumbnail_size_slider;
 mod update;
 mod view;
 
-use media_type::MediaType;
+use target_media_type::TargetMediaType;
 
 #[derive(Default)]
 pub struct GallerySettings {
-    media_type: MediaType,
+    target_media_type: TargetMediaType,
     thumbnail_size: ThumbnailSizeSlider,
 }
 
