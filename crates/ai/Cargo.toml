@@ -17,18 +17,18 @@ rust-version = "1.90.0"
 arama-env = { workspace = true }
 
 # image comparison
-candle-core = "0.9"
-candle-nn = "0.9"
-candle-transformers = "0.9" # 一般的なモデルの実装が含まれる
+candle-core = { workspace = true }
+candle-nn = { workspace = true }
+candle-transformers = { workspace = true }
 
 # ai model loader
-reqwest = { version = "0.13", default-features = false, features = ["multipart", "rustls"] }
+reqwest = { workspace = true }
 tokio = { workspace = true }
-pt2safetensors = "0"
+pt2safetensors = { workspace = true }
 
 # general
 anyhow = { workspace = true }
-hnsw_rs = "0"
+hnsw_rs = { workspace = true }
 image = { workspace = true }
-naga = "28"
+naga = { workspace = true }
 rayon = { workspace = true }
