@@ -1,3 +1,4 @@
+use arama_ai::model::clip;
 // use app_json_settings::ConfigManager;
 // use arama_widget::dir_tree;
 use iced::Task;
@@ -21,10 +22,15 @@ impl Gallery {
                     // todo error handling
                     eprintln!("{}", err.join("\n"));
                 }
-                Task::perform(
-                    super::util::image_embedding(self.dir_node.clone().unwrap()),
-                    super::message::Message::EmbeddingCached,
-                )
+
+                if clip::model().ready().unwrap_or(false) {
+                    Task::perform(
+                        super::util::image_embedding(self.dir_node.clone().unwrap()),
+                        super::message::Message::EmbeddingCached,
+                    )
+                } else {
+                    Task::none()
+                }
             }
             Message::EmbeddingCached(err) => {
                 if let Some(err) = err {

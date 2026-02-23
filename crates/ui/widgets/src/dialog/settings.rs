@@ -1,5 +1,4 @@
 pub mod message;
-pub mod output;
 mod update;
 mod view;
 
