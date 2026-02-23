@@ -1,6 +1,8 @@
 use iced::widget::{
     image::Handle,
+    row,
     scrollable::{Direction, Scrollbar},
+    toggler,
 };
 use iced::{
     Element,
@@ -13,20 +15,31 @@ use super::{MediaFocusDialog, message::Message};
 impl MediaFocusDialog {
     pub fn view(&self) -> Element<'_, Message> {
         let handle = Handle::from_path(&self.path);
-        let content = scrollable(
-            container(image(handle))
-                .width(Fill)
-                .height(Fill)
-                .center(Fill)
-                .padding(10),
-        )
-        .direction(Direction::Both {
-            vertical: Scrollbar::default(),
-            horizontal: Scrollbar::default(),
-        })
-        .width(Fill)
-        .height(Fill);
-        let close_button = container(button("Close").on_press(Message::CloseClick)).center_x(Fill);
-        column![content, close_button].into()
+        let img = image(handle);
+        let content = if self.actual_size {
+            scrollable(
+                container(img)
+                    .width(Fill)
+                    .height(Fill)
+                    .center(Fill)
+                    .padding(10),
+            )
+            .direction(Direction::Both {
+                vertical: Scrollbar::default(),
+                horizontal: Scrollbar::default(),
+            })
+            .width(Fill)
+            .height(Fill)
+        } else {
+            scrollable(img).width(Fill).height(Fill)
+        };
+
+        let view_size_toggler = toggler(self.actual_size).on_toggle(Message::ViewSizeToggle);
+        let header = container(view_size_toggler).center_x(Fill).padding(10);
+
+        let close_button = button("Close").on_press(Message::CloseClick);
+        let footer = container(close_button).center_x(Fill).padding(10);
+
+        column![header, content, footer].into()
     }
 }

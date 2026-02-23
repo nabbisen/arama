@@ -78,9 +78,10 @@ impl App {
                     // ここでダイアログの `Output`（閉じるとか保存するとか）を受け取って処理することも可能
                     let output = x.update(message);
                     match output {
-                        media_focus_dialog::output::Output::CloseClick => {
+                        Some(media_focus_dialog::output::Output::CloseClick) => {
                             self.dialog = None;
                         }
+                        _ => (),
                     }
                 }
                 Task::none()
