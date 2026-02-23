@@ -20,6 +20,7 @@ pub struct App {
     aside: Aside,
     footer: Footer,
     dialog: Option<Dialog>,
+    processing: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -56,8 +57,10 @@ impl App {
             "."
         };
 
+        let processing = true;
+
         let header = Header::default();
-        let aside = Aside::new(path, false, false);
+        let aside = Aside::new(path, false, false, processing);
         let footer = Footer::default();
         let dialog = None;
 
@@ -72,6 +75,7 @@ impl App {
                 aside,
                 footer,
                 dialog,
+                processing,
             },
             task,
         )

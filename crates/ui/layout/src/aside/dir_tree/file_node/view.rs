@@ -14,6 +14,7 @@ impl FileNode {
         depth: u32,
         include_file: bool,
         include_hidden: bool,
+        processing: bool,
     ) -> Element<'_, Message> {
         let mut content = Column::new().spacing(5);
 
@@ -30,7 +31,7 @@ impl FileNode {
 
         let selected = selected_path.as_ref() == Some(&self.path);
 
-        let label = mouse_area(
+        let mut label = mouse_area(
             container(text(txt).font(if selected {
                 Font {
                     weight: Weight::Bold,
@@ -40,24 +41,30 @@ impl FileNode {
                 Font::DEFAULT
             }))
             .padding([2, 5]),
-        )
-        .interaction(mouse::Interaction::Pointer)
-        .on_press(Message::DirClick(self.path.clone()))
-        .on_double_click(Message::ToggleExpand((
-            self.path.clone(),
-            include_file,
-            include_hidden,
-        )));
-
-        // 開閉切り替えボタン（ディレクトリの場合のみ）
-        let row_content = if self.is_dir {
-            let toggle_btn = mouse_area(text(if self.is_expanded { "▼" } else { "▶" }))
-                .on_press(Message::ToggleExpand((
+        );
+        if !processing {
+            label = label
+                .interaction(mouse::Interaction::Pointer)
+                .on_press(Message::DirClick(self.path.clone()))
+                .on_double_click(Message::ToggleExpand((
                     self.path.clone(),
                     include_file,
                     include_hidden,
-                )))
-                .interaction(mouse::Interaction::Pointer);
+                )));
+        }
+
+        // 開閉切り替えボタン（ディレクトリの場合のみ）
+        let row_content = if self.is_dir {
+            let mut toggle_btn = mouse_area(text(if self.is_expanded { "▼" } else { "▶" }));
+            if !processing {
+                toggle_btn = toggle_btn
+                    .on_press(Message::ToggleExpand((
+                        self.path.clone(),
+                        include_file,
+                        include_hidden,
+                    )))
+                    .interaction(mouse::Interaction::Pointer);
+            }
             row![toggle_btn, label].spacing(5)
         } else {
             row![text("  "), label].spacing(5)
@@ -70,8 +77,13 @@ impl FileNode {
         // 展開されている場合、子要素を再帰的に描画
         if self.is_expanded && self.is_dir {
             for child in &self.children {
-                content =
-                    content.push(child.view(selected_path, depth + 1, include_file, include_hidden))
+                content = content.push(child.view(
+                    selected_path,
+                    depth + 1,
+                    include_file,
+                    include_hidden,
+                    processing,
+                ))
             }
         }
 

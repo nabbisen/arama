@@ -14,15 +14,26 @@ pub struct DirTree {
     include_file: bool,
     include_hidden: bool,
     selected_path: Option<PathBuf>,
+    processing: bool,
 }
 
 impl DirTree {
-    pub fn new<T: Into<PathBuf>>(path: T, include_file: bool, include_hidden: bool) -> Self {
+    pub fn new<T: Into<PathBuf>>(
+        path: T,
+        include_file: bool,
+        include_hidden: bool,
+        processing: bool,
+    ) -> Self {
         Self {
             root: FileNode::new(path, true, true),
             include_file,
             include_hidden,
             selected_path: None,
+            processing,
         }
+    }
+
+    pub fn set_processing(&mut self, processing: bool) {
+        self.processing = processing;
     }
 }
