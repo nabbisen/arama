@@ -107,7 +107,8 @@ impl App {
                 // Settingsダイアログが開いている時だけupdateを伝播
                 if let Some(Dialog::Settings(settings)) = &mut self.dialog {
                     // ここでダイアログの `Output`（閉じるとか保存するとか）を受け取って処理することも可能
-                    let _ = settings.update(message);
+                    let task = settings.update(message.clone());
+                    return task.map(Message::SettingsDialogMessage);
                 }
                 Task::none()
             }
