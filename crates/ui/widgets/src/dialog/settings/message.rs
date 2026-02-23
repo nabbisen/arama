@@ -1,2 +1,12 @@
+use super::{
+    Tab,
+    tab::{ai_settings, file_system_settings, general_settings},
+};
+
 #[derive(Debug, Clone)]
-pub enum Message {}
+pub enum Message {
+    TabSelect(Tab),
+    GeneralSettingsTabMessage(general_settings::message::Message),
+    AiSettingsTabMessage(ai_settings::message::Message),
+    FileSystemSettingsTabMessage(file_system_settings::message::Message),
+}

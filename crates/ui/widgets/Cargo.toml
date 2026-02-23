@@ -4,9 +4,11 @@ version = "0.10.2"
 edition = "2024"
 
 [dependencies]
+arama-env = { workspace = true }
+
 arama-ai = { workspace = true }
 arama-cache = { workspace = true }
 
 iced = { workspace = true }
 
-swdir = { workspace = true}
+swdir = { workspace = true }

@@ -103,12 +103,12 @@ impl App {
                 };
                 Task::none()
             }
-            Message::SettingsDialogMessage(_message) => {
-                // // Settingsダイアログが開いている時だけupdateを伝播
-                // if let Some(Dialog::Settings(settings)) = &mut self.dialog {
-                //     // ここでダイアログの `Output`（閉じるとか保存するとか）を受け取って処理することも可能
-                //     let _ = settings.update(message);
-                // }
+            Message::SettingsDialogMessage(message) => {
+                // Settingsダイアログが開いている時だけupdateを伝播
+                if let Some(Dialog::Settings(settings)) = &mut self.dialog {
+                    // ここでダイアログの `Output`（閉じるとか保存するとか）を受け取って処理することも可能
+                    let _ = settings.update(message);
+                }
                 Task::none()
             }
             Message::DialogClose => {
