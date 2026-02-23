@@ -8,10 +8,14 @@ mod view;
 #[derive(Clone, Debug)]
 pub struct MediaFocusDialog {
     path: PathBuf,
+    actual_size: bool,
 }
 
 impl MediaFocusDialog {
     pub fn new<T: Into<PathBuf>>(path: T) -> Self {
-        Self { path: path.into() }
+        Self {
+            path: path.into(),
+            actual_size: false,
+        }
     }
 }
