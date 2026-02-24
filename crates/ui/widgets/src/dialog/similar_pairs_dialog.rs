@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use arama_ai::pipeline::infer::clip::util::find_similar_pairs_efficient;
+use arama_ai::engine::infer::clip::util::find_similar_pairs_efficient;
 use arama_cache::CacheConcumer;
 use iced::Task;
 use swdir::DirNode;
@@ -31,8 +31,8 @@ impl SimilarPairsDialog {
                 // todo: error handling
                 let path_embeddings =
                     CacheConcumer::get_embeddings(dir_node).expect("failed to get embeddings");
-                // todo params
-                find_similar_pairs_efficient(&path_embeddings, 0.81, 20).await
+                // todo ui sliders for these param(s): threshold (also k_neighbors ?)
+                find_similar_pairs_efficient(&path_embeddings, 0.86, 50).await
             },
             message::Message::EmbeddingsReady,
         )
