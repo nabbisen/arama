@@ -5,8 +5,9 @@ use candle_nn::VarBuilder;
 use candle_transformers::models::clip::{ClipConfig, ClipModel};
 
 use crate::{
-    ModelManager, embedding::store::file::file_embedding::FileEmbedding, model::clip,
-    pipeline::infer::device,
+    engine::infer::device,
+    model_manager::{ModelManager, model::clip},
+    store::file::file_embedding::FileEmbedding,
 };
 
 pub mod clip_calculator;

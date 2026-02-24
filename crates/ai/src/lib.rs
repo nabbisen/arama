@@ -1,6 +1,5 @@
-mod embedding;
+pub mod engine;
+mod model_manager;
+pub mod store;
 
-pub use embedding::{
-    model::model_manager::{ModelManager, model},
-    pipeline, store,
-};
+pub use model_manager::{ModelManager, model};
