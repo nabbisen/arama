@@ -4,12 +4,10 @@
 // use iced::futures::channel::mpsc::Sender;
 // use swdir::DirNode;
 
-use std::path::PathBuf;
-
 use swdir::DirNode;
 
 // use super::subscription::Input;
-use crate::core::components::gallery::gallery_settings;
+use crate::{components::gallery::image_cell, core::components::gallery::gallery_settings};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -19,11 +17,11 @@ pub enum Message {
     // MenusMessage(menus::message::Message),
     // ImageSelect(PathBuf),
     GallerySettingsMessage(gallery_settings::message::Message),
+    ImageCellMessage(image_cell::message::Message),
     // SubscriptionWorkerReady(Sender<Input>),
     // SubscriptionWorkerFinished(FileEmbedding),
     // SubscriptionWorkerFailed,
     // DirTreeMessage(dir_tree::message::Message),
-    ImageSelect(PathBuf),
     DirSelect(DirNode),
     SimilarPairsOpen,
 }

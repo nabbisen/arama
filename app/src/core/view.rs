@@ -2,10 +2,10 @@ use arama_ui_widgets::dialog::overlay;
 use iced::{
     Element,
     Length::Fill,
-    widget::{column, container, row},
+    widget::{column, container, mouse_area, row, space, stack, text},
 };
 
-use super::{App, Dialog, message::Message};
+use super::{App, ContextMenu, Dialog, message::Message};
 
 impl App {
     pub fn view(&self) -> Element<'_, Message> {
@@ -18,11 +18,20 @@ impl App {
         let aside = self.aside.view().map(Message::AsideMessage);
         let footer = self.footer.view().map(Message::FooterMessage);
 
-        let layout = column![
+        let layout = mouse_area(column![
             container(header).height(60),
             container(row![aside, content]).height(Fill),
             container(footer).height(40)
-        ];
+        ])
+        .on_move(Message::CursorMove);
+
+        let context_menu = match &self.context_menu {
+            ContextMenu::ImageCell(path) => container(text(path.to_string_lossy().to_string()))
+                .padding([self.context_menu_point.y, self.context_menu_point.x]),
+            ContextMenu::None => container(space()),
+        };
+
+        let layout_with_context_menu = stack!(layout, context_menu);
 
         let dialog = match &self.dialog {
             Some(Dialog::MediaFocusDialog(x)) => {
@@ -35,6 +44,11 @@ impl App {
             None => None,
         };
 
-        overlay(layout.into(), dialog, Some(Message::DialogClose)).into()
+        overlay(
+            layout_with_context_menu.into(),
+            dialog,
+            Some(Message::DialogClose),
+        )
+        .into()
     }
 }

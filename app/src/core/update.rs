@@ -1,9 +1,12 @@
 use arama_env::{IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST};
-use arama_ui_main::{components::gallery::gallery_settings, views::gallery};
+use arama_ui_main::{
+    components::gallery::{gallery_settings, image_cell},
+    views::gallery,
+};
 use iced::Task;
 use swdir::Swdir;
 
-use super::{App, Dialog, message::Message};
+use super::{App, ContextMenu, Dialog, message::Message};
 use arama_ui_layout::{aside, header};
 use arama_ui_widgets::dialog::{media_focus_dialog, settings_dialog, similar_pairs_dialog};
 
@@ -19,11 +22,6 @@ impl App {
                     gallery::message::Message::ImageCached(_) => {
                         self.processing = false;
                         self.aside.set_processing(self.processing);
-                    }
-                    gallery::message::Message::ImageSelect(path) => {
-                        self.dialog = Some(Dialog::MediaFocusDialog(
-                            media_focus_dialog::MediaFocusDialog::new(path),
-                        ));
                     }
                     gallery::message::Message::SimilarPairsOpen => {
                         // todo: error handling
@@ -47,7 +45,23 @@ impl App {
                             _ => (),
                         }
                     }
-                    _ => (),
+                    gallery::message::Message::ImageCellMessage(message) => match message {
+                        image_cell::message::Message::ImageSelect(path) => {
+                            self.dialog = Some(Dialog::MediaFocusDialog(
+                                media_focus_dialog::MediaFocusDialog::new(path),
+                            ))
+                        }
+                        image_cell::message::Message::ContextMenuOpen(path) => {
+                            match self.context_menu {
+                                ContextMenu::None => {
+                                    self.context_menu = ContextMenu::ImageCell(path)
+                                }
+                                _ => self.context_menu = ContextMenu::None,
+                            }
+                        }
+                    },
+                    gallery::message::Message::DirSelect(_) => (),
+                    gallery::message::Message::EmbeddingCached(_) => (),
                 }
                 task
             }
@@ -143,6 +157,13 @@ impl App {
             }
             Message::DialogClose => {
                 self.dialog = None;
+                Task::none()
+            }
+            Message::CursorMove(point) => {
+                match self.context_menu {
+                    ContextMenu::None => self.context_menu_point = point,
+                    _ => (),
+                };
                 Task::none()
             }
         }

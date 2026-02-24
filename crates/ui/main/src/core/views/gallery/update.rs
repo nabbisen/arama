@@ -37,6 +37,7 @@ impl Gallery {
                     // todo error handling
                     eprintln!("{}", err);
                 }
+                self.gallery_settings.set_embedding_cached(true);
                 Task::none()
             }
             // Message::EmbeddingCalculated(calculated) => {
@@ -86,7 +87,7 @@ impl Gallery {
 
                 Task::none()
             }
-            Message::ImageSelect(_) => Task::none(),
+            Message::ImageCellMessage(_message) => Task::none(),
             Message::DirSelect(dir_node) => {
                 self.dir_node = Some(dir_node.clone());
                 Task::perform(
