@@ -13,10 +13,15 @@ use target_media_type::TargetMediaType;
 pub struct GallerySettings {
     target_media_type: TargetMediaType,
     thumbnail_size: ThumbnailSizeSlider,
+    embedding_cached: bool,
 }
 
 impl GallerySettings {
     pub fn thumbnail_size(&self) -> u16 {
         self.thumbnail_size.value
+    }
+
+    pub fn set_embedding_cached(&mut self, embedding_cached: bool) {
+        self.embedding_cached = embedding_cached;
     }
 }

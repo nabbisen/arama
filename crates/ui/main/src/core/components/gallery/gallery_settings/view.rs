@@ -1,6 +1,6 @@
 use iced::{
     Element,
-    widget::{button, checkbox, row, text},
+    widget::{Button, button, checkbox, row, text},
 };
 
 use super::{GallerySettings, message::Message};
@@ -15,12 +15,17 @@ impl GallerySettings {
         ]
         .spacing(4);
 
+        let mut similar_pairs_button: Button<Message> = button("Similar Pairs");
+        if self.embedding_cached {
+            similar_pairs_button = similar_pairs_button.on_press(Message::SimilarPairsOpen);
+        }
+
         row![
             media_types,
             self.thumbnail_size
                 .view()
                 .map(Message::ThumbnailSizeSliderMessage),
-            button("Similar Pairs").on_press(Message::SimilarPairsOpen)
+            similar_pairs_button,
         ]
         .spacing(10)
         .into()
