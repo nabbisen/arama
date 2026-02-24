@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use app_json_settings::ConfigManager;
 use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
 use arama_ui_main::{
@@ -5,7 +7,7 @@ use arama_ui_main::{
     views::gallery::Gallery,
 };
 use arama_ui_widgets::dialog;
-use iced::Task;
+use iced::{Point, Task};
 
 mod message;
 mod settings;
@@ -22,6 +24,8 @@ pub struct App {
     header: Header,
     aside: Aside,
     footer: Footer,
+    context_menu_point: Point,
+    context_menu: ContextMenu,
     dialog: Option<Dialog>,
     target_media_type: TargetMediaType,
     processing: bool,
@@ -32,6 +36,12 @@ enum Dialog {
     MediaFocusDialog(dialog::media_focus_dialog::MediaFocusDialog),
     SimilarPairsDialog(dialog::similar_pairs_dialog::SimilarPairsDialog),
     SettingsDialog(dialog::settings_dialog::SettingsDialog),
+}
+
+#[derive(Debug)]
+enum ContextMenu {
+    ImageCell(PathBuf),
+    None,
 }
 
 impl App {
@@ -80,6 +90,8 @@ impl App {
                 header,
                 aside,
                 footer,
+                context_menu_point: Point::default(),
+                context_menu: ContextMenu::None,
                 dialog,
                 target_media_type,
                 processing,

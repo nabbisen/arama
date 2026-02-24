@@ -1,12 +1,8 @@
-use std::path::Path;
-
-use arama_cache::CacheConcumer;
 use iced::Length::Fill;
-use iced::widget::image::Handle;
-use iced::widget::{
-    Responsive, column, container, image, mouse_area, row, scrollable, space, text,
-};
+use iced::widget::{Responsive, column, container, row, scrollable, space, text};
 use iced::{Element, Size};
+
+use crate::components::gallery::image_cell::ImageCell;
 
 use super::{Gallery, SPACING, message::Message};
 
@@ -65,10 +61,11 @@ impl Gallery {
             .map(|chunk| {
                 row(chunk
                     .iter()
-                    .map(|path| image_cell(path.as_path().as_ref(), thumbnail_size))
-                    // todo: error handling
-                    .filter(|x| x.is_ok())
-                    .map(|x| x.unwrap())
+                    .map(|path| {
+                        ImageCell::new(&path, thumbnail_size)
+                            .view()
+                            .map(Message::ImageCellMessage)
+                    })
                     .collect::<Vec<Element<Message>>>())
                 .spacing(SPACING as u32)
                 .into()
@@ -81,22 +78,4 @@ impl Gallery {
             Some(column(content).spacing(SPACING as u32).into())
         }
     }
-}
-
-fn image_cell<'a>(path: &'a Path, thumbnail_size: u32) -> anyhow::Result<Element<'a, Message>> {
-    let thumbnail_path = match CacheConcumer::get_cache_file_path(path)? {
-        Some(x) => x,
-        None => path.to_path_buf(),
-    };
-
-    let handle = Handle::from_path(thumbnail_path);
-
-    Ok(mouse_area(
-        image(handle)
-            .width(thumbnail_size)
-            .height(thumbnail_size)
-            .content_fit(iced::ContentFit::Cover),
-    )
-    .on_double_click(Message::ImageSelect(path.to_path_buf()))
-    .into())
 }
