@@ -1,6 +1,6 @@
 [package]
 name = "arama-storage"
-version = "0.1.0"
+version = "0.12.6"
 edition = "2024"
 
 [dependencies]
