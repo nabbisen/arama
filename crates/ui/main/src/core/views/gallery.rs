@@ -14,7 +14,6 @@ use crate::{
 pub mod message;
 // mod subscription;
 mod update;
-mod util;
 mod view;
 
 const SPACING: u16 = 10;
