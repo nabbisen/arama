@@ -1,4 +1,4 @@
-use arama_ai::engine::infer::clip::{clip, clip_calculator};
+use arama_ai::pipeline::encode::image::{clip, clip_calculator};
 use arama_cache::{CacheConcumer, CacheProducer};
 use swdir::DirNode;
 

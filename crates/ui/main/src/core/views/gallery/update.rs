@@ -1,4 +1,4 @@
-use arama_ai::model::clip;
+use arama_ai::model::model_container::clip;
 // use app_json_settings::ConfigManager;
 // use arama_widget::dir_tree;
 use iced::Task;

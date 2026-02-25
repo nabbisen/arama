@@ -5,19 +5,17 @@ use candle_nn::VarBuilder;
 use candle_transformers::models::clip::{ClipConfig, ClipModel};
 
 use crate::{
-    engine::infer::device,
-    model_manager::{ModelManager, model::clip},
+    model::model_container::clip, model::model_manager::ModelManager,
     store::file::file_embedding::FileEmbedding,
 };
 
 pub mod clip_calculator;
-pub mod util;
 
 use clip_calculator::{ClipCalculator, load_image_as_tensor};
 
 // pub fn calculator(source: &Path) -> anyhow::Result<Calculator> {
 pub fn clip_calculator() -> anyhow::Result<ClipCalculator> {
-    let device = device();
+    let device = ModelManager::device();
 
     // println!("1. モデルのロード");
     // 事前に openai/clip-vit-base-patch32 などから config.json と model.safetensors を入手してください

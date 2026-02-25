@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use arama_ai::engine::infer::clip::util::find_similar_pairs_efficient;
+use arama_ai::pipeline::score::similarity::find_similar_pairs_efficient;
 use arama_cache::CacheConcumer;
 use iced::Task;
 use swdir::DirNode;

@@ -1,4 +1,4 @@
-use arama_ai::model::clip;
+use arama_ai::model::model_container::clip;
 use arama_cache::{FfmpegStatus, VideoEngine};
 use iced::{
     Element,

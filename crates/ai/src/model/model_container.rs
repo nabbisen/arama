@@ -5,12 +5,12 @@ use arama_env::{local_dir, validate_dir};
 
 pub mod clip;
 
-pub struct Model {
+pub struct ModelContainer {
     pub name: String,
     pub source_url: String,
 }
 
-impl Model {
+impl ModelContainer {
     pub fn safetensors_path(&self) -> anyhow::Result<PathBuf> {
         Ok(self.model_dir()?.join(SAFETENSORS_MODEL))
     }
