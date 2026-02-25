@@ -16,11 +16,6 @@ rust-version = "1.90.0"
 [dependencies]
 arama-env = { workspace = true }
 
-# image comparison
-candle-core = { workspace = true }
-candle-nn = { workspace = true }
-candle-transformers = { workspace = true }
-
 # ai model loader
 reqwest = { workspace = true }
 tokio = { workspace = true }
@@ -32,3 +27,13 @@ hnsw_rs = { workspace = true }
 image = { workspace = true }
 naga = { workspace = true }
 rayon = { workspace = true }
+
+# huggingface candle serise
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+candle-core = { version = "0.9", features = ["cuda"] }
+candle-nn = { version = "0.9", features = ["cuda"] }
+candle-transformers = { version = "0.9", features = ["cuda"] }
+[target.'cfg(target_os = "macos")'.dependencies]
+candle-core = { version = "0.9", features = ["metal"] }
+candle-nn = { version = "0.9", features = ["metal"] }
+candle-transformers = { version = "0.9", features = ["metal"] }
