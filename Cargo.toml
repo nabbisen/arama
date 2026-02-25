@@ -52,9 +52,7 @@ swdir = "0"
 tokio = { version = "1.49", default-features = false, features = ["fs", "sync"] }
 
 # ai
-candle-core = "0.9"
-candle-nn = "0.9"
-candle-transformers = "0.9" # 一般的なモデルの実装が含まれる
+# candle series is defined in sub-crate because virtual manifest doesn't support [target] (os-specific) sections
 # - calc
 hnsw_rs = "0"
 naga = "28"
