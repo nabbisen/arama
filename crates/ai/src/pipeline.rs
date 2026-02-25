@@ -1,3 +1,3 @@
 pub mod encode;
-pub mod extract;
+pub(super) mod extract;
 pub mod score;

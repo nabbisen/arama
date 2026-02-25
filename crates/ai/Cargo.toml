@@ -14,7 +14,9 @@ readme = "README.md"
 rust-version = "1.90.0"
 
 [dependencies]
+arama-cache = { workspace = true }
 arama-env = { workspace = true }
+arama-sidecar = { workspace = true }
 
 # ai model loader
 reqwest = { workspace = true }
@@ -27,6 +29,8 @@ hnsw_rs = { workspace = true }
 image = { workspace = true }
 naga = { workspace = true }
 rayon = { workspace = true }
+serde_json = { workspace = true }
+swdir = { workspace = true }
 
 # huggingface candle serise
 [target.'cfg(not(target_os = "macos"))'.dependencies]

@@ -1,8 +1,8 @@
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 use candle_core::Device;
 
-use super::model_container::ModelContainer;
+use super::{model_container::ModelContainer, model_container::SourceUrl};
 
 pub struct ModelManager {
     model_container: ModelContainer,
@@ -19,13 +19,32 @@ impl ModelManager {
         Ok(Self { model_container })
     }
 
-    pub async fn get_safetensors_from_pytorch(&self) -> anyhow::Result<()> {
-        let response = reqwest::get(&self.model_container.source_url).await?;
+    pub async fn ensure(&self) -> anyhow::Result<()> {
+        let (source_url, is_model_safetensors) = match &self.model_container.source_url {
+            SourceUrl::ModelSafetensors(model_safetensors_url) => (model_safetensors_url, true),
+            SourceUrl::ModelSafetensorsConfigJson((model_safetensors_url, config_json_url)) => {
+                let response = reqwest::get(config_json_url).await?;
+                let bytes = response.bytes().await?;
+
+                let config_json_path = self.model_container.config_json_path()?;
+                let _ = fs::write(&config_json_path, &bytes)?;
+
+                (model_safetensors_url, true)
+            }
+            SourceUrl::Other(source_url) => (source_url, false),
+        };
+
+        let response = reqwest::get(source_url).await?;
         let bytes = response.bytes().await?;
 
-        let pytorch_path = self.model_container.pytorch_path()?.clone();
+        if is_model_safetensors {
+            let model_safetensors_path = self.model_container.safetensors_path()?;
+            let _ = fs::write(&model_safetensors_path, &bytes)?;
+            return Ok(());
+        }
 
-        let _ = tokio::fs::write(&pytorch_path, &bytes).await?;
+        let pytorch_path = self.model_container.pytorch_path()?.clone();
+        let _ = fs::write(&pytorch_path, &bytes)?;
 
         pt2safetensors::Pt2Safetensors::default()
             .removes_pt_at_conversion_success()
