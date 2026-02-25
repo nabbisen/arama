@@ -4,7 +4,7 @@ use candle_core::{Device, Tensor};
 use candle_transformers::models::clip::{ClipConfig, ClipModel};
 use image::GenericImageView;
 // use naga::FastHashMap;
-pub struct ClipCalculator {
+pub struct ClipEncoder {
     // pub source: PathBuf,
     // pub source_tensor: Tensor,
     pub model: ClipModel,

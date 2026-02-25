@@ -9,12 +9,12 @@ use crate::{
     store::file::file_embedding::FileEmbedding,
 };
 
-pub mod clip_calculator;
+pub mod clip_encoder;
 
-use clip_calculator::{ClipCalculator, load_image_as_tensor};
+use clip_encoder::{ClipEncoder, load_image_as_tensor};
 
 // pub fn calculator(source: &Path) -> anyhow::Result<Calculator> {
-pub fn clip_calculator() -> anyhow::Result<ClipCalculator> {
+pub fn clip_calculator() -> anyhow::Result<ClipEncoder> {
     let device = ModelManager::device();
 
     // println!("1. モデルのロード");
@@ -43,7 +43,7 @@ pub fn clip_calculator() -> anyhow::Result<ClipCalculator> {
     // // [1, 3, 224, 224] -> [1, 512] (モデルにより次元は異なります)
     // let source_tensor = model.get_image_features(&source_image)?;
 
-    Ok(ClipCalculator {
+    Ok(ClipEncoder {
         // source: source.to_path_buf(),
         // source_tensor,
         model,
@@ -52,7 +52,7 @@ pub fn clip_calculator() -> anyhow::Result<ClipCalculator> {
     })
 }
 
-pub fn clip(target: &Path, clip_calculator: &ClipCalculator) -> anyhow::Result<FileEmbedding> {
+pub fn clip(target: &Path, clip_calculator: &ClipEncoder) -> anyhow::Result<FileEmbedding> {
     let target_image: Tensor = load_image_as_tensor(
         target.to_string_lossy().as_ref(),
         clip_calculator.config.image_size,
