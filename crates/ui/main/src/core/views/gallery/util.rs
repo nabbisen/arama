@@ -1,6 +1,6 @@
-use arama_ai::pipeline::encode::image::{clip, clip_calculator};
-use arama_cache::{CacheConcumer, CacheProducer};
-use swdir::DirNode;
+// use arama_ai::pipeline::encode::image::{clip, clip_calculator};
+// use arama_cache::{CacheConcumer, CacheProducer};
+// use swdir::DirNode;
 
 // pub async fn image_cache(
 //     dir_node: DirNode,
@@ -15,36 +15,36 @@ use swdir::DirNode;
 //     None
 // }
 
-pub async fn image_embedding(dir_node: DirNode) -> Option<String> {
-    let calculator = match clip_calculator() {
-        Ok(x) => x,
-        Err(err) => return Some(format!("failed to load clip calculator: {}", err)),
-    };
+// pub async fn image_embedding(dir_node: DirNode) -> Option<String> {
+//     let calculator = match clip_calculator() {
+//         Ok(x) => x,
+//         Err(err) => return Some(format!("failed to load clip calculator: {}", err)),
+//     };
 
-    for path in dir_node.files {
-        match CacheConcumer::get_cache(&path) {
-            Ok(cache) => {
-                let cache = if let Some(cache) = cache {
-                    cache
-                } else {
-                    // todo error handling
-                    return Some("failed to get cache".to_string());
-                };
+//     for path in dir_node.files {
+//         match CacheConcumer::get_cache(&path) {
+//             Ok(cache) => {
+//                 let cache = if let Some(cache) = cache {
+//                     cache
+//                 } else {
+//                     // todo error handling
+//                     return Some("failed to get cache".to_string());
+//                 };
 
-                let embedding = match clip(&path, &calculator) {
-                    Ok(x) => x,
-                    Err(err) => return Some(format!("failed to clip calculation: {}", err)),
-                };
-                match CacheProducer::set_embedding(cache.id(), embedding.embedding) {
-                    Ok(_) => (),
-                    Err(err) => return Some(format!("failed to set embedding: {}", err)),
-                }
-            }
-            Err(err) => return Some(err.to_string()),
-        }
-    }
-    None
-}
+//                 let embedding = match clip(&path, &calculator) {
+//                     Ok(x) => x,
+//                     Err(err) => return Some(format!("failed to clip calculation: {}", err)),
+//                 };
+//                 match CacheProducer::set_embedding(cache.id(), embedding.embedding) {
+//                     Ok(_) => (),
+//                     Err(err) => return Some(format!("failed to set embedding: {}", err)),
+//                 }
+//             }
+//             Err(err) => return Some(err.to_string()),
+//         }
+//     }
+//     None
+// }
 
 // use std::path::PathBuf;
 

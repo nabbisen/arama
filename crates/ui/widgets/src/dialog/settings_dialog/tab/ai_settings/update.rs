@@ -15,7 +15,7 @@ impl AiSettings {
                             Ok(x) => x,
                             Err(err) => return Some(err.to_string()),
                         };
-                        match clip_model_manager.get_safetensors_from_pytorch().await {
+                        match clip_model_manager.ensure().await {
                             Ok(_) => None,
                             Err(err) => Some(err.to_string()),
                         }

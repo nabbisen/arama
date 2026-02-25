@@ -10,6 +10,7 @@ use crate::{
 };
 
 pub mod clip_encoder;
+pub mod embeddings;
 
 use clip_encoder::{ClipEncoder, load_image_as_tensor};
 

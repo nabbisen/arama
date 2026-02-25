@@ -1,4 +1,6 @@
-use arama_ai::model::model_container::clip;
+use arama_ai::{
+    model::model_container::clip, pipeline::encode::image::embeddings::image_embedding,
+};
 // use app_json_settings::ConfigManager;
 // use arama_widget::dir_tree;
 use iced::Task;
@@ -25,7 +27,7 @@ impl Gallery {
 
                 if clip::model().ready().unwrap_or(false) {
                     Task::perform(
-                        super::util::image_embedding(self.dir_node.clone().unwrap()),
+                        image_embedding(self.dir_node.clone().unwrap()),
                         super::message::Message::EmbeddingCached,
                     )
                 } else {

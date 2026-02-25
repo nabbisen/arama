@@ -1,5 +1,5 @@
 use arama_ai::model::model_container::clip;
-use arama_cache::{FfmpegStatus, VideoEngine};
+use arama_sidecar::media::video::video_engine::{FfmpegStatus, VideoEngine};
 use iced::{
     Element,
     widget::{button, column, container, space, text},
