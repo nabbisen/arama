@@ -2,7 +2,7 @@ use arama_ui_widgets::dialog::overlay;
 use iced::{
     Element,
     Length::Fill,
-    widget::{button, column, container, mouse_area, row, space, stack, text},
+    widget::{button, column, container, mouse_area, row, space, stack},
 };
 
 use super::{App, ContextMenu, Dialog, message::Message};
