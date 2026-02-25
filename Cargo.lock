@@ -242,6 +242,8 @@ dependencies = [
  "anyhow",
  "arama-env",
  "arama-repr",
+ "arama-sidecar",
+ "arama-storage",
  "ffmpeg-sidecar",
  "image",
  "rayon",
@@ -260,6 +262,24 @@ dependencies = [
 [[package]]
 name = "arama-repr"
 version = "0.1.0"
+
+[[package]]
+name = "arama-sidecar"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arama-env",
+ "ffmpeg-sidecar",
+]
+
+[[package]]
+name = "arama-storage"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arama-env",
+ "rusqlite",
+]
 
 [[package]]
 name = "arama-ui-layout"

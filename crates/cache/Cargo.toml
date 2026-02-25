@@ -16,6 +16,8 @@ rust-version = "1.90.0"
 [dependencies]
 arama-env = { workspace = true }
 arama-repr = { workspace = true }
+arama-sidecar = { workspace = true }
+arama-storage = { workspace = true }
 
 anyhow = { workspace = true }
 ffmpeg-sidecar = { workspace = true }

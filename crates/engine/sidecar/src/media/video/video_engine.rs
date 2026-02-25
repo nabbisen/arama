@@ -4,9 +4,13 @@ use arama_env::{local_bin_dir, validate_dir};
 use ffmpeg_sidecar::download::{check_latest_version, download_ffmpeg_package, unpack_ffmpeg};
 
 #[cfg(not(windows))]
-const BIN_NAME: &str = "ffmpeg";
+mod bin_name {
+    pub const FFMPEG: &str = "ffmpeg";
+}
 #[cfg(windows)]
-const BIN_NAME: &str = "ffmpeg.exe";
+mod bin_name {
+    pub const FFMPEG: &str = "ffmpeg.exe";
+}
 
 #[derive(PartialEq)]
 pub enum FfmpegStatus {
@@ -21,19 +25,20 @@ impl VideoEngine {
     pub fn ffmpeg() -> Option<Command> {
         match Self::ready() {
             FfmpegStatus::ExistsInLocalBin => Some(Command::new(
-                Self::file_path().expect("failed to get ffmpeg in local bin"),
+                Self::ffmpeg_path()
+                    .expect(&format!("failed to get {} in local bin", bin_name::FFMPEG)),
             )),
-            FfmpegStatus::ExistsInPath => Some(Command::new("ffmpeg")),
+            FfmpegStatus::ExistsInPath => Some(Command::new(bin_name::FFMPEG)),
             FfmpegStatus::NotExists => None,
         }
     }
 
     pub fn ready() -> FfmpegStatus {
-        if Self::file_path().is_ok_and(|path| path.exists()) {
+        if Self::ffmpeg_path().is_ok_and(|path| path.exists()) {
             return FfmpegStatus::ExistsInLocalBin;
         }
 
-        if Command::new("ffmpeg")
+        if Command::new(bin_name::FFMPEG)
             .args(["-version"])
             .output()
             .is_ok_and(|x| x.status.success())
@@ -44,7 +49,7 @@ impl VideoEngine {
         FfmpegStatus::NotExists
     }
 
-    fn file_path() -> anyhow::Result<PathBuf> {
-        Ok(local_bin_dir()?.join(BIN_NAME))
+    fn ffmpeg_path() -> anyhow::Result<PathBuf> {
+        Ok(local_bin_dir()?.join(bin_name::FFMPEG))
     }
 }

@@ -1,0 +1,10 @@
+[package]
+name = "arama-storage"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+arama-env = { workspace = true }
+
+anyhow = { workspace = true }
+rusqlite = { workspace = true }
