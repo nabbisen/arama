@@ -4,17 +4,15 @@ use std::{
 };
 
 use arama_env::validate_dir;
+use arama_repr::byte::blob_to_vector;
 use rusqlite::Connection;
 use swdir::DirNode;
 
 use crate::{
-    engine::{
-        byte::blob_to_vector,
-        database::image::{
-            CREATE_TABLE_TMP_IMAGE_PATHS_STMT, INSERT_TMP_IMAGE_PATHS_STMT,
-            SELECT_EMBEDDING_BY_ID_STMT, SELECT_ID_BY_PATH_STMT, SELECT_ID_EMBEDDING_BY_PATHS_STMT,
-            SELECT_ROW_BY_PATH_LIMIT_1_STMT, connection, table_ensure,
-        },
+    engine::database::image::{
+        CREATE_TABLE_TMP_IMAGE_PATHS_STMT, INSERT_TMP_IMAGE_PATHS_STMT,
+        SELECT_EMBEDDING_BY_ID_STMT, SELECT_ID_BY_PATH_STMT, SELECT_ID_EMBEDDING_BY_PATHS_STMT,
+        SELECT_ROW_BY_PATH_LIMIT_1_STMT, connection, table_ensure,
     },
     env::{
         cache::image::Cache,
