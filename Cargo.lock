@@ -241,6 +241,7 @@ version = "0.12.5"
 dependencies = [
  "anyhow",
  "arama-env",
+ "arama-repr",
  "ffmpeg-sidecar",
  "image",
  "rayon",
@@ -255,6 +256,10 @@ version = "0.12.5"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "arama-repr"
+version = "0.1.0"
 
 [[package]]
 name = "arama-ui-layout"
