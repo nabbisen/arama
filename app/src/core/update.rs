@@ -155,6 +155,10 @@ impl App {
                 }
                 Task::none()
             }
+            Message::FileManagerShow(path) => {
+                let _ = file_handle::FileHandle::show(&path);
+                Task::none()
+            }
             Message::DialogClose => {
                 self.dialog = None;
                 Task::none()

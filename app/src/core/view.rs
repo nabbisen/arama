@@ -2,7 +2,7 @@ use arama_ui_widgets::dialog::overlay;
 use iced::{
     Element,
     Length::Fill,
-    widget::{column, container, mouse_area, row, space, stack, text},
+    widget::{button, column, container, mouse_area, row, space, stack, text},
 };
 
 use super::{App, ContextMenu, Dialog, message::Message};
@@ -26,8 +26,10 @@ impl App {
         .on_move(Message::CursorMove);
 
         let context_menu = match &self.context_menu {
-            ContextMenu::ImageCell(path) => container(text(path.to_string_lossy().to_string()))
-                .padding([self.context_menu_point.y, self.context_menu_point.x]),
+            ContextMenu::ImageCell(path) => container(
+                button("file manager").on_press(Message::FileManagerShow(path.to_path_buf())),
+            )
+            .padding([self.context_menu_point.y, self.context_menu_point.x]),
             ContextMenu::None => container(space()),
         };
 
