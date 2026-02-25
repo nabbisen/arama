@@ -1,4 +1,4 @@
-use arama_ai::{ModelManager, model::clip};
+use arama_ai::model::{model_container::clip, model_manager::ModelManager};
 use iced::Task;
 
 use super::{AiSettings, message::Message};
