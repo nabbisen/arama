@@ -3,13 +3,15 @@ members = [
     "app",
     "crates/ai",
     "crates/cache",
-    "crates/repr",
+    "crates/engine/repr",
+    "crates/engine/sidecar",
+    "crates/engine/storage",
     "crates/ui/layout",
     "crates/ui/main",
     "crates/ui/widgets",
     "env",
 ]
-resolver = "2"
+resolver = "3"
 
 [profile.release]     # shrink executable size
 opt-level = "z"
@@ -28,10 +30,13 @@ arama-env = { path = "env" }
 
 arama-ai = { path = "crates/ai" }
 arama-cache = { path = "crates/cache" }
-arama-repr = { path = "crates/repr" }
 arama-ui-layout = { path = "crates/ui/layout" }
 arama-ui-main = { path = "crates/ui/main" }
 arama-ui-widgets = { path = "crates/ui/widgets" }
+
+arama-repr = { path = "crates/engine/repr" }
+arama-sidecar = { path = "crates/engine/sidecar" }
+arama-storage = { path = "crates/engine/storage" }
 
 iced = { version = "0.14", features = ["image", "tokio"] }
 

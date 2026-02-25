@@ -2,14 +2,14 @@ use std::io::{Error, ErrorKind, Result};
 
 use arama_env::validate_dir;
 use arama_repr::byte::vector_to_blob;
+use arama_storage::{
+    database::image::{UPDATE_EMBEDDING_STMT, connection, table_ensure},
+    env::path::image::cache_thumbnail_dir,
+};
 use rusqlite::Connection;
 use swdir::DirNode;
 
-use crate::{
-    engine::database::image::{UPDATE_EMBEDDING_STMT, connection, table_ensure},
-    env::path::image::cache_thumbnail_dir,
-    produce::cache_refresh::CacheRefresh,
-};
+use crate::produce::cache_refresh::CacheRefresh;
 
 #[derive(Clone)]
 pub struct CacheProducer {

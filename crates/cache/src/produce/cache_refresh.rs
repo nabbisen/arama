@@ -6,18 +6,16 @@ use std::{
 };
 
 use anyhow::anyhow;
+use arama_sidecar::media::MediaType;
 use image::ImageFormat;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rusqlite::Connection;
 use swdir::DirNode;
 
-use crate::{
-    engine::{
-        database::image::{
-            DELETE_BY_ID_STMT, INSERT_STMT, SELECT_ROW_BY_PATH_LIMIT_1_STMT,
-            UPDATE_LAST_MODIFIED_STMT, connection,
-        },
-        media::MediaType,
+use arama_storage::{
+    database::image::{
+        DELETE_BY_ID_STMT, INSERT_STMT, SELECT_ROW_BY_PATH_LIMIT_1_STMT, UPDATE_LAST_MODIFIED_STMT,
+        connection,
     },
     env::{
         cache::{CacheKind, image::Cache},
