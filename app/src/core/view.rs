@@ -26,10 +26,13 @@ impl App {
         .on_move(Message::CursorMove);
 
         let context_menu = match &self.context_menu {
-            ContextMenu::ImageCell(path) => container(
-                button("file manager").on_press(Message::FileManagerShow(path.to_path_buf())),
-            )
-            .padding([self.context_menu_point.y, self.context_menu_point.x]),
+            ContextMenu::ImageCell(path) => container(column![
+                space().height(self.context_menu_point.y),
+                row![
+                    space().width(self.context_menu_point.x),
+                    button("file manager").on_press(Message::FileManagerShow(path.to_path_buf())),
+                ]
+            ]),
             ContextMenu::None => container(space()),
         };
 
