@@ -200,7 +200,7 @@ dependencies = [
 
 [[package]]
 name = "arama"
-version = "0.12.6"
+version = "0.12.7"
 dependencies = [
  "anyhow",
  "app-json-settings",
@@ -219,7 +219,7 @@ dependencies = [
 
 [[package]]
 name = "arama-ai"
-version = "0.12.6"
+version = "0.12.7"
 dependencies = [
  "anyhow",
  "arama-cache",
@@ -241,7 +241,7 @@ dependencies = [
 
 [[package]]
 name = "arama-cache"
-version = "0.12.6"
+version = "0.12.7"
 dependencies = [
  "anyhow",
  "arama-env",
@@ -258,18 +258,18 @@ dependencies = [
 
 [[package]]
 name = "arama-env"
-version = "0.12.6"
+version = "0.12.7"
 dependencies = [
  "libc",
 ]
 
 [[package]]
 name = "arama-repr"
-version = "0.12.6"
+version = "0.12.7"
 
 [[package]]
 name = "arama-sidecar"
-version = "0.12.6"
+version = "0.12.7"
 dependencies = [
  "anyhow",
  "arama-env",
@@ -278,7 +278,7 @@ dependencies = [
 
 [[package]]
 name = "arama-storage"
-version = "0.12.6"
+version = "0.12.7"
 dependencies = [
  "anyhow",
  "arama-env",
@@ -287,7 +287,7 @@ dependencies = [
 
 [[package]]
 name = "arama-ui-layout"
-version = "0.12.6"
+version = "0.12.7"
 dependencies = [
  "arama-ai",
  "arama-cache",
@@ -297,7 +297,7 @@ dependencies = [
 
 [[package]]
 name = "arama-ui-main"
-version = "0.12.6"
+version = "0.12.7"
 dependencies = [
  "anyhow",
  "arama-ai",
@@ -310,7 +310,7 @@ dependencies = [
 
 [[package]]
 name = "arama-ui-widgets"
-version = "0.12.6"
+version = "0.12.7"
 dependencies = [
  "arama-ai",
  "arama-cache",

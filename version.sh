@@ -12,6 +12,9 @@
 #   ./workspace_version.sh --update 1.2.3 --dry-run
 #
 
+# ---------- 定数 ----------
+CARGO_LOCK=./Cargo.lock
+
 # ---------- ヘルプ ----------
 show_help() {
     cat <<EOF
@@ -123,8 +126,16 @@ if [ "$UPDATE_MODE" -eq 1 ]; then
 
                 printf '  %s : %s → %s (updated)\n' \
                        "$crate_name" "$old_version" "$NEW_VERSION"
+
+                git add "$manifest_path"
             fi
         done
+        if [ -f "$CARGO_LOCK" ]; then
+            sleep 5
+            git add "$CARGO_LOCK"
+        else
+            printf 'Warn: %s is missing. failed to git add.\n' "$CARGO_LOCK" >&2
+        fi
 fi
 
 exit 0
