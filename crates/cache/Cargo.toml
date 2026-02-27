@@ -23,6 +23,13 @@ anyhow = { workspace = true }
 ffmpeg-sidecar = { workspace = true }
 image = { workspace = true }
 rayon = { workspace = true }
+r2d2 = { workspace = true }
+r2d2_sqlite = { workspace = true }
 rusqlite = { workspace = true }
+sha2 = { workspace = true }
 swdir = { workspace = true }
+thiserror = { workspace = true }
 tokio = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
