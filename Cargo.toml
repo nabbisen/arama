@@ -50,7 +50,12 @@ rayon = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 swdir = "0"
+thiserror = "2"
 tokio = { version = "1.49", default-features = false, features = ["fs", "sync"] }
+
+# sidecar
+# - media processor
+ffmpeg-sidecar = { version = "2.4", features = ["named_pipes"] }
 
 # ai
 # candle series is defined in sub-crate because virtual manifest doesn't support [target] (os-specific) sections
@@ -62,5 +67,4 @@ reqwest = { version = "0.13", default-features = false, features = ["multipart",
 pt2safetensors = "0"
 
 # cache
-ffmpeg-sidecar = { version = "2.4", features = ["named_pipes"] }
 rusqlite = { version = "0.38", default-features = false, features = ["bundled"] }

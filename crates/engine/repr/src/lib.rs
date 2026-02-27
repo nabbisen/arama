@@ -1,1 +1,2 @@
-pub mod byte;
+pub mod codec;
+pub mod error;
