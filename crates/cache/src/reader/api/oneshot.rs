@@ -1,0 +1,46 @@
+//! 単発呼び出し用の convenience API。
+//!
+//! `CacheReader` を都度生成して操作する薄いラッパー。
+//! 呼び出しのたびにコネクションプールを開閉するため、
+//! **rayon 並行処理やホットパスには使わないこと**。
+//! そのような用途では [`CacheReader`] を `Clone` して使い回す
+//! primary API を選択すること。
+//!
+//! # 使い分けの目安
+//!
+//! | 用途 | 推奨 API |
+//! |---|---|
+//! | 単発スクリプト・初期化処理 | convenience API (本モジュール) |
+//! | rayon 並列処理・繰り返し呼び出し | [`CacheReader`] |
+//!
+//! [`CacheReader`]: crate::CacheReader
+
+use crate::error::Result;
+use crate::types::{ImageCacheEntry, LookupResult, VideoCacheEntry};
+use crate::writer::CacheWriter;
+
+// ---------------------------------------------------------------------------
+// 参照
+// ---------------------------------------------------------------------------
+
+/// 画像ファイルのキャッシュを単発で照会する。
+///
+/// DB パスは [`resolve_db_path`] で自動解決される。
+/// 繰り返し呼ぶ場合は [`CacheWriter::lookup_image`] を使うこと。
+///
+/// [`resolve_db_path`]: crate::inner::resolve_db_path
+pub fn lookup_image(file_path: &str) -> Result<LookupResult<ImageCacheEntry>> {
+    CacheWriter::open()?.lookup_image(file_path)
+}
+
+/// 動画ファイルのキャッシュを単発で照会する。
+///
+/// 繰り返し呼ぶ場合は [`CacheWriter::lookup_video`] を使うこと。
+pub fn lookup_video(file_path: &str) -> Result<LookupResult<VideoCacheEntry>> {
+    CacheWriter::open()?.lookup_video(file_path)
+}
+
+/// 登録済みファイルパスの一覧を単発で取得する。
+pub fn list_paths() -> Result<Vec<String>> {
+    CacheWriter::open()?.list_paths()
+}

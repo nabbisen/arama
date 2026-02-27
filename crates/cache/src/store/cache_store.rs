@@ -4,13 +4,14 @@ use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::OpenFlags;
 
-use super::util::num_cpus;
+use crate::CacheError;
 use crate::config::cache_config::CacheConfig;
-use crate::error::{Result, cache_error::CacheError};
+use crate::error::Result;
 use crate::schema::initialize;
+use crate::store::util::num_cpus;
 use crate::types::{ReadConn, WriteConn};
 
-pub struct CacheStore {
+pub(crate) struct CacheStore {
     read_pool: Pool<SqliteConnectionManager>,
     write_pool: Pool<SqliteConnectionManager>,
     pub config: CacheConfig,

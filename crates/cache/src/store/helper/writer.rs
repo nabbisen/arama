@@ -1,8 +1,6 @@
 use arama_repr::codec::vec_to_blob;
 
-use super::super::cache_store::CacheStore;
-use crate::error::Result;
-use crate::types::WriteConn;
+use crate::{error::Result, store::cache_store::CacheStore, types::WriteConn};
 
 /// `files` テーブルを UPSERT し、挿入 / 更新後の `id` を返す。
 pub fn db_upsert_file(
@@ -43,7 +41,7 @@ pub fn db_upsert_image_features(
     file_id: i64,
     clip: &[f32],
 ) -> rusqlite::Result<()> {
-    let blob = vec_to_blob(clip.to_owned());
+    let blob = vec_to_blob(clip.to_vec());
     conn.execute(
         "INSERT INTO image_features (file_id, clip_vector) VALUES (?1, ?2)
          ON CONFLICT(file_id) DO UPDATE SET clip_vector = excluded.clip_vector",

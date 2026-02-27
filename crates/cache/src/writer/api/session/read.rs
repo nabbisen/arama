@@ -1,4 +1,4 @@
-use super::super::cache_writer::CacheWriter;
+use super::super::super::cache_writer::CacheWriter;
 use crate::{ImageCacheEntry, LookupResult, VideoCacheEntry, error::Result};
 
 impl CacheWriter {
