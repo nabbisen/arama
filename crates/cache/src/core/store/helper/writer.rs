@@ -1,6 +1,6 @@
 use arama_repr::codec::vec_to_blob;
 
-use crate::{error::Result, store::cache_store::CacheStore, types::WriteConn};
+use crate::{core::store::cache_store::CacheStore, error::Result, types::WriteConn};
 
 /// `files` テーブルを UPSERT し、挿入 / 更新後の `id` を返す。
 pub fn db_upsert_file(

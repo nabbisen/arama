@@ -2,9 +2,9 @@ use std::path::Path;
 use std::sync::Arc;
 
 use crate::CacheConfig;
+use crate::core::reader::cache_reader::CacheReader;
+use crate::core::store::cache_store::CacheStore;
 use crate::error::Result;
-use crate::reader::cache_reader::CacheReader;
-use crate::store::cache_store::CacheStore;
 
 /// 参照 + 更新の全権限を持つハンドル。
 ///

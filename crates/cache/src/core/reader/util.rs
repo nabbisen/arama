@@ -1,8 +1,8 @@
 use std::path::Path;
 
-use crate::error::{Result, cache_error::CacheError};
-use crate::identity::api::matches_stored;
-use crate::store::cache_store::CacheStore;
+use crate::core::identity::api::matches_stored;
+use crate::core::store::cache_store::CacheStore;
+use crate::error::{CacheError, Result};
 
 pub fn file_matches(
     inner: &CacheStore,
