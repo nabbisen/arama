@@ -1,6 +1,6 @@
-//! `StoreInner` — コネクションプール・設定・DB ヘルパー関数を一元管理するコア。
+//! `CacheStore` — コネクションプール・設定・DB ヘルパー関数を一元管理するコア。
 //!
-//! `CacheReader` と `CacheWriter` は `Arc<StoreInner>` を共有し、
+//! `CacheReader` と `CacheWriter` は `Arc<CacheStore>` を共有し、
 //! このモジュールの `pub(crate)` ヘルパーを通じて DB を操作する。
 
 // ---------------------------------------------------------------------------

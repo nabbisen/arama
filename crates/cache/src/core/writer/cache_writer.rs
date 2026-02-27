@@ -1,9 +1,9 @@
-use std::path::Path;
 use std::sync::Arc;
 
 use crate::CacheConfig;
 use crate::core::reader::cache_reader::CacheReader;
 use crate::core::store::cache_store::CacheStore;
+use crate::core::store::path::resolve_db_path;
 use crate::error::Result;
 
 /// 参照 + 更新の全権限を持つハンドル。
@@ -21,9 +21,22 @@ pub struct CacheWriter {
 }
 
 impl CacheWriter {
-    /// 指定パスの SQLite ファイルを開く (存在しない場合は新規作成)。
-    pub fn open(path: impl AsRef<Path>, config: CacheConfig) -> Result<Self> {
-        let inner = Arc::new(CacheStore::open(path.as_ref(), config)?);
+    /// デフォルト設定で DB を開く。
+    ///
+    /// DB パスは自動解決される (詳細は [`CacheConfig`] を参照)。
+    /// 設定を変えたい場合は [`open_with_config`] を使う。
+    ///
+    /// [`open_with_config`]: CacheWriter::open_with_config
+    pub fn open() -> Result<Self> {
+        Self::open_with_config(CacheConfig::default())
+    }
+
+    /// カスタム設定で DB を開く。
+    ///
+    /// DB パスは `config.db_path` → 環境変数 `arama_cache_DB` → XDG → フォールバックの順で解決する。
+    pub fn open_with_config(config: CacheConfig) -> Result<Self> {
+        let path = resolve_db_path(&config); // 【変更】引数追加
+        let inner = Arc::new(CacheStore::open(&path, config)?);
         Ok(Self {
             reader: CacheReader::new(inner),
         })

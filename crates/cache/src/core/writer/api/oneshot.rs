@@ -15,7 +15,7 @@
 //!
 //! [`CacheWriter`]: crate::CacheWriter
 
-use crate::core::writer::CacheWriter;
+use crate::core::writer::cache_writer::CacheWriter;
 use crate::error::Result;
 use crate::types::{UpsertImageRequest, UpsertVideoRequest};
 

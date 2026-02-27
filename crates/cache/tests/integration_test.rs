@@ -205,7 +205,7 @@ fn reader_can_lookup_but_not_write() {
         })
         .unwrap();
 
-    // reader は Arc<StoreInner> を共有 — 追加の DB 接続なし
+    // reader は Arc<CacheStore> を共有 — 追加の DB 接続なし
     let reader = writer.as_reader();
     assert!(matches!(
         reader.lookup_image(f.path_str()).unwrap(),
@@ -313,6 +313,7 @@ fn verify_or_invalidate_clears_changed_file() {
 #[test]
 fn hash_strategy_full_detects_change() {
     let writer = CacheWriter::open_in_memory_with_config(CacheConfig {
+        db_path: None,
         read_conns: None,
         hash_strategy: HashStrategy::Full,
     })
