@@ -6,7 +6,7 @@ pub enum CacheError {
     #[error("SQLite error: {0}")]
     Sqlite(#[from] rusqlite::Error),
 
-    #[error("amara-repr error: {0}")]
+    #[error("arama-repr error: {0}")]
     AramaRepr(#[from] ReprError),
 
     #[error("connection pool error: {0}")]

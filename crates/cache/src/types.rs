@@ -1,18 +1,14 @@
 // ---------------------------------------------------------------------------
-// キャッシュ登録・更新リクエスト
+// upsert リクエスト型
 // ---------------------------------------------------------------------------
 
+use r2d2_sqlite::SqliteConnectionManager;
+
 /// 画像ファイルのキャッシュ登録 / 更新リクエスト。
-///
-/// ファイル同一性確認 (hash / mtime) はキャッシュストアが内部で自動計算する。
-/// `thumbnail_path` / `clip_vector` は `None` を渡すと既存値を上書きしない (部分更新)。
 #[derive(Debug, Clone)]
 pub struct UpsertImageRequest {
-    /// キャッシュ対象ファイルのパス (一意キー かつ hash 計算の対象)
     pub file_path: String,
-    /// サムネイル画像のパス
     pub thumbnail_path: Option<String>,
-    /// CLIP 特徴量ベクトル
     pub clip_vector: Option<Vec<f32>>,
 }
 
@@ -21,14 +17,12 @@ pub struct UpsertImageRequest {
 pub struct UpsertVideoRequest {
     pub file_path: String,
     pub thumbnail_path: Option<String>,
-    /// フレーム画像群から算出した CLIP 特徴量
     pub clip_vector: Option<Vec<f32>>,
-    /// 音声データから算出した wav2vec2 特徴量
     pub wav2vec2_vector: Option<Vec<f32>>,
 }
 
 // ---------------------------------------------------------------------------
-// キャッシュ照会結果
+// 照会結果型
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone)]
@@ -42,7 +36,6 @@ pub struct VideoFeatures {
     pub wav2vec2_vector: Vec<f32>,
 }
 
-/// `lookup_image` の返り値
 #[derive(Debug, Clone)]
 pub struct ImageCacheEntry {
     pub file_path: String,
@@ -50,7 +43,6 @@ pub struct ImageCacheEntry {
     pub features: Option<ImageFeatures>,
 }
 
-/// `lookup_video` の返り値
 #[derive(Debug, Clone)]
 pub struct VideoCacheEntry {
     pub file_path: String,
@@ -58,7 +50,7 @@ pub struct VideoCacheEntry {
     pub features: Option<VideoFeatures>,
 }
 
-/// キャッシュ照会・変更確認の総合結果
+/// キャッシュ照会の結果
 #[derive(Debug)]
 pub enum LookupResult<T> {
     /// ファイルが一致し、キャッシュエントリが存在する
@@ -68,3 +60,10 @@ pub enum LookupResult<T> {
     /// DB にレコード自体が存在しない
     Miss,
 }
+
+// ---------------------------------------------------------------------------
+// 型エイリアス
+// ---------------------------------------------------------------------------
+
+pub(crate) type ReadConn = r2d2::PooledConnection<SqliteConnectionManager>;
+pub(crate) type WriteConn = r2d2::PooledConnection<SqliteConnectionManager>;

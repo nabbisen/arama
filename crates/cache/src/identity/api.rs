@@ -2,17 +2,17 @@ use std::path::Path;
 
 use super::{
     file_fingerprint::FileFingerprint,
-    hash_strategy::HashStrategy,
-    mode::{Mode, effective_mode},
-    util::{full_hash, partial_hash, read_mtime},
+    hash::{
+        full_hash,
+        hash_strategy::HashStrategy,
+        mode::{Mode, effective_mode},
+        partial_hash,
+    },
+    mtime::read_mtime,
 };
 
-// ---------------------------------------------------------------------------
-// 外部向け関数 (crate 内公開)
-// ---------------------------------------------------------------------------
-
 /// ファイルを読んでフィンガープリントを計算する (upsert 時に使用)。
-pub(crate) fn compute(path: &Path, strategy: &HashStrategy) -> std::io::Result<FileFingerprint> {
+pub fn compute(path: &Path, strategy: &HashStrategy) -> std::io::Result<FileFingerprint> {
     let meta = std::fs::metadata(path)?;
     let file_size = meta.len();
 
@@ -32,7 +32,7 @@ pub(crate) fn compute(path: &Path, strategy: &HashStrategy) -> std::io::Result<F
 ///
 /// - `stored_mtime` が Some かつ現在の mtime と一致する場合はハッシュ計算を省略して `true` を返す。
 /// - それ以外はハッシュを計算して比較する。
-pub(crate) fn matches_stored(
+pub fn matches_stored(
     stored_hash: &str,
     stored_mtime: Option<i64>,
     path: &Path,

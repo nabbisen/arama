@@ -1,8 +1,4 @@
-use crate::identity::hash_strategy::HashStrategy;
-
-// ---------------------------------------------------------------------------
-// 内部ユーティリティ
-// ---------------------------------------------------------------------------
+use super::hash_strategy::HashStrategy;
 
 pub enum Mode {
     Full,
