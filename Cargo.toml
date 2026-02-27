@@ -49,6 +49,7 @@ libc = "0.2"
 rayon = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = { version = "0.10", default-features = false }
 swdir = "0"
 thiserror = "2"
 tokio = { version = "1.49", default-features = false, features = ["fs", "sync"] }
@@ -68,3 +69,8 @@ pt2safetensors = "0"
 
 # cache
 rusqlite = { version = "0.38", default-features = false, features = ["bundled"] }
+r2d2 = "0.8"
+r2d2_sqlite = "0.32"
+
+# tests
+tempfile = "3"
