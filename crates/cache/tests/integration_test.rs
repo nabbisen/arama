@@ -1,12 +1,14 @@
 //! インテグレーションテスト。
 //!
-//! identity の計算はキャッシュストア内部で行われるため、
-//! テスト用の実ファイルを tempfile で作成して使う。
+//! 実ファイルを tempfile で作成して使う。
 
 use std::io::Write;
 use std::path::PathBuf;
 
-use arama_cache::{CacheStore, LookupResult, UpsertImageRequest, UpsertVideoRequest};
+use arama_cache::{
+    CacheConfig, CacheWriter, LookupResult, UpsertImageRequest, UpsertVideoRequest,
+    identity::hash::hash_strategy::HashStrategy,
+};
 
 // ---------------------------------------------------------------------------
 // テストヘルパー
@@ -20,7 +22,6 @@ impl TempFile {
     fn new(content: &[u8]) -> Self {
         let mut f = tempfile::NamedTempFile::new().unwrap();
         f.write_all(content).unwrap();
-        // keep パスを保持し tempfile は削除させない
         let path = f.path().to_path_buf();
         f.keep().unwrap();
         TempFile { path }
@@ -30,7 +31,6 @@ impl TempFile {
         self.path.to_str().unwrap()
     }
 
-    /// ファイルの内容を書き換えてタイムスタンプも変更する
     fn overwrite(&self, content: &[u8]) {
         let mut f = std::fs::OpenOptions::new()
             .write(true)
@@ -53,19 +53,20 @@ impl Drop for TempFile {
 
 #[test]
 fn image_miss_on_empty_db() {
-    let store = CacheStore::open_in_memory().unwrap();
+    let writer = CacheWriter::open_in_memory().unwrap();
     let f = TempFile::new(b"dummy image data");
-
-    let result = store.lookup_image(f.path_str()).unwrap();
-    assert!(matches!(result, LookupResult::Miss));
+    assert!(matches!(
+        writer.lookup_image(f.path_str()).unwrap(),
+        LookupResult::Miss
+    ));
 }
 
 #[test]
 fn image_hit_after_upsert() {
-    let store = CacheStore::open_in_memory().unwrap();
+    let writer = CacheWriter::open_in_memory().unwrap();
     let f = TempFile::new(b"image content");
 
-    store
+    writer
         .upsert_image(UpsertImageRequest {
             file_path: f.path_str().to_string(),
             thumbnail_path: Some("/cache/thumb.jpg".to_string()),
@@ -73,7 +74,7 @@ fn image_hit_after_upsert() {
         })
         .unwrap();
 
-    match store.lookup_image(f.path_str()).unwrap() {
+    match writer.lookup_image(f.path_str()).unwrap() {
         LookupResult::Hit(entry) => {
             assert_eq!(entry.thumbnail_path.unwrap(), "/cache/thumb.jpg");
             assert_eq!(entry.features.unwrap().clip_vector, vec![1.0f32, 2.0, 3.0]);
@@ -84,10 +85,10 @@ fn image_hit_after_upsert() {
 
 #[test]
 fn image_invalidated_when_content_changes() {
-    let store = CacheStore::open_in_memory().unwrap();
+    let writer = CacheWriter::open_in_memory().unwrap();
     let f = TempFile::new(b"original content");
 
-    store
+    writer
         .upsert_image(UpsertImageRequest {
             file_path: f.path_str().to_string(),
             thumbnail_path: Some("/thumb.jpg".to_string()),
@@ -95,24 +96,25 @@ fn image_invalidated_when_content_changes() {
         })
         .unwrap();
 
-    // ファイルを書き換え
     f.overwrite(b"completely different content!!");
 
-    let result = store.lookup_image(f.path_str()).unwrap();
-    assert!(matches!(result, LookupResult::Invalidated));
-
-    // 古いデータが消えていること
-    let result2 = store.lookup_image(f.path_str()).unwrap();
-    assert!(matches!(result2, LookupResult::Miss));
+    assert!(matches!(
+        writer.lookup_image(f.path_str()).unwrap(),
+        LookupResult::Invalidated
+    ));
+    // 削除後は Miss
+    assert!(matches!(
+        writer.lookup_image(f.path_str()).unwrap(),
+        LookupResult::Miss
+    ));
 }
 
 #[test]
 fn image_partial_upsert_preserves_existing() {
-    let store = CacheStore::open_in_memory().unwrap();
+    let writer = CacheWriter::open_in_memory().unwrap();
     let f = TempFile::new(b"some image");
 
-    // 初回: thumbnail だけ
-    store
+    writer
         .upsert_image(UpsertImageRequest {
             file_path: f.path_str().to_string(),
             thumbnail_path: Some("/thumb.jpg".to_string()),
@@ -120,8 +122,7 @@ fn image_partial_upsert_preserves_existing() {
         })
         .unwrap();
 
-    // 2 回目: clip_vector だけ追加
-    store
+    writer
         .upsert_image(UpsertImageRequest {
             file_path: f.path_str().to_string(),
             thumbnail_path: None,
@@ -129,7 +130,7 @@ fn image_partial_upsert_preserves_existing() {
         })
         .unwrap();
 
-    match store.lookup_image(f.path_str()).unwrap() {
+    match writer.lookup_image(f.path_str()).unwrap() {
         LookupResult::Hit(entry) => {
             assert_eq!(entry.thumbnail_path.unwrap(), "/thumb.jpg");
             assert_eq!(entry.features.unwrap().clip_vector, vec![9.0f32, 8.0]);
@@ -144,10 +145,10 @@ fn image_partial_upsert_preserves_existing() {
 
 #[test]
 fn video_hit_after_upsert() {
-    let store = CacheStore::open_in_memory().unwrap();
+    let writer = CacheWriter::open_in_memory().unwrap();
     let f = TempFile::new(b"fake video data");
 
-    store
+    writer
         .upsert_video(UpsertVideoRequest {
             file_path: f.path_str().to_string(),
             thumbnail_path: Some("/thumb/clip.jpg".to_string()),
@@ -156,7 +157,7 @@ fn video_hit_after_upsert() {
         })
         .unwrap();
 
-    match store.lookup_video(f.path_str()).unwrap() {
+    match writer.lookup_video(f.path_str()).unwrap() {
         LookupResult::Hit(entry) => {
             let feat = entry.features.unwrap();
             assert_eq!(feat.clip_vector, vec![1.0f32, 2.0]);
@@ -168,10 +169,10 @@ fn video_hit_after_upsert() {
 
 #[test]
 fn video_invalidated_when_content_changes() {
-    let store = CacheStore::open_in_memory().unwrap();
+    let writer = CacheWriter::open_in_memory().unwrap();
     let f = TempFile::new(b"original video");
 
-    store
+    writer
         .upsert_video(UpsertVideoRequest {
             file_path: f.path_str().to_string(),
             thumbnail_path: None,
@@ -183,8 +184,61 @@ fn video_invalidated_when_content_changes() {
     f.overwrite(b"modified video content that is different");
 
     assert!(matches!(
-        store.lookup_video(f.path_str()).unwrap(),
+        writer.lookup_video(f.path_str()).unwrap(),
         LookupResult::Invalidated
+    ));
+}
+
+// ---------------------------------------------------------------------------
+// 権限モデルのテスト
+// ---------------------------------------------------------------------------
+
+#[test]
+fn reader_can_lookup_but_not_write() {
+    let writer = CacheWriter::open_in_memory().unwrap();
+    let f = TempFile::new(b"shared data");
+
+    writer
+        .upsert_image(UpsertImageRequest {
+            file_path: f.path_str().to_string(),
+            thumbnail_path: Some("/t.jpg".to_string()),
+            clip_vector: Some(vec![1.0]),
+        })
+        .unwrap();
+
+    // reader は Arc<StoreInner> を共有 — 追加の DB 接続なし
+    let reader = writer.as_reader();
+    assert!(matches!(
+        reader.lookup_image(f.path_str()).unwrap(),
+        LookupResult::Hit(_)
+    ));
+    // reader に upsert / delete は生えていない (コンパイル時に保証)
+}
+
+#[test]
+fn reader_invalidates_on_change() {
+    let writer = CacheWriter::open_in_memory().unwrap();
+    let f = TempFile::new(b"data");
+
+    writer
+        .upsert_image(UpsertImageRequest {
+            file_path: f.path_str().to_string(),
+            thumbnail_path: None,
+            clip_vector: Some(vec![0.0]),
+        })
+        .unwrap();
+
+    let reader = writer.as_reader();
+    f.overwrite(b"changed data");
+
+    // CacheReader でも内部 DELETE が実行される
+    assert!(matches!(
+        reader.lookup_image(f.path_str()).unwrap(),
+        LookupResult::Invalidated
+    ));
+    assert!(matches!(
+        reader.lookup_image(f.path_str()).unwrap(),
+        LookupResult::Miss
     ));
 }
 
@@ -194,10 +248,10 @@ fn video_invalidated_when_content_changes() {
 
 #[test]
 fn delete_removes_entry() {
-    let store = CacheStore::open_in_memory().unwrap();
+    let writer = CacheWriter::open_in_memory().unwrap();
     let f = TempFile::new(b"data");
 
-    store
+    writer
         .upsert_image(UpsertImageRequest {
             file_path: f.path_str().to_string(),
             thumbnail_path: Some("/t.jpg".to_string()),
@@ -205,24 +259,23 @@ fn delete_removes_entry() {
         })
         .unwrap();
 
-    assert!(store.delete(f.path_str()).unwrap());
-    assert!(!store.delete(f.path_str()).unwrap()); // 2 回目は false
-
+    assert!(writer.delete(f.path_str()).unwrap());
+    assert!(!writer.delete(f.path_str()).unwrap());
     assert!(matches!(
-        store.lookup_image(f.path_str()).unwrap(),
+        writer.lookup_image(f.path_str()).unwrap(),
         LookupResult::Miss
     ));
 }
 
 #[test]
 fn list_paths_returns_all() {
-    let store = CacheStore::open_in_memory().unwrap();
+    let writer = CacheWriter::open_in_memory().unwrap();
     let files: Vec<_> = (0..3)
-        .map(|i| TempFile::new(format!("content{i}").as_bytes()))
+        .map(|i| TempFile::new(format!("c{i}").as_bytes()))
         .collect();
 
     for f in &files {
-        store
+        writer
             .upsert_image(UpsertImageRequest {
                 file_path: f.path_str().to_string(),
                 thumbnail_path: None,
@@ -231,16 +284,16 @@ fn list_paths_returns_all() {
             .unwrap();
     }
 
-    let paths = store.list_paths().unwrap();
-    assert_eq!(paths.len(), 3);
+    assert_eq!(writer.list_paths().unwrap().len(), 3);
+    assert_eq!(writer.as_reader().list_paths().unwrap().len(), 3);
 }
 
 #[test]
-fn verify_or_invalidate_returns_false_and_clears() {
-    let store = CacheStore::open_in_memory().unwrap();
+fn verify_or_invalidate_clears_changed_file() {
+    let writer = CacheWriter::open_in_memory().unwrap();
     let f = TempFile::new(b"original");
 
-    store
+    writer
         .upsert_image(UpsertImageRequest {
             file_path: f.path_str().to_string(),
             thumbnail_path: None,
@@ -250,8 +303,8 @@ fn verify_or_invalidate_returns_false_and_clears() {
 
     f.overwrite(b"changed!!");
 
-    assert!(!store.verify_or_invalidate(f.path_str()).unwrap());
-    assert!(store.list_paths().unwrap().is_empty());
+    assert!(!writer.verify_or_invalidate(f.path_str()).unwrap());
+    assert!(writer.list_paths().unwrap().is_empty());
 }
 
 // ---------------------------------------------------------------------------
@@ -259,11 +312,8 @@ fn verify_or_invalidate_returns_false_and_clears() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn hash_strategy_full_works() {
-    use arama_cache::identity::hash_strategy::HashStrategy;
-    use arama_cache::store::cashe_store_config::CacheStoreConfig;
-
-    let store = CacheStore::open_in_memory_with_config(CacheStoreConfig {
+fn hash_strategy_full_detects_change() {
+    let writer = CacheWriter::open_in_memory_with_config(CacheConfig {
         read_conns: None,
         hash_strategy: HashStrategy::Full,
     })
@@ -271,7 +321,7 @@ fn hash_strategy_full_works() {
 
     let f = TempFile::new(b"small file with full hash strategy");
 
-    store
+    writer
         .upsert_image(UpsertImageRequest {
             file_path: f.path_str().to_string(),
             thumbnail_path: None,
@@ -280,13 +330,13 @@ fn hash_strategy_full_works() {
         .unwrap();
 
     assert!(matches!(
-        store.lookup_image(f.path_str()).unwrap(),
+        writer.lookup_image(f.path_str()).unwrap(),
         LookupResult::Hit(_)
     ));
 
     f.overwrite(b"different content");
     assert!(matches!(
-        store.lookup_image(f.path_str()).unwrap(),
+        writer.lookup_image(f.path_str()).unwrap(),
         LookupResult::Invalidated
     ));
 }

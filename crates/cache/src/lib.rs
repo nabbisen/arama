@@ -2,34 +2,38 @@
 //!
 //! AI 推論アプリ向け SQLite キャッシュライブラリ。
 //!
-//! ファイル同一性確認 (ハッシュ計算・mtime チェック) はキャッシュストアが内部で担う。
-//! アプリ側は **ファイルパスだけ** を渡せばよい。
+//! ## 権限モデル
 //!
-//! ## 基本的な使い方
+//! | 型 | 公開 API | 生成方法 |
+//! |---|---|---|
+//! | [`CacheWriter`] | lookup + upsert + delete + verify | `CacheWriter::open` |
+//! | [`CacheReader`] | lookup のみ | `CacheWriter::as_reader()` |
+//!
+//! `CacheReader` は `CacheWriter` から生成する一方向の関係。逆方向への昇格はできない。
+//! lookup 中に変更が検出された場合の内部 DELETE は `CacheReader` でも許容する。
+//!
+//! ## 使い方
 //!
 //! ```rust,no_run
-//! use ai_cache::{CacheStore, UpsertImageRequest, LookupResult};
+//! use ai_cache::{CacheWriter, CacheReader, UpsertImageRequest, LookupResult};
+//! use rayon::prelude::*;
 //!
 //! # fn main() -> ai_cache::Result<()> {
-//! // デフォルト設定で開く (SizeAdaptive: 4MB 以上は部分ハッシュ + mtime)
-//! let store = CacheStore::open("cache.db", Default::default())?;
+//! let writer = CacheWriter::open("cache.db", Default::default())?;
+//! let reader = writer.as_reader(); // lookup のみの権限に落として配布
 //!
-//! // 登録 (hash / mtime はストアが自動計算)
-//! store.upsert_image(UpsertImageRequest {
+//! // 更新権限が必要な箇所には writer を渡す
+//! writer.upsert_image(UpsertImageRequest {
 //!     file_path:      "/data/photo.jpg".to_string(),
-//!     thumbnail_path: Some("/cache/thumb_photo.jpg".to_string()),
+//!     thumbnail_path: Some("/cache/thumb.jpg".to_string()),
 //!     clip_vector:    Some(vec![0.1, 0.2, 0.3]),
 //! })?;
 //!
-//! // 照会 (ファイルが変更されていれば自動で Invalidated)
-//! match store.lookup_image("/data/photo.jpg")? {
-//!     LookupResult::Hit(entry) => {
-//!         println!("thumbnail: {:?}", entry.thumbnail_path);
-//!         println!("clip dims: {}", entry.features.unwrap().clip_vector.len());
-//!     }
-//!     LookupResult::Invalidated => println!("file changed, cache cleared"),
-//!     LookupResult::Miss        => println!("not cached"),
-//! }
+//! // 参照のみの箇所には reader を clone して配布
+//! let paths = vec!["/data/photo.jpg", "/data/video.mp4"];
+//! let results: Vec<_> = paths.par_iter()
+//!     .map(|p| reader.clone().lookup_image(p))
+//!     .collect();
 //! # Ok(())
 //! # }
 //! ```
@@ -37,30 +41,36 @@
 //! ## ハッシュ戦略のカスタマイズ
 //!
 //! ```rust,no_run
-//! use ai_cache::{CacheStore, store::CacheStoreConfig, identity::HashStrategy};
+//! use ai_cache::{CacheWriter, CacheConfig, identity::HashStrategy};
 //!
 //! # fn main() -> ai_cache::Result<()> {
-//! let store = CacheStore::open("cache.db", CacheStoreConfig {
+//! let writer = CacheWriter::open("cache.db", CacheConfig {
 //!     read_conns:    Some(8),
 //!     hash_strategy: HashStrategy::SizeAdaptive {
-//!         threshold_bytes: 1 * 1024 * 1024, // 1 MB から部分ハッシュ
-//!         partial_bytes:   128 * 1024,       // 128 KB × 2
+//!         threshold_bytes: 1 * 1024 * 1024,
+//!         partial_bytes:   128 * 1024,
 //!     },
 //! })?;
 //! # Ok(())
 //! # }
 //! ```
 
+mod schema;
+pub(crate) mod store;
+
+pub mod config;
 pub mod error;
 pub mod identity;
-mod schema;
-pub mod store;
+pub mod reader;
 pub mod types;
+pub mod writer;
 
-// よく使う型を re-export
+// re-export
 pub use error::{Result, cache_error::CacheError};
-pub use store::{cache_store::CacheStore, cashe_store_config::CacheStoreConfig};
+pub use identity::hash::hash_strategy::HashStrategy;
+pub use reader::cache_reader::CacheReader;
 pub use types::{
     ImageCacheEntry, ImageFeatures, LookupResult, UpsertImageRequest, UpsertVideoRequest,
     VideoCacheEntry, VideoFeatures,
 };
+pub use writer::{CacheConfig, cache_writer::CacheWriter};

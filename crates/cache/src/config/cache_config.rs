@@ -1,19 +1,19 @@
+use crate::identity::hash::hash_strategy::HashStrategy;
+
 // ---------------------------------------------------------------------------
-// 設定型
+// CacheConfig
 // ---------------------------------------------------------------------------
 
-use crate::identity::hash_strategy::HashStrategy;
-
-/// `CacheStore::open` に渡す設定。
+/// [`CacheWriter::open`] に渡す設定。
 #[derive(Debug, Clone)]
-pub struct CacheStoreConfig {
-    /// 読み取りプールのコネクション数。`None` の場合は論理 CPU 数を使う。
+pub struct CacheConfig {
+    /// 読み取りプールのコネクション数。`None` で論理 CPU 数を使う。
     pub read_conns: Option<u32>,
     /// ファイル同一性確認の戦略。
     pub hash_strategy: HashStrategy,
 }
 
-impl Default for CacheStoreConfig {
+impl Default for CacheConfig {
     fn default() -> Self {
         Self {
             read_conns: None,
