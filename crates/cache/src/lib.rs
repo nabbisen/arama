@@ -5,14 +5,12 @@
 //! ## DB ファイルの場所
 //!
 //! DB パスはライブラリが以下の優先順位で自動解決する。
-//! アプリ側がパスを管理する必要はない。
 //!
-//! 1. 環境変数 `ARAMA_CACHE_DB` が設定されていればそのパス
-//! 2. `$XDG_CACHE_HOME/arama_cache/cache.db`
+//! 1. [`CacheConfig::db_path`] が `Some` ならそのパス  ← アプリが明示指定する主経路
+//! 2. 環境変数 `arama_cache_DB` が設定されていればそのパス
+//! 3. `$XDG_CACHE_HOME/arama_cache/cache.db`
 //!    (未設定時は `$HOME/.cache/arama_cache/cache.db`)
-//! 3. カレントディレクトリの `./arama_cache.db`
-//!
-//! 複数プロセスで同じ DB を共有したい場合は `ARAMA_CACHE_DB` で一元管理すること。
+//! 4. カレントディレクトリの `./arama_cache.db`
 //!
 //! ## API の選び方
 //!
@@ -99,7 +97,16 @@
 //! use arama_cache::{CacheWriter, CacheConfig, HashStrategy};
 //!
 //! # fn main() -> arama_cache::Result<()> {
+//! // アプリ側でパスを明示指定する場合 (unsafe な set_var 不要)
 //! let writer = CacheWriter::open_with_config(CacheConfig {
+//!     db_path:       Some("/var/cache/myapp/cache.db".into()),
+//!     read_conns:    None,
+//!     hash_strategy: HashStrategy::default(),
+//! })?;
+//!
+//! // ハッシュ戦略だけ変えてパスは自動解決に任せる場合
+//! let writer = CacheWriter::open_with_config(CacheConfig {
+//!     db_path:       None,
 //!     read_conns:    Some(8),
 //!     hash_strategy: HashStrategy::Full,
 //! })?;
@@ -113,9 +120,10 @@ pub mod error;
 pub mod types;
 
 // re-export
+pub use config::CacheConfig;
 pub use core::identity::hash::hash_strategy::HashStrategy;
 pub use core::reader::{self, cache_reader::CacheReader};
-pub use core::writer::{self, CacheConfig, CacheWriter};
+pub use core::writer::{self, cache_writer::CacheWriter};
 pub use error::{CacheError, Result};
 pub use types::{
     ImageCacheEntry, ImageFeatures, LookupResult, UpsertImageRequest, UpsertVideoRequest,
