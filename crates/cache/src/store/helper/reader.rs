@@ -1,8 +1,8 @@
 use arama_repr::codec::blob_to_vec;
 use rusqlite::OptionalExtension;
 
-use super::super::cache_store::CacheStore;
 use crate::error::Result;
+use crate::store::cache_store::CacheStore;
 use crate::types::{ImageFeatures, ReadConn, VideoFeatures};
 
 /// `files` テーブルから `(id, file_hash, mtime_ns)` を取得する。
