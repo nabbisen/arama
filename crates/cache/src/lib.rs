@@ -107,21 +107,17 @@
 //! # }
 //! ```
 
-mod schema;
-pub(crate) mod store;
-
 pub mod config;
+pub(crate) mod core;
 pub mod error;
-pub mod identity;
-pub mod reader;
 pub mod types;
-pub mod writer;
 
-pub use error::{Result, cache_error::CacheError};
-pub use identity::hash::hash_strategy::HashStrategy;
-pub use reader::cache_reader::CacheReader;
+// re-export
+pub use core::identity::hash::hash_strategy::HashStrategy;
+pub use core::reader::{self, cache_reader::CacheReader};
+pub use core::writer::{self, CacheConfig, CacheWriter};
+pub use error::{CacheError, Result};
 pub use types::{
     ImageCacheEntry, ImageFeatures, LookupResult, UpsertImageRequest, UpsertVideoRequest,
     VideoCacheEntry, VideoFeatures,
 };
-pub use writer::{CacheConfig, CacheWriter};

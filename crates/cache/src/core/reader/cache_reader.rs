@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::store::cache_store::CacheStore;
+use crate::core::store::cache_store::CacheStore;
 
 /// 参照専用ハンドル。[`CacheWriter::as_reader`] で生成する。
 ///

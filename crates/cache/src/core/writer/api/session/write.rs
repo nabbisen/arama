@@ -1,14 +1,14 @@
 use std::path::Path;
 
 use super::super::super::cache_writer::CacheWriter;
-use crate::error::{Result, cache_error::CacheError};
-use crate::identity::api::compute;
-use crate::reader::util::file_matches;
-use crate::store::helper::reader::db_fetch_file_row;
-use crate::store::helper::writer::{
+use crate::core::identity::api::compute;
+use crate::core::reader::util::file_matches;
+use crate::core::store::helper::reader::db_fetch_file_row;
+use crate::core::store::helper::writer::{
     db_delete_by_id, db_upsert_file, db_upsert_image_features, db_upsert_thumbnail,
     db_upsert_video_features,
 };
+use crate::error::{CacheError, Result};
 use crate::types::{UpsertImageRequest, UpsertVideoRequest};
 
 impl CacheWriter {

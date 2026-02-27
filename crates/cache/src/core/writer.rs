@@ -7,22 +7,22 @@ pub mod api;
 pub mod cache_writer;
 
 use crate::CacheReader;
-use crate::error::{Result, cache_error::CacheError};
-use crate::identity::api::compute;
-use crate::reader::util::file_matches;
-use crate::store::cache_store::CacheStore;
-use crate::store::helper::reader::db_fetch_file_row;
-use crate::store::helper::writer::{
+use crate::core::identity::api::compute;
+use crate::core::reader::util::file_matches;
+use crate::core::store::cache_store::CacheStore;
+use crate::core::store::helper::reader::db_fetch_file_row;
+use crate::core::store::helper::writer::{
     db_delete_by_id, db_upsert_file, db_upsert_image_features, db_upsert_thumbnail,
     db_upsert_video_features,
 };
-use crate::store::path::resolve_db_path;
+use crate::core::store::path::resolve_db_path;
+use crate::error::{CacheError, Result};
 use crate::types::{
     ImageCacheEntry, LookupResult, UpsertImageRequest, UpsertVideoRequest, VideoCacheEntry,
 };
 
 // CacheConfig は inner で定義し、ここから re-export する
-pub use crate::config::cache_config::CacheConfig;
+pub use crate::config::CacheConfig;
 
 // ---------------------------------------------------------------------------
 // CacheWriter

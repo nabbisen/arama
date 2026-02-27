@@ -15,9 +15,9 @@
 //!
 //! [`CacheReader`]: crate::CacheReader
 
+use crate::core::writer::CacheWriter;
 use crate::error::Result;
 use crate::types::{ImageCacheEntry, LookupResult, VideoCacheEntry};
-use crate::writer::CacheWriter;
 
 // ---------------------------------------------------------------------------
 // 参照

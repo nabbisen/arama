@@ -5,10 +5,10 @@ use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::OpenFlags;
 
 use crate::CacheError;
-use crate::config::cache_config::CacheConfig;
+use crate::config::CacheConfig;
+use crate::core::schema::initialize;
+use crate::core::store::util::num_cpus;
 use crate::error::Result;
-use crate::schema::initialize;
-use crate::store::util::num_cpus;
 use crate::types::{ReadConn, WriteConn};
 
 pub(crate) struct CacheStore {

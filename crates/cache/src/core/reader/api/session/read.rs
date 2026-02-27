@@ -1,11 +1,11 @@
 use std::path::Path;
 
 use super::super::super::{cache_reader::CacheReader, util::file_matches};
-use crate::error::Result;
-use crate::store::helper::reader::{
+use crate::core::store::helper::reader::{
     db_fetch_file_row, db_fetch_image_features, db_fetch_thumbnail, db_fetch_video_features,
 };
-use crate::store::helper::writer::db_delete_by_id;
+use crate::core::store::helper::writer::db_delete_by_id;
+use crate::error::Result;
 use crate::types::{ImageCacheEntry, LookupResult, VideoCacheEntry};
 
 impl CacheReader {
