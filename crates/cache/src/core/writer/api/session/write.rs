@@ -56,9 +56,14 @@ impl CacheWriter {
 
     /// ファイルパスに紐付くキャッシュを全て削除する。
     /// 戻り値: 対象レコードが存在した場合 `true`
-    pub fn delete(&self, file_path: &str) -> Result<bool> {
+    pub fn delete(&self, path: &Path) -> Result<bool> {
+        let path_str = path
+            .canonicalize()
+            .expect("failed to canonicalize path")
+            .to_string_lossy()
+            .to_string();
         let conn = self.store().write()?;
-        let n = conn.execute("DELETE FROM files WHERE file_path = ?1", [file_path])?;
+        let n = conn.execute("DELETE FROM files WHERE file_path = ?1", [path_str])?;
         Ok(n > 0)
     }
 
@@ -66,9 +71,14 @@ impl CacheWriter {
     /// 変更なし (またはレコード未存在) の場合は `true` を返す。
     ///
     /// 大量ファイルの一括検証など、キャッシュ保守スキャンに使う。
-    pub fn verify_or_invalidate(&self, file_path: &str) -> Result<bool> {
-        let path = Path::new(file_path);
-        match db_fetch_file_row(self.store(), file_path)? {
+    pub fn verify_or_invalidate(&self, path: &Path) -> Result<bool> {
+        let path_str = path
+            .canonicalize()
+            .expect("failed to canonicalize path")
+            .to_string_lossy()
+            .to_string();
+
+        match db_fetch_file_row(self.store(), &path_str)? {
             None => Ok(true),
             Some((file_id, stored_hash, stored_mtime)) => {
                 if file_matches(self.store(), &stored_hash, stored_mtime, path)? {

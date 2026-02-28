@@ -56,7 +56,7 @@ fn image_miss_on_empty_db() {
     let writer = CacheWriter::open_in_memory().unwrap();
     let f = TempFile::new(b"dummy image data");
     assert!(matches!(
-        writer.lookup_image(f.path_str()).unwrap(),
+        writer.lookup_image(&f.path).unwrap(),
         LookupResult::Miss
     ));
 }
@@ -74,7 +74,7 @@ fn image_hit_after_upsert() {
         })
         .unwrap();
 
-    match writer.lookup_image(f.path_str()).unwrap() {
+    match writer.lookup_image(&f.path).unwrap() {
         LookupResult::Hit(entry) => {
             assert_eq!(entry.thumbnail_path.unwrap(), "/cache/thumb.jpg");
             assert_eq!(entry.features.unwrap().clip_vector, vec![1.0f32, 2.0, 3.0]);
@@ -99,12 +99,12 @@ fn image_invalidated_when_content_changes() {
     f.overwrite(b"completely different content!!");
 
     assert!(matches!(
-        writer.lookup_image(f.path_str()).unwrap(),
+        writer.lookup_image(&f.path).unwrap(),
         LookupResult::Invalidated
     ));
     // 削除後は Miss
     assert!(matches!(
-        writer.lookup_image(f.path_str()).unwrap(),
+        writer.lookup_image(&f.path).unwrap(),
         LookupResult::Miss
     ));
 }
@@ -130,7 +130,7 @@ fn image_partial_upsert_preserves_existing() {
         })
         .unwrap();
 
-    match writer.lookup_image(f.path_str()).unwrap() {
+    match writer.lookup_image(&f.path).unwrap() {
         LookupResult::Hit(entry) => {
             assert_eq!(entry.thumbnail_path.unwrap(), "/thumb.jpg");
             assert_eq!(entry.features.unwrap().clip_vector, vec![9.0f32, 8.0]);
@@ -157,7 +157,7 @@ fn video_hit_after_upsert() {
         })
         .unwrap();
 
-    match writer.lookup_video(f.path_str()).unwrap() {
+    match writer.lookup_video(&f.path).unwrap() {
         LookupResult::Hit(entry) => {
             let feat = entry.features.unwrap();
             assert_eq!(feat.clip_vector, vec![1.0f32, 2.0]);
@@ -184,7 +184,7 @@ fn video_invalidated_when_content_changes() {
     f.overwrite(b"modified video content that is different");
 
     assert!(matches!(
-        writer.lookup_video(f.path_str()).unwrap(),
+        writer.lookup_video(&f.path).unwrap(),
         LookupResult::Invalidated
     ));
 }
@@ -209,7 +209,7 @@ fn reader_can_lookup_but_not_write() {
     // reader は Arc<CacheStore> を共有 — 追加の DB 接続なし
     let reader = writer.as_reader();
     assert!(matches!(
-        reader.lookup_image(f.path_str()).unwrap(),
+        reader.lookup_image(&f.path).unwrap(),
         LookupResult::Hit(_)
     ));
     // reader に upsert / delete は生えていない (コンパイル時に保証)
@@ -233,11 +233,11 @@ fn reader_invalidates_on_change() {
 
     // CacheReader でも内部 DELETE が実行される
     assert!(matches!(
-        reader.lookup_image(f.path_str()).unwrap(),
+        reader.lookup_image(&f.path).unwrap(),
         LookupResult::Invalidated
     ));
     assert!(matches!(
-        reader.lookup_image(f.path_str()).unwrap(),
+        reader.lookup_image(&f.path).unwrap(),
         LookupResult::Miss
     ));
 }
@@ -259,10 +259,10 @@ fn delete_removes_entry() {
         })
         .unwrap();
 
-    assert!(writer.delete(f.path_str()).unwrap());
-    assert!(!writer.delete(f.path_str()).unwrap());
+    assert!(writer.delete(&f.path).unwrap());
+    assert!(!writer.delete(&f.path).unwrap());
     assert!(matches!(
-        writer.lookup_image(f.path_str()).unwrap(),
+        writer.lookup_image(&f.path).unwrap(),
         LookupResult::Miss
     ));
 }
@@ -303,7 +303,7 @@ fn verify_or_invalidate_clears_changed_file() {
 
     f.overwrite(b"changed!!");
 
-    assert!(!writer.verify_or_invalidate(f.path_str()).unwrap());
+    assert!(!writer.verify_or_invalidate(&f.path).unwrap());
     assert!(writer.list_paths().unwrap().is_empty());
 }
 
@@ -331,13 +331,13 @@ fn hash_strategy_full_detects_change() {
         .unwrap();
 
     assert!(matches!(
-        writer.lookup_image(f.path_str()).unwrap(),
+        writer.lookup_image(&f.path).unwrap(),
         LookupResult::Hit(_)
     ));
 
     f.overwrite(b"different content");
     assert!(matches!(
-        writer.lookup_image(f.path_str()).unwrap(),
+        writer.lookup_image(&f.path).unwrap(),
         LookupResult::Invalidated
     ));
 }
@@ -371,7 +371,7 @@ fn convenience_upsert_and_lookup() {
     })
     .unwrap();
 
-    match arama_cache::reader::api::oneshot::lookup_image(f.path_str()).unwrap() {
+    match arama_cache::reader::api::oneshot::lookup_image(&f.path).unwrap() {
         LookupResult::Hit(entry) => {
             assert_eq!(entry.thumbnail_path.unwrap(), "/t.jpg");
             assert_eq!(entry.features.unwrap().clip_vector, vec![7.0f32, 8.0]);
@@ -405,9 +405,9 @@ fn convenience_delete() {
     })
     .unwrap();
 
-    assert!(arama_cache::writer::api::oneshot::delete(f.path_str()).unwrap());
+    assert!(arama_cache::writer::api::oneshot::delete(&f.path).unwrap());
     assert!(matches!(
-        arama_cache::reader::api::oneshot::lookup_image(f.path_str()).unwrap(),
+        arama_cache::reader::api::oneshot::lookup_image(&f.path).unwrap(),
         LookupResult::Miss
     ));
 

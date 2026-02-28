@@ -13,16 +13,17 @@ impl CacheReader {
     ///
     /// ファイルを読み取り DB の識別情報と比較する。
     /// 変更が検出された場合は古いレコードを内部で削除し `Invalidated` を返す。
-    pub fn lookup_image(&self, file_path: &str) -> Result<LookupResult<ImageCacheEntry>> {
-        let path = Path::new(file_path);
+    pub fn lookup_image(&self, path: &Path) -> Result<LookupResult<ImageCacheEntry>> {
+        let path = path.canonicalize().expect("failed to canonicalize path");
+        let path_str = path.to_string_lossy().to_string();
 
-        let (file_id, stored_hash, stored_mtime) = match db_fetch_file_row(&self.store, file_path)?
+        let (file_id, stored_hash, stored_mtime) = match db_fetch_file_row(&self.store, &path_str)?
         {
             None => return Ok(LookupResult::Miss),
             Some(r) => r,
         };
 
-        if !file_matches(&self.store, &stored_hash, stored_mtime, path)? {
+        if !file_matches(&self.store, &stored_hash, stored_mtime, &path)? {
             db_delete_by_id(&self.store, file_id)?;
             return Ok(LookupResult::Invalidated);
         }
@@ -32,23 +33,24 @@ impl CacheReader {
         let features = db_fetch_image_features(&conn, file_id)?;
 
         Ok(LookupResult::Hit(ImageCacheEntry {
-            file_path: file_path.to_owned(),
+            file_path: path_str,
             thumbnail_path,
             features,
         }))
     }
 
     /// 動画ファイルのキャッシュを照会する。挙動は `lookup_image` と同様。
-    pub fn lookup_video(&self, file_path: &str) -> Result<LookupResult<VideoCacheEntry>> {
-        let path = Path::new(file_path);
+    pub fn lookup_video(&self, path: &Path) -> Result<LookupResult<VideoCacheEntry>> {
+        let path = path.canonicalize().expect("failed to canonicalize path");
+        let path_str = path.to_string_lossy().to_string();
 
-        let (file_id, stored_hash, stored_mtime) = match db_fetch_file_row(&self.store, file_path)?
+        let (file_id, stored_hash, stored_mtime) = match db_fetch_file_row(&self.store, &path_str)?
         {
             None => return Ok(LookupResult::Miss),
             Some(r) => r,
         };
 
-        if !file_matches(&self.store, &stored_hash, stored_mtime, path)? {
+        if !file_matches(&self.store, &stored_hash, stored_mtime, &path)? {
             db_delete_by_id(&self.store, file_id)?;
             return Ok(LookupResult::Invalidated);
         }
@@ -58,7 +60,7 @@ impl CacheReader {
         let features = db_fetch_video_features(&conn, file_id)?;
 
         Ok(LookupResult::Hit(VideoCacheEntry {
-            file_path: file_path.to_owned(),
+            file_path: path_str,
             thumbnail_path,
             features,
         }))
