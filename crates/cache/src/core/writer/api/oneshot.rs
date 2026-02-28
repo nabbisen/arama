@@ -1,38 +1,20 @@
-//! 単発呼び出し用の convenience API。
+//! 単発更新 API。
 //!
-//! `CacheWriter` を都度生成して操作する薄いラッパー。
-//! 呼び出しのたびにコネクションプールを開閉するため、
-//! **rayon 並行処理やホットパスには使わないこと**。
-//! そのような用途では [`CacheWriter`] を `Clone` して使い回す
-//! primary API を選択すること。
+//! 呼び出しのたびに DB を開いて操作して閉じる薄いラッパー。
+//! 繰り返し呼び出しや rayon 並列処理には [`session::CacheWriter`] を使うこと。
 //!
-//! # 使い分けの目安
-//!
-//! | 用途 | 推奨 API |
-//! |---|---|
-//! | 単発スクリプト・初期化処理 | convenience API (本モジュール) |
-//! | rayon 並列処理・繰り返し呼び出し | [`CacheWriter`] |
-//!
-//! [`CacheWriter`]: crate::CacheWriter
+//! [`session::CacheWriter`]: super::session::CacheWriter
 
 use crate::core::writer::cache_writer::CacheWriter;
 use crate::error::Result;
 use crate::types::{UpsertImageRequest, UpsertVideoRequest};
 
-// ---------------------------------------------------------------------------
-// 更新
-// ---------------------------------------------------------------------------
-
 /// 画像ファイルのキャッシュを単発で登録 / 更新する。
-///
-/// 繰り返し呼ぶ場合は [`CacheWriter::upsert_image`] を使うこと。
 pub fn upsert_image(req: UpsertImageRequest) -> Result<()> {
     CacheWriter::open()?.upsert_image(req)
 }
 
 /// 動画ファイルのキャッシュを単発で登録 / 更新する。
-///
-/// 繰り返し呼ぶ場合は [`CacheWriter::upsert_video`] を使うこと。
 pub fn upsert_video(req: UpsertVideoRequest) -> Result<()> {
     CacheWriter::open()?.upsert_video(req)
 }

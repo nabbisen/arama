@@ -24,18 +24,11 @@ use crate::types::{ImageCacheEntry, LookupResult, VideoCacheEntry};
 // ---------------------------------------------------------------------------
 
 /// 画像ファイルのキャッシュを単発で照会する。
-///
-/// DB パスは [`resolve_db_path`] で自動解決される。
-/// 繰り返し呼ぶ場合は [`CacheWriter::lookup_image`] を使うこと。
-///
-/// [`resolve_db_path`]: crate::inner::resolve_db_path
 pub fn lookup_image(file_path: &str) -> Result<LookupResult<ImageCacheEntry>> {
     CacheWriter::open()?.lookup_image(file_path)
 }
 
 /// 動画ファイルのキャッシュを単発で照会する。
-///
-/// 繰り返し呼ぶ場合は [`CacheWriter::lookup_video`] を使うこと。
 pub fn lookup_video(file_path: &str) -> Result<LookupResult<VideoCacheEntry>> {
     CacheWriter::open()?.lookup_video(file_path)
 }

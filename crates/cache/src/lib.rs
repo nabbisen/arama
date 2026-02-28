@@ -4,28 +4,27 @@
 //!
 //! ## DB ファイルの場所
 //!
-//! DB パスはライブラリが以下の優先順位で自動解決する。
+//! [`DbLocation`] で DB の置き場所を指定する。デフォルトは `./arama_cache.db`。
 //!
-//! 1. [`CacheConfig::db_path`] が `Some` ならそのパス  ← アプリが明示指定する主経路
-//! 2. 環境変数 `arama_cache_DB` が設定されていればそのパス
-//! 3. `$XDG_CACHE_HOME/arama_cache/cache.db`
-//!    (未設定時は `$HOME/.cache/arama_cache/cache.db`)
-//! 4. カレントディレクトリの `./arama_cache.db`
+//! | バリアント | パス例 | 用途 |
+//! |---|---|---|
+//! | `DbLocation::Custom(path)` | 任意のパス | アプリが完全に制御したい場合 |
+//! | `DbLocation::AppCache(..)` | `~/.cache/<実行バイナリ名>/cache.db` | XDG を明示的に使いたい場合 |
+//! | `DbLocation::WorkDir(..)` (デフォルト) | `./arama_cache.db` | 手軽に始める場合 |
 //!
 //! ## API の選び方
 //!
 //! | 用途 | API |
 //! |---|---|
-//! | rayon 並列処理・繰り返し呼び出し | [`CacheWriter`] / [`CacheReader`] (primary) |
-//! | 単発スクリプト・初期化処理 | [`convenience`] モジュールの free function |
+//! | rayon 並列処理・繰り返し呼び出し | [`reader::session`] / [`writer::session`] (primary) |
+//! | 単発処理・初期化・スクリプト | [`reader::oneshot`] / [`writer::oneshot`] |
 //!
-//! ## 基本的な使い方 — Primary API
+//! ## 基本的な使い方 — Session API
 //!
 //! ```rust,no_run
 //! use arama_cache::{CacheWriter, UpsertImageRequest, LookupResult};
 //!
 //! # fn main() -> arama_cache::Result<()> {
-//! // DB パスは自動解決。ほとんどの用途はこれで十分。
 //! let writer = CacheWriter::open()?;
 //!
 //! writer.upsert_image(UpsertImageRequest {
@@ -54,8 +53,6 @@
 //!
 //! # fn main() -> arama_cache::Result<()> {
 //! let writer = CacheWriter::open()?;
-//!
-//! // lookup しか必要ない箇所には権限を落とした CacheReader を配布する
 //! let reader: CacheReader = writer.as_reader();
 //!
 //! let paths = vec!["/data/a.jpg", "/data/b.jpg", "/data/c.mp4"];
@@ -67,23 +64,22 @@
 //! # }
 //! ```
 //!
-//! ## Convenience API — 単発呼び出し
+//! ## 単発呼び出し — Oneshot API
 //!
 //! `&self` なしで呼べる free function。
 //! 呼び出しのたびに DB を開き直すため、ループや並列処理には使わないこと。
 //!
 //! ```rust,no_run
-//! use arama_cache::{convenience, UpsertImageRequest, LookupResult};
+//! use arama_cache::{reader, writer, UpsertImageRequest, LookupResult};
 //!
 //! # fn main() -> arama_cache::Result<()> {
-//! // 初期化処理やスクリプト的な単発処理に
-//! convenience::upsert_image(UpsertImageRequest {
+//! writer::oneshot::upsert_image(UpsertImageRequest {
 //!     file_path:      "/data/photo.jpg".to_string(),
 //!     thumbnail_path: None,
 //!     clip_vector:    Some(vec![0.1, 0.2, 0.3]),
 //! })?;
 //!
-//! match convenience::lookup_image("/data/photo.jpg")? {
+//! match reader::oneshot::lookup_image("/data/photo.jpg")? {
 //!     LookupResult::Hit(entry) => println!("hit"),
 //!     LookupResult::Invalidated | LookupResult::Miss => println!("no cache"),
 //! }
@@ -94,21 +90,12 @@
 //! ## カスタム設定
 //!
 //! ```rust,no_run
-//! use arama_cache::{CacheWriter, CacheConfig, HashStrategy};
+//! use arama_cache::{CacheWriter, CacheConfig, DbLocation};
 //!
 //! # fn main() -> arama_cache::Result<()> {
-//! // アプリ側でパスを明示指定する場合 (unsafe な set_var 不要)
 //! let writer = CacheWriter::open_with_config(CacheConfig {
-//!     db_path:       Some("/var/cache/myapp/cache.db".into()),
-//!     read_conns:    None,
-//!     hash_strategy: HashStrategy::default(),
-//! })?;
-//!
-//! // ハッシュ戦略だけ変えてパスは自動解決に任せる場合
-//! let writer = CacheWriter::open_with_config(CacheConfig {
-//!     db_path:       None,
-//!     read_conns:    Some(8),
-//!     hash_strategy: HashStrategy::Full,
+//!     db_location: DbLocation::Custom("/var/myapp/cache.db".into()),
+//!     ..Default::default()
 //! })?;
 //! # Ok(())
 //! # }
@@ -120,7 +107,7 @@ pub mod error;
 pub mod types;
 
 // re-export
-pub use config::CacheConfig;
+pub use config::cache_config::CacheConfig;
 pub use core::identity::hash::hash_strategy::HashStrategy;
 pub use core::reader::{self, cache_reader::CacheReader};
 pub use core::writer::{self, cache_writer::CacheWriter};

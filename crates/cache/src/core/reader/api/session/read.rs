@@ -16,18 +16,18 @@ impl CacheReader {
     pub fn lookup_image(&self, file_path: &str) -> Result<LookupResult<ImageCacheEntry>> {
         let path = Path::new(file_path);
 
-        let (file_id, stored_hash, stored_mtime) = match db_fetch_file_row(&self.inner, file_path)?
+        let (file_id, stored_hash, stored_mtime) = match db_fetch_file_row(&self.store, file_path)?
         {
             None => return Ok(LookupResult::Miss),
             Some(r) => r,
         };
 
-        if !file_matches(&self.inner, &stored_hash, stored_mtime, path)? {
-            db_delete_by_id(&self.inner, file_id)?;
+        if !file_matches(&self.store, &stored_hash, stored_mtime, path)? {
+            db_delete_by_id(&self.store, file_id)?;
             return Ok(LookupResult::Invalidated);
         }
 
-        let conn = self.inner.read()?;
+        let conn = self.store.read()?;
         let thumbnail_path = db_fetch_thumbnail(&conn, file_id)?;
         let features = db_fetch_image_features(&conn, file_id)?;
 
@@ -42,18 +42,18 @@ impl CacheReader {
     pub fn lookup_video(&self, file_path: &str) -> Result<LookupResult<VideoCacheEntry>> {
         let path = Path::new(file_path);
 
-        let (file_id, stored_hash, stored_mtime) = match db_fetch_file_row(&self.inner, file_path)?
+        let (file_id, stored_hash, stored_mtime) = match db_fetch_file_row(&self.store, file_path)?
         {
             None => return Ok(LookupResult::Miss),
             Some(r) => r,
         };
 
-        if !file_matches(&self.inner, &stored_hash, stored_mtime, path)? {
-            db_delete_by_id(&self.inner, file_id)?;
+        if !file_matches(&self.store, &stored_hash, stored_mtime, path)? {
+            db_delete_by_id(&self.store, file_id)?;
             return Ok(LookupResult::Invalidated);
         }
 
-        let conn = self.inner.read()?;
+        let conn = self.store.read()?;
         let thumbnail_path = db_fetch_thumbnail(&conn, file_id)?;
         let features = db_fetch_video_features(&conn, file_id)?;
 
@@ -66,7 +66,7 @@ impl CacheReader {
 
     /// 登録済みファイルパスの一覧を返す。
     pub fn list_paths(&self) -> Result<Vec<String>> {
-        let conn = self.inner.read()?;
+        let conn = self.store.read()?;
         let mut stmt = conn.prepare("SELECT file_path FROM files ORDER BY file_path")?;
         let paths = stmt
             .query_map([], |r| r.get::<_, String>(0))?
