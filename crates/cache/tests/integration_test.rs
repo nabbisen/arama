@@ -7,6 +7,7 @@ use std::path::PathBuf;
 
 use arama_cache::{
     CacheConfig, CacheWriter, HashStrategy, LookupResult, UpsertImageRequest, UpsertVideoRequest,
+    config::db_location::DbLocation,
 };
 
 // ---------------------------------------------------------------------------
@@ -313,7 +314,7 @@ fn verify_or_invalidate_clears_changed_file() {
 #[test]
 fn hash_strategy_full_detects_change() {
     let writer = CacheWriter::open_in_memory_with_config(CacheConfig {
-        db_path: None,
+        db_location: DbLocation::WorkDir(None),
         read_conns: None,
         hash_strategy: HashStrategy::Full,
     })
@@ -343,21 +344,22 @@ fn hash_strategy_full_detects_change() {
 
 // ---------------------------------------------------------------------------
 // oneshot API のテスト
-// (実際の DB ファイルを使うため tempfile で ARAMA_CACHE_DB を差し替える)
+// (実際の DB ファイルを使うため tempfile で arama_cache_DB を差し替える)
 // ---------------------------------------------------------------------------
 
 #[test]
-fn oneshot_upsert_and_lookup() {
+fn convenience_upsert_and_lookup() {
     let db = tempfile::NamedTempFile::new().unwrap();
     let db_path = db.path().to_str().unwrap().to_string();
     // keep して削除されないようにする
     let (_, db_path_buf) = db.keep().unwrap();
 
-    // ARAMA_CACHE_DB 環境変数でパスを差し替え
+    // arama_cache_DB 環境変数でパスを差し替え
     // 注意: テスト並列実行時に他テストの env に干渉しないよう
     //       serial に近い運用が望ましいが、ここでは tempfile 名が一意なので衝突しない
+    // SAFETY: シングルスレッド起動直後のテスト内での設定
     unsafe {
-        std::env::set_var("ARAMA_CACHE_DB", &db_path);
+        std::env::set_var("arama_cache_DB", &db_path);
     }
 
     let f = TempFile::new(b"oneshot test image");
@@ -379,18 +381,19 @@ fn oneshot_upsert_and_lookup() {
 
     // 後片付け
     unsafe {
-        std::env::remove_var("ARAMA_CACHE_DB");
+        std::env::remove_var("arama_cache_DB");
     }
     let _ = std::fs::remove_file(&db_path_buf);
 }
 
 #[test]
-fn oneshot_delete() {
+fn convenience_delete() {
     let db = tempfile::NamedTempFile::new().unwrap();
     let db_path = db.path().to_str().unwrap().to_string();
     let (_, db_path_buf) = db.keep().unwrap();
+    // SAFETY: シングルスレッド起動直後のテスト内での設定
     unsafe {
-        std::env::set_var("ARAMA_CACHE_DB", &db_path);
+        std::env::set_var("arama_cache_DB", &db_path);
     }
 
     let f = TempFile::new(b"delete test");
@@ -409,7 +412,7 @@ fn oneshot_delete() {
     ));
 
     unsafe {
-        std::env::remove_var("ARAMA_CACHE_DB");
+        std::env::remove_var("arama_cache_DB");
     }
     let _ = std::fs::remove_file(&db_path_buf);
 }

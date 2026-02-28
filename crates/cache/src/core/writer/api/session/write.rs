@@ -18,10 +18,10 @@ impl CacheWriter {
     /// `thumbnail_path` / `clip_vector` が `None` の場合、既存の値を上書きしない (部分更新)。
     pub fn upsert_image(&self, req: UpsertImageRequest) -> Result<()> {
         let path = Path::new(&req.file_path);
-        let fp = compute(path, &self.inner().config.hash_strategy)
+        let fp = compute(path, &self.store().config.hash_strategy)
             .map_err(|e| CacheError::io(path, e))?;
 
-        let conn = self.inner().write()?;
+        let conn = self.store().write()?;
         let file_id = db_upsert_file(&conn, &req.file_path, &fp.hash, fp.mtime_ns)?;
 
         if let Some(ref p) = req.thumbnail_path {
@@ -36,10 +36,10 @@ impl CacheWriter {
     /// 動画ファイルのキャッシュを登録 / 更新する。
     pub fn upsert_video(&self, req: UpsertVideoRequest) -> Result<()> {
         let path = Path::new(&req.file_path);
-        let fp = compute(path, &self.inner().config.hash_strategy)
+        let fp = compute(path, &self.store().config.hash_strategy)
             .map_err(|e| CacheError::io(path, e))?;
 
-        let conn = self.inner().write()?;
+        let conn = self.store().write()?;
         let file_id = db_upsert_file(&conn, &req.file_path, &fp.hash, fp.mtime_ns)?;
 
         if let Some(ref p) = req.thumbnail_path {
@@ -57,7 +57,7 @@ impl CacheWriter {
     /// ファイルパスに紐付くキャッシュを全て削除する。
     /// 戻り値: 対象レコードが存在した場合 `true`
     pub fn delete(&self, file_path: &str) -> Result<bool> {
-        let conn = self.inner().write()?;
+        let conn = self.store().write()?;
         let n = conn.execute("DELETE FROM files WHERE file_path = ?1", [file_path])?;
         Ok(n > 0)
     }
@@ -68,13 +68,13 @@ impl CacheWriter {
     /// 大量ファイルの一括検証など、キャッシュ保守スキャンに使う。
     pub fn verify_or_invalidate(&self, file_path: &str) -> Result<bool> {
         let path = Path::new(file_path);
-        match db_fetch_file_row(self.inner(), file_path)? {
+        match db_fetch_file_row(self.store(), file_path)? {
             None => Ok(true),
             Some((file_id, stored_hash, stored_mtime)) => {
-                if file_matches(self.inner(), &stored_hash, stored_mtime, path)? {
+                if file_matches(self.store(), &stored_hash, stored_mtime, path)? {
                     Ok(true)
                 } else {
-                    db_delete_by_id(self.inner(), file_id)?;
+                    db_delete_by_id(self.store(), file_id)?;
                     Ok(false)
                 }
             }

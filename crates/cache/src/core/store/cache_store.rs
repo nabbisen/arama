@@ -5,7 +5,7 @@ use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::OpenFlags;
 
 use crate::CacheError;
-use crate::config::CacheConfig;
+use crate::config::cache_config::CacheConfig;
 use crate::core::schema::initialize;
 use crate::core::store::util::num_cpus;
 use crate::error::Result;
