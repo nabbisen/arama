@@ -15,6 +15,8 @@
 //!
 //! [`CacheReader`]: crate::CacheReader
 
+use std::path::Path;
+
 use crate::core::writer::cache_writer::CacheWriter;
 use crate::error::Result;
 use crate::types::{ImageCacheEntry, LookupResult, VideoCacheEntry};
@@ -24,13 +26,13 @@ use crate::types::{ImageCacheEntry, LookupResult, VideoCacheEntry};
 // ---------------------------------------------------------------------------
 
 /// 画像ファイルのキャッシュを単発で照会する。
-pub fn lookup_image(file_path: &str) -> Result<LookupResult<ImageCacheEntry>> {
-    CacheWriter::open()?.lookup_image(file_path)
+pub fn lookup_image(path: &Path) -> Result<LookupResult<ImageCacheEntry>> {
+    CacheWriter::open()?.lookup_image(path)
 }
 
 /// 動画ファイルのキャッシュを単発で照会する。
-pub fn lookup_video(file_path: &str) -> Result<LookupResult<VideoCacheEntry>> {
-    CacheWriter::open()?.lookup_video(file_path)
+pub fn lookup_video(path: &Path) -> Result<LookupResult<VideoCacheEntry>> {
+    CacheWriter::open()?.lookup_video(path)
 }
 
 /// 登録済みファイルパスの一覧を単発で取得する。

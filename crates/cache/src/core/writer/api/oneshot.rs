@@ -5,6 +5,8 @@
 //!
 //! [`session::CacheWriter`]: super::session::CacheWriter
 
+use std::path::Path;
+
 use crate::core::writer::cache_writer::CacheWriter;
 use crate::error::Result;
 use crate::types::{UpsertImageRequest, UpsertVideoRequest};
@@ -20,11 +22,11 @@ pub fn upsert_video(req: UpsertVideoRequest) -> Result<()> {
 }
 
 /// ファイルパスに紐付くキャッシュを単発で削除する。
-pub fn delete(file_path: &str) -> Result<bool> {
-    CacheWriter::open()?.delete(file_path)
+pub fn delete(path: &Path) -> Result<bool> {
+    CacheWriter::open()?.delete(path)
 }
 
 /// ファイルの現在の状態を確認し、変更されていれば DB から削除して `false` を返す。
-pub fn verify_or_invalidate(file_path: &str) -> Result<bool> {
-    CacheWriter::open()?.verify_or_invalidate(file_path)
+pub fn verify_or_invalidate(path: &Path) -> Result<bool> {
+    CacheWriter::open()?.verify_or_invalidate(path)
 }
