@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use super::super::super::{cache_reader::CacheReader, util::file_matches};
+use super::super::{cache_reader::CacheReader, util::file_matches};
 use crate::core::store::helper::reader::{
     db_fetch_file_row, db_fetch_image_features, db_fetch_thumbnail, db_fetch_video_features,
 };
