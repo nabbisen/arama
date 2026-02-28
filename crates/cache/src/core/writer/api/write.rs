@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use super::super::super::cache_writer::CacheWriter;
+use super::super::cache_writer::CacheWriter;
 use crate::core::identity::api::compute;
 use crate::core::reader::util::file_matches;
 use crate::core::store::helper::reader::db_fetch_file_row;
