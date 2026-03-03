@@ -1,6 +1,6 @@
 use crate::error::ReprError;
 
-pub fn vec_to_blob(vec: Vec<f32>) -> Vec<u8> {
+pub fn vec_to_blob(vec: &Vec<f32>) -> Vec<u8> {
     let blob: Vec<u8> = vec
         .iter()
         .flat_map(|&n| n.to_le_bytes()) // f32 -> [u8; 4]

@@ -1,13 +1,9 @@
-use arama_repr::error::ReprError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum CacheError {
     #[error("SQLite error: {0}")]
     Sqlite(#[from] rusqlite::Error),
-
-    #[error("arama-repr error: {0}")]
-    AramaRepr(#[from] ReprError),
 
     #[error("connection pool error: {0}")]
     Pool(String),
@@ -21,6 +17,14 @@ pub enum CacheError {
 
     #[error("BLOB length mismatch: expected multiple of 4 bytes for f32 vector, got {0}")]
     InvalidVectorBlob(usize),
+
+    #[error(
+        "thumbnail_dir is not configured; set CacheConfig::thumbnail_dir to enable thumbnail management"
+    )]
+    ThumbnailDirNotConfigured,
+
+    #[error("thumbnail generation error: {0}")]
+    ThumbnailGenerationFailed(String),
 }
 
 impl CacheError {
