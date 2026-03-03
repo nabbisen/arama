@@ -244,21 +244,11 @@ name = "arama-cache"
 version = "0.12.7"
 dependencies = [
  "anyhow",
- "arama-env",
  "arama-repr",
- "arama-sidecar",
- "arama-storage",
- "ffmpeg-sidecar",
+ "file-feature-cache",
  "image",
- "r2d2",
- "r2d2_sqlite",
- "rayon",
  "rusqlite",
- "sha2",
- "swdir",
  "tempfile",
- "thiserror 2.0.18",
- "tokio",
 ]
 
 [[package]]
@@ -1593,6 +1583,24 @@ dependencies = [
  "winapi",
  "xz2",
  "zip 4.6.1",
+]
+
+[[package]]
+name = "file-feature-cache"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ffmpeg-sidecar",
+ "image",
+ "r2d2",
+ "r2d2_sqlite",
+ "rayon",
+ "rusqlite",
+ "sha2",
+ "swdir",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
 ]
 
 [[package]]

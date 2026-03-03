@@ -10,6 +10,7 @@ members = [
     "crates/ui/main",
     "crates/ui/widgets",
     "env",
+    "crates/engine/file-feature-cache",
 ]
 resolver = "3"
 
@@ -37,6 +38,9 @@ arama-ui-widgets = { path = "crates/ui/widgets" }
 arama-repr = { path = "crates/engine/repr" }
 arama-sidecar = { path = "crates/engine/sidecar" }
 arama-storage = { path = "crates/engine/storage" }
+
+# todo: register as crate
+file-feature-cache = { path = "crates/engine/file-feature-cache" }
 
 iced = { version = "0.14", features = ["image", "tokio"] }
 

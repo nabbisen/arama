@@ -1,5 +1,4 @@
-pub mod identity;
-pub mod reader;
-mod schema;
-pub(crate) mod store;
-pub mod writer;
+pub mod extension;
+pub mod image;
+mod thumbnail;
+pub mod video;

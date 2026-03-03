@@ -2,22 +2,23 @@
 // upsert リクエスト型
 // ---------------------------------------------------------------------------
 
-use r2d2_sqlite::SqliteConnectionManager;
-
 /// 画像ファイルのキャッシュ登録 / 更新リクエスト。
 #[derive(Debug, Clone)]
 pub struct UpsertImageRequest {
+    /// 対象ファイルパス。内部で `canonicalize()` を施す。
     pub file_path: String,
-    pub thumbnail_path: Option<String>,
+    /// CLIP 特徴量ベクトル。`None` の場合は既存値を保持する (部分更新)。
     pub clip_vector: Option<Vec<f32>>,
 }
 
 /// 動画ファイルのキャッシュ登録 / 更新リクエスト。
 #[derive(Debug, Clone)]
 pub struct UpsertVideoRequest {
+    /// 対象ファイルパス。内部で `canonicalize()` を施す。
     pub file_path: String,
-    pub thumbnail_path: Option<String>,
+    /// CLIP 特徴量ベクトル。`None` の場合は既存値を保持する (部分更新)。
     pub clip_vector: Option<Vec<f32>>,
+    /// wav2vec2 特徴量ベクトル。`None` の場合は既存値を保持する (部分更新)。
     pub wav2vec2_vector: Option<Vec<f32>>,
 }
 
@@ -38,14 +39,18 @@ pub struct VideoFeatures {
 
 #[derive(Debug, Clone)]
 pub struct ImageCacheEntry {
+    /// canonicalize 済みファイルパス
     pub file_path: String,
+    /// canonicalize 済みサムネイルパス。サムネイルなしの場合 `None`
     pub thumbnail_path: Option<String>,
     pub features: Option<ImageFeatures>,
 }
 
 #[derive(Debug, Clone)]
 pub struct VideoCacheEntry {
+    /// canonicalize 済みファイルパス
     pub file_path: String,
+    /// canonicalize 済みサムネイルパス。サムネイルなしの場合 `None`
     pub thumbnail_path: Option<String>,
     pub features: Option<VideoFeatures>,
 }
@@ -60,10 +65,3 @@ pub enum LookupResult<T> {
     /// DB にレコード自体が存在しない
     Miss,
 }
-
-// ---------------------------------------------------------------------------
-// 型エイリアス
-// ---------------------------------------------------------------------------
-
-pub(crate) type ReadConn = r2d2::PooledConnection<SqliteConnectionManager>;
-pub(crate) type WriteConn = r2d2::PooledConnection<SqliteConnectionManager>;

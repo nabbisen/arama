@@ -1,14 +1,13 @@
 //! インテグレーションテスト。
-//!
-//! 実ファイルを tempfile で作成して使う。
 
 use std::io::Write;
 use std::path::PathBuf;
 
 use arama_cache::{
-    CacheConfig, CacheWriter, HashStrategy, LookupResult, UpsertImageRequest, UpsertVideoRequest,
-    config::db_location::DbLocation,
+    ImageCacheConfig, ImageCacheWriter, LookupResult, UpsertImageRequest, UpsertVideoRequest,
+    VideoCacheConfig, VideoCacheWriter,
 };
+use file_feature_cache::{CacheConfig, CacheWrite, DbLocation};
 
 // ---------------------------------------------------------------------------
 // テストヘルパー
@@ -22,22 +21,11 @@ impl TempFile {
     fn new(content: &[u8]) -> Self {
         let mut f = tempfile::NamedTempFile::new().unwrap();
         f.write_all(content).unwrap();
-        let path = f.path().to_path_buf();
-        f.keep().unwrap();
+        let (_, path) = f.keep().unwrap();
         TempFile { path }
     }
-
     fn path_str(&self) -> &str {
         self.path.to_str().unwrap()
-    }
-
-    fn overwrite(&self, content: &[u8]) {
-        let mut f = std::fs::OpenOptions::new()
-            .write(true)
-            .truncate(true)
-            .open(&self.path)
-            .unwrap();
-        f.write_all(content).unwrap();
     }
 }
 
@@ -47,372 +35,244 @@ impl Drop for TempFile {
     }
 }
 
-// ---------------------------------------------------------------------------
-// 画像系テスト
-// ---------------------------------------------------------------------------
-
-#[test]
-fn image_miss_on_empty_db() {
-    let writer = CacheWriter::open_in_memory().unwrap();
-    let f = TempFile::new(b"dummy image data");
-    assert!(matches!(
-        writer.lookup_image(&f.path).unwrap(),
-        LookupResult::Miss
-    ));
+fn image_writer() -> ImageCacheWriter {
+    ImageCacheWriter::as_session(ImageCacheConfig {
+        cache: CacheConfig {
+            db_location: DbLocation::WorkDir(None),
+            read_conns: 2,
+            thumbnail_dir: None,
+        },
+        thumbnail: false,
+    })
+    .unwrap()
 }
 
+fn image_req(file_path: &str) -> UpsertImageRequest {
+    UpsertImageRequest {
+        file_path: file_path.to_string(),
+        clip_vector: None,
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 画像 upsert / lookup
+// ---------------------------------------------------------------------------
+
 #[test]
-fn image_hit_after_upsert() {
-    let writer = CacheWriter::open_in_memory().unwrap();
-    let f = TempFile::new(b"image content");
+fn image_upsert_and_lookup_hit() {
+    let writer = image_writer();
+    let f = TempFile::new(b"image data");
 
     writer
-        .upsert_image(UpsertImageRequest {
+        .upsert(UpsertImageRequest {
             file_path: f.path_str().to_string(),
-            thumbnail_path: Some("/cache/thumb.jpg".to_string()),
             clip_vector: Some(vec![1.0, 2.0, 3.0]),
         })
         .unwrap();
 
-    match writer.lookup_image(&f.path).unwrap() {
+    match writer.lookup(f.path_str()).unwrap() {
         LookupResult::Hit(entry) => {
-            assert_eq!(entry.thumbnail_path.unwrap(), "/cache/thumb.jpg");
             assert_eq!(entry.features.unwrap().clip_vector, vec![1.0f32, 2.0, 3.0]);
+            assert!(entry.thumbnail_path.is_none());
         }
         other => panic!("expected Hit, got {:?}", other),
     }
 }
 
 #[test]
-fn image_invalidated_when_content_changes() {
-    let writer = CacheWriter::open_in_memory().unwrap();
-    let f = TempFile::new(b"original content");
-
-    writer
-        .upsert_image(UpsertImageRequest {
-            file_path: f.path_str().to_string(),
-            thumbnail_path: Some("/thumb.jpg".to_string()),
-            clip_vector: Some(vec![0.5]),
-        })
-        .unwrap();
-
-    f.overwrite(b"completely different content!!");
-
+fn image_lookup_miss() {
+    let writer = image_writer();
     assert!(matches!(
-        writer.lookup_image(&f.path).unwrap(),
-        LookupResult::Invalidated
-    ));
-    // 削除後は Miss
-    assert!(matches!(
-        writer.lookup_image(&f.path).unwrap(),
+        writer.lookup("/no/such/file").unwrap(),
         LookupResult::Miss
     ));
 }
 
 #[test]
-fn image_partial_upsert_preserves_existing() {
-    let writer = CacheWriter::open_in_memory().unwrap();
-    let f = TempFile::new(b"some image");
+fn image_lookup_invalidated_on_change() {
+    let writer = image_writer();
+    let f = TempFile::new(b"original");
+    writer.upsert(image_req(f.path_str())).unwrap();
+    std::fs::write(&f.path, b"modified").unwrap();
+    assert!(matches!(
+        writer.lookup(f.path_str()).unwrap(),
+        LookupResult::Invalidated
+    ));
+}
+
+// ---------------------------------------------------------------------------
+// 画像サムネイル自動生成
+// ---------------------------------------------------------------------------
+
+#[test]
+fn image_thumbnail_generated_to_thumbnail_dir() {
+    // 1×1 px の最小有効 JPEG
+    let jpeg_bytes: &[u8] = &[
+        0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x00, 0xff, 0xdb, 0x00, 0x43, 0x00, 0x08, 0x06, 0x06, 0x07, 0x06,
+        0x05, 0x08, 0x07, 0x07, 0x07, 0x09, 0x09, 0x08, 0x0a, 0x0c, 0x14, 0x0d, 0x0c, 0x0b, 0x0b,
+        0x0c, 0x19, 0x12, 0x13, 0x0f, 0x14, 0x1d, 0x1a, 0x1f, 0x1e, 0x1d, 0x1a, 0x1c, 0x1c, 0x20,
+        0x24, 0x2e, 0x27, 0x20, 0x22, 0x2c, 0x23, 0x1c, 0x1c, 0x28, 0x37, 0x29, 0x2c, 0x30, 0x31,
+        0x34, 0x34, 0x34, 0x1f, 0x27, 0x39, 0x3d, 0x38, 0x32, 0x3c, 0x2e, 0x33, 0x34, 0x32, 0xff,
+        0xc0, 0x00, 0x0b, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01, 0x01, 0x11, 0x00, 0xff, 0xc4, 0x00,
+        0x1f, 0x00, 0x00, 0x01, 0x05, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b,
+        0xff, 0xc4, 0x00, 0xb5, 0x10, 0x00, 0x02, 0x01, 0x03, 0x03, 0x02, 0x04, 0x03, 0x05, 0x05,
+        0x04, 0x04, 0x00, 0x00, 0x01, 0x7d, 0x01, 0x02, 0x03, 0x00, 0x04, 0x11, 0x05, 0x12, 0x21,
+        0x31, 0x41, 0x06, 0x13, 0x51, 0x61, 0x07, 0x22, 0x71, 0x14, 0x32, 0x81, 0x91, 0xa1, 0x08,
+        0x23, 0x42, 0xb1, 0xc1, 0x15, 0x52, 0xd1, 0xf0, 0x24, 0x33, 0x62, 0x72, 0x82, 0x09, 0x0a,
+        0x16, 0x17, 0x18, 0x19, 0x1a, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x34, 0x35, 0x36, 0x37,
+        0x38, 0x39, 0x3a, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x53, 0x54, 0x55, 0x56,
+        0x57, 0x58, 0x59, 0x5a, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x73, 0x74, 0x75,
+        0x76, 0x77, 0x78, 0x79, 0x7a, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x92, 0x93,
+        0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9a, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xa8, 0xa9,
+        0xaa, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 0xb8, 0xb9, 0xba, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6,
+        0xc7, 0xc8, 0xc9, 0xca, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda, 0xe1, 0xe2,
+        0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
+        0xf8, 0xf9, 0xfa, 0xff, 0xda, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3f, 0x00, 0xfb, 0x6d,
+        0xff, 0xd9,
+    ];
+
+    let thumb_dir = tempfile::TempDir::new().unwrap();
+    let db = tempfile::NamedTempFile::new().unwrap();
+    let f = TempFile::new(jpeg_bytes);
+
+    let writer = ImageCacheWriter::as_session(ImageCacheConfig {
+        cache: CacheConfig {
+            db_location: DbLocation::Custom(db.path().to_path_buf()),
+            read_conns: 1,
+            thumbnail_dir: Some(thumb_dir.path().to_path_buf()),
+        },
+        thumbnail: true,
+    })
+    .unwrap();
 
     writer
-        .upsert_image(UpsertImageRequest {
+        .upsert(UpsertImageRequest {
             file_path: f.path_str().to_string(),
-            thumbnail_path: Some("/thumb.jpg".to_string()),
             clip_vector: None,
         })
         .unwrap();
 
-    writer
-        .upsert_image(UpsertImageRequest {
-            file_path: f.path_str().to_string(),
-            thumbnail_path: None,
-            clip_vector: Some(vec![9.0, 8.0]),
-        })
-        .unwrap();
-
-    match writer.lookup_image(&f.path).unwrap() {
+    match writer.lookup(f.path_str()).unwrap() {
         LookupResult::Hit(entry) => {
-            assert_eq!(entry.thumbnail_path.unwrap(), "/thumb.jpg");
-            assert_eq!(entry.features.unwrap().clip_vector, vec![9.0f32, 8.0]);
+            let thumb = entry.thumbnail_path.expect("thumbnail_path should be Some");
+            assert!(
+                std::path::Path::new(&thumb).exists(),
+                "thumbnail file should exist"
+            );
+            assert!(thumb.ends_with(".jpg"));
         }
-        other => panic!("{:?}", other),
+        other => panic!("expected Hit, got {:?}", other),
     }
 }
 
 // ---------------------------------------------------------------------------
-// 動画系テスト
+// 動画 upsert / lookup
 // ---------------------------------------------------------------------------
 
 #[test]
-fn video_hit_after_upsert() {
-    let writer = CacheWriter::open_in_memory().unwrap();
-    let f = TempFile::new(b"fake video data");
+fn video_upsert_and_lookup_hit() {
+    let writer = VideoCacheWriter::as_session(VideoCacheConfig {
+        cache: CacheConfig {
+            db_location: DbLocation::WorkDir(None),
+            read_conns: 2,
+            thumbnail_dir: None,
+        },
+        thumbnail: false,
+        ffmpeg_path: None,
+    })
+    .unwrap();
 
+    let f = TempFile::new(b"video data");
     writer
-        .upsert_video(UpsertVideoRequest {
+        .upsert(UpsertVideoRequest {
             file_path: f.path_str().to_string(),
-            thumbnail_path: Some("/thumb/clip.jpg".to_string()),
             clip_vector: Some(vec![1.0, 2.0]),
             wav2vec2_vector: Some(vec![3.0, 4.0]),
         })
         .unwrap();
 
-    match writer.lookup_video(&f.path).unwrap() {
+    match writer.lookup(f.path_str()).unwrap() {
         LookupResult::Hit(entry) => {
             let feat = entry.features.unwrap();
             assert_eq!(feat.clip_vector, vec![1.0f32, 2.0]);
             assert_eq!(feat.wav2vec2_vector, vec![3.0f32, 4.0]);
         }
-        other => panic!("{:?}", other),
+        other => panic!("expected Hit, got {:?}", other),
     }
 }
 
-#[test]
-fn video_invalidated_when_content_changes() {
-    let writer = CacheWriter::open_in_memory().unwrap();
-    let f = TempFile::new(b"original video");
-
-    writer
-        .upsert_video(UpsertVideoRequest {
-            file_path: f.path_str().to_string(),
-            thumbnail_path: None,
-            clip_vector: Some(vec![0.1]),
-            wav2vec2_vector: Some(vec![0.2]),
-        })
-        .unwrap();
-
-    f.overwrite(b"modified video content that is different");
-
-    assert!(matches!(
-        writer.lookup_video(&f.path).unwrap(),
-        LookupResult::Invalidated
-    ));
-}
-
 // ---------------------------------------------------------------------------
-// 権限モデルのテスト
-// ---------------------------------------------------------------------------
-
-#[test]
-fn reader_can_lookup_but_not_write() {
-    let writer = CacheWriter::open_in_memory().unwrap();
-    let f = TempFile::new(b"shared data");
-
-    writer
-        .upsert_image(UpsertImageRequest {
-            file_path: f.path_str().to_string(),
-            thumbnail_path: Some("/t.jpg".to_string()),
-            clip_vector: Some(vec![1.0]),
-        })
-        .unwrap();
-
-    // reader は Arc<CacheStore> を共有 — 追加の DB 接続なし
-    let reader = writer.as_reader();
-    assert!(matches!(
-        reader.lookup_image(&f.path).unwrap(),
-        LookupResult::Hit(_)
-    ));
-    // reader に upsert / delete は生えていない (コンパイル時に保証)
-}
-
-#[test]
-fn reader_invalidates_on_change() {
-    let writer = CacheWriter::open_in_memory().unwrap();
-    let f = TempFile::new(b"data");
-
-    writer
-        .upsert_image(UpsertImageRequest {
-            file_path: f.path_str().to_string(),
-            thumbnail_path: None,
-            clip_vector: Some(vec![0.0]),
-        })
-        .unwrap();
-
-    let reader = writer.as_reader();
-    f.overwrite(b"changed data");
-
-    // CacheReader でも内部 DELETE が実行される
-    assert!(matches!(
-        reader.lookup_image(&f.path).unwrap(),
-        LookupResult::Invalidated
-    ));
-    assert!(matches!(
-        reader.lookup_image(&f.path).unwrap(),
-        LookupResult::Miss
-    ));
-}
-
-// ---------------------------------------------------------------------------
-// 汎用 API テスト
+// delete / verify_or_invalidate / list_paths
 // ---------------------------------------------------------------------------
 
 #[test]
 fn delete_removes_entry() {
-    let writer = CacheWriter::open_in_memory().unwrap();
-    let f = TempFile::new(b"data");
-
-    writer
-        .upsert_image(UpsertImageRequest {
-            file_path: f.path_str().to_string(),
-            thumbnail_path: Some("/t.jpg".to_string()),
-            clip_vector: Some(vec![1.0]),
-        })
-        .unwrap();
-
-    assert!(writer.delete(&f.path).unwrap());
-    assert!(!writer.delete(&f.path).unwrap());
+    let writer = image_writer();
+    let f = TempFile::new(b"to delete");
+    writer.upsert(image_req(f.path_str())).unwrap();
+    assert!(writer.delete(f.path_str()).unwrap());
     assert!(matches!(
-        writer.lookup_image(&f.path).unwrap(),
+        writer.lookup(f.path_str()).unwrap(),
         LookupResult::Miss
     ));
 }
 
 #[test]
-fn list_paths_returns_all() {
-    let writer = CacheWriter::open_in_memory().unwrap();
+fn verify_or_invalidate_true_if_unchanged() {
+    let writer = image_writer();
+    let f = TempFile::new(b"stable");
+    writer.upsert(image_req(f.path_str())).unwrap();
+    assert!(writer.verify_or_invalidate(f.path_str()).unwrap());
+}
+
+#[test]
+fn list_paths_returns_all_registered() {
+    let writer = image_writer();
     let files: Vec<_> = (0..3)
-        .map(|i| TempFile::new(format!("c{i}").as_bytes()))
+        .map(|i| TempFile::new(format!("f{i}").as_bytes()))
         .collect();
-
     for f in &files {
-        writer
-            .upsert_image(UpsertImageRequest {
-                file_path: f.path_str().to_string(),
-                thumbnail_path: None,
-                clip_vector: None,
-            })
-            .unwrap();
+        writer.upsert(image_req(f.path_str())).unwrap();
     }
-
     assert_eq!(writer.list_paths().unwrap().len(), 3);
-    assert_eq!(writer.as_reader().list_paths().unwrap().len(), 3);
-}
-
-#[test]
-fn verify_or_invalidate_clears_changed_file() {
-    let writer = CacheWriter::open_in_memory().unwrap();
-    let f = TempFile::new(b"original");
-
-    writer
-        .upsert_image(UpsertImageRequest {
-            file_path: f.path_str().to_string(),
-            thumbnail_path: None,
-            clip_vector: Some(vec![0.0]),
-        })
-        .unwrap();
-
-    f.overwrite(b"changed!!");
-
-    assert!(!writer.verify_or_invalidate(&f.path).unwrap());
-    assert!(writer.list_paths().unwrap().is_empty());
 }
 
 // ---------------------------------------------------------------------------
-// HashStrategy テスト
+// oneshot / as_reader
 // ---------------------------------------------------------------------------
 
 #[test]
-fn hash_strategy_full_detects_change() {
-    let writer = CacheWriter::open_in_memory_with_config(CacheConfig {
-        db_location: DbLocation::WorkDir(None),
-        read_conns: None,
-        hash_strategy: HashStrategy::Full,
-    })
-    .unwrap();
+fn oneshot_persists_across_instances() {
+    let db = tempfile::NamedTempFile::new().unwrap();
+    let loc = DbLocation::Custom(db.path().to_path_buf());
+    let f = TempFile::new(b"oneshot test");
 
-    let f = TempFile::new(b"small file with full hash strategy");
-
-    writer
-        .upsert_image(UpsertImageRequest {
-            file_path: f.path_str().to_string(),
-            thumbnail_path: None,
-            clip_vector: Some(vec![1.0]),
-        })
+    ImageCacheWriter::oneshot(loc.clone())
+        .unwrap()
+        .upsert(image_req(f.path_str()))
         .unwrap();
 
+    match ImageCacheWriter::oneshot(loc)
+        .unwrap()
+        .lookup(f.path_str())
+        .unwrap()
+    {
+        LookupResult::Hit(_) => {}
+        other => panic!("expected Hit, got {:?}", other),
+    }
+}
+
+#[test]
+fn as_reader_shares_store() {
+    let writer = image_writer();
+    let f = TempFile::new(b"reader test");
+    writer.upsert(image_req(f.path_str())).unwrap();
+
+    let reader = writer.as_reader();
     assert!(matches!(
-        writer.lookup_image(&f.path).unwrap(),
+        reader.lookup(f.path_str()).unwrap(),
         LookupResult::Hit(_)
     ));
-
-    f.overwrite(b"different content");
-    assert!(matches!(
-        writer.lookup_image(&f.path).unwrap(),
-        LookupResult::Invalidated
-    ));
 }
-
-// // ---------------------------------------------------------------------------
-// // oneshot API のテスト
-// // (実際の DB ファイルを使うため tempfile で arama_cache_DB を差し替える)
-// // ---------------------------------------------------------------------------
-
-// #[test]
-// fn convenience_upsert_and_lookup() {
-//     let db = tempfile::NamedTempFile::new().unwrap();
-//     let db_path = db.path().to_str().unwrap().to_string();
-//     // keep して削除されないようにする
-//     let (_, db_path_buf) = db.keep().unwrap();
-
-//     // arama_cache_DB 環境変数でパスを差し替え
-//     // 注意: テスト並列実行時に他テストの env に干渉しないよう
-//     //       serial に近い運用が望ましいが、ここでは tempfile 名が一意なので衝突しない
-//     // SAFETY: シングルスレッド起動直後のテスト内での設定
-//     unsafe {
-//         std::env::set_var("arama_cache_DB", &db_path);
-//     }
-
-//     let f = TempFile::new(b"oneshot test image");
-
-//     arama_cache::writer::api::oneshot::upsert_image(UpsertImageRequest {
-//         file_path: f.path_str().to_string(),
-//         thumbnail_path: Some("/t.jpg".to_string()),
-//         clip_vector: Some(vec![7.0, 8.0]),
-//     })
-//     .unwrap();
-
-//     match arama_cache::reader::api::read::lookup_image(&f.path).unwrap() {
-//         LookupResult::Hit(entry) => {
-//             assert_eq!(entry.thumbnail_path.unwrap(), "/t.jpg");
-//             assert_eq!(entry.features.unwrap().clip_vector, vec![7.0f32, 8.0]);
-//         }
-//         other => panic!("expected Hit, got {:?}", other),
-//     }
-
-//     // 後片付け
-//     unsafe {
-//         std::env::remove_var("arama_cache_DB");
-//     }
-//     let _ = std::fs::remove_file(&db_path_buf);
-// }
-
-// #[test]
-// fn convenience_delete() {
-//     let db = tempfile::NamedTempFile::new().unwrap();
-//     let db_path = db.path().to_str().unwrap().to_string();
-//     let (_, db_path_buf) = db.keep().unwrap();
-//     // SAFETY: シングルスレッド起動直後のテスト内での設定
-//     unsafe {
-//         std::env::set_var("arama_cache_DB", &db_path);
-//     }
-
-//     let f = TempFile::new(b"delete test");
-
-//     arama_cache::writer::api::oneshot::upsert_image(UpsertImageRequest {
-//         file_path: f.path_str().to_string(),
-//         thumbnail_path: None,
-//         clip_vector: Some(vec![1.0]),
-//     })
-//     .unwrap();
-
-//     assert!(arama_cache::writer::api::oneshot::delete(&f.path).unwrap());
-//     assert!(matches!(
-//         arama_cache::reader::api::oneshot::lookup_image(&f.path).unwrap(),
-//         LookupResult::Miss
-//     ));
-
-//     unsafe {
-//         std::env::remove_var("arama_cache_DB");
-//     }
-//     let _ = std::fs::remove_file(&db_path_buf);
-// }

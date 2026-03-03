@@ -1,40 +1,45 @@
-//! # arama_cache
+//! # ai_cache
 //!
-//! AI 推論アプリ向け SQLite キャッシュライブラリ。
+//! 画像・動画 AI 推論結果 (サムネイル + 特徴量ベクトル) を SQLite にキャッシュする。
 //!
-//! ## DB ファイルの場所
+//! [`file_feature_cache`] エンジンに依存し、画像・動画専用のスキーマ拡張と
+//! サムネイル自動生成を提供する。
 //!
-//! [`DbLocation`] で DB の置き場所を指定する。デフォルトは `./arama_cache.db`。
+//! ## Writer / Reader の選択
 //!
-//! | バリアント | パス例 | 用途 |
-//! |---|---|---|
-//! | `DbLocation::Custom(path)` | 任意のパス | アプリが完全に制御したい場合 |
-//! | `DbLocation::AppCache(..)` | `~/.cache/<実行バイナリ名>/cache.db` | XDG を明示的に使いたい場合 |
-//! | `DbLocation::WorkDir(..)` (デフォルト) | `./arama_cache.db` | 手軽に始める場合 |
-//!
-//! ## API の選び方
-//!
-//! | 用途 | API |
+//! | 型 | 用途 |
 //! |---|---|
-//! | rayon 並列処理・繰り返し呼び出し | [`reader::session`] / [`writer::session`] (primary) |
-//! | 単発処理・初期化・スクリプト | [`reader::oneshot`] / [`writer::oneshot`] |
+//! | [`ImageCacheWriter`] | 画像ファイルの登録・照会・削除 |
+//! | [`ImageCacheReader`] | 画像ファイルの照会のみ (rayon 並列向け) |
+//! | [`VideoCacheWriter`] | 動画ファイルの登録・照会・削除 |
+//! | [`VideoCacheReader`] | 動画ファイルの照会のみ (rayon 並列向け) |
 //!
-//! ## 基本的な使い方 — Session API
+//! ## 基本的な使い方
 //!
 //! ```rust,no_run
-//! use arama_cache::{CacheWriter, UpsertImageRequest, LookupResult};
+//! use ai_cache::{ImageCacheWriter, ImageCacheConfig, UpsertImageRequest, LookupResult};
+//! use file_feature_cache::{CacheConfig, CacheWrite, DbLocation};
 //!
-//! # fn main() -> arama_cache::Result<()> {
-//! let writer = CacheWriter::open()?;
-//!
-//! writer.upsert_image(UpsertImageRequest {
-//!     file_path:      "/data/photo.jpg".to_string(),
-//!     thumbnail_path: Some("/cache/thumb.jpg".to_string()),
-//!     clip_vector:    Some(vec![0.1, 0.2, 0.3]),
+//! # fn main() -> file_feature_cache::Result<()> {
+//! let writer = ImageCacheWriter::as_session(ImageCacheConfig {
+//!     cache:     CacheConfig {
+//!         db_location:   DbLocation::AppCache(None),
+//!         read_conns:    4,
+//!         thumbnail_dir: Some("/var/cache/myapp/thumbs".into()),
+//!     },
+//!     thumbnail: true,   // サムネイルを自動生成する
 //! })?;
 //!
-//! match writer.lookup_image("/data/photo.jpg")? {
-//!     LookupResult::Hit(entry) => println!("clip dims: {}", entry.features.unwrap().clip_vector.len()),
+//! writer.upsert(UpsertImageRequest {
+//!     file_path:   "/data/photo.jpg".to_string(),
+//!     clip_vector: Some(vec![0.1, 0.2, 0.3]),
+//! })?;
+//!
+//! match writer.lookup("/data/photo.jpg")? {
+//!     LookupResult::Hit(entry) => {
+//!         println!("thumbnail: {:?}", entry.thumbnail_path);
+//!         println!("features:  {:?}", entry.features);
+//!     }
 //!     LookupResult::Invalidated => println!("file changed, cache cleared"),
 //!     LookupResult::Miss        => println!("not cached"),
 //! }
@@ -42,76 +47,75 @@
 //! # }
 //! ```
 //!
-//! ## 権限モデル — CacheWriter と CacheReader
-//!
-//! `CacheWriter` から `as_reader()` で参照専用の [`CacheReader`] を生成できる。
-//! どちらも `Clone` が低コストなので rayon の各タスクに自由に配布できる。
+//! ## 単発呼び出し
 //!
 //! ```rust,no_run
-//! use arama_cache::{CacheWriter, CacheReader, LookupResult};
+//! use ai_cache::{ImageCacheWriter, LookupResult};
+//! use file_feature_cache::{CacheWrite, DbLocation};
+//!
+//! # fn main() -> file_feature_cache::Result<()> {
+//! // oneshot は DbLocation だけ指定、他はデフォルト (サムネイルなし)
+//! let result = ImageCacheWriter::oneshot(DbLocation::WorkDir(None))?
+//!     .lookup("/data/photo.jpg")?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! ## rayon 並列処理
+//!
+//! ```rust,no_run
+//! use ai_cache::{ImageCacheWriter, ImageCacheConfig, LookupResult};
+//! use file_feature_cache::{CacheWrite, DbLocation, CacheConfig};
 //! use rayon::prelude::*;
 //!
-//! # fn main() -> arama_cache::Result<()> {
-//! let writer = CacheWriter::open()?;
-//! let reader: CacheReader = writer.as_reader();
+//! # fn main() -> file_feature_cache::Result<()> {
+//! let writer = ImageCacheWriter::as_session(ImageCacheConfig {
+//!     cache:     CacheConfig { db_location: DbLocation::WorkDir(None), read_conns: 8, thumbnail_dir: None },
+//!     thumbnail: false,
+//! })?;
+//! let reader = writer.as_reader();
 //!
-//! let paths = vec!["/data/a.jpg", "/data/b.jpg", "/data/c.mp4"];
+//! let paths = vec!["/data/a.jpg", "/data/b.jpg", "/data/c.jpg"];
 //! let results: Vec<_> = paths
 //!     .par_iter()
-//!     .map(|p| reader.clone().lookup_image(p))
+//!     .map(|p| reader.clone().lookup(p))
 //!     .collect();
 //! # Ok(())
 //! # }
 //! ```
 //!
-//! ## 単発呼び出し — Oneshot API
-//!
-//! `&self` なしで呼べる free function。
-//! 呼び出しのたびに DB を開き直すため、ループや並列処理には使わないこと。
+//! ## 動画キャッシュ
 //!
 //! ```rust,no_run
-//! use arama_cache::{reader, writer, UpsertImageRequest, LookupResult};
+//! use ai_cache::{VideoCacheWriter, VideoCacheConfig, UpsertVideoRequest, LookupResult};
+//! use file_feature_cache::{CacheConfig, CacheWrite, DbLocation};
 //!
-//! # fn main() -> arama_cache::Result<()> {
-//! writer::oneshot::upsert_image(UpsertImageRequest {
-//!     file_path:      "/data/photo.jpg".to_string(),
-//!     thumbnail_path: None,
-//!     clip_vector:    Some(vec![0.1, 0.2, 0.3]),
+//! # fn main() -> file_feature_cache::Result<()> {
+//! let writer = VideoCacheWriter::as_session(VideoCacheConfig {
+//!     cache:       CacheConfig {
+//!         db_location:   DbLocation::AppCache(None),
+//!         read_conns:    2,
+//!         thumbnail_dir: Some("/var/cache/myapp/thumbs".into()),
+//!     },
+//!     thumbnail:   true,
+//!     ffmpeg_path: Some("/usr/bin/ffmpeg".into()),
 //! })?;
 //!
-//! match reader::oneshot::lookup_image("/data/photo.jpg")? {
-//!     LookupResult::Hit(entry) => println!("hit"),
-//!     LookupResult::Invalidated | LookupResult::Miss => println!("no cache"),
-//! }
-//! # Ok(())
-//! # }
-//! ```
-//!
-//! ## カスタム設定
-//!
-//! ```rust,no_run
-//! use arama_cache::{CacheWriter, CacheConfig, DbLocation};
-//!
-//! # fn main() -> arama_cache::Result<()> {
-//! let writer = CacheWriter::open_with_config(CacheConfig {
-//!     db_location: DbLocation::Custom("/var/myapp/cache.db".into()),
-//!     ..Default::default()
+//! writer.upsert(UpsertVideoRequest {
+//!     file_path:       "/data/movie.mp4".to_string(),
+//!     clip_vector:     Some(vec![0.1, 0.2]),
+//!     wav2vec2_vector: Some(vec![0.3, 0.4]),
 //! })?;
 //! # Ok(())
 //! # }
 //! ```
 
-pub mod config;
-pub(crate) mod core;
-pub mod error;
+mod core;
 pub mod types;
 
-// re-export
-pub use config::cache_config::CacheConfig;
-pub use core::identity::hash::hash_strategy::HashStrategy;
-pub use core::reader::{self, cache_reader::CacheReader};
-pub use core::writer::{self, cache_writer::CacheWriter};
-pub use error::{CacheError, Result};
+pub use core::extension::MediaExtension;
+pub use core::image::{ImageCacheConfig, ImageCacheReader, ImageCacheWriter};
+pub use core::video::{VideoCacheConfig, VideoCacheReader, VideoCacheWriter};
 pub use types::{
     ImageCacheEntry, ImageFeatures, LookupResult, UpsertImageRequest, UpsertVideoRequest,
     VideoCacheEntry, VideoFeatures,
