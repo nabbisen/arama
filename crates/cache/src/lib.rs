@@ -10,24 +10,24 @@
 //! | 型 | 用途 |
 //! |---|---|
 //! | [`ImageCacheWriter`] | 画像ファイルの登録・照会・削除 |
-//! | [`ImageCacheReader`] | 画像ファイルの照会のみ (rayon 並列向け) |
+//! | [`ImageCacheReader`] | 画像ファイルの照会のみ (並列向け) |
 //! | [`VideoCacheWriter`] | 動画ファイルの登録・照会・削除 |
-//! | [`VideoCacheReader`] | 動画ファイルの照会のみ (rayon 並列向け) |
+//! | [`VideoCacheReader`] | 動画ファイルの照会のみ (並列向け) |
 //!
 //! ## 基本的な使い方
 //!
 //! ```rust,no_run
 //! use ai_cache::{ImageCacheWriter, ImageCacheConfig, UpsertImageRequest, LookupResult};
-//! use file_feature_cache::{CacheConfig, CacheWrite, DbLocation};
+//! use file_feature_cache::{CacheConfig, DbLocation};
 //!
-//! # fn main() -> file_feature_cache::Result<()> {
+//! # fn main() -> anyhow::Result<()> {
 //! let writer = ImageCacheWriter::as_session(ImageCacheConfig {
-//!     cache:     CacheConfig {
+//!     cache: CacheConfig {
 //!         db_location:   DbLocation::AppCache(None),
 //!         read_conns:    4,
 //!         thumbnail_dir: Some("/var/cache/myapp/thumbs".into()),
 //!     },
-//!     thumbnail: true,   // サムネイルを自動生成する
+//!     thumbnail: true,
 //! })?;
 //!
 //! writer.upsert(UpsertImageRequest {
@@ -47,39 +47,38 @@
 //! # }
 //! ```
 //!
-//! ## 単発呼び出し
+//! ## onetime — 単発呼び出し
 //!
 //! ```rust,no_run
 //! use ai_cache::{ImageCacheWriter, LookupResult};
-//! use file_feature_cache::{CacheWrite, DbLocation};
+//! use file_feature_cache::DbLocation;
 //!
-//! # fn main() -> file_feature_cache::Result<()> {
-//! // oneshot は DbLocation だけ指定、他はデフォルト (サムネイルなし)
-//! let result = ImageCacheWriter::oneshot(DbLocation::WorkDir(None))?
+//! # fn main() -> anyhow::Result<()> {
+//! let result = ImageCacheWriter::onetime(DbLocation::WorkDir(None))?
 //!     .lookup("/data/photo.jpg")?;
 //! # Ok(())
 //! # }
 //! ```
 //!
-//! ## rayon 並列処理
+//! ## as_session + as_reader — スレッド並列処理
 //!
 //! ```rust,no_run
-//! use ai_cache::{ImageCacheWriter, ImageCacheConfig, LookupResult};
-//! use file_feature_cache::{CacheWrite, DbLocation, CacheConfig};
-//! use rayon::prelude::*;
+//! use ai_cache::{ImageCacheWriter, ImageCacheConfig};
+//! use file_feature_cache::{CacheConfig, DbLocation};
 //!
-//! # fn main() -> file_feature_cache::Result<()> {
+//! # fn main() -> anyhow::Result<()> {
 //! let writer = ImageCacheWriter::as_session(ImageCacheConfig {
-//!     cache:     CacheConfig { db_location: DbLocation::WorkDir(None), read_conns: 8, thumbnail_dir: None },
+//!     cache: CacheConfig { db_location: DbLocation::WorkDir(None), read_conns: 8, thumbnail_dir: None },
 //!     thumbnail: false,
 //! })?;
 //! let reader = writer.as_reader();
 //!
-//! let paths = vec!["/data/a.jpg", "/data/b.jpg", "/data/c.jpg"];
-//! let results: Vec<_> = paths
-//!     .par_iter()
-//!     .map(|p| reader.clone().lookup(p))
-//!     .collect();
+//! std::thread::scope(|s| {
+//!     for path in ["/data/a.jpg", "/data/b.jpg"] {
+//!         let r = reader.clone();
+//!         s.spawn(move || r.lookup(path));
+//!     }
+//! });
 //! # Ok(())
 //! # }
 //! ```
@@ -87,12 +86,12 @@
 //! ## 動画キャッシュ
 //!
 //! ```rust,no_run
-//! use ai_cache::{VideoCacheWriter, VideoCacheConfig, UpsertVideoRequest, LookupResult};
-//! use file_feature_cache::{CacheConfig, CacheWrite, DbLocation};
+//! use ai_cache::{VideoCacheWriter, VideoCacheConfig, UpsertVideoRequest};
+//! use file_feature_cache::{CacheConfig, DbLocation};
 //!
-//! # fn main() -> file_feature_cache::Result<()> {
+//! # fn main() -> anyhow::Result<()> {
 //! let writer = VideoCacheWriter::as_session(VideoCacheConfig {
-//!     cache:       CacheConfig {
+//!     cache: CacheConfig {
 //!         db_location:   DbLocation::AppCache(None),
 //!         read_conns:    2,
 //!         thumbnail_dir: Some("/var/cache/myapp/thumbs".into()),
@@ -116,6 +115,7 @@ pub mod types;
 pub use core::extension::MediaExtension;
 pub use core::image::{ImageCacheConfig, ImageCacheReader, ImageCacheWriter};
 pub use core::video::{VideoCacheConfig, VideoCacheReader, VideoCacheWriter};
+pub use file_feature_cache::{CacheConfig, CacheError, DbLocation, Result};
 pub use types::{
     ImageCacheEntry, ImageFeatures, LookupResult, UpsertImageRequest, UpsertVideoRequest,
     VideoCacheEntry, VideoFeatures,

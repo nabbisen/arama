@@ -1,11 +1,8 @@
 //! `file_feature_cache` インテグレーションテスト。
 //!
-//! # テスト方針
-//!
 //! - 実ファイルを `tempfile` で生成して使う (ハッシュ計算・mtime 検証を実際に動かす)
 //! - `NoExtension` で汎用エンジン単体の動作を検証する
 //! - カスタム `CacheExtension` で拡張テーブルの migrate / CASCADE 削除を検証する
-//! - `CacheWrite` / `CacheRead` trait 経由の呼び出しでポリモーフィズムを確認する
 
 use std::io::Write;
 use std::path::PathBuf;
@@ -19,7 +16,6 @@ use file_feature_cache::{
 // テストヘルパー
 // ---------------------------------------------------------------------------
 
-/// 実ファイルを作成し、Drop 時に自動削除するガード。
 struct TempFile {
     path: PathBuf,
 }
@@ -31,11 +27,9 @@ impl TempFile {
         let (_, path) = f.keep().unwrap();
         TempFile { path }
     }
-
-    fn path_str(&self) -> &str {
-        self.path.to_str().unwrap()
+    fn path(&self) -> &std::path::Path {
+        &self.path
     }
-
     fn overwrite(&self, content: &[u8]) {
         std::fs::write(&self.path, content).unwrap();
     }
@@ -47,159 +41,164 @@ impl Drop for TempFile {
     }
 }
 
-/// `NoExtension` を使うインメモリ Writer を生成する。
 fn mem_writer() -> CacheWriter<NoExtension> {
     CacheWriter::open_in_memory().unwrap()
 }
 
 // ---------------------------------------------------------------------------
-// カスタム拡張テーブルのセットアップ
+// カスタム拡張テーブル
 // ---------------------------------------------------------------------------
 
-/// テスト用の拡張: `scores` テーブルを追加する。
 #[derive(Clone)]
 struct ScoreExtension;
 
 impl CacheExtension for ScoreExtension {
     fn migrate(conn: &rusqlite::Connection) -> rusqlite::Result<()> {
         conn.execute_batch(
-            "
-            CREATE TABLE IF NOT EXISTS scores (
-                file_id INTEGER PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE,
-                score   REAL    NOT NULL
-            );
-        ",
+            "CREATE TABLE IF NOT EXISTS scores (
+                id      INTEGER PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE,
+                score   REAL NOT NULL
+            );",
         )
     }
 }
 
-fn upsert_with_score(writer: &CacheWriter<ScoreExtension>, path: &str, score: f64) {
-    let file_id = writer.upsert_file(path).unwrap();
+fn upsert_score(writer: &CacheWriter<ScoreExtension>, path: &std::path::Path, score: f64) {
+    let id = writer.refresh(path).unwrap();
     let conn = writer.write_conn().unwrap();
     conn.execute(
-        "INSERT INTO scores (file_id, score) VALUES (?1, ?2)
-         ON CONFLICT(file_id) DO UPDATE SET score = excluded.score",
-        rusqlite::params![file_id, score],
+        "INSERT INTO scores (id, score) VALUES (?1, ?2)
+         ON CONFLICT(id) DO UPDATE SET score = excluded.score",
+        rusqlite::params![id, score],
     )
     .unwrap();
 }
 
-fn fetch_score(writer: &CacheWriter<ScoreExtension>, path: &str) -> Option<f64> {
+fn fetch_score(writer: &CacheWriter<ScoreExtension>, path: &std::path::Path) -> Option<f64> {
     let conn = writer.read_conn().unwrap();
     conn.query_row(
-        "SELECT s.score FROM scores s
-         JOIN files f ON f.id = s.file_id
-         WHERE f.file_path = ?1",
-        [path],
+        "SELECT s.score FROM scores s JOIN files f ON f.id = s.id WHERE f.path = ?1",
+        [path.canonicalize().unwrap().to_str().unwrap()],
         |r| r.get::<_, f64>(0),
     )
     .ok()
 }
 
 // ===========================================================================
-// upsert_file / check
+// refresh
 // ===========================================================================
 
 #[test]
-fn upsert_then_check_returns_true() {
+fn refresh_registers_file_and_returns_id() {
     let writer = mem_writer();
     let f = TempFile::new(b"hello");
-    writer.upsert_file(f.path_str()).unwrap();
-    assert!(writer.check(f.path_str()).unwrap());
+    let id = writer.refresh(f.path()).unwrap();
+    assert!(id > 0);
 }
 
 #[test]
-fn check_on_unknown_path_returns_false() {
-    let writer = mem_writer();
-    assert!(!writer.check("/no/such/file").unwrap());
-}
-
-#[test]
-fn upsert_is_idempotent() {
+fn refresh_is_idempotent_for_unchanged_file() {
     let writer = mem_writer();
     let f = TempFile::new(b"same content");
-    let id1 = writer.upsert_file(f.path_str()).unwrap();
-    let id2 = writer.upsert_file(f.path_str()).unwrap();
-    // 同じファイルパスは同じ id になる (UPSERT)
+    let id1 = writer.refresh(f.path()).unwrap();
+    let id2 = writer.refresh(f.path()).unwrap();
+    // 内容不変 → 同じ id が返る (DB 書き込みなし)
     assert_eq!(id1, id2);
 }
 
 #[test]
-fn upsert_returns_new_id_for_different_files() {
+fn refresh_returns_new_id_after_content_change() {
     let writer = mem_writer();
-    let f1 = TempFile::new(b"file A");
-    let f2 = TempFile::new(b"file B");
-    let id1 = writer.upsert_file(f1.path_str()).unwrap();
-    let id2 = writer.upsert_file(f2.path_str()).unwrap();
+    let f = TempFile::new(b"original");
+    let id1 = writer.refresh(f.path()).unwrap();
+    f.overwrite(b"modified");
+    let id2 = writer.refresh(f.path()).unwrap();
+    // 変更あり → 旧レコード削除 + 再 INSERT → 異なる id
     assert_ne!(id1, id2);
 }
 
-// ===========================================================================
-// ファイル変更検出 (check / verify_or_invalidate)
-// ===========================================================================
-
 #[test]
-fn check_returns_false_after_content_change() {
+fn refresh_returns_different_ids_for_different_files() {
     let writer = mem_writer();
-    let f = TempFile::new(b"original");
-    writer.upsert_file(f.path_str()).unwrap();
-
-    f.overwrite(b"modified");
-
-    // 変更検出 → 内部で自動削除 → false
-    assert!(!writer.check(f.path_str()).unwrap());
-    // 削除済みなので list_paths にも出ない
-    assert!(
-        !writer
-            .list_paths()
-            .unwrap()
-            .contains(&f.path_str().to_string())
+    let f1 = TempFile::new(b"file A");
+    let f2 = TempFile::new(b"file B");
+    assert_ne!(
+        writer.refresh(f1.path()).unwrap(),
+        writer.refresh(f2.path()).unwrap()
     );
 }
 
 #[test]
-fn check_via_reader_also_detects_change_and_deletes() {
+fn refresh_on_nonexistent_file_returns_err() {
+    let writer = mem_writer();
+    assert!(
+        writer
+            .refresh(std::path::Path::new("/no/such/file"))
+            .is_err()
+    );
+}
+
+// ===========================================================================
+// check
+// ===========================================================================
+
+#[test]
+fn check_returns_true_after_refresh() {
+    let writer = mem_writer();
+    let f = TempFile::new(b"hello");
+    writer.refresh(f.path()).unwrap();
+    assert!(writer.check(f.path()).unwrap());
+}
+
+#[test]
+fn check_returns_false_for_unregistered_file() {
+    let writer = mem_writer();
+    let f = TempFile::new(b"unregistered");
+    assert!(!writer.check(f.path()).unwrap());
+}
+
+#[test]
+fn check_returns_false_for_nonexistent_file() {
+    // ファイル不在は canonicalize 失敗 → false (Err にならない)
+    let writer = mem_writer();
+    assert!(
+        !writer
+            .check(std::path::Path::new("/absolutely/no/such/file"))
+            .unwrap()
+    );
+}
+
+#[test]
+fn check_returns_false_after_content_change_and_removes_record() {
+    let writer = mem_writer();
+    let f = TempFile::new(b"original");
+    writer.refresh(f.path()).unwrap();
+    f.overwrite(b"modified");
+    assert!(!writer.check(f.path()).unwrap());
+    assert!(
+        !writer.list_paths().unwrap().contains(
+            &f.path()
+                .canonicalize()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string()
+        )
+    );
+}
+
+#[test]
+fn check_via_reader_detects_change_and_removes_record() {
     let writer = mem_writer();
     let f = TempFile::new(b"reader check test");
-    writer.upsert_file(f.path_str()).unwrap();
+    writer.refresh(f.path()).unwrap();
 
     let reader = writer.as_reader();
     f.overwrite(b"changed");
 
-    assert!(!reader.check(f.path_str()).unwrap());
+    assert!(!reader.check(f.path()).unwrap());
     // writer 側からも消えている (Arc 共有)
-    assert!(!writer.check(f.path_str()).unwrap());
-}
-
-#[test]
-fn verify_or_invalidate_returns_true_when_unchanged() {
-    let writer = mem_writer();
-    let f = TempFile::new(b"stable");
-    writer.upsert_file(f.path_str()).unwrap();
-    assert!(writer.verify_or_invalidate(f.path_str()).unwrap());
-}
-
-#[test]
-fn verify_or_invalidate_returns_false_and_removes_on_change() {
-    let writer = mem_writer();
-    let f = TempFile::new(b"will change");
-    writer.upsert_file(f.path_str()).unwrap();
-
-    f.overwrite(b"changed content");
-    assert!(!writer.verify_or_invalidate(f.path_str()).unwrap());
-    assert!(
-        !writer
-            .list_paths()
-            .unwrap()
-            .contains(&f.path_str().to_string())
-    );
-}
-
-#[test]
-fn verify_or_invalidate_returns_true_for_unknown_path() {
-    // 登録されていないパスは「無効化する対象がない」= true
-    let writer = mem_writer();
-    assert!(writer.verify_or_invalidate("/nonexistent/path").unwrap());
+    assert!(!writer.check(f.path()).unwrap());
 }
 
 // ===========================================================================
@@ -207,26 +206,39 @@ fn verify_or_invalidate_returns_true_for_unknown_path() {
 // ===========================================================================
 
 #[test]
-fn delete_returns_true_for_existing_entry() {
+fn delete_returns_true_for_registered_file() {
     let writer = mem_writer();
     let f = TempFile::new(b"to delete");
-    writer.upsert_file(f.path_str()).unwrap();
-    assert!(writer.delete(f.path_str()).unwrap());
+    writer.refresh(f.path()).unwrap();
+    assert!(writer.delete(f.path()).unwrap());
 }
 
 #[test]
-fn delete_returns_false_for_unknown_path() {
+fn delete_returns_false_for_unregistered_file() {
     let writer = mem_writer();
-    assert!(!writer.delete("/not/registered").unwrap());
+    let f = TempFile::new(b"not registered");
+    // ファイルは存在するが DB に未登録
+    assert!(!writer.delete(f.path()).unwrap());
+}
+
+#[test]
+fn delete_on_nonexistent_file_returns_err() {
+    let writer = mem_writer();
+    // ファイルが存在しない → canonicalize 失敗 → Err
+    assert!(
+        writer
+            .delete(std::path::Path::new("/no/such/file"))
+            .is_err()
+    );
 }
 
 #[test]
 fn after_delete_check_returns_false() {
     let writer = mem_writer();
     let f = TempFile::new(b"delete me");
-    writer.upsert_file(f.path_str()).unwrap();
-    writer.delete(f.path_str()).unwrap();
-    assert!(!writer.check(f.path_str()).unwrap());
+    writer.refresh(f.path()).unwrap();
+    writer.delete(f.path()).unwrap();
+    assert!(!writer.check(f.path()).unwrap());
 }
 
 // ===========================================================================
@@ -235,8 +247,7 @@ fn after_delete_check_returns_false() {
 
 #[test]
 fn list_paths_empty_on_fresh_db() {
-    let writer = mem_writer();
-    assert!(writer.list_paths().unwrap().is_empty());
+    assert!(mem_writer().list_paths().unwrap().is_empty());
 }
 
 #[test]
@@ -246,11 +257,10 @@ fn list_paths_returns_all_registered_sorted() {
         .map(|i| TempFile::new(format!("f{i}").as_bytes()))
         .collect();
     for f in &files {
-        writer.upsert_file(f.path_str()).unwrap();
+        writer.refresh(f.path()).unwrap();
     }
     let paths = writer.list_paths().unwrap();
     assert_eq!(paths.len(), 5);
-    // ソート済みであることを確認
     let mut sorted = paths.clone();
     sorted.sort();
     assert_eq!(paths, sorted);
@@ -261,9 +271,9 @@ fn list_paths_decreases_after_delete() {
     let writer = mem_writer();
     let f1 = TempFile::new(b"a");
     let f2 = TempFile::new(b"b");
-    writer.upsert_file(f1.path_str()).unwrap();
-    writer.upsert_file(f2.path_str()).unwrap();
-    writer.delete(f1.path_str()).unwrap();
+    writer.refresh(f1.path()).unwrap();
+    writer.refresh(f2.path()).unwrap();
+    writer.delete(f1.path()).unwrap();
     assert_eq!(writer.list_paths().unwrap().len(), 1);
 }
 
@@ -275,25 +285,19 @@ fn list_paths_decreases_after_delete() {
 fn reader_sees_data_written_by_writer() {
     let writer = mem_writer();
     let f = TempFile::new(b"shared store test");
-    writer.upsert_file(f.path_str()).unwrap();
-
-    let reader = writer.as_reader();
-    assert!(reader.check(f.path_str()).unwrap());
+    writer.refresh(f.path()).unwrap();
+    assert!(writer.as_reader().check(f.path()).unwrap());
 }
 
 #[test]
 fn multiple_reader_clones_share_same_store() {
     let writer = mem_writer();
     let f = TempFile::new(b"clone test");
-    writer.upsert_file(f.path_str()).unwrap();
-
+    writer.refresh(f.path()).unwrap();
     let r1 = writer.as_reader();
     let r2 = r1.clone();
-    let r3 = r2.clone();
-
-    assert!(r1.check(f.path_str()).unwrap());
-    assert!(r2.check(f.path_str()).unwrap());
-    assert!(r3.check(f.path_str()).unwrap());
+    assert!(r1.check(f.path()).unwrap());
+    assert!(r2.check(f.path()).unwrap());
 }
 
 // ===========================================================================
@@ -304,99 +308,97 @@ fn multiple_reader_clones_share_same_store() {
 fn extension_migrate_creates_custom_table() {
     let writer = CacheWriter::<ScoreExtension>::open_in_memory().unwrap();
     let f = TempFile::new(b"scored file");
-    upsert_with_score(&writer, f.path_str(), 0.95);
-    assert_eq!(fetch_score(&writer, f.path_str()), Some(0.95));
+    upsert_score(&writer, f.path(), 0.95);
+    assert_eq!(fetch_score(&writer, f.path()), Some(0.95));
 }
 
 #[test]
-fn extension_score_updates_on_re_upsert() {
+fn extension_score_updates_on_re_refresh() {
     let writer = CacheWriter::<ScoreExtension>::open_in_memory().unwrap();
     let f = TempFile::new(b"update score");
-    upsert_with_score(&writer, f.path_str(), 0.5);
-    upsert_with_score(&writer, f.path_str(), 0.99);
-    assert_eq!(fetch_score(&writer, f.path_str()), Some(0.99));
+    upsert_score(&writer, f.path(), 0.5);
+    upsert_score(&writer, f.path(), 0.99);
+    assert_eq!(fetch_score(&writer, f.path()), Some(0.99));
 }
 
 #[test]
-fn extension_cascade_delete_removes_score() {
+fn extension_cascade_delete_on_explicit_delete() {
     let writer = CacheWriter::<ScoreExtension>::open_in_memory().unwrap();
     let f = TempFile::new(b"cascade test");
-    upsert_with_score(&writer, f.path_str(), 0.7);
-    writer.delete(f.path_str()).unwrap();
-    assert_eq!(fetch_score(&writer, f.path_str()), None);
+    upsert_score(&writer, f.path(), 0.7);
+    writer.delete(f.path()).unwrap();
+    assert_eq!(fetch_score(&writer, f.path()), None);
 }
 
 #[test]
-fn extension_cascade_delete_on_file_change() {
+fn extension_cascade_delete_on_file_change_via_check() {
     let writer = CacheWriter::<ScoreExtension>::open_in_memory().unwrap();
     let f = TempFile::new(b"original");
-    upsert_with_score(&writer, f.path_str(), 0.8);
-
+    upsert_score(&writer, f.path(), 0.8);
     f.overwrite(b"modified");
-    // check() が変更を検出して files を削除 → scores も CASCADE 削除
-    assert!(!writer.check(f.path_str()).unwrap());
-    assert_eq!(fetch_score(&writer, f.path_str()), None);
-}
-
-// ===========================================================================
-// oneshot — ファイルベース DB への永続化
-// ===========================================================================
-
-#[test]
-fn oneshot_data_persists_across_instances() {
-    let db = tempfile::NamedTempFile::new().unwrap();
-    let loc = DbLocation::Custom(db.path().to_path_buf());
-    let f = TempFile::new(b"persist test");
-
-    // 1 つ目のインスタンスで書き込む
-    CacheWriter::<NoExtension>::oneshot(loc.clone(), None)
-        .unwrap()
-        .upsert_file(f.path_str())
-        .unwrap();
-
-    // 別インスタンスで読み取れる
-    let found = CacheWriter::<NoExtension>::oneshot(loc, None)
-        .unwrap()
-        .check(f.path_str())
-        .unwrap();
-    assert!(found);
+    // check() が変更を検出 → files 削除 → scores も CASCADE 削除
+    assert!(!writer.check(f.path()).unwrap());
+    assert_eq!(fetch_score(&writer, f.path()), None);
 }
 
 #[test]
-fn reader_oneshot_reads_persisted_data() {
+fn extension_cascade_delete_on_file_change_via_refresh() {
+    let writer = CacheWriter::<ScoreExtension>::open_in_memory().unwrap();
+    let f = TempFile::new(b"original");
+    upsert_score(&writer, f.path(), 0.6);
+    f.overwrite(b"modified");
+    // refresh() が変更を検出 → 旧 files 削除 → scores も CASCADE 削除
+    // 新しい id を返すので、新しい scores はまだ空
+    let new_id = writer.refresh(f.path()).unwrap();
+    assert!(new_id > 0);
+    assert_eq!(fetch_score(&writer, f.path()), None);
+}
+
+// ===========================================================================
+// onetime — ファイルベース DB への永続化
+// ===========================================================================
+
+#[test]
+fn onetime_data_persists_across_instances() {
     let db = tempfile::NamedTempFile::new().unwrap();
     let loc = DbLocation::Custom(db.path().to_path_buf());
-    let f = TempFile::new(b"reader oneshot");
+    let file = TempFile::new(b"persist test");
 
-    CacheWriter::<NoExtension>::oneshot(loc.clone(), None)
+    CacheWriter::<NoExtension>::onetime(loc.clone())
         .unwrap()
-        .upsert_file(f.path_str())
+        .refresh(file.path())
         .unwrap();
 
-    let found = CacheReader::<NoExtension>::oneshot(loc)
+    assert!(
+        CacheWriter::<NoExtension>::onetime(loc)
+            .unwrap()
+            .check(file.path())
+            .unwrap()
+    );
+}
+
+#[test]
+fn reader_onetime_reads_persisted_data() {
+    let db = tempfile::NamedTempFile::new().unwrap();
+    let loc = DbLocation::Custom(db.path().to_path_buf());
+    let file = TempFile::new(b"reader onetime");
+
+    CacheWriter::<NoExtension>::onetime(loc.clone())
         .unwrap()
-        .check(f.path_str())
+        .refresh(file.path())
         .unwrap();
-    assert!(found);
+
+    assert!(
+        CacheReader::<NoExtension>::onetime(loc)
+            .unwrap()
+            .check(file.path())
+            .unwrap()
+    );
 }
 
 // ===========================================================================
 // as_session — CacheConfig の各フィールド
 // ===========================================================================
-
-#[test]
-fn as_session_with_explicit_read_conns() {
-    let db = tempfile::NamedTempFile::new().unwrap();
-    let writer = CacheWriter::<NoExtension>::as_session(CacheConfig {
-        db_location: DbLocation::Custom(db.path().to_path_buf()),
-        read_conns: 4,
-        thumbnail_dir: None,
-    })
-    .unwrap();
-    let f = TempFile::new(b"session test");
-    writer.upsert_file(f.path_str()).unwrap();
-    assert!(writer.check(f.path_str()).unwrap());
-}
 
 #[test]
 fn as_session_with_thumbnail_dir_sets_path() {
@@ -409,9 +411,9 @@ fn as_session_with_thumbnail_dir_sets_path() {
     })
     .unwrap();
 
-    let f = TempFile::new(b"thumb test");
-    let file_id = writer.upsert_file(f.path_str()).unwrap();
-    let path = writer.thumbnail_path(file_id, "jpg").unwrap();
+    let file = TempFile::new(b"thumb test");
+    let id = writer.refresh(file.path()).unwrap();
+    let path = writer.thumbnail_path(id, "jpg").unwrap();
 
     assert!(path.starts_with(thumb_dir.path()));
     assert_eq!(path.extension().and_then(|e| e.to_str()), Some("jpg"));
@@ -420,30 +422,14 @@ fn as_session_with_thumbnail_dir_sets_path() {
 #[test]
 fn thumbnail_path_returns_none_when_dir_not_configured() {
     let writer = mem_writer();
-    let f = TempFile::new(b"no thumb dir");
-    let file_id = writer.upsert_file(f.path_str()).unwrap();
-    assert!(writer.thumbnail_path(file_id, "jpg").is_none());
+    let file = TempFile::new(b"no thumb dir");
+    let id = writer.refresh(file.path()).unwrap();
+    assert!(writer.thumbnail_path(id, "jpg").is_none());
 }
 
 // ===========================================================================
 // CacheWrite / CacheRead trait 経由の呼び出し
 // ===========================================================================
-
-/// trait オブジェクト経由で Writer を操作できることを確認する。
-fn exercise_writer<W>(writer: &W, path: &str)
-where
-    W: CacheWrite,
-    W::Reader: CacheRead,
-{
-    let file_id_result = CacheWriter::<NoExtension>::open_in_memory()
-        .unwrap()
-        .upsert_file(path);
-    // trait 経由では upsert_file は呼べないが、delete / verify / list はできる
-    let _ = writer.list_paths().unwrap();
-    let _ = writer.verify_or_invalidate(path).unwrap();
-    let _ = writer.delete(path).unwrap();
-    drop(file_id_result);
-}
 
 #[test]
 fn cache_write_trait_methods_work() {
@@ -454,92 +440,199 @@ fn cache_write_trait_methods_work() {
         thumbnail_dir: None,
     })
     .unwrap();
-    let f = TempFile::new(b"trait test");
-    writer.upsert_file(f.path_str()).unwrap();
-    exercise_writer(&writer, f.path_str());
+    let file = TempFile::new(b"trait test");
+    writer.refresh(file.path()).unwrap();
+
+    let _ = writer.list_paths().unwrap();
+    let _ = writer.delete(file.path()).unwrap();
 }
 
 #[test]
 fn cache_read_trait_check_via_reader() {
     let writer = mem_writer();
-    let f = TempFile::new(b"read trait test");
-    writer.upsert_file(f.path_str()).unwrap();
+    let file = TempFile::new(b"read trait test");
+    writer.refresh(file.path()).unwrap();
 
     let reader: &dyn CacheRead = &writer.as_reader();
-    assert!(reader.check(f.path_str()).unwrap());
+    assert!(reader.check(file.path()).unwrap());
     assert_eq!(reader.list_paths().unwrap().len(), 1);
 }
 
 // ===========================================================================
-// rayon 並列 check
+// スレッド並列 check
 // ===========================================================================
 
 #[test]
-fn parallel_check_with_rayon() {
-    use std::sync::Arc;
-
+fn parallel_check_with_threads() {
     let db = tempfile::NamedTempFile::new().unwrap();
-    let writer = Arc::new(
-        CacheWriter::<NoExtension>::as_session(CacheConfig {
-            db_location: DbLocation::Custom(db.path().to_path_buf()),
-            read_conns: 8,
-            thumbnail_dir: None,
-        })
-        .unwrap(),
-    );
+    let writer = CacheWriter::<NoExtension>::as_session(CacheConfig {
+        db_location: DbLocation::Custom(db.path().to_path_buf()),
+        read_conns: 8,
+        thumbnail_dir: None,
+    })
+    .unwrap();
 
     let files: Vec<_> = (0..16)
         .map(|i| TempFile::new(format!("parallel {i}").as_bytes()))
         .collect();
     for f in &files {
-        writer.upsert_file(f.path_str()).unwrap();
+        writer.refresh(f.path()).unwrap();
     }
 
     let reader = writer.as_reader();
-    // rayon の並列イテレータで全ファイルを check する
-    let results: Vec<bool> = {
-        use std::sync::Mutex;
-        let acc = Mutex::new(Vec::new());
-        std::thread::scope(|s| {
-            let handles: Vec<_> = files
-                .iter()
-                .map(|f| {
-                    let r = reader.clone();
-                    let path = f.path_str().to_string();
-                    s.spawn(move || r.check(&path).unwrap())
+    let results = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+
+    std::thread::scope(|s| {
+        let handles: Vec<_> = files
+            .iter()
+            .map(|f| {
+                let r = reader.clone();
+                let path = f.path.clone();
+                let res = results.clone();
+                s.spawn(move || {
+                    let ok = r.check(&path).unwrap();
+                    res.lock().unwrap().push(ok);
                 })
-                .collect();
-            for h in handles {
-                acc.lock().unwrap().push(h.join().unwrap());
-            }
-        });
-        acc.into_inner().unwrap()
-    };
+            })
+            .collect();
+        for h in handles {
+            h.join().unwrap();
+        }
+    });
 
-    assert!(
-        results.iter().all(|&ok| ok),
-        "全スレッドで check が true であること"
-    );
+    assert!(results.lock().unwrap().iter().all(|&ok| ok));
 }
 
 // ===========================================================================
-// DbLocation のパス解決
+// refresh_all
 // ===========================================================================
 
 #[test]
-fn db_location_custom_uses_given_path() {
-    let db = tempfile::NamedTempFile::new().unwrap();
-    let loc = DbLocation::Custom(db.path().to_path_buf());
-    // 指定パスに DB が開けること (エラーなし)
-    CacheWriter::<NoExtension>::oneshot(loc, None).unwrap();
+fn refresh_all_registers_all_files() {
+    let writer = mem_writer();
+    let files: Vec<_> = (0..5)
+        .map(|i| TempFile::new(format!("batch {i}").as_bytes()))
+        .collect();
+    let paths: Vec<&std::path::Path> = files.iter().map(|f| f.path()).collect();
+
+    let results = writer.refresh_all(&paths);
+
+    assert_eq!(results.len(), 5);
+    for (_, r) in &results {
+        assert!(r.is_ok(), "{r:?}");
+    }
+    // 全て異なる id
+    let ids: Vec<i64> = results.into_iter().map(|(_, r)| r.unwrap()).collect();
+    let unique: std::collections::HashSet<_> = ids.iter().collect();
+    assert_eq!(unique.len(), 5);
 }
 
 #[test]
-fn db_location_workdir_custom_filename() {
-    // WorkDir(Some("test_cache.db")) は ./test_cache.db に作成される
-    // テスト後に削除
-    let loc = DbLocation::WorkDir(Some("__test_workdir_cache.db".to_string()));
-    let result = CacheWriter::<NoExtension>::oneshot(loc, None);
-    let _ = std::fs::remove_file("./__test_workdir_cache.db");
-    assert!(result.is_ok());
+fn refresh_all_partial_failure_continues() {
+    let writer = mem_writer();
+    let good = TempFile::new(b"good file");
+    let bad = std::path::Path::new("/no/such/file");
+
+    let results = writer.refresh_all(&[good.path(), bad]);
+
+    assert_eq!(results.len(), 2);
+    assert!(results[0].1.is_ok());
+    assert!(results[1].1.is_err());
+}
+
+#[test]
+fn refresh_all_is_idempotent_for_unchanged_files() {
+    let writer = mem_writer();
+    let files: Vec<_> = (0..3)
+        .map(|i| TempFile::new(format!("idem {i}").as_bytes()))
+        .collect();
+    let paths: Vec<&std::path::Path> = files.iter().map(|f| f.path()).collect();
+
+    let first: Vec<i64> = writer
+        .refresh_all(&paths)
+        .into_iter()
+        .map(|(_, r)| r.unwrap())
+        .collect();
+    let second: Vec<i64> = writer
+        .refresh_all(&paths)
+        .into_iter()
+        .map(|(_, r)| r.unwrap())
+        .collect();
+    assert_eq!(first, second);
+}
+
+#[test]
+fn refresh_all_detects_file_change_and_returns_new_id() {
+    let writer = mem_writer();
+    let file = TempFile::new(b"original");
+    let paths = [file.path()];
+
+    let id1 = writer.refresh_all(&paths).remove(0).1.unwrap();
+    file.overwrite(b"modified");
+    let id2 = writer.refresh_all(&paths).remove(0).1.unwrap();
+    assert_ne!(id1, id2);
+}
+
+// ===========================================================================
+// check_all
+// ===========================================================================
+
+#[test]
+fn check_all_returns_true_for_registered_files() {
+    let writer = mem_writer();
+    let files: Vec<_> = (0..4)
+        .map(|i| TempFile::new(format!("ca {i}").as_bytes()))
+        .collect();
+    let paths: Vec<&std::path::Path> = files.iter().map(|f| f.path()).collect();
+    for p in &paths {
+        writer.refresh(p).unwrap();
+    }
+
+    let results = writer.check_all(&paths);
+    assert!(results.iter().all(|(_, r)| *r.as_ref().unwrap()));
+}
+
+#[test]
+fn check_all_returns_false_for_unregistered_files() {
+    let writer = mem_writer();
+    let files: Vec<_> = (0..3)
+        .map(|i| TempFile::new(format!("unreg {i}").as_bytes()))
+        .collect();
+    let paths: Vec<&std::path::Path> = files.iter().map(|f| f.path()).collect();
+
+    let results = writer.check_all(&paths);
+    assert!(results.iter().all(|(_, r)| !r.as_ref().unwrap()));
+}
+
+#[test]
+fn check_all_mixed_registered_and_unregistered() {
+    let writer = mem_writer();
+    let reg = TempFile::new(b"registered");
+    let unreg = TempFile::new(b"unregistered");
+    writer.refresh(reg.path()).unwrap();
+
+    let results = writer.check_all(&[reg.path(), unreg.path()]);
+    assert_eq!(results.len(), 2);
+    // reg.path が先なので results[0] が true, results[1] が false
+    // ただし順序は paths スライスに従う
+    let map: std::collections::HashMap<_, _> =
+        results.into_iter().map(|(p, r)| (p, r.unwrap())).collect();
+    assert!(map[&reg.path().to_path_buf()]);
+    assert!(!map[&unreg.path().to_path_buf()]);
+}
+
+#[test]
+fn check_all_via_reader() {
+    let writer = mem_writer();
+    let files: Vec<_> = (0..4)
+        .map(|i| TempFile::new(format!("reader_ca {i}").as_bytes()))
+        .collect();
+    let paths: Vec<&std::path::Path> = files.iter().map(|f| f.path()).collect();
+    for p in &paths {
+        writer.refresh(p).unwrap();
+    }
+
+    let reader = writer.as_reader();
+    let results = reader.check_all(&paths);
+    assert!(results.iter().all(|(_, r)| *r.as_ref().unwrap()));
 }

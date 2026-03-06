@@ -1,7 +1,0 @@
-[package]
-name = "arama-repr"
-version = "0.12.7"
-edition = "2024"
-
-[dependencies]
-thiserror = { workspace = true }

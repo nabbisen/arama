@@ -1,14 +1,15 @@
 //! サムネイル生成ロジック。
 //!
-//! - 画像: `image` クレートでリサイズ (224×224 JPEG)
-//! - 動画: ffmpeg で 5 秒時点のフレームを抽出。失敗時は 0 秒にフォールバック。
+//! - **画像**: `image` クレートでリサイズ (224×224 JPEG)
+//! - **動画**: `ffmpeg` コマンドで 5 秒時点のフレームを抽出。
+//!             失敗した場合は 0 秒にフォールバックする。
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use file_feature_cache::error::{CacheError, Result};
+use file_feature_cache::CacheError;
 
-/// CLIP モデルの標準入力サイズ
+/// CLIP モデルの標準入力サイズ (px)。
 const THUMBNAIL_SIZE: u32 = 224;
 
 // ---------------------------------------------------------------------------
@@ -16,7 +17,13 @@ const THUMBNAIL_SIZE: u32 = 224;
 // ---------------------------------------------------------------------------
 
 /// 画像ファイルからサムネイルを生成して `dest` に保存する。
-pub fn generate_image_thumbnail(src: &Path, dest: &Path) -> Result<()> {
+///
+/// - フォーマット: JPEG
+/// - サイズ: `THUMBNAIL_SIZE` × `THUMBNAIL_SIZE` (224 × 224)
+/// - リサイズフィルタ: Lanczos3
+pub(crate) fn generate_image_thumbnail(src: &Path, dest: &Path) -> Result<(), CacheError> {
+    ensure_parent(dest)?;
+
     let img = image::open(src).map_err(|e| CacheError::ThumbnailGenerationFailed(e.to_string()))?;
 
     let thumb = img.resize(
@@ -25,16 +32,10 @@ pub fn generate_image_thumbnail(src: &Path, dest: &Path) -> Result<()> {
         image::imageops::FilterType::Lanczos3,
     );
 
-    if let Some(parent) = dest.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| CacheError::Io {
-            path: parent.to_string_lossy().into_owned(),
-            source: e,
-        })?;
-    }
-
     thumb
         .save(dest)
         .map_err(|e| CacheError::ThumbnailGenerationFailed(e.to_string()))?;
+
     Ok(())
 }
 
@@ -45,14 +46,13 @@ pub fn generate_image_thumbnail(src: &Path, dest: &Path) -> Result<()> {
 /// 動画ファイルからサムネイルを生成して `dest` に保存する。
 ///
 /// 5 秒時点のフレームを試み、失敗した場合は 0 秒にフォールバックする。
-/// どちらも失敗した場合は `Err` を返す。
-pub fn generate_video_thumbnail(src: &Path, dest: &Path, ffmpeg_path: &Path) -> Result<()> {
-    if let Some(parent) = dest.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| CacheError::Io {
-            path: parent.to_string_lossy().into_owned(),
-            source: e,
-        })?;
-    }
+/// どちらも失敗した場合は `Err(CacheError::ThumbnailGenerationFailed)` を返す。
+pub(crate) fn generate_video_thumbnail(
+    src: &Path,
+    dest: &Path,
+    ffmpeg_path: &Path,
+) -> Result<(), CacheError> {
+    ensure_parent(dest)?;
 
     // 5 秒時点を試みる
     if run_ffmpeg(ffmpeg_path, src, dest, "00:00:05").is_ok() && dest.exists() {
@@ -70,8 +70,13 @@ pub fn generate_video_thumbnail(src: &Path, dest: &Path, ffmpeg_path: &Path) -> 
     )))
 }
 
-fn run_ffmpeg(ffmpeg_path: &Path, src: &Path, dest: &Path, timestamp: &str) -> Result<()> {
-    let status = Command::new(ffmpeg_path)
+fn run_ffmpeg(
+    ffmpeg_path: &Path,
+    src: &Path,
+    dest: &Path,
+    timestamp: &str,
+) -> Result<(), CacheError> {
+    let output = Command::new(ffmpeg_path)
         .args([
             "-ss",
             timestamp,
@@ -83,17 +88,17 @@ fn run_ffmpeg(ffmpeg_path: &Path, src: &Path, dest: &Path, timestamp: &str) -> R
             &format!(
                 "scale={THUMBNAIL_SIZE}:{THUMBNAIL_SIZE}:force_original_aspect_ratio=decrease"
             ),
-            "-y", // 上書き許可
+            "-y", // 既存ファイルを上書き
             dest.to_str().unwrap_or(""),
         ])
         .output()
         .map_err(|e| CacheError::ThumbnailGenerationFailed(e.to_string()))?;
 
-    if status.status.success() {
+    if output.status.success() {
         Ok(())
     } else {
         Err(CacheError::ThumbnailGenerationFailed(
-            String::from_utf8_lossy(&status.stderr).to_string(),
+            String::from_utf8_lossy(&output.stderr).to_string(),
         ))
     }
 }
@@ -102,8 +107,18 @@ fn run_ffmpeg(ffmpeg_path: &Path, src: &Path, dest: &Path, timestamp: &str) -> R
 // 共通ユーティリティ
 // ---------------------------------------------------------------------------
 
-/// サムネイルの保存先パスを決定する。
-/// `<thumbnail_dir>/<file_id>.jpg`
-pub fn thumbnail_dest(thumbnail_dir: &Path, file_id: i64) -> PathBuf {
+/// サムネイルの保存先パスを決定する: `<thumbnail_dir>/<file_id>.jpg`
+pub(crate) fn thumbnail_dest(thumbnail_dir: &Path, file_id: i64) -> PathBuf {
     thumbnail_dir.join(format!("{file_id}.jpg"))
+}
+
+/// 親ディレクトリを作成する。
+fn ensure_parent(path: &Path) -> Result<(), CacheError> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| CacheError::Io {
+            path: parent.to_string_lossy().into_owned(),
+            source: e,
+        })?;
+    }
+    Ok(())
 }
