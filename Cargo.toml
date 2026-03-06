@@ -3,14 +3,12 @@ members = [
     "app",
     "crates/ai",
     "crates/cache",
-    "crates/engine/repr",
     "crates/engine/sidecar",
-    "crates/engine/storage",
     "crates/ui/layout",
     "crates/ui/main",
     "crates/ui/widgets",
     "env",
-    "crates/engine/file-feature-cache",
+    "crates/engine/file-feature-cache", # todo: publish as crate
 ]
 resolver = "3"
 
@@ -35,11 +33,9 @@ arama-ui-layout = { path = "crates/ui/layout" }
 arama-ui-main = { path = "crates/ui/main" }
 arama-ui-widgets = { path = "crates/ui/widgets" }
 
-arama-repr = { path = "crates/engine/repr" }
 arama-sidecar = { path = "crates/engine/sidecar" }
-arama-storage = { path = "crates/engine/storage" }
 
-# todo: register as crate
+# todo: publish as crate
 file-feature-cache = { path = "crates/engine/file-feature-cache" }
 
 iced = { version = "0.14", features = ["image", "tokio"] }

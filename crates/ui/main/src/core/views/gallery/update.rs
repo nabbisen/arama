@@ -1,6 +1,10 @@
+use std::{path::PathBuf, sync::Arc};
+
 use arama_ai::{
     model::model_container::clip, pipeline::encode::image::embeddings::image_embedding,
 };
+use arama_cache::{CacheError, ImageCacheWriter, UpsertImageRequest};
+use arama_env::cache_storage_path;
 // use app_json_settings::ConfigManager;
 // use arama_widget::dir_tree;
 use iced::Task;
@@ -19,15 +23,27 @@ use super::{
 impl Gallery {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::ImageCached(err) => {
-                if 0 < err.len() {
+            Message::ImageCached(ret) => {
+                let errors: Vec<_> = ret.iter().filter(|x| x.1.is_err()).collect();
+                if 0 < errors.len() {
                     // todo error handling
-                    eprintln!("{}", err.join("\n"));
+                    eprintln!(
+                        "{}",
+                        errors
+                            .into_iter()
+                            .map(|x| format!("{:?}", x.1))
+                            .collect::<Vec<String>>()
+                            .join("\n")
+                    );
                 }
 
                 if clip::model().ready().unwrap_or(false) {
                     Task::perform(
-                        image_embedding(self.dir_node.clone().unwrap()),
+                        async {
+                            image_embedding(ret.into_iter().map(|x| x.0).collect())
+                                .await
+                                .expect("failed to get embedding")
+                        },
                         super::message::Message::EmbeddingCached,
                     )
                 } else {
@@ -93,7 +109,25 @@ impl Gallery {
             Message::DirSelect(dir_node) => {
                 self.dir_node = Some(dir_node.clone());
                 Task::perform(
-                    self.cache_producer.clone().refresh(dir_node),
+                    async move {
+                        let writer = ImageCacheWriter::onetime(arama_cache::DbLocation::Custom(
+                            cache_storage_path().expect("failed to get cache stogate path"),
+                        ))
+                        // todo: error handling
+                        .expect("failed to get cache writer");
+                        let requests: Vec<UpsertImageRequest> = dir_node
+                            .flatten_paths()
+                            .iter()
+                            .map(|x| UpsertImageRequest {
+                                path: x.to_path_buf(),
+                                clip_vector: None,
+                            })
+                            .collect();
+                        let ret = writer.upsert_all(requests);
+                        ret.into_iter()
+                            .map(|x| (x.0, Arc::new(x.1)))
+                            .collect::<Vec<(PathBuf, Arc<arama_cache::Result<()>>)>>()
+                    },
                     Message::ImageCached,
                 )
             }

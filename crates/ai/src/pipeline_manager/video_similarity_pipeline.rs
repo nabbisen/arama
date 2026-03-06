@@ -4,6 +4,7 @@ use candle_core::Device;
 
 use crate::{
     config::video_similarity_config::VideoSimilarityConfig,
+    model::model_manager::ModelManager,
     pipeline::{
         encode::{
             audio::{AudioEncoder, whisper_encoder::WhisperEncoder},
@@ -27,14 +28,11 @@ pub struct VideoSimilarityPipeline {
 }
 
 impl VideoSimilarityPipeline {
-    pub fn new(
-        cfg: VideoSimilarityConfig,
-        device: Device,
-        // db_path: &Path,
-        // whisper_model: WhisperModel,
-    ) -> anyhow::Result<Self> {
+    pub fn new(cfg: VideoSimilarityConfig) -> anyhow::Result<Self> {
+        let device = ModelManager::device();
+
         let clip_encoder = ClipEncoder::load(device.clone())?;
-        let audio_encoder = WhisperEncoder::load(device.clone())?;
+        let audio_encoder = WhisperEncoder::load(device)?;
         let calculator = VideoSimilarityCalculator::new(
             cfg.image_weight,
             cfg.audio_weight,

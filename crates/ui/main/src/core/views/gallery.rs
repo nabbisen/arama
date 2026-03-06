@@ -1,7 +1,9 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
-use arama_cache::CacheProducer;
-use arama_env::{IMAGE_EXTENSION_ALLOWLIST, MAX_THUMBNAIL_SIZE, VIDEO_EXTENSION_ALLOWLIST};
+use arama_cache::{ImageCacheWriter, UpsertImageRequest};
+use arama_env::{
+    IMAGE_EXTENSION_ALLOWLIST, MAX_THUMBNAIL_SIZE, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path,
+};
 use iced::Task;
 // use iced::Task;
 use swdir::{DirNode, Swdir};
@@ -22,7 +24,6 @@ const SPACING: u16 = 10;
 pub struct Gallery {
     dir_node: Option<DirNode>,
     pub gallery_settings: GallerySettings,
-    cache_producer: CacheProducer,
 }
 
 impl Gallery {
@@ -46,17 +47,33 @@ impl Gallery {
         Ok(Self {
             dir_node: Some(dir_node),
             gallery_settings: GallerySettings::default(),
-            cache_producer: CacheProducer::new(
-                MAX_THUMBNAIL_SIZE as u32,
-                MAX_THUMBNAIL_SIZE as u32,
-            )?,
         })
     }
 
     pub fn default_task(&self) -> Task<message::Message> {
         if let Some(dir_node) = self.dir_node.as_ref() {
+            let dir_node = dir_node.clone();
             Task::perform(
-                self.cache_producer.clone().refresh(dir_node.clone()),
+                // self.cache_producer.clone().refresh(dir_node.clone()),
+                async move {
+                    let writer = ImageCacheWriter::onetime(arama_cache::DbLocation::Custom(
+                        cache_storage_path().expect("failed to get cache stogate path"),
+                    ))
+                    // todo: error handling
+                    .expect("failed to get cache writer");
+                    let requests: Vec<UpsertImageRequest> = dir_node
+                        .flatten_paths()
+                        .iter()
+                        .map(|x| UpsertImageRequest {
+                            path: x.to_path_buf(),
+                            clip_vector: None,
+                        })
+                        .collect();
+                    let ret = writer.upsert_all(requests);
+                    ret.into_iter()
+                        .map(|x| (x.0, Arc::new(x.1)))
+                        .collect::<Vec<(PathBuf, Arc<arama_cache::Result<()>>)>>()
+                },
                 message::Message::ImageCached,
             )
         } else {

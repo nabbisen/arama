@@ -244,9 +244,9 @@ name = "arama-cache"
 version = "0.12.7"
 dependencies = [
  "anyhow",
- "arama-repr",
  "file-feature-cache",
  "image",
+ "rayon",
  "rusqlite",
  "tempfile",
 ]
@@ -259,28 +259,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "arama-repr"
-version = "0.12.7"
-dependencies = [
- "thiserror 2.0.18",
-]
-
-[[package]]
 name = "arama-sidecar"
 version = "0.12.7"
 dependencies = [
  "anyhow",
  "arama-env",
  "ffmpeg-sidecar",
-]
-
-[[package]]
-name = "arama-storage"
-version = "0.12.7"
-dependencies = [
- "anyhow",
- "arama-env",
- "rusqlite",
 ]
 
 [[package]]

@@ -1,4 +1,4 @@
-//! `CacheStore` — コネクションプール・設定・DB ヘルパー関数を一元管理するコア。
+//! `CacheStore` — コネクションプール・設定・DB ヘルパーを一元管理するコア。
 
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
@@ -9,28 +9,28 @@ use rusqlite::{OpenFlags, OptionalExtension};
 
 use crate::core::extension::CacheExtension;
 use crate::core::identity::{FileFingerprint, HashStrategy, compute, matches_stored};
-use crate::core::schema::initialize;
 use crate::error::{CacheError, Result};
+use crate::schema::initialize;
 
 // ---------------------------------------------------------------------------
 // DbLocation
 // ---------------------------------------------------------------------------
 
-/// DB ファイルの場所を表す。
+/// DB ファイルの場所を指定する。
 #[derive(Debug, Clone)]
 pub enum DbLocation {
     /// パスを完全に指定する。
     Custom(PathBuf),
 
-    /// XDG キャッシュディレクトリを使う。
+    /// XDG キャッシュディレクトリ (`$XDG_CACHE_HOME/<app>/<name>`) を使う。
     ///
-    /// アプリ名は `std::env::current_exe()` で実行時に自動取得する。
-    /// `file_name` が `None` の場合は `cache.db`。
+    /// `name` が `None` の場合は `cache.db`。
+    /// アプリ名は実行ファイル名から自動取得する。
     AppCache(Option<String>),
 
-    /// 実行ディレクトリに作成する (デフォルト)。
+    /// カレントディレクトリ (`./<name>`) に作成する。
     ///
-    /// `file_name` が `None` の場合は `cache.db`。
+    /// `name` が `None` の場合は `cache.db`。
     WorkDir(Option<String>),
 }
 
@@ -41,11 +41,11 @@ impl Default for DbLocation {
 }
 
 impl DbLocation {
-    pub(crate) fn resolve(&self) -> PathBuf {
+    pub fn resolve(&self) -> PathBuf {
         match self {
             Self::Custom(p) => p.clone(),
 
-            Self::AppCache(file_name) => {
+            Self::AppCache(name) => {
                 let base = std::env::var("XDG_CACHE_HOME")
                     .map(PathBuf::from)
                     .unwrap_or_else(|_| {
@@ -57,13 +57,11 @@ impl DbLocation {
                     .ok()
                     .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned()))
                     .unwrap_or_else(|| "app".to_string());
-                let name = file_name.as_deref().unwrap_or("cache.db");
-                base.join(app).join(name)
+                base.join(app).join(name.as_deref().unwrap_or("cache.db"))
             }
 
-            Self::WorkDir(file_name) => {
-                let name = file_name.as_deref().unwrap_or("cache.db");
-                PathBuf::from(format!("./{name}"))
+            Self::WorkDir(name) => {
+                PathBuf::from(format!("./{}", name.as_deref().unwrap_or("cache.db")))
             }
         }
     }
@@ -73,15 +71,13 @@ impl DbLocation {
 // CacheConfig
 // ---------------------------------------------------------------------------
 
-/// [`CacheWriter::as_session`] に渡す設定。
+/// セッション開始時に渡す設定。
 #[derive(Debug, Clone)]
 pub struct CacheConfig {
-    /// DB ファイルの場所。
     pub db_location: DbLocation,
-    /// 読み取りプールのコネクション数。
+    /// 読み取りプールのコネクション数。rayon 等の並列スレッド数に合わせて設定する。
     pub read_conns: u32,
-    /// サムネイルファイルを格納するディレクトリ。
-    /// `None` の場合はサムネイル管理を行わない。
+    /// サムネイルファイルを格納するディレクトリ。`None` の場合は管理しない。
     pub thumbnail_dir: Option<PathBuf>,
 }
 
@@ -110,12 +106,19 @@ pub struct CacheStore<E: CacheExtension> {
     read_pool: Pool<SqliteConnectionManager>,
     write_pool: Pool<SqliteConnectionManager>,
     pub config: CacheConfig,
+    hash_strategy: HashStrategy,
     _ext: PhantomData<E>,
 }
 
 impl<E: CacheExtension> CacheStore<E> {
-    pub fn open(path: &Path, config: CacheConfig) -> Result<Self> {
-        let write_manager = SqliteConnectionManager::file(path)
+    pub fn open(db_path: &Path, config: CacheConfig) -> Result<Self> {
+        if let Some(parent) = db_path.parent() {
+            if !parent.as_os_str().is_empty() {
+                std::fs::create_dir_all(parent).map_err(|e| CacheError::io(parent, e))?;
+            }
+        }
+
+        let write_manager = SqliteConnectionManager::file(db_path)
             .with_flags(
                 OpenFlags::SQLITE_OPEN_READ_WRITE
                     | OpenFlags::SQLITE_OPEN_CREATE
@@ -124,39 +127,40 @@ impl<E: CacheExtension> CacheStore<E> {
             .with_init(|c| {
                 c.execute_batch(
                     "PRAGMA journal_mode = WAL;
-                 PRAGMA foreign_keys = ON;
-                 PRAGMA synchronous   = NORMAL;
-                 PRAGMA busy_timeout  = 5000;",
+                     PRAGMA foreign_keys = ON;
+                     PRAGMA synchronous   = NORMAL;
+                     PRAGMA busy_timeout  = 5000;",
                 )
             });
 
         let write_pool = Pool::builder()
             .max_size(1)
             .build(write_manager)
-            .map_err(CacheError::from_pool)?;
+            .map_err(CacheError::pool)?;
 
         {
-            let conn = write_pool.get().map_err(CacheError::from_pool)?;
+            let conn = write_pool.get().map_err(CacheError::pool)?;
             initialize::<E>(&conn)?;
         }
 
-        let read_manager = SqliteConnectionManager::file(path)
+        let read_manager = SqliteConnectionManager::file(db_path)
             .with_flags(OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI)
             .with_init(|c| {
                 c.execute_batch(
                     "PRAGMA journal_mode = WAL;
-                 PRAGMA foreign_keys = ON;",
+                     PRAGMA foreign_keys = ON;",
                 )
             });
 
         let read_pool = Pool::builder()
             .max_size(config.read_conns.max(1))
             .build(read_manager)
-            .map_err(CacheError::from_pool)?;
+            .map_err(CacheError::pool)?;
 
         Ok(Self {
             read_pool,
             write_pool,
+            hash_strategy: HashStrategy::default(),
             config,
             _ext: PhantomData,
         })
@@ -173,43 +177,59 @@ impl<E: CacheExtension> CacheStore<E> {
         let pool = Pool::builder()
             .max_size(1)
             .build(manager)
-            .map_err(CacheError::from_pool)?;
+            .map_err(CacheError::pool)?;
 
         {
-            let conn = pool.get().map_err(CacheError::from_pool)?;
+            let conn = pool.get().map_err(CacheError::pool)?;
             initialize::<E>(&conn)?;
         }
 
         Ok(Self {
             read_pool: pool.clone(),
             write_pool: pool,
+            hash_strategy: HashStrategy::default(),
             config,
             _ext: PhantomData,
         })
     }
 
     pub fn read(&self) -> Result<ReadConn> {
-        self.read_pool.get().map_err(CacheError::from_pool)
+        self.read_pool.get().map_err(CacheError::pool)
     }
 
     pub fn write(&self) -> Result<WriteConn> {
-        self.write_pool.get().map_err(CacheError::from_pool)
+        self.write_pool.get().map_err(CacheError::pool)
     }
 }
 
 // ---------------------------------------------------------------------------
-// DB ヘルパー関数 — files テーブル
+// canonical_str — DB キーへの変換 (crate 内で唯一の canonicalize 呼び出し箇所)
 // ---------------------------------------------------------------------------
 
-pub(crate) fn db_fetch_file_row<E: CacheExtension>(
+/// `path` を canonicalize して DB キーに使う文字列に変換する。
+///
+/// ファイルが存在しない場合は `Err(CacheError::Io)` を返す。
+/// この関数は `file-feature-cache` 内で唯一の canonicalize 実施箇所である。
+pub(crate) fn canonical_str(path: &Path) -> Result<String> {
+    path.canonicalize()
+        .map(|p| p.to_string_lossy().into_owned())
+        .map_err(|e| CacheError::io(path, e))
+}
+
+// ---------------------------------------------------------------------------
+// DB ヘルパー関数
+// ---------------------------------------------------------------------------
+
+/// `files` テーブルから (id, file_hash, mtime_ns) を取得する。
+pub(crate) fn db_lookup<E: CacheExtension>(
     store: &CacheStore<E>,
-    file_path: &str,
+    key: &str,
 ) -> Result<Option<(i64, String, Option<i64>)>> {
     let conn = store.read()?;
     let row = conn
         .query_row(
-            "SELECT id, file_hash, mtime_ns FROM files WHERE file_path = ?1",
-            [file_path],
+            "SELECT id, file_hash, mtime_ns FROM files WHERE path = ?1",
+            [key],
             |r| {
                 Ok((
                     r.get::<_, i64>(0)?,
@@ -222,61 +242,63 @@ pub(crate) fn db_fetch_file_row<E: CacheExtension>(
     Ok(row)
 }
 
-pub(crate) fn db_upsert_file(
-    conn: &WriteConn,
-    file_path: &str,
+/// `files` テーブルに INSERT し、新しい `id` を返す。
+pub(crate) fn db_insert<E: CacheExtension>(
+    store: &CacheStore<E>,
+    key: &str,
     hash: &str,
     mtime_ns: Option<i64>,
-) -> rusqlite::Result<i64> {
+) -> Result<i64> {
+    let conn = store.write()?;
     conn.execute(
-        "INSERT INTO files (file_path, file_hash, mtime_ns, updated_at)
-         VALUES (?1, ?2, ?3, strftime('%s','now'))
-         ON CONFLICT(file_path) DO UPDATE
-             SET file_hash  = excluded.file_hash,
-                 mtime_ns   = excluded.mtime_ns,
-                 updated_at = strftime('%s','now')",
-        rusqlite::params![file_path, hash, mtime_ns],
+        "INSERT INTO files (path, file_hash, mtime_ns)
+         VALUES (?1, ?2, ?3)",
+        rusqlite::params![key, hash, mtime_ns],
     )?;
-    conn.query_row(
-        "SELECT id FROM files WHERE file_path = ?1",
-        [file_path],
-        |r| r.get::<_, i64>(0),
-    )
+    conn.query_row("SELECT id FROM files WHERE path = ?1", [key], |r| {
+        r.get::<_, i64>(0)
+    })
+    .map_err(Into::into)
 }
 
-pub(crate) fn db_delete_by_id<E: CacheExtension>(
-    store: &CacheStore<E>,
-    file_id: i64,
-) -> Result<()> {
+/// `files` テーブルを id で削除する。CASCADE で拡張テーブルも削除される。
+pub(crate) fn db_delete_by_id<E: CacheExtension>(store: &CacheStore<E>, id: i64) -> Result<()> {
     let conn = store.write()?;
-    conn.execute("DELETE FROM files WHERE id = ?1", [file_id])?;
+    conn.execute("DELETE FROM files WHERE id = ?1", [id])?;
     Ok(())
+}
+
+/// `files` テーブルを path (正規化済みキー) で削除する。
+pub(crate) fn db_delete_by_key<E: CacheExtension>(
+    store: &CacheStore<E>,
+    key: &str,
+) -> Result<bool> {
+    let conn = store.write()?;
+    let n = conn.execute("DELETE FROM files WHERE path = ?1", [key])?;
+    Ok(n > 0)
 }
 
 // ---------------------------------------------------------------------------
 // 共有ユーティリティ
 // ---------------------------------------------------------------------------
 
+/// 現在のファイルが DB の保存値と一致するか確認する。
 pub(crate) fn file_matches<E: CacheExtension>(
     store: &CacheStore<E>,
     stored_hash: &str,
     stored_mtime: Option<i64>,
     path: &Path,
 ) -> Result<bool> {
-    matches_stored(
-        stored_hash,
-        stored_mtime,
-        path,
-        &store.config.hash_strategy_internal(),
-    )
-    .map_err(|e| CacheError::io(path, e))
+    matches_stored(stored_hash, stored_mtime, path, &store.hash_strategy)
+        .map_err(|e| CacheError::io(path, e))
 }
 
+/// ファイルの fingerprint を計算する。
 pub(crate) fn compute_fingerprint<E: CacheExtension>(
     store: &CacheStore<E>,
     path: &Path,
 ) -> Result<FileFingerprint> {
-    compute(path, &store.config.hash_strategy_internal()).map_err(|e| CacheError::io(path, e))
+    compute(path, &store.hash_strategy).map_err(|e| CacheError::io(path, e))
 }
 
 // ---------------------------------------------------------------------------
@@ -289,15 +311,8 @@ fn num_cpus() -> u32 {
         .unwrap_or(4)
 }
 
-impl CacheConfig {
-    /// 内部で使用する HashStrategy (外部非公開)
-    pub(crate) fn hash_strategy_internal(&self) -> HashStrategy {
-        HashStrategy::default()
-    }
-}
-
 // ---------------------------------------------------------------------------
-// ユニットテスト
+// テスト
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
@@ -312,20 +327,23 @@ mod tests {
 
     #[test]
     fn db_location_workdir_default_filename() {
-        let loc = DbLocation::WorkDir(None);
-        assert_eq!(loc.resolve(), PathBuf::from("./cache.db"));
+        assert_eq!(
+            DbLocation::WorkDir(None).resolve(),
+            PathBuf::from("./cache.db")
+        );
     }
 
     #[test]
     fn db_location_workdir_custom_filename() {
-        let loc = DbLocation::WorkDir(Some("inference.db".into()));
-        assert_eq!(loc.resolve(), PathBuf::from("./inference.db"));
+        assert_eq!(
+            DbLocation::WorkDir(Some("inference.db".into())).resolve(),
+            PathBuf::from("./inference.db"),
+        );
     }
 
     #[test]
-    fn db_location_appcache_default_filename() {
-        let loc = DbLocation::AppCache(None);
-        let s = loc.resolve().to_str().unwrap().to_string();
-        assert!(s.ends_with("cache.db"), "unexpected: {s}");
+    fn db_location_appcache_ends_with_cache_db() {
+        let s = DbLocation::AppCache(None).resolve();
+        assert!(s.to_str().unwrap().ends_with("cache.db"));
     }
 }

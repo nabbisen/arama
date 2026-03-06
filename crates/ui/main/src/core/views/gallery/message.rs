@@ -4,6 +4,8 @@
 // use iced::futures::channel::mpsc::Sender;
 // use swdir::DirNode;
 
+use std::{path::PathBuf, sync::Arc};
+
 use swdir::DirNode;
 
 // use super::subscription::Input;
@@ -11,7 +13,7 @@ use crate::{components::gallery::image_cell, core::components::gallery::gallery_
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    ImageCached(Vec<String>),
+    ImageCached(Vec<(PathBuf, Arc<arama_cache::Result<()>>)>),
     EmbeddingCached(Option<String>),
     // EmbeddingCalculated((FileEmbeddingMap, Vec<(PathBuf, PathBuf, f32)>)),
     // MenusMessage(menus::message::Message),

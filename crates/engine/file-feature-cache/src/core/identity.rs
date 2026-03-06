@@ -1,19 +1,19 @@
 //! ファイル同一性確認ロジック。
 //!
-//! # 戦略の選択基準
+//! # ハッシュ戦略
 //!
-//! | ファイルサイズ | ハッシュ種別 | mtime の扱い |
-//! |---|---|---|
-//! | 閾値未満 (デフォルト 4 MB) | 完全 SHA-256 | 保存しない |
-//! | 閾値以上 | 先頭 + 末尾の部分 SHA-256 | クイックフィルタとして保存 |
+//! | ファイルサイズ          | ハッシュ種別                  | mtime の扱い             |
+//! |-------------------------|-------------------------------|--------------------------|
+//! | 閾値未満 (デフォルト 4 MB) | 完全 SHA-256                 | 保存しない               |
+//! | 閾値以上                | 先頭 + 末尾の部分 SHA-256    | クイックフィルタとして保存 |
 //!
 //! ## 大ファイルの lookup フロー
 //!
 //! ```text
-//! stored_mtime == current_mtime ──→ Hash 計算スキップ → Hit fast path
+//! stored_mtime == current_mtime ──→ Hash 計算スキップ → Hit (fast path)
 //!                ↓ 不一致
 //!          部分 Hash を再計算
-//!          stored_hash == new_hash ──→ Hit (内容は同じ、mtime だけ更新)
+//!          stored_hash == new_hash ──→ Hit (内容は同じ、mtime だけ変化)
 //!                         ↓ 不一致
 //!                      Invalidated
 //! ```
@@ -26,21 +26,16 @@ use std::time::SystemTime;
 use sha2::{Digest, Sha256};
 
 // ---------------------------------------------------------------------------
-// 公開設定型
+// 設定型 (crate 内部のみ)
 // ---------------------------------------------------------------------------
 
-/// ファイル同一性確認の戦略。`CacheConfig` に組み込んで使う。
+/// ファイル同一性確認の戦略。
 #[derive(Debug, Clone)]
 pub(crate) enum HashStrategy {
     /// 常にファイル全体の SHA-256 を使う。
-    /// 小ファイルや変更検出の精度を最優先する場合に適する。
     Full,
 
     /// ファイルサイズで Full と Partial を自動選択する (デフォルト)。
-    ///
-    /// - `threshold_bytes` 未満 → `Full` と同等
-    /// - `threshold_bytes` 以上 → 先頭 + 末尾 `partial_bytes` の部分 SHA-256。
-    ///   mtime をクイックフィルタとして DB に保存し、一致すれば Hash 計算を省略する。
     SizeAdaptive {
         /// 部分ハッシュへ切り替えるファイルサイズの閾値 (bytes)。
         threshold_bytes: u64,
@@ -59,21 +54,21 @@ impl Default for HashStrategy {
 }
 
 // ---------------------------------------------------------------------------
-// 内部型
+// 計算済みフィンガープリント
 // ---------------------------------------------------------------------------
 
-/// 計算済みフィンガープリント。DB への保存値と同形。
+/// DB に保存するフィンガープリント。
 #[derive(Debug)]
 pub(crate) struct FileFingerprint {
-    /// SHA-256 の hex 文字列 (完全 or 部分)
+    /// SHA-256 の hex 文字列 (完全 or 部分)。
     pub hash: String,
-    /// `SizeAdaptive` で大ファイルと判定された場合のみ Some。
-    /// `Full` または小ファイルでは None。
+    /// `SizeAdaptive` で大ファイルと判定された場合のみ `Some`。
+    /// 小ファイルや `Full` モードでは `None`。
     pub mtime_ns: Option<i64>,
 }
 
 // ---------------------------------------------------------------------------
-// 外部向け関数 (crate 内公開)
+// 公開 (crate 内) 関数
 // ---------------------------------------------------------------------------
 
 /// ファイルを読んでフィンガープリントを計算する (upsert 時に使用)。
@@ -93,10 +88,10 @@ pub(crate) fn compute(path: &Path, strategy: &HashStrategy) -> std::io::Result<F
     }
 }
 
-/// DB に保存された `(stored_hash, stored_mtime)` と現在のファイルを比較する (lookup 時に使用)。
+/// DB の保存値と現在のファイルを比較する (lookup 時に使用)。
 ///
-/// - `stored_mtime` が Some かつ現在の mtime と一致する場合はハッシュ計算を省略して `true` を返す。
-/// - それ以外はハッシュを計算して比較する。
+/// `stored_mtime` が `Some` かつ現在の mtime と一致する場合はハッシュ計算を省略して
+/// `true` を返す (大ファイルの高速パス)。
 pub(crate) fn matches_stored(
     stored_hash: &str,
     stored_mtime: Option<i64>,
@@ -110,11 +105,10 @@ pub(crate) fn matches_stored(
     if let Some(s_mtime) = stored_mtime {
         if let Some(c_mtime) = read_mtime(&meta) {
             if s_mtime == c_mtime {
-                // mtime が一致 → 内容も同一とみなしてハッシュ計算をスキップ
                 return Ok(true);
             }
         }
-        // mtime 不一致 → ハッシュで再検証 (fall through)
+        // mtime 不一致 → ハッシュで再検証
     }
 
     let current_hash = match effective_mode(file_size, strategy) {
@@ -198,7 +192,7 @@ fn read_mtime(meta: &std::fs::Metadata) -> Option<i64> {
     let t = meta.modified().ok()?;
     match t.duration_since(SystemTime::UNIX_EPOCH) {
         Ok(d) => i64::try_from(d.as_nanos()).ok(),
-        // 1970 以前のタイムスタンプは符号付きで保存 (実用上ほぼ発生しない)
+        // 1970 以前のタイムスタンプ (実用上ほぼ発生しない)
         Err(e) => i64::try_from(e.duration().as_nanos()).ok().map(|n| -n),
     }
 }

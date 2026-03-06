@@ -15,26 +15,31 @@ pub enum CacheError {
         source: std::io::Error,
     },
 
-    #[error("BLOB length mismatch: expected multiple of 4 bytes for f32 vector, got {0}")]
+    #[error("BLOB 長が不正: f32 ベクトルは 4 の倍数バイト必要, got {0} bytes")]
     InvalidVectorBlob(usize),
 
-    #[error(
-        "thumbnail_dir is not configured; set CacheConfig::thumbnail_dir to enable thumbnail management"
-    )]
+    #[error("thumbnail_dir が未設定です; CacheConfig::thumbnail_dir を設定してください")]
     ThumbnailDirNotConfigured,
 
-    #[error("thumbnail generation error: {0}")]
+    #[error("サムネイル生成エラー: {0}")]
     ThumbnailGenerationFailed(String),
 }
 
 impl CacheError {
-    pub(crate) fn from_pool(e: r2d2::Error) -> Self {
+    pub(crate) fn pool(e: r2d2::Error) -> Self {
         CacheError::Pool(e.to_string())
     }
 
     pub(crate) fn io(path: &std::path::Path, source: std::io::Error) -> Self {
         CacheError::Io {
             path: path.to_string_lossy().into_owned(),
+            source,
+        }
+    }
+
+    pub(crate) fn io_str(path: &str, source: std::io::Error) -> Self {
+        CacheError::Io {
+            path: path.to_owned(),
             source,
         }
     }

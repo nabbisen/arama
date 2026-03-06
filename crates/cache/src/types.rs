@@ -1,67 +1,70 @@
+//! ai-cache で使用する型定義。
+
+use std::path::PathBuf;
+
+/// キャッシュ照会の結果。
+#[derive(Debug)]
+pub enum LookupResult<T> {
+    /// キャッシュヒット。
+    Hit(T),
+    /// ファイルが変更されていた。古いキャッシュは削除済み。
+    Invalidated,
+    /// キャッシュに登録されていない。
+    Miss,
+}
+
 // ---------------------------------------------------------------------------
-// upsert リクエスト型
+// 画像
 // ---------------------------------------------------------------------------
 
-/// 画像ファイルのキャッシュ登録 / 更新リクエスト。
-#[derive(Debug, Clone)]
+/// 画像キャッシュへの書き込みリクエスト。
+#[derive(Debug)]
 pub struct UpsertImageRequest {
-    /// 対象ファイルパス。内部で `canonicalize()` を施す。
-    pub file_path: String,
-    /// CLIP 特徴量ベクトル。`None` の場合は既存値を保持する (部分更新)。
+    pub path: PathBuf,
+    /// CLIP 特徴量ベクトル。`None` の場合は特徴量を書き込まない。
     pub clip_vector: Option<Vec<f32>>,
 }
 
-/// 動画ファイルのキャッシュ登録 / 更新リクエスト。
-#[derive(Debug, Clone)]
-pub struct UpsertVideoRequest {
-    /// 対象ファイルパス。内部で `canonicalize()` を施す。
-    pub file_path: String,
-    /// CLIP 特徴量ベクトル。`None` の場合は既存値を保持する (部分更新)。
-    pub clip_vector: Option<Vec<f32>>,
-    /// wav2vec2 特徴量ベクトル。`None` の場合は既存値を保持する (部分更新)。
-    pub wav2vec2_vector: Option<Vec<f32>>,
+/// 画像キャッシュエントリ。
+#[derive(Debug)]
+pub struct ImageCacheEntry {
+    /// DB に保存された正規化済みパス。
+    pub path: String,
+    /// サムネイルファイルのパス。未生成の場合は `None`。
+    pub thumbnail_path: Option<String>,
+    /// 特徴量。未登録の場合は `None`。
+    pub features: Option<ImageFeatures>,
 }
 
-// ---------------------------------------------------------------------------
-// 照会結果型
-// ---------------------------------------------------------------------------
-
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq)]
 pub struct ImageFeatures {
     pub clip_vector: Vec<f32>,
 }
 
-#[derive(Debug, Clone)]
-pub struct VideoFeatures {
-    pub clip_vector: Vec<f32>,
-    pub wav2vec2_vector: Vec<f32>,
+// ---------------------------------------------------------------------------
+// 動画
+// ---------------------------------------------------------------------------
+
+/// 動画キャッシュへの書き込みリクエスト。
+#[derive(Debug)]
+pub struct UpsertVideoRequest {
+    pub path: PathBuf,
+    /// `None` の場合は既存の値を保持する。
+    pub clip_vector: Option<Vec<f32>>,
+    /// `None` の場合は既存の値を保持する。
+    pub wav2vec2_vector: Option<Vec<f32>>,
 }
 
-#[derive(Debug, Clone)]
-pub struct ImageCacheEntry {
-    /// canonicalize 済みファイルパス
-    pub file_path: String,
-    /// canonicalize 済みサムネイルパス。サムネイルなしの場合 `None`
-    pub thumbnail_path: Option<String>,
-    pub features: Option<ImageFeatures>,
-}
-
-#[derive(Debug, Clone)]
+/// 動画キャッシュエントリ。
+#[derive(Debug)]
 pub struct VideoCacheEntry {
-    /// canonicalize 済みファイルパス
-    pub file_path: String,
-    /// canonicalize 済みサムネイルパス。サムネイルなしの場合 `None`
+    pub path: String,
     pub thumbnail_path: Option<String>,
     pub features: Option<VideoFeatures>,
 }
 
-/// キャッシュ照会の結果
-#[derive(Debug)]
-pub enum LookupResult<T> {
-    /// ファイルが一致し、キャッシュエントリが存在する
-    Hit(T),
-    /// DB にレコードはあるが、ファイルが変更されていた (古いデータは削除済み)
-    Invalidated,
-    /// DB にレコード自体が存在しない
-    Miss,
+#[derive(Debug, PartialEq)]
+pub struct VideoFeatures {
+    pub clip_vector: Option<Vec<f32>>,
+    pub wav2vec2_vector: Option<Vec<f32>>,
 }

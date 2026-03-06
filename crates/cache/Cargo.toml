@@ -4,13 +4,12 @@ version = "0.12.7"
 edition = "2024"
 
 [dependencies]
-arama-repr = { workspace = true }
-
 rusqlite = { workspace = true }
 
 anyhow = { workspace = true }
 file-feature-cache = { workspace = true }
 image = { workspace = true }
+rayon = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
