@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 
-use arama_ai::pipeline::score::similarity::image::{
-    image_image_find_similar_pairs, video_video_find_similar_pairs,
-};
+use arama_ai::pipeline::score::similarity::image::find_similar_pairs;
 use arama_cache::{
     CacheConfig, DbLocation, ImageCacheConfig, ImageCacheReader, LookupResult, VideoCacheConfig,
     VideoCacheReader,
@@ -90,7 +88,7 @@ impl SimilarPairsDialog {
                     }
                 }
 
-                let mut video_path_embeddings: Vec<(PathBuf, Vec<Vec<f32>>)> = vec![];
+                let mut video_path_embeddings: Vec<(PathBuf, Vec<f32>)> = vec![];
                 let video_paths: Vec<&PathBuf> = paths
                     .iter()
                     .filter(|x| {
@@ -135,10 +133,8 @@ impl SimilarPairsDialog {
                 }
 
                 // todo ui sliders for these param(s): threshold (also k_neighbors ?)
-                let mut image_pairs =
-                    image_image_find_similar_pairs(&image_path_embeddings, 0.86, 50).await;
-                let video_pairs =
-                    video_video_find_similar_pairs(&video_path_embeddings, 0.81, 50).await;
+                let mut image_pairs = find_similar_pairs(&image_path_embeddings, 0.86, 50).await;
+                let video_pairs = find_similar_pairs(&video_path_embeddings, 0.86, 50).await;
                 image_pairs.extend(video_pairs);
                 image_pairs
             },

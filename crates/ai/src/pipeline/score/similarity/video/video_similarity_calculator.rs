@@ -1,4 +1,4 @@
-use super::{video_features::VideoFeatures, video_similarity_result::VideoSimilarityResult};
+// use super::{video_features::VideoFeatures, video_similarity_result::VideoSimilarityResult};
 
 pub struct VideoSimilarityCalculator {
     pub image_weight: f32,
@@ -15,33 +15,33 @@ impl VideoSimilarityCalculator {
         }
     }
 
-    pub fn compare(
-        &self,
-        a: &VideoFeatures,
-        b: &VideoFeatures,
-    ) -> anyhow::Result<VideoSimilarityResult> {
-        // 映像・音声とも同じ cross-max ロジックで計算する
-        // → 冒頭カット・末尾カット・時間ズレに頑健
-        let image_sim = cross_max_similarity(
-            &a.video_embeddings,
-            &b.video_embeddings,
-            self.cross_max_similarity_threshold,
-        );
-        let audio_sim = cross_max_similarity(
-            &a.audio_embeddings,
-            &b.audio_embeddings,
-            self.cross_max_similarity_threshold,
-        );
-        let combined = self.image_weight * image_sim + self.audio_weight * audio_sim;
+    // pub fn compare(
+    //     &self,
+    //     a: &VideoFeatures,
+    //     b: &VideoFeatures,
+    // ) -> anyhow::Result<VideoSimilarityResult> {
+    //     // 映像・音声とも同じ cross-max ロジックで計算する
+    //     // → 冒頭カット・末尾カット・時間ズレに頑健
+    //     let image_sim = cross_max_similarity(
+    //         &a.video_embeddings,
+    //         &b.video_embeddings,
+    //         self.cross_max_similarity_threshold,
+    //     );
+    //     let audio_sim = cross_max_similarity(
+    //         &a.audio_embeddings,
+    //         &b.audio_embeddings,
+    //         self.cross_max_similarity_threshold,
+    //     );
+    //     let combined = self.image_weight * image_sim + self.audio_weight * audio_sim;
 
-        Ok(VideoSimilarityResult {
-            video_a: a.path.clone(),
-            video_b: b.path.clone(),
-            image_sim,
-            audio_sim,
-            combined_score: combined,
-        })
-    }
+    //     Ok(VideoSimilarityResult {
+    //         video_a: a.path.clone(),
+    //         video_b: b.path.clone(),
+    //         image_sim,
+    //         audio_sim,
+    //         combined_score: combined,
+    //     })
+    // }
 }
 
 // ─── 類似度計算 ────────────────────────────────────────────────────────

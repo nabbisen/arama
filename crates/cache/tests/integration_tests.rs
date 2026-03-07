@@ -215,22 +215,16 @@ fn video_upsert_and_lookup_hit_with_both_vectors() {
     writer
         .upsert(UpsertVideoRequest {
             path: file.path().to_path_buf(),
-            clip_vector: Some(vec![vec![1.0, 2.0], vec![1.5, 2.5]]),
-            wav2vec2_vector: Some(vec![vec![3.0, 4.0], vec![3.5, 4.5]]),
+            clip_vector: Some(vec![1.0, 2.0]),
+            wav2vec2_vector: Some(vec![3.0, 4.0]),
         })
         .unwrap();
 
     match writer.lookup(file.path()).unwrap() {
         LookupResult::Hit(entry) => {
             let feat = entry.features.expect("features should be Some");
-            assert_eq!(
-                feat.clip_vector,
-                Some(vec![vec![1.0f32, 2.0], vec![1.5, 2.5]])
-            );
-            assert_eq!(
-                feat.wav2vec2_vector,
-                Some(vec![vec![3.0f32, 4.0], vec![3.5, 4.5]])
-            );
+            assert_eq!(feat.clip_vector, Some(vec![1.0f32, 2.0]));
+            assert_eq!(feat.wav2vec2_vector, Some(vec![3.0f32, 4.0]));
         }
         other => panic!("expected Hit, got {:?}", other),
     }
@@ -245,7 +239,7 @@ fn video_upsert_partial_vectors_preserved_via_coalesce() {
     writer
         .upsert(UpsertVideoRequest {
             path: file.path().to_path_buf(),
-            clip_vector: Some(vec![vec![0.5f32, 0.6]]),
+            clip_vector: Some(vec![0.5]),
             wav2vec2_vector: None,
         })
         .unwrap();
@@ -254,15 +248,15 @@ fn video_upsert_partial_vectors_preserved_via_coalesce() {
         .upsert(UpsertVideoRequest {
             path: file.path().to_path_buf(),
             clip_vector: None,
-            wav2vec2_vector: Some(vec![vec![0.9f32, 1.0]]),
+            wav2vec2_vector: Some(vec![0.9]),
         })
         .unwrap();
 
     match writer.lookup(file.path()).unwrap() {
         LookupResult::Hit(entry) => {
             let feat = entry.features.unwrap();
-            assert_eq!(feat.clip_vector, Some(vec![vec![0.5f32, 0.6]]));
-            assert_eq!(feat.wav2vec2_vector, Some(vec![vec![0.9f32, 1.0]]));
+            assert_eq!(feat.clip_vector, Some(vec![0.5f32]));
+            assert_eq!(feat.wav2vec2_vector, Some(vec![0.9f32]));
         }
         other => panic!("expected Hit, got {:?}", other),
     }
@@ -285,7 +279,7 @@ fn video_lookup_invalidated_on_file_change() {
     writer
         .upsert(UpsertVideoRequest {
             path: file.path().to_path_buf(),
-            clip_vector: Some(vec![vec![1.0f32]]),
+            clip_vector: Some(vec![1.0]),
             wav2vec2_vector: None,
         })
         .unwrap();
@@ -554,8 +548,8 @@ fn video_upsert_all_registers_all_files() {
         .iter()
         .map(|f| UpsertVideoRequest {
             path: f.path().to_path_buf(),
-            clip_vector: Some(vec![vec![0.1f32, 0.2]]),
-            wav2vec2_vector: Some(vec![vec![0.3f32, 0.4]]),
+            clip_vector: Some(vec![0.1, 0.2]),
+            wav2vec2_vector: Some(vec![0.3, 0.4]),
         })
         .collect();
 
@@ -601,7 +595,7 @@ fn video_lookup_all_returns_hits_for_upserted_files() {
         .iter()
         .map(|f| UpsertVideoRequest {
             path: f.path().to_path_buf(),
-            clip_vector: Some(vec![vec![1.0f32]]),
+            clip_vector: Some(vec![1.0]),
             wav2vec2_vector: None,
         })
         .collect();

@@ -49,10 +49,10 @@ pub struct ImageFeatures {
 #[derive(Debug)]
 pub struct UpsertVideoRequest {
     pub path: PathBuf,
-    /// 静止コマごとの CLIP 特徴量ベクトル列。`None` の場合は既存の値を保持する。
-    pub clip_vector: Option<Vec<Vec<f32>>>,
-    /// 音声シーンごとの wav2vec2 特徴量ベクトル列。`None` の場合は既存の値を保持する。
-    pub wav2vec2_vector: Option<Vec<Vec<f32>>>,
+    /// コマ平均 CLIP 特徴量ベクトル。`None` の場合は既存の値を保持する。
+    pub clip_vector: Option<Vec<f32>>,
+    /// シーン平均 wav2vec2 特徴量ベクトル。`None` の場合は既存の値を保持する。
+    pub wav2vec2_vector: Option<Vec<f32>>,
 }
 
 /// 動画キャッシュエントリ。
@@ -65,8 +65,8 @@ pub struct VideoCacheEntry {
 
 #[derive(Debug, PartialEq)]
 pub struct VideoFeatures {
-    /// 静止コマごとの CLIP 特徴量ベクトル列。
-    pub clip_vector: Option<Vec<Vec<f32>>>,
-    /// 音声シーンごとの wav2vec2 特徴量ベクトル列。
-    pub wav2vec2_vector: Option<Vec<Vec<f32>>>,
+    /// コマ平均 CLIP 特徴量ベクトル。
+    pub clip_vector: Option<Vec<f32>>,
+    /// シーン平均 wav2vec2 特徴量ベクトル。
+    pub wav2vec2_vector: Option<Vec<f32>>,
 }

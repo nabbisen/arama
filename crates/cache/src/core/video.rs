@@ -9,7 +9,7 @@ use rusqlite::OptionalExtension;
 use file_feature_cache::Result;
 use file_feature_cache::{CacheConfig, CacheRead, CacheWrite, CacheWriter, DbLocation};
 
-use crate::core::codec::{blob_to_vecs, vecs_to_blob};
+use crate::core::codec::{blob_to_vec, vec_to_blob};
 use crate::core::extension::MediaExtension;
 use crate::core::thumbnail::{generate_video_thumbnail, thumbnail_dest};
 use crate::types::{LookupResult, UpsertVideoRequest, VideoCacheEntry, VideoFeatures};
@@ -148,8 +148,8 @@ impl VideoCacheWriter {
             )?;
         }
 
-        let clip_blob = req.clip_vector.as_deref().map(vecs_to_blob);
-        let wav_blob = req.wav2vec2_vector.as_deref().map(vecs_to_blob);
+        let clip_blob = req.clip_vector.as_deref().map(vec_to_blob);
+        let wav_blob = req.wav2vec2_vector.as_deref().map(vec_to_blob);
 
         if clip_blob.is_some() || wav_blob.is_some() {
             conn.execute(
@@ -275,8 +275,8 @@ impl VideoCacheReader {
             .optional()?
             .map(|(clip_raw, wav_raw)| -> Result<VideoFeatures> {
                 Ok(VideoFeatures {
-                    clip_vector: clip_raw.map(|b| blob_to_vecs(&b)).transpose()?,
-                    wav2vec2_vector: wav_raw.map(|b| blob_to_vecs(&b)).transpose()?,
+                    clip_vector: clip_raw.map(|b| blob_to_vec(&b)).transpose()?,
+                    wav2vec2_vector: wav_raw.map(|b| blob_to_vec(&b)).transpose()?,
                 })
             })
             .transpose()?;
