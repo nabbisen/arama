@@ -30,11 +30,13 @@ pub async fn image_embedding(paths: Vec<PathBuf>) -> anyhow::Result<Option<Strin
         },
     })?;
 
+    let pipeline = VideoSimilarityPipeline::new(VideoSimilarityConfig::default())?;
+
     for path in paths {
         if path.extension().is_some_and(|x| {
             VIDEO_EXTENSION_ALLOWLIST.contains(&x.to_string_lossy().to_string().as_str())
         }) {
-            let _ = VideoSimilarityPipeline::new(VideoSimilarityConfig::default())?.preload(&path);
+            let _ = pipeline.preload(&path);
             continue;
         }
 
