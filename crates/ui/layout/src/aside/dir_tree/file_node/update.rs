@@ -49,6 +49,9 @@ impl FileNode {
                         self.children
                             .push(FileNode::new(entry.path(), false, false)); // 子のさらに下は読み込まない
                     }
+
+                    self.children
+                        .sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then(a.name.cmp(&b.name)));
                 }
             }
             return;
