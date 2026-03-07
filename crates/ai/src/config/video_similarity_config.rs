@@ -47,7 +47,7 @@ pub struct VideoSimilarityConfig {
 impl Default for VideoSimilarityConfig {
     fn default() -> Self {
         Self {
-            head_fixed_anchors_secs: vec![5.0, 10.0, 15.0],
+            head_fixed_anchors_secs: vec![3.0, 9.0, 15.0],
 
             // 冒頭 135 秒に 5 点（約 27 秒間隔）
             // → 総サンプル 14 点中 8 点 = 57% が冒頭
