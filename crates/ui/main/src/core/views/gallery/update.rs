@@ -108,6 +108,7 @@ impl Gallery {
             Message::ImageCellMessage(_message) => Task::none(),
             Message::DirSelect(dir_node) => {
                 self.dir_node = Some(dir_node.clone());
+                self.gallery_settings.set_embedding_cached(false);
                 Task::perform(
                     async move {
                         let writer = ImageCacheWriter::onetime(arama_cache::DbLocation::Custom(
