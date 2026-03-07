@@ -44,7 +44,7 @@ fn tmp_db() -> tempfile::NamedTempFile {
 
 fn image_writer_with_db(db: &tempfile::NamedTempFile) -> ImageCacheWriter {
     ImageCacheWriter::as_session(ImageCacheConfig {
-        cache: CacheConfig {
+        cache_config: CacheConfig {
             db_location: DbLocation::Custom(db.path().to_path_buf()),
             read_conns: 2,
             thumbnail_dir: None,
@@ -161,7 +161,7 @@ fn image_thumbnail_generated_to_thumbnail_dir() {
     let file = TempFile::new(MINIMAL_JPEG);
 
     let writer = ImageCacheWriter::as_session(ImageCacheConfig {
-        cache: CacheConfig {
+        cache_config: CacheConfig {
             db_location: DbLocation::Custom(db.path().to_path_buf()),
             read_conns: 1,
             thumbnail_dir: Some(thumb_dir.path().to_path_buf()),
@@ -196,7 +196,7 @@ fn image_thumbnail_generated_to_thumbnail_dir() {
 fn video_writer() -> (VideoCacheWriter, tempfile::NamedTempFile) {
     let db = tmp_db();
     let w = VideoCacheWriter::as_session(VideoCacheConfig {
-        cache: CacheConfig {
+        cache_config: CacheConfig {
             db_location: DbLocation::Custom(db.path().to_path_buf()),
             read_conns: 2,
             thumbnail_dir: None,
@@ -411,7 +411,7 @@ fn cache_read_trait_works_via_image_reader() {
 fn parallel_lookup_with_threads() {
     let db = tmp_db();
     let writer = ImageCacheWriter::as_session(ImageCacheConfig {
-        cache: CacheConfig {
+        cache_config: CacheConfig {
             db_location: DbLocation::Custom(db.path().to_path_buf()),
             read_conns: 8,
             thumbnail_dir: None,

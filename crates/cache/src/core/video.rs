@@ -20,7 +20,7 @@ use crate::types::{LookupResult, UpsertVideoRequest, VideoCacheEntry, VideoFeatu
 
 #[derive(Debug, Clone)]
 pub struct VideoCacheConfig {
-    pub cache: CacheConfig,
+    pub cache_config: CacheConfig,
     /// ffmpeg 実行ファイルのパス。`None` の場合はサムネイル生成をスキップする。
     pub ffmpeg_path: Option<PathBuf>,
 }
@@ -28,7 +28,7 @@ pub struct VideoCacheConfig {
 impl Default for VideoCacheConfig {
     fn default() -> Self {
         Self {
-            cache: CacheConfig::default(),
+            cache_config: CacheConfig::default(),
             ffmpeg_path: None,
         }
     }
@@ -57,7 +57,7 @@ impl VideoCacheWriter {
     }
 
     pub fn as_session(config: VideoCacheConfig) -> Result<Self> {
-        let writer = CacheWriter::as_session(config.cache.clone())?;
+        let writer = CacheWriter::as_session(config.cache_config.clone())?;
         Ok(Self::build(writer, config))
     }
 
@@ -68,7 +68,7 @@ impl VideoCacheWriter {
     ) -> Result<Self> {
         let writer = CacheWriter::onetime(location)?;
         let config = VideoCacheConfig {
-            cache: CacheConfig {
+            cache_config: CacheConfig {
                 thumbnail_dir,
                 ..CacheConfig::default()
             },
@@ -133,9 +133,10 @@ impl VideoCacheWriter {
     fn write_features(&self, id: i64, req: &UpsertVideoRequest) -> Result<()> {
         let conn = self.writer.write_conn()?;
 
-        if let (Some(ffmpeg), Some(thumb_dir)) =
-            (&self.config.ffmpeg_path, &self.config.cache.thumbnail_dir)
-        {
+        if let (Some(ffmpeg), Some(thumb_dir)) = (
+            &self.config.ffmpeg_path,
+            &self.config.cache_config.thumbnail_dir,
+        ) {
             let dest = thumbnail_dest(thumb_dir, id);
             if !dest.exists() {
                 generate_video_thumbnail(&req.path, &dest, ffmpeg)?;
@@ -172,9 +173,9 @@ impl VideoCacheWriter {
 impl CacheWrite for VideoCacheWriter {
     type Reader = VideoCacheReader;
 
-    fn as_session(config: CacheConfig) -> Result<Self> {
+    fn as_session(cache_config: CacheConfig) -> Result<Self> {
         VideoCacheWriter::as_session(VideoCacheConfig {
-            cache: config,
+            cache_config,
             ffmpeg_path: None,
         })
     }
@@ -211,7 +212,7 @@ pub struct VideoCacheReader {
 
 impl VideoCacheReader {
     pub fn as_session(config: VideoCacheConfig) -> Result<Self> {
-        let reader = file_feature_cache::CacheReader::as_session(config.cache.clone())?;
+        let reader = file_feature_cache::CacheReader::as_session(config.cache_config.clone())?;
         Ok(Self {
             reader,
             config: Arc::new(config),

@@ -22,7 +22,7 @@
 //!
 //! # fn main() -> anyhow::Result<()> {
 //! let writer = ImageCacheWriter::as_session(ImageCacheConfig {
-//!     cache: CacheConfig {
+//!     cache_config: CacheConfig {
 //!         db_location:   DbLocation::AppCache(None),
 //!         read_conns:    4,
 //!         thumbnail_dir: Some("/var/cache/myapp/thumbs".into()),
@@ -68,7 +68,7 @@
 //!
 //! # fn main() -> anyhow::Result<()> {
 //! let writer = ImageCacheWriter::as_session(ImageCacheConfig {
-//!     cache: CacheConfig { db_location: DbLocation::WorkDir(None), read_conns: 8, thumbnail_dir: None },
+//!     cache_config: CacheConfig { db_location: DbLocation::WorkDir(None), read_conns: 8, thumbnail_dir: None },
 //!     thumbnail: false,
 //! })?;
 //! let reader = writer.as_reader();
@@ -91,7 +91,7 @@
 //!
 //! # fn main() -> anyhow::Result<()> {
 //! let writer = VideoCacheWriter::as_session(VideoCacheConfig {
-//!     cache: CacheConfig {
+//!     cache_config: CacheConfig {
 //!         db_location:   DbLocation::AppCache(None),
 //!         read_conns:    2,
 //!         thumbnail_dir: Some("/var/cache/myapp/thumbs".into()),

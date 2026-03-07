@@ -23,7 +23,7 @@ pub async fn image_embedding(paths: Vec<PathBuf>) -> anyhow::Result<Option<Strin
     let db_location =
         DbLocation::Custom(cache_storage_path().expect("failed to get cache stogate path"));
     let cache_writer = ImageCacheWriter::as_session(ImageCacheConfig {
-        cache: CacheConfig {
+        cache_config: CacheConfig {
             db_location,
             read_conns: 4,
             thumbnail_dir: Some(cache_thumbnail_dir_path()?),
