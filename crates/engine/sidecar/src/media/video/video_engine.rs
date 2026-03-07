@@ -24,6 +24,10 @@ pub enum FfmpegStatus {
 pub struct VideoEngine {}
 
 impl VideoEngine {
+    pub fn ffmpeg_path() -> anyhow::Result<PathBuf> {
+        Ok(local_bin_dir()?.join(bin_name::FFMPEG))
+    }
+
     pub fn ffmpeg() -> Option<Command> {
         match Self::ready() {
             FfmpegStatus::ExistsInLocalBin => Some(Command::new(
@@ -83,10 +87,6 @@ impl VideoEngine {
         unpack_ffmpeg(&archive_path, dir)?;
 
         Ok(())
-    }
-
-    fn ffmpeg_path() -> anyhow::Result<PathBuf> {
-        Ok(local_bin_dir()?.join(bin_name::FFMPEG))
     }
 
     fn ffprobe_path() -> anyhow::Result<PathBuf> {
