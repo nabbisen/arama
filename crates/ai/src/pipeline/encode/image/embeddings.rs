@@ -2,11 +2,15 @@ use std::path::PathBuf;
 
 use anyhow::anyhow;
 use arama_cache::{
-    CacheConfig, DbLocation, ImageCacheConfig, ImageCacheWriter, UpsertImageRequest,
+    CacheConfig, DbLocation, ImageCacheConfig, ImageCacheWriter, LookupResult, UpsertImageRequest,
 };
-use arama_env::{cache_storage_path, cache_thumbnail_dir_path};
+use arama_env::{VIDEO_EXTENSION_ALLOWLIST, cache_storage_path, cache_thumbnail_dir_path};
 
-use crate::pipeline::encode::image::{clip, clip_calculator};
+use crate::{
+    config::video_similarity_config::VideoSimilarityConfig,
+    pipeline::encode::image::{clip, clip_calculator},
+    pipeline_manager::video_similarity_pipeline::VideoSimilarityPipeline,
+};
 
 pub async fn image_embedding(paths: Vec<PathBuf>) -> anyhow::Result<Option<String>> {
     let calculator = match clip_calculator() {
@@ -25,7 +29,20 @@ pub async fn image_embedding(paths: Vec<PathBuf>) -> anyhow::Result<Option<Strin
             thumbnail_dir: Some(cache_thumbnail_dir_path()?),
         },
     })?;
+
     for path in paths {
+        if path.extension().is_some_and(|x| {
+            VIDEO_EXTENSION_ALLOWLIST.contains(&x.to_string_lossy().to_string().as_str())
+        }) {
+            let _ = VideoSimilarityPipeline::new(VideoSimilarityConfig::default())?.preload(&path);
+            continue;
+        }
+
+        match cache_writer.as_reader().lookup(&path)? {
+            LookupResult::Hit(x) if x.features.is_some() => continue,
+            _ => (),
+        }
+
         let embedding = match clip(&path, &calculator) {
             Ok(x) => x,
             Err(err) => return Err(anyhow!("failed to clip calculation: {}", err)),
@@ -40,5 +57,6 @@ pub async fn image_embedding(paths: Vec<PathBuf>) -> anyhow::Result<Option<Strin
             Err(err) => return Err(anyhow!("failed to set embedding: {}", err)),
         }
     }
+
     Ok(None)
 }

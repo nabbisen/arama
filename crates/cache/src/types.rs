@@ -21,7 +21,7 @@ pub enum LookupResult<T> {
 #[derive(Debug)]
 pub struct UpsertImageRequest {
     pub path: PathBuf,
-    /// CLIP 特徴量ベクトル。`None` の場合は特徴量を書き込まない。
+    /// CLIP 特徴量ベクトル (1 枚 → 1 ベクトル)。`None` の場合は書き込まない。
     pub clip_vector: Option<Vec<f32>>,
 }
 
@@ -49,10 +49,10 @@ pub struct ImageFeatures {
 #[derive(Debug)]
 pub struct UpsertVideoRequest {
     pub path: PathBuf,
-    /// `None` の場合は既存の値を保持する。
-    pub clip_vector: Option<Vec<f32>>,
-    /// `None` の場合は既存の値を保持する。
-    pub wav2vec2_vector: Option<Vec<f32>>,
+    /// 静止コマごとの CLIP 特徴量ベクトル列。`None` の場合は既存の値を保持する。
+    pub clip_vector: Option<Vec<Vec<f32>>>,
+    /// 音声シーンごとの wav2vec2 特徴量ベクトル列。`None` の場合は既存の値を保持する。
+    pub wav2vec2_vector: Option<Vec<Vec<f32>>>,
 }
 
 /// 動画キャッシュエントリ。
@@ -65,6 +65,8 @@ pub struct VideoCacheEntry {
 
 #[derive(Debug, PartialEq)]
 pub struct VideoFeatures {
-    pub clip_vector: Option<Vec<f32>>,
-    pub wav2vec2_vector: Option<Vec<f32>>,
+    /// 静止コマごとの CLIP 特徴量ベクトル列。
+    pub clip_vector: Option<Vec<Vec<f32>>>,
+    /// 音声シーンごとの wav2vec2 特徴量ベクトル列。
+    pub wav2vec2_vector: Option<Vec<Vec<f32>>>,
 }
