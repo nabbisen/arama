@@ -20,13 +20,13 @@ use crate::types::{ImageCacheEntry, ImageFeatures, LookupResult, UpsertImageRequ
 
 #[derive(Debug, Clone)]
 pub struct ImageCacheConfig {
-    pub cache: CacheConfig,
+    pub cache_config: CacheConfig,
 }
 
 impl Default for ImageCacheConfig {
     fn default() -> Self {
         Self {
-            cache: CacheConfig::default(),
+            cache_config: CacheConfig::default(),
         }
     }
 }
@@ -54,7 +54,7 @@ impl ImageCacheWriter {
     }
 
     pub fn as_session(config: ImageCacheConfig) -> Result<Self> {
-        let writer = CacheWriter::as_session(config.cache.clone())?;
+        let writer = CacheWriter::as_session(config.cache_config.clone())?;
         Ok(Self::build(writer, config))
     }
 
@@ -71,7 +71,7 @@ impl ImageCacheWriter {
         let id = self.writer.refresh(&req.path)?;
         let conn = self.writer.write_conn()?;
 
-        if let Some(thumb_dir) = &self.config.cache.thumbnail_dir {
+        if let Some(thumb_dir) = &self.config.cache_config.thumbnail_dir {
             let dest = thumbnail_dest(thumb_dir, id);
             if !dest.exists() {
                 generate_image_thumbnail(&req.path, &dest)?;
@@ -146,7 +146,7 @@ impl ImageCacheWriter {
     fn write_features(&self, id: i64, req: &UpsertImageRequest) -> Result<()> {
         let conn = self.writer.write_conn()?;
 
-        if let Some(thumb_dir) = &self.config.cache.thumbnail_dir {
+        if let Some(thumb_dir) = &self.config.cache_config.thumbnail_dir {
             let dest = thumbnail_dest(thumb_dir, id);
             if !dest.exists() {
                 generate_image_thumbnail(&req.path, &dest)?;
@@ -177,8 +177,8 @@ impl ImageCacheWriter {
 impl CacheWrite for ImageCacheWriter {
     type Reader = ImageCacheReader;
 
-    fn as_session(config: CacheConfig) -> Result<Self> {
-        ImageCacheWriter::as_session(ImageCacheConfig { cache: config })
+    fn as_session(cache_config: CacheConfig) -> Result<Self> {
+        ImageCacheWriter::as_session(ImageCacheConfig { cache_config })
     }
     fn onetime(location: DbLocation) -> Result<Self> {
         ImageCacheWriter::onetime(location)
@@ -213,7 +213,7 @@ pub struct ImageCacheReader {
 
 impl ImageCacheReader {
     pub fn as_session(config: ImageCacheConfig) -> Result<Self> {
-        let reader = file_feature_cache::CacheReader::as_session(config.cache.clone())?;
+        let reader = file_feature_cache::CacheReader::as_session(config.cache_config.clone())?;
         Ok(Self {
             reader,
             config: Arc::new(config),
