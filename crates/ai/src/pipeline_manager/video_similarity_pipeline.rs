@@ -1,5 +1,8 @@
 use std::path::Path;
 
+use arama_cache::{LookupResult, UpsertVideoRequest, VideoCacheReader, VideoCacheWriter};
+use arama_env::{cache_storage_path, cache_thumbnail_dir_path};
+use arama_sidecar::media::video::video_engine::VideoEngine;
 use candle_core::Device;
 
 use crate::{
@@ -63,11 +66,11 @@ impl VideoSimilarityPipeline {
         self.calculator.compare(&feat_a, &feat_b)
     }
 
-    // /// 動画の特徴量を事前にキャッシュに登録する
-    // pub fn preload(&self, path: &Path) -> Result<()> {
-    //     self.get_or_extract(path)?;
-    //     Ok(())
-    // }
+    /// 動画の特徴量を事前にキャッシュに登録する
+    pub fn preload(&self, path: &Path) -> anyhow::Result<()> {
+        self.get_or_extract(path)?;
+        Ok(())
+    }
 
     // pub fn cache_stats(&self) -> Result<()> {
     //     info!("{}", self.cache.stats()?);
@@ -77,26 +80,42 @@ impl VideoSimilarityPipeline {
     // ── キャッシュ制御 ────────────────────────────────────────────────
 
     fn get_or_extract(&self, path: &Path) -> anyhow::Result<VideoFeatures> {
-        // if let Some(cached) = self.cache.lookup(path)? {
-        //     info!("[CACHE HIT]  {:?}", path.file_name().unwrap_or_default());
-        //     return Ok(VideoFeatures {
-        //         path: path.to_string_lossy().to_string(),
-        //         video_embeddings: cached.video_embeddings,
-        //         audio_embeddings: cached.audio_embeddings,
-        //     });
-        // }
+        let reader =
+            VideoCacheReader::onetime(arama_cache::DbLocation::Custom(cache_storage_path()?))?;
+        match reader.lookup(path)? {
+            LookupResult::Hit(x) if x.features.is_some() => {
+                // info!("[CACHE HIT]  {:?}", path.file_name().unwrap_or_default());
+                let features = x.features.unwrap();
+                return Ok(VideoFeatures {
+                    path: path.to_string_lossy().to_string(),
+                    video_embeddings: features.clip_vector.unwrap_or(vec![]),
+                    audio_embeddings: features.wav2vec2_vector.unwrap_or(vec![]),
+                });
+            }
+            _ => (),
+        };
 
         // todo: delete debugger
         println!("[CACHE MISS] {:?}", path.file_name().unwrap_or_default());
+
         let features = self.extract_features(path)?;
 
-        // self.cache.store(
-        //     path,
-        //     &CachedFeatures {
-        //         video_embeddings: features.video_embeddings.clone(),
-        //         audio_embeddings: features.audio_embeddings.clone(),
-        //     },
-        // )?;
+        let writer = VideoCacheWriter::onetime(
+            arama_cache::DbLocation::Custom(cache_storage_path()?),
+            Some(cache_thumbnail_dir_path()?),
+            Some(
+                VideoEngine::ffmpeg()
+                    .expect("failed to get ffmpeg command")
+                    .get_program()
+                    .into(),
+            ),
+        )?;
+        let request = UpsertVideoRequest {
+            path: path.to_path_buf(),
+            clip_vector: Some(features.video_embeddings.clone()),
+            wav2vec2_vector: Some(features.audio_embeddings.clone()),
+        };
+        let ret = writer.upsert(request)?;
 
         Ok(features)
     }

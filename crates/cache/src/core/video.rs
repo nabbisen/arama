@@ -9,7 +9,7 @@ use rusqlite::OptionalExtension;
 use file_feature_cache::Result;
 use file_feature_cache::{CacheConfig, CacheRead, CacheWrite, CacheWriter, DbLocation};
 
-use crate::core::codec::{blob_to_vec, vec_to_blob};
+use crate::core::codec::{blob_to_vecs, vecs_to_blob};
 use crate::core::extension::MediaExtension;
 use crate::core::thumbnail::{generate_video_thumbnail, thumbnail_dest};
 use crate::types::{LookupResult, UpsertVideoRequest, VideoCacheEntry, VideoFeatures};
@@ -61,9 +61,20 @@ impl VideoCacheWriter {
         Ok(Self::build(writer, config))
     }
 
-    pub fn onetime(location: DbLocation) -> Result<Self> {
+    pub fn onetime(
+        location: DbLocation,
+        thumbnail_dir: Option<PathBuf>,
+        ffmpeg_path: Option<PathBuf>,
+    ) -> Result<Self> {
         let writer = CacheWriter::onetime(location)?;
-        Ok(Self::build(writer, VideoCacheConfig::default()))
+        let config = VideoCacheConfig {
+            cache: CacheConfig {
+                thumbnail_dir,
+                ..CacheConfig::default()
+            },
+            ffmpeg_path,
+        };
+        Ok(Self::build(writer, config))
     }
 
     // -----------------------------------------------------------------------
@@ -136,8 +147,8 @@ impl VideoCacheWriter {
             )?;
         }
 
-        let clip_blob = req.clip_vector.as_deref().map(vec_to_blob);
-        let wav_blob = req.wav2vec2_vector.as_deref().map(vec_to_blob);
+        let clip_blob = req.clip_vector.as_deref().map(vecs_to_blob);
+        let wav_blob = req.wav2vec2_vector.as_deref().map(vecs_to_blob);
 
         if clip_blob.is_some() || wav_blob.is_some() {
             conn.execute(
@@ -168,7 +179,7 @@ impl CacheWrite for VideoCacheWriter {
         })
     }
     fn onetime(location: DbLocation) -> Result<Self> {
-        VideoCacheWriter::onetime(location)
+        VideoCacheWriter::onetime(location, None, None)
     }
     fn as_reader(&self) -> VideoCacheReader {
         VideoCacheWriter::as_reader(self)
@@ -263,8 +274,8 @@ impl VideoCacheReader {
             .optional()?
             .map(|(clip_raw, wav_raw)| -> Result<VideoFeatures> {
                 Ok(VideoFeatures {
-                    clip_vector: clip_raw.map(|b| blob_to_vec(&b)).transpose()?,
-                    wav2vec2_vector: wav_raw.map(|b| blob_to_vec(&b)).transpose()?,
+                    clip_vector: clip_raw.map(|b| blob_to_vecs(&b)).transpose()?,
+                    wav2vec2_vector: wav_raw.map(|b| blob_to_vecs(&b)).transpose()?,
                 })
             })
             .transpose()?;
