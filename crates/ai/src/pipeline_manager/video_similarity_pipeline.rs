@@ -59,12 +59,12 @@ impl VideoSimilarityPipeline {
 
     // ── 公開 API ──────────────────────────────────────────────────────
 
-    /// 2 つの動画ファイルの類似度スコアを計算する
-    pub fn compare(&self, path_a: &Path, path_b: &Path) -> anyhow::Result<VideoSimilarityResult> {
-        let feat_a = self.get_or_extract(path_a)?;
-        let feat_b = self.get_or_extract(path_b)?;
-        self.calculator.compare(&feat_a, &feat_b)
-    }
+    // /// 2 つの動画ファイルの類似度スコアを計算する
+    // pub fn compare(&self, path_a: &Path, path_b: &Path) -> anyhow::Result<VideoSimilarityResult> {
+    //     let feat_a = self.get_or_extract(path_a)?;
+    //     let feat_b = self.get_or_extract(path_b)?;
+    //     self.calculator.compare(&feat_a, &feat_b)
+    // }
 
     /// 動画の特徴量を事前にキャッシュに登録する
     pub fn preload(&self, path: &Path) -> anyhow::Result<()> {
@@ -133,7 +133,8 @@ impl VideoSimilarityPipeline {
 
         // 2. 映像フレームを個別シーク取得 → CLIP でバッチエンコード
         let frames = self.extractor.extract_video_frames(path, &timestamps)?;
-        let video_embeddings = self.clip_encoder.encode_frames(&frames)?;
+        let video_raw_embeddings = self.clip_encoder.encode_frames(&frames)?;
+        let video_embeddings = mean_embeddings(&video_raw_embeddings);
 
         // 3. 音声セグメントを個別シーク取得 → Whisper でエンコード
         //    映像と同じタイムスタンプを使うことで時間軸が対応する
@@ -152,14 +153,15 @@ impl VideoSimilarityPipeline {
                 samples: &s.samples,
             })
             .collect();
-        let audio_embeddings = self.audio_encoder.encode_segments(&views);
+        let audio_raw_embeddings = self.audio_encoder.encode_segments(&views);
+        let audio_embeddings = mean_embeddings(&audio_raw_embeddings);
 
-        // todo: delete debugger
-        println!(
-            "  → video_embeddings={}, audio_embeddings={}",
-            video_embeddings.len(),
-            audio_embeddings.len()
-        );
+        // // todo: delete debugger
+        // println!(
+        //     "  → video_embeddings={}, audio_embeddings={}",
+        //     video_embeddings.len(),
+        //     audio_embeddings.len()
+        // );
 
         Ok(VideoFeatures {
             path: path.to_string_lossy().to_string(),
@@ -167,4 +169,29 @@ impl VideoSimilarityPipeline {
             audio_embeddings,
         })
     }
+}
+
+fn mean_embeddings(frames: &Vec<Vec<f32>>) -> Vec<f32> {
+    if frames.is_empty() {
+        return vec![];
+    }
+    let dim = frames[0].len();
+    let mut mean_vec = vec![0.0; dim];
+    for frame in frames {
+        for (i, val) in frame.iter().enumerate() {
+            mean_vec[i] += val;
+        }
+    }
+    let f_n = frames.len() as f32;
+    for val in &mut mean_vec {
+        *val /= f_n;
+    }
+    // ここで L2正規化 をしておくと、後のドット積がそのままコサイン類似度になります
+    let norm = mean_vec.iter().map(|x| x * x).sum::<f32>().sqrt();
+    if norm > 0.0 {
+        for val in &mut mean_vec {
+            *val /= norm;
+        }
+    }
+    mean_vec
 }
