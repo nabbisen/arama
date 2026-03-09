@@ -2,7 +2,7 @@ use std::{cmp::Ordering, path::PathBuf};
 
 use hnsw_rs::{hnsw::Hnsw, prelude::DistL2};
 use rayon::{
-    iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator},
+    iter::{IntoParallelIterator, ParallelIterator},
     slice::ParallelSliceMut,
 };
 

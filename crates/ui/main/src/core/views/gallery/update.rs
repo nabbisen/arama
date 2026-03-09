@@ -11,7 +11,6 @@ use arama_env::{VIDEO_EXTENSION_ALLOWLIST, cache_storage_path};
 // use app_json_settings::ConfigManager;
 // use arama_widget::dir_tree;
 use iced::{Task, wgpu::naga::FastHashMap};
-use swdir::DirNode;
 // use swdir::DirNode;
 
 use crate::core::components::gallery::gallery_settings;

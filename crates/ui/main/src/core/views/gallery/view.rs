@@ -1,9 +1,4 @@
-use std::path::PathBuf;
-
-use arama_cache::{DbLocation, ImageCacheReader, LookupResult, VideoCacheReader};
-use arama_env::{VIDEO_EXTENSION_ALLOWLIST, cache_storage_path};
 use iced::Length::Fill;
-use iced::futures::stream::iter;
 use iced::widget::{Responsive, column, container, row, scrollable, space, text};
 use iced::{Element, Size};
 
