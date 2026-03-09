@@ -53,8 +53,15 @@ jobs:
       - name: rustup install
         if: startsWith(matrix.container, 'nvidia/')
         run: |
-          sudo apt update
-          sudo apt install rustup
+          sudo apt-get update
+          sudo apt-get install -y \
+              curl \
+              build-essential \
+          && rm -rf /var/lib/apt/lists/*
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          rustc --version
+          cargo --version
       
       - name: Install Rust
         run: bash .github/workflows/scripts/install-rust.sh stable ${{ matrix.target }}
