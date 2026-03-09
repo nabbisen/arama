@@ -4,7 +4,7 @@ use arama_cache::{ImageCacheWriter, UpsertImageRequest};
 use arama_env::{
     IMAGE_EXTENSION_ALLOWLIST, MAX_THUMBNAIL_SIZE, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path,
 };
-use iced::Task;
+use iced::{Task, wgpu::naga::FastHashMap};
 // use iced::Task;
 use swdir::{DirNode, Swdir};
 
@@ -23,6 +23,7 @@ const SPACING: u16 = 10;
 // アプリケーションの状態
 pub struct Gallery {
     dir_node: Option<DirNode>,
+    path_thumbnail_path_map: FastHashMap<String, String>,
     pub gallery_settings: GallerySettings,
 }
 
@@ -46,6 +47,7 @@ impl Gallery {
 
         Ok(Self {
             dir_node: Some(dir_node),
+            path_thumbnail_path_map: FastHashMap::default(),
             gallery_settings: GallerySettings::default(),
         })
     }

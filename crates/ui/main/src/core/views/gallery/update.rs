@@ -3,11 +3,15 @@ use std::{path::PathBuf, sync::Arc};
 use arama_ai::{
     model::model_container::clip, pipeline::encode::image::embeddings::image_embedding,
 };
-use arama_cache::{CacheError, ImageCacheWriter, UpsertImageRequest};
-use arama_env::cache_storage_path;
+use arama_cache::{
+    DbLocation, ImageCacheReader, ImageCacheWriter, LookupResult, UpsertImageRequest,
+    VideoCacheReader,
+};
+use arama_env::{VIDEO_EXTENSION_ALLOWLIST, cache_storage_path};
 // use app_json_settings::ConfigManager;
 // use arama_widget::dir_tree;
-use iced::Task;
+use iced::{Task, wgpu::naga::FastHashMap};
+use swdir::DirNode;
 // use swdir::DirNode;
 
 use crate::core::components::gallery::gallery_settings;
@@ -35,6 +39,11 @@ impl Gallery {
                             .collect::<Vec<String>>()
                             .join("\n")
                     );
+                }
+
+                if let Some(dir_node) = &self.dir_node {
+                    self.path_thumbnail_path_map =
+                        path_thumbnail_path_map(&dir_node.flatten_paths());
                 }
 
                 if clip::model().ready().unwrap_or(false) {
@@ -202,4 +211,57 @@ impl Gallery {
             // }
         }
     }
+}
+
+fn path_thumbnail_path_map(paths: &Vec<PathBuf>) -> FastHashMap<String, String> {
+    let mut map = FastHashMap::default();
+
+    let video_cache_reader = VideoCacheReader::onetime(DbLocation::Custom(
+        cache_storage_path().expect("failed to get storaget path"),
+    ))
+    .expect("failed to get video cache reader");
+
+    let image_cache_reader = ImageCacheReader::onetime(DbLocation::Custom(
+        cache_storage_path().expect("failed to get storaget path"),
+    ))
+    .expect("failed to get video cache reader");
+
+    for path in paths {
+        let thumbnail_path = if VIDEO_EXTENSION_ALLOWLIST.contains(
+            &path
+                .extension()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string()
+                .as_str(),
+        ) {
+            match video_cache_reader.lookup(&path) {
+                Ok(LookupResult::Hit(x)) if x.thumbnail_path.is_some() => {
+                    PathBuf::from(x.thumbnail_path.unwrap())
+                }
+                _ => path.to_path_buf(),
+            }
+        } else {
+            match image_cache_reader.lookup(&path) {
+                Ok(LookupResult::Hit(x)) if x.thumbnail_path.is_some() => {
+                    PathBuf::from(x.thumbnail_path.unwrap())
+                }
+                _ => path.to_path_buf(),
+            }
+        };
+
+        map.insert(
+            path.canonicalize()
+                .expect("failed to canonicalize path")
+                .to_string_lossy()
+                .to_string(),
+            thumbnail_path
+                .canonicalize()
+                .expect("failed to canonicalize thumbnail path")
+                .to_string_lossy()
+                .to_string(),
+        );
+    }
+
+    map
 }
