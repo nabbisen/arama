@@ -69,7 +69,7 @@ jobs:
       - name: Mitigate nvidia-smi panic
         if: startsWith(matrix.container, 'nvidia/')
         run: |
-          echo "CUDA_COMPUTE_CAP=75" >> $GITHUB_ENV
+          echo "CUDA_COMPUTE_CAP=86" >> $GITHUB_ENV
       
       - name: Install Rust
         run: bash .github/workflows/scripts/install-rust.sh stable ${{ matrix.target }}
