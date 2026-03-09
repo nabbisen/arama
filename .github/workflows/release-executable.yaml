@@ -19,25 +19,30 @@ env:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
           - name: Linux-x64-gnu
             target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
+            container: nvidia/cuda:13.1.1-devel-ubuntu24.04
             bin-ext:
             archive-ext: .tar.gz
           - name: macOS-aarch64
             target: aarch64-apple-darwin
             os: macos-latest
+            container: ""
             bin-ext:
             archive-ext: .zip
           - name: Windows-x64
             target: x86_64-pc-windows-msvc
             os: windows-latest
+            container: ""
             bin-ext: .exe
             archive-ext: .zip
+
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container || null }}
 
     steps:
       - name: Checkout repository
