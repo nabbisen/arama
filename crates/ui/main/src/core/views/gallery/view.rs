@@ -1,4 +1,9 @@
+use std::path::PathBuf;
+
+use arama_cache::{DbLocation, ImageCacheReader, LookupResult, VideoCacheReader};
+use arama_env::{VIDEO_EXTENSION_ALLOWLIST, cache_storage_path};
 use iced::Length::Fill;
+use iced::futures::stream::iter;
 use iced::widget::{Responsive, column, container, row, scrollable, space, text};
 use iced::{Element, Size};
 
@@ -53,16 +58,15 @@ impl Gallery {
         let thumbnail_size = self.gallery_settings.thumbnail_size() as u32;
 
         let content = self
-            .dir_node
-            .as_ref()
-            .expect("columns_in_rows(): dir_node should be Some() here")
-            .files
+            .path_thumbnail_path_map
+            .iter()
+            .collect::<Vec<_>>()
             .chunks(num_of_columns_in_row)
             .map(|chunk| {
                 row(chunk
                     .iter()
-                    .map(|path| {
-                        ImageCell::new(&path, thumbnail_size)
+                    .map(|(path, thumbnail_path)| {
+                        ImageCell::new(&path, &thumbnail_path, thumbnail_size)
                             .view()
                             .map(Message::ImageCellMessage)
                     })
