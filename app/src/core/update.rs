@@ -127,20 +127,9 @@ impl App {
                 Task::none()
             }
             Message::SimilarPairsDialogMessage(message) => {
-                let _ = match &self.dialog {
+                let _ = match &mut self.dialog {
                     Some(Dialog::SimilarPairsDialog(dialog)) => {
-                        let output = dialog.to_owned().update(message);
-                        match output {
-                            Some(similar_pairs_dialog::output::Output::EmbeddingsReady(pairs)) => {
-                                self.dialog = Some(Dialog::SimilarPairsDialog(
-                                    similar_pairs_dialog::SimilarPairsDialog::new(
-                                        self.gallery.dir_node().unwrap(),
-                                        Some(pairs),
-                                    ),
-                                ));
-                            }
-                            None => (),
-                        }
+                        let _ = dialog.update(message);
                     }
                     _ => (),
                 };

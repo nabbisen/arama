@@ -14,7 +14,6 @@ use iced::Task;
 use swdir::DirNode;
 
 pub mod message;
-pub mod output;
 mod update;
 mod view;
 

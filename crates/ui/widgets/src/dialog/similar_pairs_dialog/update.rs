@@ -1,9 +1,14 @@
-use super::{SimilarPairsDialog, message::Message, output::Output};
+use iced::Task;
+
+use super::{SimilarPairsDialog, message::Message};
 
 impl SimilarPairsDialog {
-    pub fn update(&mut self, message: Message) -> Option<Output> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::EmbeddingsReady(pairs) => return Some(Output::EmbeddingsReady(pairs)),
+            Message::EmbeddingsReady(pairs) => {
+                self.pairs = Some(pairs);
+                Task::none()
+            }
         }
     }
 }
