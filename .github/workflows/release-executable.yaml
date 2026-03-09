@@ -19,61 +19,33 @@ env:
 
 jobs:
   build:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
           - name: Linux-x64-gnu
             target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-            container: nvidia/cuda:13.1.1-devel-ubuntu24.04
+            cuda_setup: true
             bin-ext:
             archive-ext: .tar.gz
           - name: macOS-aarch64
             target: aarch64-apple-darwin
             os: macos-latest
-            container: ""
+            cuda_setup: false
             bin-ext:
             archive-ext: .zip
           - name: Windows-x64
             target: x86_64-pc-windows-msvc
             os: windows-latest
-            container: ""
+            cuda_setup: true
             bin-ext: .exe
             archive-ext: .zip
-
-    runs-on: ${{ matrix.os }}
-    container: ${{ matrix.container || null }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # [ build ]
-
-      # nvidia container
-      # - doesn't have rustup
-      - name: rustup install
-        if: startsWith(matrix.container, 'nvidia/')
-        run: |
-          apt-get update
-          apt-get install -y \
-              curl \
-              build-essential \
-          && rm -rf /var/lib/apt/lists/*
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          source $HOME/.cargo/env
-          rustc --version
-          cargo --version
-      # - candle-kernels and bindgen_cuda forces nvidia-smi to panic (github actions runner doesn't have gpu)
-      - name: Mitigate nvidia-smi panic
-        if: startsWith(matrix.container, 'nvidia/')
-        run: |
-          echo "CUDA_COMPUTE_CAP=86" >> $GITHUB_ENV
-      
-      - name: Install Rust
-        run: bash .github/workflows/scripts/install-rust.sh stable ${{ matrix.target }}
-      
       - name: Cache cargo dependencies and build
         uses: actions/cache@v4
         with:
@@ -85,6 +57,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
+      # [ build ]
+      - name: Install Rust
+        run: bash .github/workflows/scripts/install-rust.sh stable ${{ matrix.target }}
+      
+      # cuda setup
+      - name: cuda toolkit setup
+        if: ${{ matrix.cuda_setup == true }}
+        uses: Jimver/cuda-toolkit@v0.2.30
+        with:
+          cuda: '13.1.0'
+          method: 'network'
+          sub-packages: '["nvcc", "cudart", "nvrtc", "visual_studio_integration"]'
+      
       - name: Build Rust executable
         run: |
           cargo build --release --target ${{ matrix.target }} --bin ${{ env.PRODUCT_BASENAME }} --locked
