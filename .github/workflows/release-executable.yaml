@@ -30,7 +30,7 @@ jobs:
             bin-ext:
             archive-ext: .tar.gz
             cuda_setup: true
-            cuda_packages: '["nvcc", "cudart", "nvrtc"]'
+            cuda_packages: '["nvcc", "cudart", "nvrtc", "cublas", "curand"]'
           - name: macOS-aarch64
             target: aarch64-apple-darwin
             os: macos-latest
@@ -43,7 +43,7 @@ jobs:
             bin-ext: .exe
             archive-ext: .zip
             cuda_setup: true
-            cuda_packages: '["nvcc", "cudart", "nvrtc", "visual_studio_integration"]'
+            cuda_packages: '["nvcc", "cudart", "nvrtc", "cublas", "curand", "visual_studio_integration"]'
 
     steps:
       - name: Checkout repository
