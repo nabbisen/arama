@@ -75,6 +75,10 @@ jobs:
           cuda: ${{ env.CUDA_VERSION }}
           method: 'network'
           sub-packages: ${{ matrix.cuda_packages }}
+      - name: Mitigate nvidia-smi panic
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          echo "CUDA_COMPUTE_CAP=86" >> $GITHUB_ENV
       
       - name: Build Rust executable
         run: |
