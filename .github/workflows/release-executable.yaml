@@ -65,6 +65,7 @@ jobs:
         run: bash .github/workflows/scripts/install-rust.sh stable ${{ matrix.target }}
       
       # cuda setup
+      # linux and windows
       - name: cuda toolkit setup
         if: ${{ matrix.cuda_setup == true }}
         # v0.2.30 - b6fc3a9
@@ -77,6 +78,21 @@ jobs:
         if: ${{ matrix.cuda_setup == true }}
         run: |
           echo "CUDA_COMPUTE_CAP=86" >> $GITHUB_ENV
+      # windows only
+      - name: Mitigate cl.exe (MSVC for NVCC) missing
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: pwsh
+        run: |
+          $clPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+            -latest -products * `
+            -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+            -find VC\Tools\MSVC\**\bin\Hostx64\x64\cl.exe | Select-Object -First 1
+          if (-not $clPath) {
+              Write-Error "cl.exe could not be found via vswhere."
+              exit 1
+          }
+          echo "NVCC_CCBIN=$clPath" >> $env:GITHUB_ENV
+          echo "Found cl.exe at: $clPath"
       
       - name: Build Rust executable
         run: |
