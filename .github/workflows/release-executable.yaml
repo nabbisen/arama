@@ -30,7 +30,7 @@ jobs:
             bin-ext:
             archive-ext: .tar.gz
             cuda_setup: true
-            cuda_packages: '["nvcc", "cudart", "nvrtc", "cublas", "curand"]'
+            cuda_packages: '[]'
           - name: macOS-aarch64
             target: aarch64-apple-darwin
             os: macos-latest
