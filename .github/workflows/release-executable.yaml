@@ -30,6 +30,7 @@ jobs:
             bin-ext:
             archive-ext: .tar.gz
             cuda_setup: true
+            cuda_packages: '[]'
           - name: macOS-aarch64
             target: aarch64-apple-darwin
             os: macos-latest
@@ -42,6 +43,7 @@ jobs:
             bin-ext: .exe
             archive-ext: .zip
             cuda_setup: true
+            cuda_packages: '["cuda_nvcc", "cuda_cudart", "cuda_cudart_dev", "cuda_cccl", "cuda_nvrtc"]'
 
     steps:
       - name: Checkout repository
@@ -57,6 +59,14 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
+      # windows only
+      - name: Cache cuda install on windows
+        if: runner.os == 'Windows'
+        uses: actions/cache@v5
+        with:
+          path: |
+            C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA
+          key: cuda-${{ env.CUDA_VERSION }}
 
       # [ build ]
       - name: Install Rust
@@ -71,6 +81,7 @@ jobs:
         with:
           cuda: ${{ env.CUDA_VERSION }}
           method: 'network'
+          sub-packages: ${{ matrix.cuda_packages }}
       - name: Mitigate nvidia-smi panic
         if: ${{ matrix.cuda_setup == true }}
         run: |
