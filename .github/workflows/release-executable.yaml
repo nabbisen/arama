@@ -79,20 +79,22 @@ jobs:
         run: |
           echo "CUDA_COMPUTE_CAP=86" >> $GITHUB_ENV
       # windows only
-      - name: Mitigate cl.exe (MSVC for NVCC) missing
-        if: ${{ matrix.os == 'windows-latest' }}
+      - name: Setup MSVC Environment
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $clPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
-            -latest -products * `
-            -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
-            -find VC\Tools\MSVC\**\bin\Hostx64\x64\cl.exe | Select-Object -First 1
-          if (-not $clPath) {
-              Write-Error "cl.exe could not be found via vswhere."
-              exit 1
+          $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          $vcvars = Join-Path $vsPath "VC\Auxiliary\Build\vcvars64.bat"
+          cmd /c "`"$vcvars`" && set" | ForEach-Object {
+              if ($_ -match "^(.*?)=(.*)$") {
+                  $name = $matches[1]; $val = $matches[2]
+                  if ($name -eq "Path") { 
+                      $val -split ";" | ForEach-Object { if ($_) { echo $_ >> $env:GITHUB_PATH } }
+                  } else {
+                      echo "$name=$val" >> $env:GITHUB_ENV
+                  }
+              }
           }
-          echo "NVCC_CCBIN=$clPath" >> $env:GITHUB_ENV
-          echo "Found cl.exe at: $clPath"
       
       - name: Build Rust executable
         run: |
