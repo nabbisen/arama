@@ -74,7 +74,7 @@ jobs:
           method: 'network'
           sub-packages: ${{ matrix.cuda_packages }}
       - name: Mitigate nvidia-smi panic
-        if: matrix.os == 'ubuntu-latest'
+        if: ${{ matrix.cuda_setup == true }}
         run: |
           echo "CUDA_COMPUTE_CAP=86" >> $GITHUB_ENV
       
