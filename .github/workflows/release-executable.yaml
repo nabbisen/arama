@@ -89,7 +89,11 @@ jobs:
               if ($_ -match "^(.*?)=(.*)$") {
                   $name = $matches[1]; $val = $matches[2]
                   if ($name -eq "Path") { 
-                      $val -split ";" | ForEach-Object { if ($_) { echo $_ >> $env:GITHUB_PATH } }
+                      $val -split ";" | ForEach-Object { 
+                          if ($_) {
+                              echo $_ >> $env:GITHUB_PATH 
+                          }
+                      }
                   } else {
                       echo "$name=$val" >> $env:GITHUB_ENV
                   }
