@@ -78,24 +78,17 @@ jobs:
         if: ${{ matrix.cuda_setup == true }}
         run: |
           echo "CUDA_COMPUTE_CAP=86" >> $GITHUB_ENV
-      # windows only
-      - name: Setup MSVC Environment
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $installPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
-          $toolsPath = Get-ChildItem -Path "$installPath\VC\Tools\MSVC" | Select-Object -First 1
-          $binPath = Join-Path $toolsPath.FullName "bin\Hostx64\x64"
-          if (Test-Path $binPath) {
-              echo "$binPath" >> $env:GITHUB_PATH
-              echo "NVCC_CCBIN=$binPath\cl.exe" >> $env:GITHUB_ENV
-              echo "Added to PATH: $binPath"
-          } else {
-              throw "MSVC Bin path not found"
-          }
       
       - name: Build Rust executable
+        if: runner.os != 'Windows'
         run: |
+          cargo build --release --target ${{ matrix.target }} --bin ${{ env.PRODUCT_BASENAME }} --locked
+      - name: Build Rust executable after MSVC Environment setup
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set "VSLOC=%%i"
+          call "%VSLOC%\VC\Auxiliary\Build\vcvars64.bat"
           cargo build --release --target ${{ matrix.target }} --bin ${{ env.PRODUCT_BASENAME }} --locked
       
       # [ release asset ]
