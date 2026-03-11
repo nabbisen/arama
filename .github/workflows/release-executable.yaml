@@ -6,7 +6,6 @@ on:
 
 permissions:
   contents: write
-  # id-token: write
 
 defaults:
   run:
@@ -57,20 +56,8 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
-      # windows only
-      - name: Cache cuda install on windows
-        if: runner.os == 'Windows'
-        uses: actions/cache@v5
-        with:
-          path: |
-            C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA
-          key: cuda-${{ env.CUDA_VERSION }}
 
-      # [ build ]
-      - name: Install Rust
-        run: bash .github/workflows/scripts/install-rust.sh stable ${{ matrix.target }}
-      
-      # cuda setup
+      # [ cuda setup ]
       # linux and windows
       - name: cuda toolkit setup
         if: ${{ matrix.cuda_setup == true }}
@@ -83,6 +70,7 @@ jobs:
         if: ${{ matrix.cuda_setup == true }}
         run: |
           echo "CUDA_COMPUTE_CAP=86" >> $GITHUB_ENV
+      
       # windows only
       - name: Setup MSVC Environment
         if: runner.os == 'Windows'
@@ -104,6 +92,10 @@ jobs:
           } else {
               throw "MSVC Bin path not found"
           }
+      
+      # [ build ]
+      - name: Install Rust
+        run: bash .github/workflows/scripts/install-rust.sh stable ${{ matrix.target }}
       
       - name: Build Rust executable
         run: |
