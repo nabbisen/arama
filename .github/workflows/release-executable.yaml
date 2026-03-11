@@ -83,21 +83,15 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
-          $vcvars = Join-Path $vsPath "VC\Auxiliary\Build\vcvars64.bat"
-          cmd /c "`"$vcvars`" && set" | ForEach-Object {
-              if ($_ -match "^(.*?)=(.*)$") {
-                  $name = $matches[1]; $val = $matches[2]
-                  if ($name -eq "Path") { 
-                      $val -split ";" | ForEach-Object { 
-                          if ($_) {
-                              echo $_ >> $env:GITHUB_PATH 
-                          }
-                      }
-                  } else {
-                      echo "$name=$val" >> $env:GITHUB_ENV
-                  }
-              }
+          $installPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          $toolsPath = Get-ChildItem -Path "$installPath\VC\Tools\MSVC" | Select-Object -First 1
+          $binPath = Join-Path $toolsPath.FullName "bin\Hostx64\x64"
+          if (Test-Path $binPath) {
+              echo "$binPath" >> $env:GITHUB_PATH
+              echo "NVCC_CCBIN=$binPath\cl.exe" >> $env:GITHUB_ENV
+              echo "Added to PATH: $binPath"
+          } else {
+              throw "MSVC Bin path not found"
           }
       
       - name: Build Rust executable
