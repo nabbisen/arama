@@ -43,7 +43,7 @@ jobs:
             bin-ext: .exe
             archive-ext: .zip
             cuda_setup: true
-            cuda_packages: '["cuda_nvcc", "cuda_cudart", "cuda_cudart_dev", "cuda_cccl", "cuda_nvrtc"]'
+            cuda_packages: '["cuda_nvcc", "cuda_cudart", "cuda_cudart_dev", "cuda_nvrtc", "cuda_nvrtc_dev", "cuda_cccl", "cuda_profiler_api"]'
 
     steps:
       - name: Checkout repository
