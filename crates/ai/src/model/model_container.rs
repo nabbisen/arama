@@ -4,7 +4,7 @@ use super::{CONFIG_JSON, MODEL_DIR, PYTORCH_MODEL, SAFETENSORS_MODEL};
 use arama_env::{local_dir, validate_dir};
 
 pub mod clip;
-pub mod whisper;
+pub mod wav2vec2;
 
 pub enum SourceUrl {
     ModelSafetensors(String),
