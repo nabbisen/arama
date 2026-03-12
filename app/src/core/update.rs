@@ -1,7 +1,7 @@
 use arama_env::{IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST};
 use arama_ui_main::{
     components::gallery::{gallery_settings, image_cell},
-    views::gallery,
+    views::{gallery, setup},
 };
 use iced::Task;
 use swdir::Swdir;
@@ -13,6 +13,13 @@ use arama_ui_widgets::dialog::{media_focus_dialog, settings_dialog, similar_pair
 impl App {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::SetupMessage(message) => {
+                match message {
+                    setup::message::Message::Skip => self.setup_skipped = true,
+                    _ => (),
+                }
+                Task::none()
+            }
             Message::GalleryMessage(message) => {
                 let task = self
                     .gallery

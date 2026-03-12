@@ -1,3 +1,4 @@
+use arama_ui_main::views::setup;
 use arama_ui_widgets::dialog::overlay;
 use iced::{
     Element,
@@ -9,6 +10,10 @@ use super::{App, ContextMenu, Dialog, message::Message};
 
 impl App {
     pub fn view(&self) -> Element<'_, Message> {
+        if !self.setup_skipped && !setup::util::ready() {
+            return self.setup.view().map(Message::SetupMessage).into();
+        }
+
         let content = self
             .gallery
             .view()

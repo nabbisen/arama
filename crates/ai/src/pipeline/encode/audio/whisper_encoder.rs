@@ -21,7 +21,7 @@ use candle_nn::VarBuilder;
 use candle_transformers::models::whisper::{Config, audio::pcm_to_mel, model::Whisper};
 
 use crate::{
-    model::model_container::whisper::{self, HIDDEN_DIM},
+    model::model_container::wav2vec2::{self, HIDDEN_DIM},
     pipeline::{
         encode::audio::{AudioEncoder, mel_filters::build_mel_filterbank},
         extract::video_extractor::audio_segment::AudioSegmentView,
@@ -65,7 +65,7 @@ impl WhisperEncoder {
 
         // let model_safetensors_file = repo.get("model.safetensors").await?;
         // let config_json_file = repo.get("config.json").await?;
-        let model: crate::model::model_container::ModelContainer = whisper::model();
+        let model: crate::model::model_container::ModelContainer = wav2vec2::model();
         let model_safetensors_path = model.safetensors_path()?;
         let config_json_path = model.config_json_path()?;
 

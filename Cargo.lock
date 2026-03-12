@@ -285,6 +285,7 @@ dependencies = [
  "arama-ai",
  "arama-cache",
  "arama-env",
+ "arama-sidecar",
  "arama-ui-widgets",
  "iced",
  "swdir",

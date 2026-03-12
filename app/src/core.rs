@@ -4,22 +4,22 @@ use app_json_settings::ConfigManager;
 use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
 use arama_ui_main::{
     components::gallery::gallery_settings::target_media_type::TargetMediaType,
-    views::gallery::Gallery,
+    views::{gallery::Gallery, setup::Setup},
 };
 use arama_ui_widgets::dialog;
 use iced::{Point, Task};
 
+mod config;
 mod message;
-mod settings;
 mod subscription;
 mod update;
 mod view;
 
+use config::settings::Settings;
 use message::Message;
 
-use crate::core::settings::Settings;
-
 pub struct App {
+    setup: Setup,
     gallery: Gallery,
     header: Header,
     aside: Aside,
@@ -28,6 +28,7 @@ pub struct App {
     context_menu: ContextMenu,
     dialog: Option<Dialog>,
     target_media_type: TargetMediaType,
+    setup_skipped: bool,
     processing: bool,
 }
 
@@ -52,8 +53,12 @@ impl App {
     }
 
     fn new() -> (Self, Task<Message>) {
+        let setup_skipped = false;
+
         let processing = true;
         let target_media_type = TargetMediaType::default();
+
+        let setup = Setup::default();
 
         let settings = match ConfigManager::<Settings>::new().load_or_default() {
             Ok(x) => Some(x),
@@ -86,6 +91,7 @@ impl App {
 
         (
             Self {
+                setup,
                 gallery,
                 header,
                 aside,
@@ -94,6 +100,7 @@ impl App {
                 context_menu: ContextMenu::None,
                 dialog,
                 target_media_type,
+                setup_skipped,
                 processing,
             },
             task,
