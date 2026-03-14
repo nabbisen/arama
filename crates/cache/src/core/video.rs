@@ -149,7 +149,7 @@ impl VideoCacheWriter {
         }
 
         let clip_blob = req.clip_vector.as_deref().map(vec_to_blob);
-        let wav_blob = None as Option<Vec<u8>>; // req.wav2vec2_vector.as_deref().map(vec_to_blob);
+        let wav_blob = req.wav2vec2_vector.as_deref().map(vec_to_blob);
 
         if clip_blob.is_some() || wav_blob.is_some() {
             conn.execute(

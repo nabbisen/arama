@@ -51,8 +51,8 @@ pub struct UpsertVideoRequest {
     pub path: PathBuf,
     /// コマ平均 CLIP 特徴量ベクトル。`None` の場合は既存の値を保持する。
     pub clip_vector: Option<Vec<f32>>,
-    // /// シーン平均 wav2vec2 特徴量ベクトル。`None` の場合は既存の値を保持する。
-    // pub wav2vec2_vector: Option<Vec<f32>>,
+    /// シーン平均 wav2vec2 特徴量ベクトル。`None` の場合は既存の値を保持する。
+    pub wav2vec2_vector: Option<Vec<f32>>,
 }
 
 /// 動画キャッシュエントリ。
