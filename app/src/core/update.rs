@@ -14,11 +14,17 @@ impl App {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::SetupMessage(message) => {
-                match message {
-                    setup::message::Message::Skip => self.setup_skipped = true,
-                    _ => (),
+                let task = self
+                    .setup
+                    .update(message.clone())
+                    .map(Message::SetupMessage);
+                if self.setup.finished {
+                    self.gallery
+                        .default_task()
+                        .map(|message| Message::GalleryMessage(message))
+                } else {
+                    task
                 }
-                Task::none()
             }
             Message::GalleryMessage(message) => {
                 let task = self

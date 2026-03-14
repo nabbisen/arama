@@ -1,7 +1,7 @@
 use std::{path::PathBuf, process::Command};
 
 use arama_env::{local_bin_dir, validate_dir};
-use ffmpeg_sidecar::download::{check_latest_version, download_ffmpeg_package, unpack_ffmpeg};
+use ffmpeg_sidecar::download::{download_ffmpeg_package, ffmpeg_download_url, unpack_ffmpeg};
 
 #[cfg(not(windows))]
 mod bin_name {
@@ -81,10 +81,10 @@ impl VideoEngine {
             bin_name::FFMPEG
         ));
 
-        let version = check_latest_version()?;
-
-        let archive_path = download_ffmpeg_package(&version, dir)?;
-        unpack_ffmpeg(&archive_path, dir)?;
+        // let version = check_latest_version()?;
+        let download_url = ffmpeg_download_url()?;
+        let archive_path = download_ffmpeg_package(&download_url, dir)?;
+        unpack_ffmpeg(&archive_path, &path)?;
 
         Ok(())
     }

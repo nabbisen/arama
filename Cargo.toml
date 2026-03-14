@@ -64,7 +64,7 @@ ffmpeg-sidecar = { version = "2.4", features = ["named_pipes"] }
 hnsw_rs = "0"
 naga = "28"
 # - model loader
-reqwest = { version = "0.13", default-features = false, features = ["multipart", "rustls"] }
+reqwest = { version = "0.13", default-features = false, features = ["multipart", "rustls", "stream"] }
 pt2safetensors = "0"
 
 # cache

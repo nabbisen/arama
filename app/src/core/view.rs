@@ -10,7 +10,7 @@ use super::{App, ContextMenu, Dialog, message::Message};
 
 impl App {
     pub fn view(&self) -> Element<'_, Message> {
-        if !self.setup_skipped && !setup::util::ready() {
+        if !self.setup.finished && !setup::util::ready() {
             return self.setup.view().map(Message::SetupMessage).into();
         }
 

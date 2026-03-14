@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{io::Result, path::PathBuf};
 
 use super::{CONFIG_JSON, MODEL_DIR, PYTORCH_MODEL, SAFETENSORS_MODEL};
 use arama_env::{local_dir, validate_dir};
@@ -6,6 +6,7 @@ use arama_env::{local_dir, validate_dir};
 pub mod clip;
 pub mod wav2vec2;
 
+#[derive(Clone, Debug)]
 pub enum SourceUrl {
     ModelSafetensors(String),
     ModelSafetensorsConfigJson((String, String)),
@@ -18,31 +19,31 @@ pub struct ModelContainer {
 }
 
 impl ModelContainer {
-    pub fn safetensors_path(&self) -> anyhow::Result<PathBuf> {
+    pub fn safetensors_path(&self) -> Result<PathBuf> {
         Ok(self.model_dir()?.join(SAFETENSORS_MODEL))
     }
 
-    pub fn config_json_path(&self) -> anyhow::Result<PathBuf> {
+    pub fn config_json_path(&self) -> Result<PathBuf> {
         Ok(self.model_dir()?.join(CONFIG_JSON))
     }
 
-    pub fn pytorch_path(&self) -> anyhow::Result<PathBuf> {
+    pub fn pytorch_path(&self) -> Result<PathBuf> {
         Ok(self.model_dir()?.join(PYTORCH_MODEL))
     }
 
-    pub fn ready(self) -> anyhow::Result<bool> {
+    pub fn ready(self) -> Result<bool> {
         Ok(self.safetensors_path()?.exists())
     }
 
-    pub fn validate_dir(&self) -> anyhow::Result<()> {
+    pub fn validate_dir(&self) -> Result<()> {
         Ok(validate_dir(&self.model_dir()?)?)
     }
 
-    fn model_dir(&self) -> anyhow::Result<PathBuf> {
+    fn model_dir(&self) -> Result<PathBuf> {
         Ok(models_dir()?.join(&self.name))
     }
 }
 
-fn models_dir() -> anyhow::Result<PathBuf> {
+fn models_dir() -> Result<PathBuf> {
     Ok(local_dir()?.join(MODEL_DIR))
 }
