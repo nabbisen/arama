@@ -216,7 +216,7 @@ fn video_upsert_and_lookup_hit_with_both_vectors() {
         .upsert(UpsertVideoRequest {
             path: file.path().to_path_buf(),
             clip_vector: Some(vec![1.0, 2.0]),
-            wav2vec2_vector: Some(vec![3.0, 4.0]),
+            // wav2vec2_vector: Some(vec![3.0, 4.0]),
         })
         .unwrap();
 
@@ -240,7 +240,7 @@ fn video_upsert_partial_vectors_preserved_via_coalesce() {
         .upsert(UpsertVideoRequest {
             path: file.path().to_path_buf(),
             clip_vector: Some(vec![0.5]),
-            wav2vec2_vector: None,
+            // wav2vec2_vector: None,
         })
         .unwrap();
     // wav2vec2 だけ追加
@@ -248,7 +248,7 @@ fn video_upsert_partial_vectors_preserved_via_coalesce() {
         .upsert(UpsertVideoRequest {
             path: file.path().to_path_buf(),
             clip_vector: None,
-            wav2vec2_vector: Some(vec![0.9]),
+            // wav2vec2_vector: Some(vec![0.9]),
         })
         .unwrap();
 
@@ -280,7 +280,7 @@ fn video_lookup_invalidated_on_file_change() {
         .upsert(UpsertVideoRequest {
             path: file.path().to_path_buf(),
             clip_vector: Some(vec![1.0]),
-            wav2vec2_vector: None,
+            // wav2vec2_vector: None,
         })
         .unwrap();
     file.overwrite(b"modified video");
@@ -549,7 +549,7 @@ fn video_upsert_all_registers_all_files() {
         .map(|f| UpsertVideoRequest {
             path: f.path().to_path_buf(),
             clip_vector: Some(vec![0.1, 0.2]),
-            wav2vec2_vector: Some(vec![0.3, 0.4]),
+            // wav2vec2_vector: Some(vec![0.3, 0.4]),
         })
         .collect();
 
@@ -570,12 +570,12 @@ fn video_upsert_all_partial_failure_continues() {
         UpsertVideoRequest {
             path: good.path().to_path_buf(),
             clip_vector: None,
-            wav2vec2_vector: None,
+            // wav2vec2_vector: None,
         },
         UpsertVideoRequest {
             path: bad,
             clip_vector: None,
-            wav2vec2_vector: None,
+            // wav2vec2_vector: None,
         },
     ]);
 
@@ -596,7 +596,7 @@ fn video_lookup_all_returns_hits_for_upserted_files() {
         .map(|f| UpsertVideoRequest {
             path: f.path().to_path_buf(),
             clip_vector: Some(vec![1.0]),
-            wav2vec2_vector: None,
+            // wav2vec2_vector: None,
         })
         .collect();
     writer.upsert_all(reqs);
