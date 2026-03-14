@@ -1,5 +1,6 @@
 use std::{path::PathBuf, process::Command};
 
+use anyhow::Context;
 use arama_env::{local_bin_dir, validate_dir};
 use ffmpeg_sidecar::download::{download_ffmpeg_package, ffmpeg_download_url, unpack_ffmpeg};
 
@@ -74,17 +75,17 @@ impl VideoEngine {
         //     return Ok(());
         // }
 
-        validate_dir(path.as_path())?;
-
-        let dir = path.parent().expect(&format!(
+        let parent_dir = path.parent().context(format!(
             "failed to get parent dir of {} bin",
             bin_name::FFMPEG
-        ));
+        ))?;
+
+        validate_dir(parent_dir)?;
 
         // let version = check_latest_version()?;
         let download_url = ffmpeg_download_url()?;
-        let archive_path = download_ffmpeg_package(&download_url, dir)?;
-        unpack_ffmpeg(&archive_path, &path)?;
+        let archive_path = download_ffmpeg_package(&download_url, parent_dir)?;
+        unpack_ffmpeg(&archive_path, &parent_dir)?;
 
         Ok(())
     }

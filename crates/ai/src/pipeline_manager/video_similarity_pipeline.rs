@@ -10,7 +10,7 @@ use crate::{
     model::model_manager::ModelManager,
     pipeline::{
         encode::{
-            audio::{AudioEncoder, whisper_encoder::WhisperEncoder},
+            audio::{AudioEncoder, wav2vec2_encoder::Wav2vec2Encoder},
             image::clip_encoder::ClipEncoder,
         },
         extract::video_extractor::{VideoExtractor, audio_segment::AudioSegmentView},
@@ -25,7 +25,7 @@ pub struct VideoSimilarityPipeline {
     cfg: VideoSimilarityConfig,
     extractor: VideoExtractor,
     clip_encoder: ClipEncoder,
-    // audio_encoder: Box<dyn AudioEncoder>,
+    audio_encoder: Box<dyn AudioEncoder>,
     calculator: VideoSimilarityCalculator,
     // cache: FeatureCache,
 }
@@ -35,7 +35,7 @@ impl VideoSimilarityPipeline {
         let device = ModelManager::device();
 
         let clip_encoder = ClipEncoder::load(device.clone())?;
-        // let audio_encoder = WhisperEncoder::load(device)?;
+        let audio_encoder = Wav2vec2Encoder::load(device)?;
         let calculator = VideoSimilarityCalculator::new(
             cfg.image_weight,
             cfg.audio_weight,
@@ -51,7 +51,7 @@ impl VideoSimilarityPipeline {
             cfg,
             extractor,
             clip_encoder,
-            // audio_encoder: Box::new(audio_encoder),
+            audio_encoder: Box::new(audio_encoder),
             calculator,
             // cache,
         })
@@ -89,14 +89,18 @@ impl VideoSimilarityPipeline {
                 return Ok(VideoFeatures {
                     path: path.to_string_lossy().to_string(),
                     video_embeddings: features.clip_vector.unwrap_or(vec![]),
-                    // audio_embeddings: features.wav2vec2_vector.unwrap_or(vec![]),
+                    audio_embeddings: features.wav2vec2_vector.unwrap_or(vec![]),
                 });
             }
             _ => (),
         };
 
         // todo: delete debugger
-        println!("[CACHE MISS] {:?}", path.file_name().unwrap_or_default());
+        println!(
+            "[CACHE MISS] {:?} ({:?})",
+            path.file_name().unwrap_or_default(),
+            path
+        );
 
         let features = self.extract_features(path)?;
 
@@ -113,9 +117,10 @@ impl VideoSimilarityPipeline {
         let request = UpsertVideoRequest {
             path: path.to_path_buf(),
             clip_vector: Some(features.video_embeddings.clone()),
-            // wav2vec2_vector: Some(features.audio_embeddings.clone()),
+            wav2vec2_vector: Some(features.audio_embeddings.clone()),
         };
-        let ret = writer.upsert(request)?;
+
+        let _ = writer.upsert(request)?;
 
         Ok(features)
     }
@@ -138,23 +143,23 @@ impl VideoSimilarityPipeline {
 
         // 3. 音声セグメントを個別シーク取得 → Whisper でエンコード
         //    映像と同じタイムスタンプを使うことで時間軸が対応する
-        // let sr = self.audio_encoder.required_sample_rate();
-        // let segments = self.extractor.extract_audio_segments_direct(
-        //     path,
-        //     &timestamps,
-        //     self.cfg.audio_segment_duration_secs,
-        //     sr,
-        // )?;
-        // let views: Vec<AudioSegmentView> = segments
-        //     .iter()
-        //     .map(|s| AudioSegmentView {
-        //         start_secs: s.start_secs,
-        //         sample_rate: s.sample_rate,
-        //         samples: &s.samples,
-        //     })
-        //     .collect();
-        // let audio_raw_embeddings = self.audio_encoder.encode_segments(&views);
-        // let audio_embeddings = mean_embeddings(&audio_raw_embeddings);
+        let sr = self.audio_encoder.required_sample_rate();
+        let segments = self.extractor.extract_audio_segments_direct(
+            path,
+            &timestamps,
+            self.cfg.audio_segment_duration_secs,
+            sr,
+        )?;
+        let views: Vec<AudioSegmentView> = segments
+            .iter()
+            .map(|s| AudioSegmentView {
+                start_secs: s.start_secs,
+                sample_rate: s.sample_rate,
+                samples: &s.samples,
+            })
+            .collect();
+        let audio_raw_embeddings = self.audio_encoder.encode_segments(&views);
+        let audio_embeddings = mean_embeddings(&audio_raw_embeddings);
 
         // // todo: delete debugger
         // println!(
@@ -166,7 +171,7 @@ impl VideoSimilarityPipeline {
         Ok(VideoFeatures {
             path: path.to_string_lossy().to_string(),
             video_embeddings,
-            // audio_embeddings,
+            audio_embeddings,
         })
     }
 }

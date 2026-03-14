@@ -28,6 +28,22 @@ impl VideoExtractor {
     ///
     /// ffmpeg-sidecar に同梱された ffprobe を使用するため別途インストール不要。
     pub fn get_duration(&self, path: &Path) -> anyhow::Result<f64> {
+        println!(
+            "{:?}",
+            VideoEngine::ffprobe()
+                .with_context(|| "failed to get ffprobe")?
+                .args([
+                    "-v",
+                    "error",
+                    "-show_entries",
+                    "format=duration",
+                    "-of",
+                    "default=noprint_wrappers=1:nokey=1",
+                    path.to_string_lossy().as_ref(),
+                ])
+                .get_program()
+        );
+
         let output = VideoEngine::ffprobe()
             .with_context(|| "failed to get ffprobe")?
             .args([
@@ -39,8 +55,7 @@ impl VideoExtractor {
                 "default=noprint_wrappers=1:nokey=1",
                 path.to_string_lossy().as_ref(),
             ])
-            .output()
-            .context("ffprobe spawn failed")?;
+            .output()?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let duration: f64 = stdout

@@ -1,6 +1,6 @@
 //! 音声エンコーダの共通インターフェース
-mod mel_filters;
-pub mod whisper_encoder;
+mod wav2vec2_config;
+pub mod wav2vec2_encoder;
 
 use crate::pipeline::extract::video_extractor::audio_segment::AudioSegmentView;
 
