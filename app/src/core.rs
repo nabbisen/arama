@@ -4,7 +4,10 @@ use app_json_settings::ConfigManager;
 use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
 use arama_ui_main::{
     components::gallery::gallery_settings::target_media_type::TargetMediaType,
-    views::{gallery::Gallery, setup::Setup},
+    views::{
+        gallery::Gallery,
+        setup::{self, Setup},
+    },
 };
 use arama_ui_widgets::dialog;
 use iced::{Point, Task};
@@ -28,7 +31,6 @@ pub struct App {
     context_menu: ContextMenu,
     dialog: Option<Dialog>,
     target_media_type: TargetMediaType,
-    setup_skipped: bool,
     processing: bool,
 }
 
@@ -53,13 +55,13 @@ impl App {
     }
 
     fn new() -> (Self, Task<Message>) {
-        let setup_skipped = false;
-
         let processing = true;
         let target_media_type = TargetMediaType::default();
 
-        let setup = Setup::default();
+        // todo: error handling
+        let setup = Setup::default().expect("Failed to setup preparation");
 
+        // todo: after setup
         let settings = match ConfigManager::<Settings>::new().load_or_default() {
             Ok(x) => Some(x),
             Err(err) => {
@@ -85,9 +87,13 @@ impl App {
         let footer = Footer::default();
         let dialog = None;
 
-        let task = gallery
-            .default_task()
-            .map(|message| Message::GalleryMessage(message));
+        let task = if !setup.finished && !setup::util::ready() {
+            Task::none()
+        } else {
+            gallery
+                .default_task()
+                .map(|message| Message::GalleryMessage(message))
+        };
 
         (
             Self {
@@ -100,7 +106,6 @@ impl App {
                 context_menu: ContextMenu::None,
                 dialog,
                 target_media_type,
-                setup_skipped,
                 processing,
             },
             task,

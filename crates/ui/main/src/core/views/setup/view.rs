@@ -8,33 +8,18 @@ use super::{Setup, message::Message};
 
 impl Setup {
     pub fn view(&self) -> Element<'_, Message> {
-        let clip = row![
-            container(text("test")).width(120),
-            progress_bar(0.0..=1.0, 0.5)
-        ]
-        .padding(20);
-        let wav2vec2 = row![
-            container(text("test")).width(120),
-            progress_bar(0.0..=1.0, 0.5)
-        ]
-        .padding(20);
-        let ffmpeg = row![
-            container(text("test")).width(120),
-            progress_bar(0.0..=1.0, 0.5)
-        ]
-        .padding(20);
-        let subjects = column![clip, wav2vec2, ffmpeg];
+        let downloader = self.downloader.view().map(Message::DownloaderMessage);
 
-        let buttons = container(
-            row![
-                button("Download").on_press(Message::Download),
-                button("Skip").on_press(Message::Skip)
-            ]
-            .spacing(40),
-        )
-        .center_x(Fill);
+        let mut download_button = button("Download").padding(10);
+        if !self.downloader.is_downloading {
+            download_button = download_button.on_press(Message::Download);
+        }
 
-        container(column![subjects, buttons].spacing(40))
+        let buttons =
+            container(row![download_button, button("Skip").on_press(Message::Skip)].spacing(40))
+                .center_x(Fill);
+
+        container(column![downloader, buttons].spacing(40))
             .width(Fill)
             .height(Fill)
             .center(Fill)
