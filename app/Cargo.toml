@@ -27,5 +27,4 @@ anyhow = { workspace = true }
 app-json-settings = { workspace = true }
 file-handle = { workspace = true }
 rayon = { workspace = true }
-serde = { workspace = true }
 swdir = { workspace = true }

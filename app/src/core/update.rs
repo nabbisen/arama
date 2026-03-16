@@ -1,13 +1,16 @@
 use arama_env::{IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST};
 use arama_ui_main::{
     components::gallery::{gallery_settings, image_cell},
-    views::{gallery, setup},
+    views::gallery,
 };
 use iced::Task;
 use swdir::Swdir;
 
 use super::{App, ContextMenu, Dialog, message::Message};
-use arama_ui_layout::{aside, header};
+use arama_ui_layout::{
+    aside::{self, dir_tree},
+    header,
+};
 use arama_ui_widgets::dialog::{media_focus_dialog, settings_dialog, similar_pairs_dialog};
 
 impl App {
@@ -48,12 +51,13 @@ impl App {
                             .map(Message::SimilarPairsDialogMessage);
                     }
                     gallery::message::Message::GallerySettingsMessage(message) => {
-                        let output = self.gallery.gallery_settings.update(message);
-                        match output {
-                            Some(gallery_settings::output::Output::TargetMediaTypeChange(
-                                media_type,
-                            )) => {
-                                self.target_media_type = media_type;
+                        let _ = self.gallery.gallery_settings.update(message.clone());
+                        match message {
+                            gallery_settings::message::Message::TargetMediaTypeChanged(
+                                target_media_type,
+                            ) => {
+                                self.target_media_type = target_media_type;
+                                self.save_settings();
                             }
                             _ => (),
                         }
@@ -91,36 +95,44 @@ impl App {
                 Task::none()
             }
             Message::AsideMessage(message) => {
-                let output = self.aside.update(message.clone());
+                let task = self.aside.update(message.clone());
 
-                match output {
-                    Some(aside::output::Output::DirClick(path)) => {
-                        self.processing = true;
+                match message {
+                    aside::message::Message::DirTreeMessage(message) => {
+                        match message {
+                            dir_tree::message::Message::DirClick(path) => {
+                                self.processing = true;
 
-                        // todo dir_node should be got from dir_tree
-                        let mut extension_allowlist: Vec<&str> = vec![];
-                        if self.target_media_type.include_image {
-                            extension_allowlist.extend(IMAGE_EXTENSION_ALLOWLIST);
+                                self.root_dir_path = path.clone();
+                                self.save_settings();
+
+                                // todo dir_node should be got from dir_tree
+                                let mut extension_allowlist: Vec<&str> = vec![];
+                                if self.target_media_type.include_image {
+                                    extension_allowlist.extend(IMAGE_EXTENSION_ALLOWLIST);
+                                }
+                                if self.target_media_type.include_video {
+                                    extension_allowlist.extend(VIDEO_EXTENSION_ALLOWLIST);
+                                }
+
+                                let dir_node = Swdir::default()
+                                    .set_root_path(path)
+                                    .set_extension_allowlist(&extension_allowlist)
+                                    .expect("failed to set allowlist")
+                                    .walk();
+
+                                let task = self
+                                    .gallery
+                                    .update(gallery::message::Message::DirSelect(dir_node))
+                                    .map(Message::GalleryMessage);
+                                return task;
+                            }
+                            _ => (),
                         }
-                        if self.target_media_type.include_video {
-                            extension_allowlist.extend(VIDEO_EXTENSION_ALLOWLIST);
-                        }
-
-                        let dir_node = Swdir::default()
-                            .set_root_path(path)
-                            .set_extension_allowlist(&extension_allowlist)
-                            .expect("failed to set allowlist")
-                            .walk();
-
-                        let task = self
-                            .gallery
-                            .update(gallery::message::Message::DirSelect(dir_node))
-                            .map(Message::GalleryMessage);
-                        return task;
                     }
-                    _ => (),
                 }
-                Task::none()
+
+                task.map(Message::AsideMessage)
             }
             Message::FooterMessage(message) => self
                 .footer

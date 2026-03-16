@@ -1,24 +1,20 @@
 use std::path::PathBuf;
 
 use app_json_settings::ConfigManager;
+use arama_env::{Settings, target_media_type::TargetMediaType};
 use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
-use arama_ui_main::{
-    components::gallery::gallery_settings::target_media_type::TargetMediaType,
-    views::{
-        gallery::Gallery,
-        setup::{self, Setup},
-    },
+use arama_ui_main::views::{
+    gallery::Gallery,
+    setup::{self, Setup},
 };
 use arama_ui_widgets::dialog;
 use iced::{Point, Task};
 
-mod config;
 mod message;
 mod subscription;
 mod update;
 mod view;
 
-use config::settings::Settings;
 use message::Message;
 
 pub struct App {
@@ -30,6 +26,7 @@ pub struct App {
     context_menu_point: Point,
     context_menu: ContextMenu,
     dialog: Option<Dialog>,
+    root_dir_path: PathBuf,
     target_media_type: TargetMediaType,
     processing: bool,
 }
@@ -56,34 +53,35 @@ impl App {
 
     fn new() -> (Self, Task<Message>) {
         let processing = true;
-        let target_media_type = TargetMediaType::default();
 
         // todo: error handling
         let setup = Setup::default().expect("Failed to setup preparation");
 
         // todo: after setup
-        let settings = match ConfigManager::<Settings>::new().load_or_default() {
+        let settings = match ConfigManager::<Settings>::new()
+            .at_current_dir()
+            .load_or_default()
+        {
             Ok(x) => Some(x),
             Err(err) => {
                 eprintln!("failed to load settings: {:?}", err);
                 None
             }
-        };
-        let root_dir_path = match settings.as_ref() {
-            Some(x) => x.root_dir_path.as_str(),
-            None => ".",
-        };
-        let gallery =
-            Gallery::new(root_dir_path, &target_media_type).expect("failed to init gallery");
+        }
+        .expect("failed to initialize settings");
 
-        let path = if let Some(settings) = settings.as_ref() {
-            settings.root_dir_path.as_str()
-        } else {
+        let root_dir_path = PathBuf::from(if settings.root_dir_path.is_empty() {
             "."
-        };
+        } else {
+            settings.root_dir_path.as_str()
+        });
+        let target_media_type = settings.target_media_type;
+
+        let gallery =
+            Gallery::new(&root_dir_path, &target_media_type).expect("failed to init gallery");
 
         let header = Header::default();
-        let aside = Aside::new(path, false, false, processing);
+        let aside = Aside::new(&root_dir_path, false, false, processing);
         let footer = Footer::default();
         let dialog = None;
 
@@ -105,10 +103,21 @@ impl App {
                 context_menu_point: Point::default(),
                 context_menu: ContextMenu::None,
                 dialog,
+                root_dir_path,
                 target_media_type,
                 processing,
             },
             task,
         )
+    }
+
+    fn save_settings(&self) {
+        ConfigManager::new()
+            .at_current_dir()
+            .save(&Settings {
+                root_dir_path: self.root_dir_path.to_string_lossy().into(),
+                target_media_type: self.target_media_type.to_owned(),
+            })
+            .expect("failed to save config");
     }
 }

@@ -1,3 +1,4 @@
+use arama_env::target_media_type::TargetMediaType;
 use iced::{
     Element,
     widget::{Button, button, checkbox, row, text},
@@ -9,9 +10,19 @@ impl GallerySettings {
     pub fn view(&self) -> Element<'_, Message> {
         let media_types = row![
             text("Image"),
-            checkbox(self.target_media_type.include_image).on_toggle(Message::IncludeImage),
+            checkbox(self.target_media_type.include_image).on_toggle(|x| {
+                Message::TargetMediaTypeChanged(TargetMediaType {
+                    include_image: x,
+                    include_video: self.target_media_type.include_video,
+                })
+            }),
             text("Video"),
-            checkbox(self.target_media_type.include_video).on_toggle(Message::IncludeVideo)
+            checkbox(self.target_media_type.include_video).on_toggle(|x| {
+                Message::TargetMediaTypeChanged(TargetMediaType {
+                    include_image: self.target_media_type.include_image,
+                    include_video: x,
+                })
+            })
         ]
         .spacing(4);
 

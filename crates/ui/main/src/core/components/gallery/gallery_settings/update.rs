@@ -1,25 +1,18 @@
-use super::{GallerySettings, message::Message, output::Output};
+use iced::Task;
+
+use super::{GallerySettings, message::Message};
 
 impl GallerySettings {
-    pub fn update(&mut self, message: Message) -> Option<Output> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::IncludeImage(b) => {
-                self.target_media_type.include_image = b;
-                return Some(Output::TargetMediaTypeChange(
-                    self.target_media_type.clone(),
-                ));
-            }
-            Message::IncludeVideo(b) => {
-                self.target_media_type.include_video = b;
-                return Some(Output::TargetMediaTypeChange(
-                    self.target_media_type.clone(),
-                ));
+            Message::TargetMediaTypeChanged(target_media_type) => {
+                self.target_media_type = target_media_type;
             }
             Message::ThumbnailSizeSliderMessage(message) => {
                 let _ = self.thumbnail_size.update(message);
             }
             Message::SimilarPairsOpen => (),
         }
-        None
+        Task::none()
     }
 }

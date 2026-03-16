@@ -1,5 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
+// use app_json_settings::ConfigManager;
 use arama_ai::{
     model::model_container::clip, pipeline::encode::image::embeddings::image_embedding,
 };
@@ -8,7 +9,6 @@ use arama_cache::{
     VideoCacheReader,
 };
 use arama_env::{VIDEO_EXTENSION_ALLOWLIST, cache_storage_path};
-// use app_json_settings::ConfigManager;
 // use arama_widget::dir_tree;
 use iced::{Task, wgpu::naga::FastHashMap};
 // use swdir::DirNode;
@@ -179,34 +179,6 @@ impl Gallery {
             //     self.file_embedding_map = FileEmbeddingMap::default();
             //     self.processing = false;
             //     Task::none()
-            // }
-            // Message::DirTreeMessage(message) => {
-            //     let task = self.directory_tree.update(message.clone());
-
-            //     match message {
-            //         dir_tree::message::Message::DirectoryDoubleClick(path) => {
-            //             ConfigManager::new()
-            //                 .save(&Settings {
-            //                     root_dir_path: path.to_string_lossy().into(),
-            //                 })
-            //                 .expect("failed to save config");
-
-            //             self.clear();
-            //             let dir_node = DirNode::with_path(path);
-            //             self.dir_node = Some(dir_node.clone());
-
-            //             return Task::perform(
-            //                 super::util::load_images(
-            //                     dir_node.path.clone(),
-            //                     self.gallery_settings.swdir_depth_limit(),
-            //                 ),
-            //                 super::message::Message::ImagesLoaded,
-            //             );
-            //         }
-            //         _ => (),
-            //     }
-
-            //     task.map(Message::DirTreeMessage)
             // }
         }
     }

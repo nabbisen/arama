@@ -3,8 +3,7 @@ use std::path::PathBuf;
 use file_node::FileNode;
 
 mod file_node;
-pub(super) mod message;
-pub mod output;
+pub mod message;
 mod update;
 mod view;
 

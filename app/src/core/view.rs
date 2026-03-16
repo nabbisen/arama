@@ -3,7 +3,7 @@ use arama_ui_widgets::dialog::overlay;
 use iced::{
     Element,
     Length::Fill,
-    widget::{button, column, container, mouse_area, row, space, stack},
+    widget::{button, column, container, mouse_area, row, space, stack, text},
 };
 
 use super::{App, ContextMenu, Dialog, message::Message};
@@ -35,7 +35,19 @@ impl App {
                 space().height(self.context_menu_point.y),
                 row![
                     space().width(self.context_menu_point.x),
-                    button("file manager").on_press(Message::FileManagerShow(path.to_path_buf())),
+                    column![
+                        container(text(
+                            path.canonicalize()
+                                .unwrap_or_default()
+                                .to_string_lossy()
+                                .to_string()
+                        ))
+                        .style(container::secondary),
+                        button("file manager")
+                            .on_press(Message::FileManagerShow(path.to_path_buf())),
+                    ]
+                    .width(self.gallery.gallery_settings.thumbnail_size() as f32)
+                    .spacing(5)
                 ]
             ]),
             ContextMenu::None => container(space()),

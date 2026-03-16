@@ -2,7 +2,6 @@ use std::fs;
 use std::path::PathBuf;
 
 pub(super) mod message;
-mod output;
 mod update;
 mod view;
 

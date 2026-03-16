@@ -3,15 +3,13 @@ use std::{path::PathBuf, sync::Arc};
 use arama_cache::{ImageCacheWriter, UpsertImageRequest};
 use arama_env::{
     IMAGE_EXTENSION_ALLOWLIST, MAX_THUMBNAIL_SIZE, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path,
+    target_media_type::TargetMediaType,
 };
 use iced::{Task, wgpu::naga::FastHashMap};
 // use iced::Task;
 use swdir::{DirNode, Swdir};
 
-use crate::{
-    components::gallery::gallery_settings::target_media_type::TargetMediaType,
-    core::components::gallery::gallery_settings::GallerySettings,
-};
+use crate::core::components::gallery::gallery_settings::GallerySettings;
 
 pub mod message;
 // mod subscription;
@@ -48,7 +46,7 @@ impl Gallery {
         Ok(Self {
             dir_node: Some(dir_node),
             path_thumbnail_path_map: FastHashMap::default(),
-            gallery_settings: GallerySettings::default(),
+            gallery_settings: GallerySettings::new(target_media_type),
         })
     }
 
