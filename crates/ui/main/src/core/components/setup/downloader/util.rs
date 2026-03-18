@@ -1,6 +1,4 @@
-use std::path::PathBuf;
-
-use arama_ai::model::model_container::SourceUrl;
+use arama_ai::model::model_container::{ModelContainer, SourceUrl};
 use arama_env::validate_dir;
 use iced::futures::{SinkExt, StreamExt, channel::mpsc::Sender};
 use tokio::fs::{self, File};
@@ -9,15 +7,16 @@ use tokio::io::{AsyncWriteExt, BufWriter};
 use super::state::DownloadProgress;
 
 /// 実際のダウンロード処理を行い、進捗をStreamとして返す（重複排除済みの完成版）
-pub fn download_stream(
-    url: SourceUrl,
-    path_to_save: PathBuf,
-) -> impl StreamExt<Item = DownloadProgress> {
+pub fn download_stream(model_container: ModelContainer) -> impl StreamExt<Item = DownloadProgress> {
     iced::stream::channel(
         100,
         move |mut output: Sender<DownloadProgress>| async move {
+            let safetensors_path = model_container
+                .safetensors_path()
+                .expect("failed to get safetensors path");
+
             // 1. 上書き防止チェック (Downloader struct 初期化時と複合チェック)
-            if path_to_save.exists() {
+            if safetensors_path.exists() {
                 let _ = output
                     .send(DownloadProgress::Errored(
                         "ファイルが既に存在します".to_string(),
@@ -26,14 +25,23 @@ pub fn download_stream(
                 return;
             }
 
-            let (model_url, config_url) = match url {
-                SourceUrl::ModelSafetensors(x) => (x, None),
-                SourceUrl::ModelSafetensorsConfigJson(x) => (x.0, Some(x.1)),
-                SourceUrl::Other(x) => (x, None),
+            // 2. HTTPリクエスト
+            let (model_url, path_to_save) = match &model_container.source_url {
+                SourceUrl::ModelSafetensors(x) | SourceUrl::ModelSafetensorsConfigJson((x, _)) => (
+                    x,
+                    model_container
+                        .safetensors_path()
+                        .expect("failed to get pytorch path"),
+                ),
+                SourceUrl::PyTorch(x) => (
+                    x,
+                    model_container
+                        .pytorch_path()
+                        .expect("failed to get pytorch path"),
+                ),
             };
 
-            // 2. HTTPリクエスト
-            let response = match reqwest::get(&model_url).await {
+            let response = match reqwest::get(model_url).await {
                 Ok(res) => res,
                 Err(e) => {
                     let _ = output
@@ -132,66 +140,73 @@ pub fn download_stream(
                     .await;
             }
 
+            let _ = model_container
+                .ensure_safetensors()
+                .expect("failed to ensure safetensors");
+
             // config_url
-            if let Some(config_url) = config_url {
-                // 軽量ファイルなので一括でメモリに取得
-                match reqwest::get(&config_url).await {
-                    Ok(res) => {
-                        if !res.status().is_success() {
-                            let _ = output
-                                .send(DownloadProgress::Errored(format!(
-                                    "設定ファイルのHTTPエラー: {}",
-                                    res.status()
-                                )))
-                                .await;
-                            return;
-                        }
+            match &model_container.source_url {
+                SourceUrl::ModelSafetensorsConfigJson((_, config_url)) => {
+                    // 軽量ファイルなので一括でメモリに取得
+                    match reqwest::get(config_url).await {
+                        Ok(res) => {
+                            if !res.status().is_success() {
+                                let _ = output
+                                    .send(DownloadProgress::Errored(format!(
+                                        "設定ファイルのHTTPエラー: {}",
+                                        res.status()
+                                    )))
+                                    .await;
+                                return;
+                            }
 
-                        match res.bytes().await {
-                            Ok(bytes) => {
-                                // .part を経由せず、直接指定パスに一括書き込み
-                                let url = reqwest::Url::parse(&config_url).unwrap();
+                            match res.bytes().await {
+                                Ok(bytes) => {
+                                    // .part を経由せず、直接指定パスに一括書き込み
+                                    let url = reqwest::Url::parse(&config_url).unwrap();
 
-                                // path_segments() は '?' 以降（クエリパラメーター）を自動的に除外します
-                                let filename = url
-                                    .path_segments() // パスをセグメント（["user", "repo", ..., "model.safetensors"]）に分解
-                                    .and_then(|s| s.last()) // 最後の要素を取得
-                                    .filter(|s| !s.is_empty()) // 末尾がスラッシュで終わるケース（.../path/?q=1）を排除
-                                    .unwrap_or("model.bin");
+                                    // path_segments() は '?' 以降（クエリパラメーター）を自動的に除外します
+                                    let filename = url
+                                        .path_segments() // パスをセグメント（["user", "repo", ..., "model.safetensors"]）に分解
+                                        .and_then(|s| s.last()) // 最後の要素を取得
+                                        .filter(|s| !s.is_empty()) // 末尾がスラッシュで終わるケース（.../path/?q=1）を排除
+                                        .unwrap_or("model.bin");
 
-                                let path = parent_dir.unwrap().join(&filename);
+                                    let path = parent_dir.unwrap().join(&filename);
 
-                                if let Err(e) = fs::write(&path, bytes).await {
+                                    if let Err(e) = fs::write(&path, bytes).await {
+                                        let _ = output
+                                            .send(DownloadProgress::Errored(format!(
+                                                "設定の保存失敗: {}",
+                                                e
+                                            )))
+                                            .await;
+                                        return;
+                                    }
+                                }
+                                Err(e) => {
                                     let _ = output
                                         .send(DownloadProgress::Errored(format!(
-                                            "設定の保存失敗: {}",
+                                            "設定の読み込みエラー: {}",
                                             e
                                         )))
                                         .await;
                                     return;
                                 }
                             }
-                            Err(e) => {
-                                let _ = output
-                                    .send(DownloadProgress::Errored(format!(
-                                        "設定の読み込みエラー: {}",
-                                        e
-                                    )))
-                                    .await;
-                                return;
-                            }
+                        }
+                        Err(e) => {
+                            let _ = output
+                                .send(DownloadProgress::Errored(format!(
+                                    "設定ファイルの通信エラー: {}",
+                                    e
+                                )))
+                                .await;
+                            return;
                         }
                     }
-                    Err(e) => {
-                        let _ = output
-                            .send(DownloadProgress::Errored(format!(
-                                "設定ファイルの通信エラー: {}",
-                                e
-                            )))
-                            .await;
-                        return;
-                    }
                 }
+                _ => (),
             }
 
             // すべての処理（モデル＋任意の設定ファイル）が完了したら通知

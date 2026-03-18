@@ -19,6 +19,7 @@ impl ModelManager {
         Ok(Self { model_container })
     }
 
+    #[deprecated = "use ModelContainer.ensure_safetensors()"]
     pub async fn ensure(&self) -> anyhow::Result<()> {
         let (source_url, is_model_safetensors) = match &self.model_container.source_url {
             SourceUrl::ModelSafetensors(model_safetensors_url) => (model_safetensors_url, true),
@@ -31,7 +32,7 @@ impl ModelManager {
 
                 (model_safetensors_url, true)
             }
-            SourceUrl::Other(source_url) => (source_url, false),
+            SourceUrl::PyTorch(source_url) => (source_url, false),
         };
 
         let response = reqwest::get(source_url).await?;

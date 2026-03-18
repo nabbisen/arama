@@ -6,6 +6,6 @@ use super::{ModelContainer, SourceUrl};
 pub fn model() -> ModelContainer {
     ModelContainer {
         name: MODEL_NAME.to_owned(),
-        source_url: SourceUrl::Other(SOURCE_URL.to_owned()),
+        source_url: SourceUrl::PyTorch(SOURCE_URL.to_owned()),
     }
 }

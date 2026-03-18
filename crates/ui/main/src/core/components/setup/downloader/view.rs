@@ -1,4 +1,4 @@
-use iced::widget::{button, column, container, progress_bar, space, text};
+use iced::widget::{column, container, progress_bar, text};
 use iced::{Element, Length, alignment};
 
 use crate::components::setup::downloader::config::DownloaderConfig;
@@ -11,10 +11,14 @@ impl Downloader {
             .states
             .iter()
             .enumerate()
-            .fold(column![].spacing(20), |col, (id, state)| {
+            .fold(column![].spacing(20), |col, (_id, state)| {
                 let name = match &state.config {
-                    DownloaderConfig::AiModel(_url, path_to_save) => {
-                        let parent_dir_name = if let Some(x) = path_to_save.parent() {
+                    DownloaderConfig::AiModel(model_container) => {
+                        let safetensors_path = model_container
+                            .safetensors_path()
+                            .expect("failed to get safetensors path");
+
+                        let parent_dir_name = if let Some(x) = safetensors_path.parent() {
                             x.file_name()
                                 .unwrap_or_default()
                                 .to_string_lossy()

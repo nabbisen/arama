@@ -10,9 +10,10 @@ pub mod wav2vec2;
 pub enum SourceUrl {
     ModelSafetensors(String),
     ModelSafetensorsConfigJson((String, String)),
-    Other(String),
+    PyTorch(String),
 }
 
+#[derive(Clone, Debug)]
 pub struct ModelContainer {
     pub name: String,
     pub source_url: SourceUrl,
@@ -37,6 +38,26 @@ impl ModelContainer {
 
     pub fn validate_dir(&self) -> Result<()> {
         Ok(validate_dir(&self.model_dir()?)?)
+    }
+
+    pub fn ensure_safetensors(&self) -> Result<()> {
+        let is_model_safetensors = match &self.source_url {
+            SourceUrl::ModelSafetensors(_) | SourceUrl::ModelSafetensorsConfigJson(_) => true,
+            SourceUrl::PyTorch(_) => false,
+        };
+
+        if is_model_safetensors {
+            return Ok(());
+        }
+
+        let pytorch_path = self.pytorch_path()?.clone();
+
+        pt2safetensors::Pt2Safetensors::default()
+            .removes_pt_at_conversion_success()
+            .convert(pytorch_path, self.safetensors_path()?)
+            .expect("failed to convert pytorch to safetensors");
+
+        Ok(())
     }
 
     fn model_dir(&self) -> Result<PathBuf> {

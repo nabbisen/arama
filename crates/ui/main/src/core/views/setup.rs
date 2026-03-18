@@ -15,11 +15,9 @@ pub struct Setup {
 
 impl Setup {
     pub fn default() -> Result<Self> {
-        let clip = clip::model();
-        let wav2vec2 = wav2vec2::model();
         let configs = vec![
-            DownloaderConfig::AiModel(clip.source_url.clone(), clip.safetensors_path()?),
-            DownloaderConfig::AiModel(wav2vec2.source_url.clone(), wav2vec2.safetensors_path()?),
+            DownloaderConfig::AiModel(clip::model()),
+            DownloaderConfig::AiModel(wav2vec2::model()),
             DownloaderConfig::Ffmepg,
         ];
 

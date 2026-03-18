@@ -25,12 +25,11 @@ impl Downloader {
                     state.download_state = DownloadState::Downloading(0.0);
 
                     match &state.config {
-                        DownloaderConfig::AiModel(url, path_to_save) => {
+                        DownloaderConfig::AiModel(model_container) => {
                             // ストリーム関数を呼び出す
-                            Task::run(
-                                download_stream(url.clone(), path_to_save.clone()),
-                                move |progress| Message::ProgressUpdated(id, progress),
-                            )
+                            Task::run(download_stream(model_container.clone()), move |progress| {
+                                Message::ProgressUpdated(id, progress)
+                            })
                         }
                         DownloaderConfig::Ffmepg => match VideoEngine::download() {
                             Ok(_) => {

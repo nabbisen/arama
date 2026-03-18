@@ -21,8 +21,11 @@ impl Downloader {
             .into_iter()
             .map(|config| {
                 let download_state = match &config {
-                    DownloaderConfig::AiModel(_url, path_to_save) => {
-                        if path_to_save.exists() {
+                    DownloaderConfig::AiModel(model_container) => {
+                        let safetensors_path = model_container
+                            .safetensors_path()
+                            .expect("failed to get safetensors path");
+                        if safetensors_path.exists() {
                             DownloadState::Finished
                         } else {
                             DownloadState::default()

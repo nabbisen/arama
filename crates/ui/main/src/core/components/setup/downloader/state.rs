@@ -7,14 +7,14 @@ pub struct DownloaderState {
 }
 
 #[derive(Debug, Clone)]
-pub(super) enum DownloadProgress {
+pub enum DownloadProgress {
     Downloading(f32),
     Finished,
     Errored(String),
 }
 
 #[derive(Debug, Clone, Default)]
-pub(super) enum DownloadState {
+pub enum DownloadState {
     #[default]
     Idle,
     Downloading(f32),

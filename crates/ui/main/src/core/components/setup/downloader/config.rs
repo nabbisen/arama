@@ -1,9 +1,7 @@
-use std::path::PathBuf;
-
-use arama_ai::model::model_container::SourceUrl;
+use arama_ai::model::model_container::ModelContainer;
 
 #[derive(Debug, Clone)]
 pub enum DownloaderConfig {
-    AiModel(SourceUrl, PathBuf),
+    AiModel(ModelContainer),
     Ffmepg,
 }
