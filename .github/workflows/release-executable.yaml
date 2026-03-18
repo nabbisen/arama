@@ -16,6 +16,7 @@ env:
   TAG: ${{ github.ref_name }}            # tag or branch name
   JOB_WORKDIR: tmp-${{ github.run_id }}  # unique number
   CUDA_VERSION: '13.1.0'
+  CUDA_COMPUTE_CAPS: 86
 
 jobs:
   build:
@@ -23,24 +24,36 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: Linux-x64-gnu
+          - name: Linux-x64-gnu-cpu
             target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
             bin-ext:
             archive-ext: .tar.gz
-            cuda_setup: true
+            cuda_enabled: false
+          - name: Linux-x64-gnu-gpu-cuda
+            target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            bin-ext:
+            archive-ext: .tar.gz
+            cuda_enabled: true
           - name: macOS-aarch64
             target: aarch64-apple-darwin
             os: macos-latest
             bin-ext:
             archive-ext: .zip
-            cuda_setup: false
-          - name: Windows-x64
+            cuda_enabled: false
+          - name: Windows-x64-cpu
             target: x86_64-pc-windows-msvc
             os: windows-latest
             bin-ext: .exe
             archive-ext: .zip
-            cuda_setup: true
+            cuda_enabled: false
+          - name: Windows-x64-gpu-cuda
+            target: x86_64-pc-windows-msvc
+            os: windows-latest
+            bin-ext: .exe
+            archive-ext: .zip
+            cuda_enabled: true
 
     steps:
       - name: Checkout repository
@@ -60,20 +73,20 @@ jobs:
       # [ cuda setup ]
       # linux and windows
       - name: cuda toolkit setup
-        if: ${{ matrix.cuda_setup == true }}
+        if: matrix.cuda_enabled == true
         # v0.2.30 - b6fc3a9
         uses: Jimver/cuda-toolkit@b6fc3a9f3f15256d9d94ffe1254f9c5a2565cde6
         with:
           cuda: ${{ env.CUDA_VERSION }}
           method: 'network'
       - name: Mitigate nvidia-smi panic
-        if: ${{ matrix.cuda_setup == true }}
+        if: matrix.cuda_enabled == true
         run: |
-          echo "CUDA_COMPUTE_CAP=86" >> $GITHUB_ENV
+          echo "CUDA_COMPUTE_CAP=${{ env.CUDA_COMPUTE_CAPS }}" >> $GITHUB_ENV
       
       # windows only
       - name: Setup MSVC Environment
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && matrix.cuda_enabled == true
         shell: pwsh
         run: |
           $installPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
@@ -99,7 +112,8 @@ jobs:
       
       - name: Build Rust executable
         run: |
-          cargo build --release --target ${{ matrix.target }} --bin ${{ env.PRODUCT_BASENAME }} --locked
+          cargo build --release --target ${{ matrix.target }} --bin ${{ env.PRODUCT_BASENAME }} --locked \
+              ${{ matrix.cuda_enabled == true && '--features cuda' || '' }}
       
       # [ release asset ]
       - name: Prepare for release asset
