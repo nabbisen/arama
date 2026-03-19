@@ -111,6 +111,7 @@ impl VideoCacheWriter {
     pub fn delete(&self, path: &Path) -> Result<bool> {
         self.writer.delete(path)
     }
+
     pub fn list_paths(&self) -> Result<Vec<String>> {
         self.writer.list_paths()
     }
@@ -179,21 +180,27 @@ impl CacheWrite for VideoCacheWriter {
             ffmpeg_path: None,
         })
     }
+
     fn onetime(location: DbLocation) -> Result<Self> {
         VideoCacheWriter::onetime(location, None, None)
     }
+
     fn as_reader(&self) -> VideoCacheReader {
         VideoCacheWriter::as_reader(self)
     }
+
     fn refresh(&self, path: &Path) -> Result<i64> {
         self.writer.refresh(path)
     }
+
     fn refresh_all(&self, paths: &[&Path]) -> Vec<(PathBuf, Result<i64>)> {
         self.writer.refresh_all(paths)
     }
+
     fn delete(&self, path: &Path) -> Result<bool> {
         VideoCacheWriter::delete(self, path)
     }
+
     fn list_paths(&self) -> Result<Vec<String>> {
         VideoCacheWriter::list_paths(self)
     }
@@ -302,6 +309,7 @@ impl VideoCacheReader {
     pub fn check(&self, path: &Path) -> Result<bool> {
         self.reader.check(path)
     }
+
     pub fn list_paths(&self) -> Result<Vec<String>> {
         self.reader.list_paths()
     }
@@ -315,9 +323,11 @@ impl CacheRead for VideoCacheReader {
     fn check(&self, path: &Path) -> Result<bool> {
         self.reader.check(path)
     }
+
     fn check_all(&self, paths: &[&Path]) -> Vec<(PathBuf, Result<bool>)> {
         self.reader.check_all(paths)
     }
+
     fn list_paths(&self) -> Result<Vec<String>> {
         self.reader.list_paths()
     }

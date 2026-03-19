@@ -180,21 +180,27 @@ impl CacheWrite for ImageCacheWriter {
     fn as_session(cache_config: CacheConfig) -> Result<Self> {
         ImageCacheWriter::as_session(ImageCacheConfig { cache_config })
     }
+
     fn onetime(location: DbLocation) -> Result<Self> {
         ImageCacheWriter::onetime(location)
     }
+
     fn as_reader(&self) -> ImageCacheReader {
         ImageCacheWriter::as_reader(self)
     }
+
     fn refresh(&self, path: &Path) -> Result<i64> {
         self.writer.refresh(path)
     }
+
     fn refresh_all(&self, paths: &[&Path]) -> Vec<(PathBuf, Result<i64>)> {
         self.writer.refresh_all(paths)
     }
+
     fn delete(&self, path: &Path) -> Result<bool> {
         ImageCacheWriter::delete(self, path)
     }
+
     fn list_paths(&self) -> Result<Vec<String>> {
         ImageCacheWriter::list_paths(self)
     }
@@ -293,6 +299,7 @@ impl ImageCacheReader {
     pub fn check(&self, path: &Path) -> Result<bool> {
         self.reader.check(path)
     }
+
     pub fn list_paths(&self) -> Result<Vec<String>> {
         self.reader.list_paths()
     }
@@ -306,9 +313,11 @@ impl CacheRead for ImageCacheReader {
     fn check(&self, path: &Path) -> Result<bool> {
         self.reader.check(path)
     }
+
     fn check_all(&self, paths: &[&Path]) -> Vec<(PathBuf, Result<bool>)> {
         self.reader.check_all(paths)
     }
+
     fn list_paths(&self) -> Result<Vec<String>> {
         self.reader.list_paths()
     }
