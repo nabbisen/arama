@@ -191,21 +191,27 @@ impl<E: CacheExtension> CacheWrite for CacheWriter<E> {
     fn as_session(config: CacheConfig) -> Result<Self> {
         CacheWriter::as_session(config)
     }
+
     fn onetime(location: DbLocation) -> Result<Self> {
         CacheWriter::onetime(location)
     }
+
     fn as_reader(&self) -> CacheReader<E> {
         CacheWriter::as_reader(self)
     }
+
     fn refresh(&self, path: &Path) -> Result<i64> {
         CacheWriter::refresh(self, path)
     }
+
     fn refresh_all(&self, paths: &[&Path]) -> Vec<(PathBuf, Result<i64>)> {
         CacheWriter::refresh_all(self, paths)
     }
+
     fn delete(&self, path: &Path) -> Result<bool> {
         CacheWriter::delete(self, path)
     }
+
     fn list_paths(&self) -> Result<Vec<String>> {
         CacheWriter::list_paths(self)
     }
@@ -219,9 +225,11 @@ impl<E: CacheExtension> CacheRead for CacheWriter<E> {
     fn check(&self, path: &Path) -> Result<bool> {
         self.reader.check(path)
     }
+
     fn check_all(&self, paths: &[&Path]) -> Vec<(PathBuf, Result<bool>)> {
         self.reader.check_all(paths)
     }
+
     fn list_paths(&self) -> Result<Vec<String>> {
         self.reader.list_paths()
     }

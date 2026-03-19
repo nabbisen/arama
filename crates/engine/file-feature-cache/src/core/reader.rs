@@ -100,9 +100,11 @@ impl<E: CacheExtension> CacheRead for CacheReader<E> {
     fn check(&self, path: &Path) -> Result<bool> {
         CacheReader::check(self, path)
     }
+
     fn check_all(&self, paths: &[&Path]) -> Vec<(PathBuf, Result<bool>)> {
         CacheReader::check_all(self, paths)
     }
+
     fn list_paths(&self) -> Result<Vec<String>> {
         CacheReader::list_paths(self)
     }
