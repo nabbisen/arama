@@ -1,7 +1,7 @@
 use iced::{
-    Element,
+    Alignment, Element,
     Length::Fill,
-    widget::{button, column, container, progress_bar, row, text},
+    widget::{button, column, container, row},
 };
 
 use super::{Setup, message::Message};
@@ -15,9 +15,17 @@ impl Setup {
             download_button = download_button.on_press(Message::Download);
         }
 
-        let buttons =
-            container(row![download_button, button("Skip").on_press(Message::Skip)].spacing(40))
-                .center_x(Fill);
+        let buttons = container(
+            row![
+                download_button,
+                button("Skip")
+                    .style(button::secondary)
+                    .on_press(Message::Skip)
+            ]
+            .align_y(Alignment::Center)
+            .spacing(40),
+        )
+        .center_x(Fill);
 
         container(column![downloader, buttons].spacing(40))
             .width(Fill)

@@ -13,11 +13,12 @@ pub enum DownloadProgress {
     Errored(String),
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub enum DownloadState {
     #[default]
     Idle,
     Downloading(f32),
     Finished,
     Errored(String),
+    NotRequired,
 }

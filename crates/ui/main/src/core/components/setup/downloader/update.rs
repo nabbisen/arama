@@ -18,7 +18,9 @@ impl Downloader {
 
                 let tasks = self.states.iter_mut().enumerate().map(|(id, state)| {
                     match state.download_state {
-                        DownloadState::Finished => return Task::none(),
+                        DownloadState::Finished | DownloadState::NotRequired => {
+                            return Task::none();
+                        }
                         _ => (),
                     }
 

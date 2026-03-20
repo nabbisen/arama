@@ -26,14 +26,14 @@ impl Downloader {
                             .safetensors_path()
                             .expect("failed to get safetensors path");
                         if safetensors_path.exists() {
-                            DownloadState::Finished
+                            DownloadState::NotRequired
                         } else {
                             DownloadState::default()
                         }
                     }
                     DownloaderConfig::Ffmepg => {
                         if VideoEngine::ready() != FfmpegStatus::NotExists {
-                            DownloadState::Finished
+                            DownloadState::NotRequired
                         } else {
                             DownloadState::default()
                         }
