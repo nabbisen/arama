@@ -65,7 +65,9 @@ impl Downloader {
                 let all_done = self.states.iter().all(|state| {
                     matches!(
                         state.download_state,
-                        DownloadState::Finished | DownloadState::Errored(_)
+                        DownloadState::Finished
+                            | DownloadState::Errored(_)
+                            | DownloadState::NotRequired
                     )
                 });
                 if all_done {
