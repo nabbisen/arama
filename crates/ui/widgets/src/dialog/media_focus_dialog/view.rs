@@ -51,18 +51,18 @@ impl MediaFocusDialog {
             } else {
                 x.path.to_owned()
             });
-            let item = mouse_area(image(handle)).on_enter(Message::MediaItemEnter(x.path.clone()));
+            let item = mouse_area(image(handle))
+                .on_enter(Message::MediaItemEnter(x.path.clone()))
+                .on_double_click(Message::SimilarMediaItemDoubleClicked(
+                    x.path.to_owned().into(),
+                ));
             r.push(column![item, text(x.similarity)].spacing(5))
         });
-        let similar_media_content =
-            if let Some(hovered_media_item_path) = &self.hovered_media_item_path {
-                column![
-                    similar_media_items,
-                    text(hovered_media_item_path).height(20)
-                ]
-            } else {
-                column![similar_media_items, space().height(20)]
-            };
+        let similar_media_content = if let Some(x) = &self.hovered_media_item_path_str {
+            column![similar_media_items, text(x).height(20)]
+        } else {
+            column![similar_media_items, space().height(20)]
+        };
         let similar_media = mouse_area(scrollable(container(similar_media_content)))
             .on_exit(Message::MediaItemExit);
 

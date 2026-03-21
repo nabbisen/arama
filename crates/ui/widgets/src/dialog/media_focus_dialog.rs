@@ -15,7 +15,7 @@ use util::similar_media;
 #[derive(Clone, Debug)]
 pub struct MediaFocusDialog {
     path: PathBuf,
-    hovered_media_item_path: Option<String>,
+    hovered_media_item_path_str: Option<String>,
     actual_size: bool,
     similar_media: Vec<SimilarMediaItem>,
 }
@@ -24,7 +24,7 @@ impl MediaFocusDialog {
     pub fn new<T: Into<PathBuf>>(path: T) -> Self {
         Self {
             path: path.into(),
-            hovered_media_item_path: None,
+            hovered_media_item_path_str: None,
             actual_size: false,
             similar_media: vec![],
         }
