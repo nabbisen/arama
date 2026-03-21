@@ -35,7 +35,8 @@ impl SimilarPairsDialog {
                         .content_fit(iced::ContentFit::Cover)
                     )
                     .on_enter(Message::MediaItemEnter(x.left.path.to_owned()))
-                    .on_double_click(Message::MediaItemDoubleClicked(x.left.path.to_owned())),
+                    .on_double_click(Message::MediaItemDoubleClicked(x.left.path.to_owned()))
+                    .interaction(iced::mouse::Interaction::Pointer),
                     mouse_area(
                         image(PathBuf::from(if let Some(x) = &x.right.thumbnail_path {
                             x.to_owned()
@@ -47,7 +48,8 @@ impl SimilarPairsDialog {
                         .content_fit(iced::ContentFit::Cover)
                     )
                     .on_enter(Message::MediaItemEnter(x.right.path.to_owned()))
-                    .on_double_click(Message::MediaItemDoubleClicked(x.right.path.to_owned())),
+                    .on_double_click(Message::MediaItemDoubleClicked(x.right.path.to_owned()))
+                    .interaction(iced::mouse::Interaction::Pointer),
                 ]
                 .spacing(10),
             ])

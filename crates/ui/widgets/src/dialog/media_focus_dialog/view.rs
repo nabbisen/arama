@@ -82,7 +82,8 @@ impl MediaFocusDialog {
                 .on_enter(Message::MediaItemEnter(x.path.clone()))
                 .on_double_click(Message::SimilarMediaItemDoubleClicked(
                     x.path.to_owned().into(),
-                ));
+                ))
+                .interaction(iced::mouse::Interaction::Pointer);
             r.push(column![item, text(x.similarity)].spacing(5))
         });
         let similar_media_items_footer = if let Some(x) = &self.hovered_media_item_path_str {

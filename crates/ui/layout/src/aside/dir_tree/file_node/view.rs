@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use iced::font::Weight;
 use iced::widget::{Column, container, mouse_area, row, scrollable, text};
-use iced::{Element, Font, mouse};
+use iced::{Element, Font};
 
 use super::FileNode;
 use super::message::Message;
@@ -44,7 +44,7 @@ impl FileNode {
         );
         if !processing {
             label = label
-                .interaction(mouse::Interaction::Pointer)
+                .interaction(iced::mouse::Interaction::Pointer)
                 .on_press(Message::DirClick(self.path.clone()))
                 .on_double_click(Message::ToggleExpand((
                     self.path.clone(),
@@ -63,7 +63,7 @@ impl FileNode {
                         include_file,
                         include_hidden,
                     )))
-                    .interaction(mouse::Interaction::Pointer);
+                    .interaction(iced::mouse::Interaction::Pointer);
             }
             row![toggle_btn, label].spacing(5)
         } else {

@@ -18,7 +18,8 @@ impl ImageCell {
                 .content_fit(iced::ContentFit::Cover),
         )
         .on_double_click(Message::ImageSelect(self.path.clone()))
-        .on_right_press(Message::ContextMenuOpen(self.path));
+        .on_right_press(Message::ContextMenuOpen(self.path))
+        .interaction(iced::mouse::Interaction::Pointer);
 
         content.into()
     }
