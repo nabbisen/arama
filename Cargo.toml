@@ -53,6 +53,7 @@ sha2 = { version = "0.10", default-features = false }
 swdir = "0"
 thiserror = "2"
 tokio = { version = "1.49", default-features = false, features = ["fs", "sync"] }
+webbrowser = "1"
 
 # sidecar
 # - media processor
