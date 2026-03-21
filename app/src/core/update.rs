@@ -7,11 +7,11 @@ use iced::Task;
 use swdir::Swdir;
 
 use super::{App, ContextMenu, Dialog, message::Message};
-use arama_ui_layout::{
-    aside::{self, dir_tree},
-    header,
+use arama_ui_layout::{aside, header};
+use arama_ui_widgets::{
+    dialog::{media_focus_dialog, settings_dialog, similar_pairs_dialog},
+    dir_tree,
 };
-use arama_ui_widgets::dialog::{media_focus_dialog, settings_dialog, similar_pairs_dialog};
 
 impl App {
     pub fn update(&mut self, message: Message) -> Task<Message> {

@@ -1,11 +1,10 @@
-pub mod dir_tree;
+use std::path::PathBuf;
+
+use arama_ui_widgets::dir_tree::DirTree;
+
 pub mod message;
 mod update;
 pub mod view;
-
-use std::path::PathBuf;
-
-use dir_tree::DirTree;
 
 #[derive(Clone, Debug)]
 pub struct Aside {
