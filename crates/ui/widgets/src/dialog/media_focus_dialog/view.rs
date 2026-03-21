@@ -52,7 +52,7 @@ impl MediaFocusDialog {
                 x.path.to_owned()
             });
             let item = mouse_area(image(handle)).on_enter(Message::MediaItemEnter(x.path.clone()));
-            r.push(item)
+            r.push(column![item, text(x.similarity)].spacing(5))
         });
         let similar_media_content =
             if let Some(hovered_media_item_path) = &self.hovered_media_item_path {
