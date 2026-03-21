@@ -9,22 +9,24 @@ use super::{GallerySettings, message::Message};
 impl GallerySettings {
     pub fn view(&self) -> Element<'_, Message> {
         let media_types = row![
-            text("Image"),
-            checkbox(self.target_media_type.include_image).on_toggle(|x| {
-                Message::TargetMediaTypeChanged(TargetMediaType {
-                    include_image: x,
-                    include_video: self.target_media_type.include_video,
+            checkbox(self.target_media_type.include_image)
+                .label("Image")
+                .on_toggle(|x| {
+                    Message::TargetMediaTypeChanged(TargetMediaType {
+                        include_image: x,
+                        include_video: self.target_media_type.include_video,
+                    })
+                }),
+            checkbox(self.target_media_type.include_video)
+                .label("Video")
+                .on_toggle(|x| {
+                    Message::TargetMediaTypeChanged(TargetMediaType {
+                        include_image: self.target_media_type.include_image,
+                        include_video: x,
+                    })
                 })
-            }),
-            text("Video"),
-            checkbox(self.target_media_type.include_video).on_toggle(|x| {
-                Message::TargetMediaTypeChanged(TargetMediaType {
-                    include_image: self.target_media_type.include_image,
-                    include_video: x,
-                })
-            })
         ]
-        .spacing(4);
+        .spacing(10);
 
         let similar_pairs_button: Button<Message> =
             button("Similar Pairs").on_press_maybe(if self.embedding_cached {
@@ -40,7 +42,7 @@ impl GallerySettings {
                 .map(Message::ThumbnailSizeSliderMessage),
             similar_pairs_button,
         ]
-        .spacing(10)
+        .spacing(20)
         .into()
     }
 }

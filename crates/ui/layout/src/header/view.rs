@@ -8,6 +8,7 @@ impl Header {
             self.dir_nav.view().map(Message::DirNavMessage),
             self.settings_nav.view().map(Message::SettingsNavMessage)
         ]
+        .padding(10)
         .into()
     }
 }

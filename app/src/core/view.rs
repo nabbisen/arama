@@ -25,7 +25,9 @@ impl App {
 
         let layout = mouse_area(column![
             container(header).height(60),
-            container(row![aside, content]).height(Fill),
+            container(row![aside, content])
+                .height(Fill)
+                .padding([0, 20]),
             container(footer).height(40)
         ])
         .on_move(Message::CursorMove);
