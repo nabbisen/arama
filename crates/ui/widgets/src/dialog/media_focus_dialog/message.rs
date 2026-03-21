@@ -6,6 +6,8 @@ use super::types::SimilarMediaItem;
 pub enum Message {
     SimilarMediaReady(Vec<SimilarMediaItem>),
     SimilarMediaItemDoubleClicked(PathBuf),
+    HistoryPrevious,
+    HistoryNext,
     MediaItemEnter(String),
     MediaItemExit,
     ViewSizeToggle(bool),

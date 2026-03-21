@@ -9,10 +9,27 @@ impl MediaFocusDialog {
         match message {
             Message::SimilarMediaReady(similar_images) => self.similar_media = similar_images,
             Message::SimilarMediaItemDoubleClicked(path) => {
-                self.path = path.clone();
+                self.history.push(path.clone());
+                self.history_index = self.history.len() - 1;
                 self.hovered_media_item_path_str = None;
                 self.similar_media = vec![];
 
+                return Task::perform(
+                    async move { similar_media(&path) },
+                    Message::SimilarMediaReady,
+                );
+            }
+            Message::HistoryPrevious => {
+                self.history_index -= 1;
+                let path = self.history[self.history_index].clone();
+                return Task::perform(
+                    async move { similar_media(&path) },
+                    Message::SimilarMediaReady,
+                );
+            }
+            Message::HistoryNext => {
+                self.history_index += 1;
+                let path = self.history[self.history_index].clone();
                 return Task::perform(
                     async move { similar_media(&path) },
                     Message::SimilarMediaReady,

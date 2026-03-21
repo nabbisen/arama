@@ -15,10 +15,12 @@ use super::{MediaFocusDialog, message::Message};
 
 impl MediaFocusDialog {
     pub fn view(&self) -> Element<'_, Message> {
-        let path_text = text(self.path.to_string_lossy().to_string());
+        let path = self.history[self.history_index].clone();
+
+        let path_text = text(path.to_string_lossy().to_string());
         let header = container(path_text).center_x(Fill);
 
-        let handle = Handle::from_path(&self.path);
+        let handle = Handle::from_path(&path);
         let img = image(handle);
         let content = if self.actual_size {
             scrollable(
@@ -41,8 +43,25 @@ impl MediaFocusDialog {
         };
 
         let view_size_toggler = toggler(self.actual_size).on_toggle(Message::ViewSizeToggle);
-        let view_control =
-            container(row![text("Actual size"), view_size_toggler].spacing(10)).center_x(Fill);
+        let history_previous_button = button("←").on_press_maybe(if 0 < self.history_index {
+            Some(Message::HistoryPrevious)
+        } else {
+            None
+        });
+        let history_next_button =
+            button("→").on_press_maybe(if self.history_index < self.history.len() - 1 {
+                Some(Message::HistoryNext)
+            } else {
+                None
+            });
+        let view_control = container(
+            column![
+                row![text("Actual size"), view_size_toggler].spacing(10),
+                row![history_previous_button, history_next_button].spacing(10)
+            ]
+            .spacing(10),
+        )
+        .center_x(Fill);
 
         // todo
         let similar_media_items = self.similar_media.iter().fold(row![], |r: Row<_>, x| {
