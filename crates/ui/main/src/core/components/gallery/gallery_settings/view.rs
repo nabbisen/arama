@@ -1,7 +1,7 @@
 use arama_env::target_media_type::TargetMediaType;
 use iced::{
     Element,
-    widget::{Button, button, checkbox, row, text},
+    widget::{Button, button, checkbox, row},
 };
 
 use super::{GallerySettings, message::Message};
