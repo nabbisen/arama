@@ -1,5 +1,5 @@
 use arama_env::MAX_THUMBNAIL_SIZE;
-use iced::widget::{column, container, image, row, space, text};
+use iced::widget::{column, image, row, space, text};
 use iced::{Element, widget::scrollable};
 
 use super::{SimilarPairsDialog, message::Message};
@@ -11,10 +11,10 @@ impl SimilarPairsDialog {
             None => return space().into(),
         };
 
-        let rows: Vec<Element<Message>> = pairs
+        let columns = pairs
             .iter()
-            .map(|(path1, path2, score)| {
-                column![
+            .fold(column![].spacing(10), |c, (path1, path2, score)| {
+                c.push(column![
                     text(score.to_string()),
                     row![
                         image(path1.to_owned())
@@ -26,12 +26,10 @@ impl SimilarPairsDialog {
                             .height(MAX_THUMBNAIL_SIZE as u32)
                             .content_fit(iced::ContentFit::Cover),
                     ]
-                ]
-                .padding([10, 0])
-                .into()
-            })
-            .collect();
+                    .spacing(10),
+                ])
+            });
 
-        row![container(scrollable(column(rows))), text("test")].into()
+        scrollable(columns).into()
     }
 }
