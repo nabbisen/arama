@@ -26,10 +26,12 @@ impl GallerySettings {
         ]
         .spacing(4);
 
-        let mut similar_pairs_button: Button<Message> = button("Similar Pairs");
-        if self.embedding_cached {
-            similar_pairs_button = similar_pairs_button.on_press(Message::SimilarPairsOpen);
-        }
+        let similar_pairs_button: Button<Message> =
+            button("Similar Pairs").on_press_maybe(if self.embedding_cached {
+                Some(Message::SimilarPairsOpen)
+            } else {
+                None
+            });
 
         row![
             media_types,

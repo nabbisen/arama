@@ -63,7 +63,10 @@ impl Gallery {
                     // todo error handling
                     eprintln!("{}", err);
                 }
-                self.gallery_settings.set_embedding_cached(true);
+
+                let embedding_cached = 1 < self.path_thumbnail_path_map.len();
+                self.gallery_settings.set_embedding_cached(embedding_cached);
+
                 Task::none()
             }
             // Message::EmbeddingCalculated(calculated) => {
