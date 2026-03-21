@@ -9,10 +9,13 @@ use rusqlite::OptionalExtension;
 use file_feature_cache::Result;
 use file_feature_cache::{CacheConfig, CacheRead, CacheWrite, CacheWriter, DbLocation};
 
+mod query;
+
 use crate::core::codec::{blob_to_vec, vec_to_blob};
 use crate::core::extension::MediaExtension;
 use crate::core::thumbnail::{generate_image_thumbnail, thumbnail_dest};
 use crate::types::{ImageCacheEntry, ImageFeatures, LookupResult, UpsertImageRequest};
+use query::all_in_dir;
 
 // ---------------------------------------------------------------------------
 // Config
@@ -302,6 +305,31 @@ impl ImageCacheReader {
 
     pub fn list_paths(&self) -> Result<Vec<String>> {
         self.reader.list_paths()
+    }
+
+    pub fn all_in_dir(&self, path: &Path) -> Result<Vec<Result<ImageCacheEntry>>> {
+        let conn = self.reader.read_conn()?;
+        let ret = all_in_dir(path, &conn);
+        match ret {
+            Ok(x) => Ok(x
+                .into_iter()
+                .map(|x| match x {
+                    Ok(x) => Ok(ImageCacheEntry {
+                        path: x.path,
+                        thumbnail_path: x.thumbnail_path,
+                        features: if let Some(features) = x.features {
+                            Some(ImageFeatures {
+                                clip_vector: features,
+                            })
+                        } else {
+                            None
+                        },
+                    }),
+                    Err(err) => Err(err),
+                })
+                .collect::<Vec<_>>()),
+            Err(err) => Err(err),
+        }
     }
 }
 

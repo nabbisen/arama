@@ -303,6 +303,7 @@ dependencies = [
  "arama-env",
  "arama-sidecar",
  "iced",
+ "rayon",
  "swdir",
 ]
 

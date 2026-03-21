@@ -11,4 +11,5 @@ arama-sidecar = { workspace = true }
 
 iced = { workspace = true }
 
+rayon = { workspace = true }
 swdir = { workspace = true }

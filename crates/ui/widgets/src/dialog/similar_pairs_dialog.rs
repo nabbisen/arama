@@ -6,8 +6,8 @@ use arama_cache::{
     VideoCacheReader,
 };
 use arama_env::{
-    IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path,
-    cache_thumbnail_dir_path,
+    IMAGE_EXTENSION_ALLOWLIST, MIN_IMAGE_SIMILARITY, MIN_VIDEO_SIMILARITY,
+    VIDEO_EXTENSION_ALLOWLIST, cache_storage_path, cache_thumbnail_dir_path,
 };
 use arama_sidecar::media::video::video_engine::VideoEngine;
 use iced::Task;
@@ -132,8 +132,10 @@ impl SimilarPairsDialog {
                 }
 
                 // todo ui sliders for these param(s): threshold (also k_neighbors ?)
-                let mut image_pairs = find_similar_pairs(&image_path_embeddings, 0.86, 50).await;
-                let video_pairs = find_similar_pairs(&video_path_embeddings, 0.86, 50).await;
+                let mut image_pairs =
+                    find_similar_pairs(&image_path_embeddings, MIN_IMAGE_SIMILARITY, 50).await;
+                let video_pairs =
+                    find_similar_pairs(&video_path_embeddings, MIN_VIDEO_SIMILARITY, 50).await;
                 image_pairs.extend(video_pairs);
                 image_pairs
             },

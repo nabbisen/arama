@@ -42,7 +42,7 @@ fn backdrop<'a, Msg: 'a>() -> Element<'a, Msg> {
                     r: 0.0,
                     g: 0.0,
                     b: 0.0,
-                    a: 0.5,
+                    a: 0.90,
                 }
                 .into(),
             ),
@@ -64,7 +64,7 @@ pub fn card_style(_: &iced::Theme) -> container::Style {
                 r: 0.0,
                 g: 0.0,
                 b: 0.0,
-                a: 0.3,
+                a: 0.30,
             },
             offset: iced::Vector::new(0.0, 4.0),
             blur_radius: 12.0,

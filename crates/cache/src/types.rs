@@ -26,7 +26,7 @@ pub struct UpsertImageRequest {
 }
 
 /// 画像キャッシュエントリ。
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ImageCacheEntry {
     /// DB に保存された正規化済みパス。
     pub path: String,
@@ -36,7 +36,7 @@ pub struct ImageCacheEntry {
     pub features: Option<ImageFeatures>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ImageFeatures {
     pub clip_vector: Vec<f32>,
 }

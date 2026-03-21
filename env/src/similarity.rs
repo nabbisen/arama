@@ -1,0 +1,2 @@
+pub const MIN_IMAGE_SIMILARITY: f32 = 0.86;
+pub const MIN_VIDEO_SIMILARITY: f32 = 0.86;
