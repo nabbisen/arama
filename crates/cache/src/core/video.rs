@@ -9,10 +9,13 @@ use rusqlite::OptionalExtension;
 use file_feature_cache::Result;
 use file_feature_cache::{CacheConfig, CacheRead, CacheWrite, CacheWriter, DbLocation};
 
+mod query;
+
 use crate::core::codec::{blob_to_vec, vec_to_blob};
 use crate::core::extension::MediaExtension;
 use crate::core::thumbnail::{generate_video_thumbnail, thumbnail_dest};
 use crate::types::{LookupResult, UpsertVideoRequest, VideoCacheEntry, VideoFeatures};
+use query::all_in_dir;
 
 // ---------------------------------------------------------------------------
 // Config
@@ -312,6 +315,36 @@ impl VideoCacheReader {
 
     pub fn list_paths(&self) -> Result<Vec<String>> {
         self.reader.list_paths()
+    }
+
+    pub fn all_in_dir(&self, path: &Path) -> Result<Vec<Result<VideoCacheEntry>>> {
+        let conn = self.reader.read_conn()?;
+        let ret = all_in_dir(path, &conn);
+        match ret {
+            Ok(x) => Ok(x
+                .into_iter()
+                .map(|x| match x {
+                    Ok(x) => {
+                        let features = if x.image_features.is_some() || x.audio_features.is_some() {
+                            Some(VideoFeatures {
+                                clip_vector: x.image_features,
+                                wav2vec2_vector: x.audio_features,
+                            })
+                        } else {
+                            None
+                        };
+
+                        Ok(VideoCacheEntry {
+                            path: x.path,
+                            thumbnail_path: x.thumbnail_path,
+                            features,
+                        })
+                    }
+                    Err(err) => Err(err),
+                })
+                .collect::<Vec<_>>()),
+            Err(err) => Err(err),
+        }
     }
 }
 
