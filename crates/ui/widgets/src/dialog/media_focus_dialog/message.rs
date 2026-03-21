@@ -8,6 +8,7 @@ pub enum Message {
     SimilarMediaItemDoubleClicked(PathBuf),
     HistoryPrevious,
     HistoryNext,
+    FileShow,
     MediaItemEnter(String),
     MediaItemExit,
     ViewSizeToggle(bool),

@@ -35,6 +35,10 @@ impl MediaFocusDialog {
                     Message::SimilarMediaReady,
                 );
             }
+            Message::FileShow => {
+                let path = self.history[self.history_index].clone();
+                let _ = file_handle::FileHandle::show(&path);
+            }
             Message::MediaItemEnter(path_str) => self.hovered_media_item_path_str = Some(path_str),
             Message::MediaItemExit => self.hovered_media_item_path_str = None,
             Message::ViewSizeToggle(actual_size) => self.actual_size = actual_size,

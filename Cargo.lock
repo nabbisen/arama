@@ -302,6 +302,7 @@ dependencies = [
  "arama-cache",
  "arama-env",
  "arama-sidecar",
+ "file-handle",
  "iced",
  "rayon",
  "swdir",

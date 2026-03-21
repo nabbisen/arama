@@ -43,21 +43,22 @@ impl MediaFocusDialog {
         };
 
         let view_size_toggler = toggler(self.actual_size).on_toggle(Message::ViewSizeToggle);
-        let history_previous_button = button("←").on_press_maybe(if 0 < self.history_index {
+        let history_previous_button = button("⬅").on_press_maybe(if 0 < self.history_index {
             Some(Message::HistoryPrevious)
         } else {
             None
         });
         let history_next_button =
-            button("→").on_press_maybe(if self.history_index < self.history.len() - 1 {
+            button("➡").on_press_maybe(if self.history_index < self.history.len() - 1 {
                 Some(Message::HistoryNext)
             } else {
                 None
             });
+        let explore_button = button("📂").on_press(Message::FileShow);
         let view_control = container(
             column![
                 row![text("Actual size"), view_size_toggler].spacing(10),
-                row![history_previous_button, history_next_button].spacing(10)
+                row![history_previous_button, history_next_button, explore_button].spacing(10)
             ]
             .spacing(10),
         )
