@@ -1,2 +1,6 @@
+use std::path::PathBuf;
+
 #[derive(Debug, Clone)]
-pub enum Message {}
+pub enum Message {
+    DirSelect(PathBuf),
+}

@@ -1,8 +1,13 @@
+use iced::Task;
+
 use super::DirNav;
-use super::{message::Message, output::Output};
+use super::message::Message;
 
 impl DirNav {
-    pub fn update(&mut self, message: Message) -> Output {
-        match message {}
+    pub fn update(&mut self, message: Message) -> Task<Message> {
+        match message {
+            Message::DirSelect(_path) => (),
+        }
+        Task::none()
     }
 }

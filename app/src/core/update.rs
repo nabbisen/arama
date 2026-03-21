@@ -33,7 +33,7 @@ impl App {
                 let task = self
                     .gallery
                     .update(message.clone())
-                    .map(|message| Message::GalleryMessage(message));
+                    .map(Message::GalleryMessage);
                 match message {
                     gallery::message::Message::ImageCached(_) => {
                         self.processing = false;
@@ -91,16 +91,19 @@ impl App {
                 task
             }
             Message::HeaderMessage(message) => {
-                let output = self.header.update(message);
-                match output {
-                    header::output::Output::SettingsClick => {
+                let task = self
+                    .header
+                    .update(message.clone())
+                    .map(Message::HeaderMessage);
+                match message {
+                    header::message::Message::SettingsClick => {
                         self.dialog = Some(Dialog::SettingsDialog(
                             settings_dialog::SettingsDialog::default(),
                         ))
                     }
                     _ => (),
                 }
-                Task::none()
+                task
             }
             Message::AsideMessage(message) => {
                 let task = self.aside.update(message.clone());

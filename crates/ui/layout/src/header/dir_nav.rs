@@ -1,5 +1,4 @@
 pub(super) mod message;
-pub mod output;
 pub(super) mod update;
 pub(super) mod view;
 
