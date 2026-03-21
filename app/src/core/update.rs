@@ -158,12 +158,28 @@ impl App {
                 Task::none()
             }
             Message::SimilarPairsDialogMessage(message) => {
-                let _ = match &mut self.dialog {
-                    Some(Dialog::SimilarPairsDialog(dialog)) => {
-                        let _ = dialog.update(message);
+                if let Some(Dialog::SimilarPairsDialog(x)) = &mut self.dialog {
+                    let task = x
+                        .update(message.clone())
+                        .map(Message::SimilarPairsDialogMessage);
+                    match message {
+                        similar_pairs_dialog::message::Message::MediaItemDoubleClicked(path) => {
+                            let media_focus_dialog =
+                                media_focus_dialog::MediaFocusDialog::new(path);
+                            let dialog = Dialog::MediaFocusDialog(media_focus_dialog.clone());
+                            let default_task = media_focus_dialog.default_task();
+
+                            self.dialog = Some(dialog);
+
+                            return Task::batch([
+                                task,
+                                default_task.map(Message::MediaFocusDialogMessage),
+                            ]);
+                        }
+                        _ => (),
                     }
-                    _ => (),
-                };
+                    return task;
+                }
                 Task::none()
             }
             Message::SettingsDialogMessage(message) => {

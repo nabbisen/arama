@@ -1,9 +1,12 @@
-use iced::widget::{
-    Row,
-    image::Handle,
-    mouse_area, row,
-    scrollable::{Direction, Scrollbar},
-    space, text, toggler,
+use iced::{
+    Alignment::Center,
+    widget::{
+        Row,
+        image::Handle,
+        mouse_area, row,
+        scrollable::{Direction, Scrollbar},
+        space, text, toggler,
+    },
 };
 use iced::{
     Element,
@@ -16,9 +19,6 @@ use super::{MediaFocusDialog, message::Message};
 impl MediaFocusDialog {
     pub fn view(&self) -> Element<'_, Message> {
         let path = self.history[self.history_index].clone();
-
-        let path_text = text(path.to_string_lossy().to_string());
-        let header = container(path_text).center_x(Fill);
 
         let handle = Handle::from_path(&path);
         let img = image(handle);
@@ -42,7 +42,10 @@ impl MediaFocusDialog {
                 .height(Fill)
         };
 
+        let path_text = text(path.to_string_lossy().to_string());
+
         let view_size_toggler = toggler(self.actual_size).on_toggle(Message::ViewSizeToggle);
+
         let history_previous_button = button("⬅").on_press_maybe(if 0 < self.history_index {
             Some(Message::HistoryPrevious)
         } else {
@@ -54,13 +57,17 @@ impl MediaFocusDialog {
             } else {
                 None
             });
+
         let explore_button = button("📂").on_press(Message::FileShow);
+
         let view_control = container(
             column![
+                path_text,
                 row![text("Actual size"), view_size_toggler].spacing(10),
                 row![history_previous_button, history_next_button, explore_button].spacing(10)
             ]
-            .spacing(10),
+            .spacing(10)
+            .align_x(Center),
         )
         .center_x(Fill);
 
@@ -91,8 +98,8 @@ impl MediaFocusDialog {
         let close_button = button("Close").on_press(Message::CloseClick);
         let footer = container(close_button).center_x(Fill).padding(10);
 
-        column![header, content, view_control, similar_media, footer]
-            .spacing(10)
+        column![content, view_control, similar_media, footer]
+            .spacing(20)
             .into()
     }
 }

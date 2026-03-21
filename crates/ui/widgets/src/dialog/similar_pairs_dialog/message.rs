@@ -1,8 +1,9 @@
-use std::path::PathBuf;
+use super::types::SimilarPair;
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    EmbeddingsReady(Vec<(PathBuf, PathBuf, f32)>),
-    MediaItemEnter(PathBuf),
+    EmbeddingsReady(Vec<SimilarPair>),
+    MediaItemEnter(String),
+    MediaItemDoubleClicked(String),
     MediaExit,
 }

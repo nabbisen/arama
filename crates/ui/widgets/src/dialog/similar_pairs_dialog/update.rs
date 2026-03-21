@@ -8,9 +8,8 @@ impl SimilarPairsDialog {
             Message::EmbeddingsReady(pairs) => {
                 self.pairs = Some(pairs);
             }
-            Message::MediaItemEnter(path) => {
-                self.hovered_media_item_path_str = Some(path.to_string_lossy().to_string())
-            }
+            Message::MediaItemEnter(path) => self.hovered_media_item_path_str = Some(path),
+            Message::MediaItemDoubleClicked(_) => (),
             Message::MediaExit => self.hovered_media_item_path_str = None,
         }
         Task::none()
