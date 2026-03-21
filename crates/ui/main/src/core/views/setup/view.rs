@@ -10,17 +10,25 @@ impl Setup {
     pub fn view(&self) -> Element<'_, Message> {
         let downloader = self.downloader.view().map(Message::DownloaderMessage);
 
-        let mut download_button = button("Download").padding(10);
-        if !self.downloader.is_downloading {
-            download_button = download_button.on_press(Message::Download);
-        }
+        let download_button =
+            button("Download")
+                .padding(10)
+                .on_press_maybe(if !self.downloader.is_downloading {
+                    Some(Message::Download)
+                } else {
+                    None
+                });
 
         let buttons = container(
             row![
                 download_button,
-                button("Skip")
-                    .style(button::secondary)
-                    .on_press(Message::Skip)
+                button("Skip").style(button::secondary).on_press_maybe(
+                    if !self.downloader.is_downloading {
+                        Some(Message::Skip)
+                    } else {
+                        None
+                    }
+                )
             ]
             .align_y(Alignment::Center)
             .spacing(40),
