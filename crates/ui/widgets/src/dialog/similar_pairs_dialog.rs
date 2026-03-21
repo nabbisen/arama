@@ -21,6 +21,7 @@ mod view;
 pub struct SimilarPairsDialog {
     dir_node: DirNode,
     pairs: Option<Vec<(PathBuf, PathBuf, f32)>>,
+    hovered_media_item_path_str: Option<String>,
 }
 
 impl SimilarPairsDialog {
@@ -28,6 +29,7 @@ impl SimilarPairsDialog {
         Self {
             dir_node: dir_node.into(),
             pairs,
+            hovered_media_item_path_str: None,
         }
     }
 
