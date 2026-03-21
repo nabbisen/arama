@@ -1,4 +1,4 @@
-use arama_env::{DiskSpace, local_dir};
+use arama_env::{DiskSpace, local_dir, validate_dir};
 use iced::Length::Fill;
 use iced::widget::{column, container, progress_bar, row, text};
 use iced::{Element, Length, alignment};
@@ -49,6 +49,7 @@ impl Downloader {
         .spacing(5);
 
         let local_dir = local_dir().expect("failed to get local dir");
+        let _ = validate_dir(&local_dir);
         let disk_space = DiskSpace::new(&local_dir)
             .expect("failed to get file system info ")
             .as_gb();
