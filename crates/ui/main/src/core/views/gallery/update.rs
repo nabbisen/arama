@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
 
 // use app_json_settings::ConfigManager;
 use arama_ai::{
@@ -11,6 +11,7 @@ use arama_cache::{
 use arama_env::{VIDEO_EXTENSION_ALLOWLIST, cache_storage_path};
 // use arama_widget::dir_tree;
 use iced::{Task, wgpu::naga::FastHashMap};
+use swdir::DirNode;
 // use swdir::DirNode;
 
 use crate::core::components::gallery::gallery_settings;
@@ -41,8 +42,21 @@ impl Gallery {
                 }
 
                 if let Some(dir_node) = &self.dir_node {
-                    self.path_thumbnail_path_map =
-                        path_thumbnail_path_map(&dir_node.flatten_paths());
+                    let image_cache_reader = ImageCacheReader::onetime(DbLocation::Custom(
+                        cache_storage_path().expect("failed to get storaget path"),
+                    ))
+                    .expect("failed to get video cache reader");
+
+                    let video_cache_reader = VideoCacheReader::onetime(DbLocation::Custom(
+                        cache_storage_path().expect("failed to get storaget path"),
+                    ))
+                    .expect("failed to get video cache reader");
+
+                    self.dir_path_thumbnail_path_map = dir_path_thumbnail_path_map(
+                        &dir_node,
+                        &image_cache_reader,
+                        &video_cache_reader,
+                    );
                 }
 
                 if clip::model().ready().unwrap_or(false) {
@@ -64,7 +78,7 @@ impl Gallery {
                     eprintln!("{}", err);
                 }
 
-                let embedding_cached = 1 < self.path_thumbnail_path_map.len();
+                let embedding_cached = 1 < self.dir_path_thumbnail_path_map.len();
                 self.gallery_settings.set_embedding_cached(embedding_cached);
 
                 Task::none()
@@ -187,20 +201,14 @@ impl Gallery {
     }
 }
 
-fn path_thumbnail_path_map(paths: &Vec<PathBuf>) -> FastHashMap<String, String> {
+fn dir_path_thumbnail_path_map(
+    dir_node: &DirNode,
+    image_cache_reader: &ImageCacheReader,
+    video_cache_reader: &VideoCacheReader,
+) -> BTreeMap<PathBuf, FastHashMap<String, String>> {
     let mut map = FastHashMap::default();
 
-    let video_cache_reader = VideoCacheReader::onetime(DbLocation::Custom(
-        cache_storage_path().expect("failed to get storaget path"),
-    ))
-    .expect("failed to get video cache reader");
-
-    let image_cache_reader = ImageCacheReader::onetime(DbLocation::Custom(
-        cache_storage_path().expect("failed to get storaget path"),
-    ))
-    .expect("failed to get video cache reader");
-
-    for path in paths {
+    for path in &dir_node.files {
         let thumbnail_path = if VIDEO_EXTENSION_ALLOWLIST.contains(
             &path
                 .extension()
@@ -237,5 +245,16 @@ fn path_thumbnail_path_map(paths: &Vec<PathBuf>) -> FastHashMap<String, String> 
         );
     }
 
-    map
+    let mut ret = BTreeMap::default();
+    ret.insert(dir_node.path.to_owned(), map);
+
+    for dir_node in &dir_node.sub_dirs {
+        ret.extend(dir_path_thumbnail_path_map(
+            dir_node,
+            image_cache_reader,
+            video_cache_reader,
+        ));
+    }
+
+    ret
 }

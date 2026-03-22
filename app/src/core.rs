@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use app_json_settings::ConfigManager;
-use arama_env::{Settings, target_media_type::TargetMediaType};
+use arama_env::Settings;
 use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
 use arama_ui_main::views::{
     gallery::Gallery,
@@ -26,8 +26,7 @@ pub struct App {
     context_menu_point: Point,
     context_menu: ContextMenu,
     dialog: Option<Dialog>,
-    root_dir_path: PathBuf,
-    target_media_type: TargetMediaType,
+    settings: Settings,
     processing: bool,
 }
 
@@ -70,18 +69,29 @@ impl App {
         }
         .expect("failed to initialize settings");
 
-        let root_dir_path = PathBuf::from(if settings.root_dir_path.is_empty() {
+        let root_dir_path = if settings.root_dir_path.is_empty() {
             "."
         } else {
             settings.root_dir_path.as_str()
-        });
+        }
+        .to_owned();
         let target_media_type = settings.target_media_type;
+        let sub_dir_depth_limit = settings.sub_dir_depth_limit;
+        let settings = Settings {
+            root_dir_path,
+            target_media_type,
+            sub_dir_depth_limit,
+        };
 
-        let gallery =
-            Gallery::new(&root_dir_path, &target_media_type).expect("failed to init gallery");
+        let gallery = Gallery::new(
+            &settings.root_dir_path,
+            &settings.target_media_type,
+            settings.sub_dir_depth_limit,
+        )
+        .expect("failed to init gallery");
 
         let header = Header::default();
-        let aside = Aside::new(&root_dir_path, false, false, processing);
+        let aside = Aside::new(&settings.root_dir_path, false, false, processing);
         let footer = Footer::default();
         let dialog = None;
 
@@ -103,8 +113,7 @@ impl App {
                 context_menu_point: Point::default(),
                 context_menu: ContextMenu::None,
                 dialog,
-                root_dir_path,
-                target_media_type,
+                settings,
                 processing,
             },
             task,
@@ -115,8 +124,9 @@ impl App {
         ConfigManager::new()
             .at_current_dir()
             .save(&Settings {
-                root_dir_path: self.root_dir_path.to_string_lossy().into(),
-                target_media_type: self.target_media_type.to_owned(),
+                root_dir_path: self.settings.root_dir_path.to_owned(),
+                target_media_type: self.settings.target_media_type.to_owned(),
+                sub_dir_depth_limit: self.settings.sub_dir_depth_limit,
             })
             .expect("failed to save config");
     }

@@ -1,5 +1,5 @@
 use iced::Length::Fill;
-use iced::widget::{Responsive, column, container, row, scrollable, space, text};
+use iced::widget::{Responsive, column, container, row, scrollable, text};
 use iced::{Element, Size};
 
 use crate::components::gallery::image_cell::ImageCell;
@@ -19,12 +19,6 @@ impl Gallery {
     }
 
     fn content_view(&self) -> Element<'_, Message> {
-        let label: Element<Message> = if let Some(dir_node) = self.dir_node.as_ref() {
-            text(dir_node.path.to_string_lossy()).into()
-        } else {
-            space().into()
-        };
-
         // Responsiveウィジェットを使って、現在のウィンドウ幅(size)を取得する
         let grid = container(Responsive::new(move |size| {
             self.grid(size).unwrap_or(text("No file to render.").into())
@@ -32,7 +26,7 @@ impl Gallery {
         let container = container(grid).center_x(Fill).center_y(Fill);
         let scrollable = scrollable(container);
 
-        column![label, scrollable].into()
+        scrollable.into()
     }
 
     // グリッドレイアウトの計算ロジック
@@ -53,28 +47,44 @@ impl Gallery {
         let thumbnail_size = self.gallery_settings.thumbnail_size() as u32;
 
         let content = self
-            .path_thumbnail_path_map
+            .dir_path_thumbnail_path_map
             .iter()
-            .collect::<Vec<_>>()
-            .chunks(num_of_columns_in_row)
-            .map(|chunk| {
-                row(chunk
+            .map(|(dir_path, map)| {
+                let mut ret = vec![text(dir_path.to_string_lossy().to_string()).into()];
+
+                let grid = map
                     .iter()
-                    .map(|(path, thumbnail_path)| {
-                        ImageCell::new(&path, &thumbnail_path, thumbnail_size)
-                            .view()
-                            .map(Message::ImageCellMessage)
+                    .collect::<Vec<_>>()
+                    .chunks(num_of_columns_in_row)
+                    .map(|chunk| {
+                        row(chunk
+                            .iter()
+                            .map(|(path, thumbnail_path)| {
+                                ImageCell::new(&path, &thumbnail_path, thumbnail_size)
+                                    .view()
+                                    .map(Message::ImageCellMessage)
+                            })
+                            .collect::<Vec<Element<Message>>>())
+                        .spacing(SPACING as u32)
+                        .into()
                     })
-                    .collect::<Vec<Element<Message>>>())
-                .spacing(SPACING as u32)
-                .into()
+                    .collect::<Vec<Element<Message>>>();
+
+                ret.extend(grid);
+                ret
             })
-            .collect::<Vec<Element<Message>>>();
+            .filter(|x| 1 < x.len())
+            .collect::<Vec<Vec<Element<Message>>>>();
 
         if content.len() == 0 {
             None
         } else {
-            Some(column(content).spacing(SPACING as u32).into())
+            Some(
+                content
+                    .into_iter()
+                    .fold(column![].spacing(SPACING as u32), |c, x| c.extend(x))
+                    .into(),
+            )
         }
     }
 }

@@ -4,7 +4,7 @@ use arama_ui_main::{
     views::gallery,
 };
 use iced::Task;
-use swdir::Swdir;
+use swdir::{Recurse, Swdir};
 
 use super::{App, ContextMenu, Dialog, message::Message};
 use arama_ui_layout::{aside, header};
@@ -56,7 +56,11 @@ impl App {
                             gallery_settings::message::Message::TargetMediaTypeChanged(
                                 target_media_type,
                             ) => {
-                                self.target_media_type = target_media_type;
+                                self.settings.target_media_type = target_media_type;
+                                self.save_settings();
+                            }
+                            gallery_settings::message::Message::SubDirDepthLimitChanged(value) => {
+                                self.settings.sub_dir_depth_limit = value;
                                 self.save_settings();
                             }
                             _ => (),
@@ -114,22 +118,35 @@ impl App {
                             dir_tree::message::Message::DirClick(path) => {
                                 self.processing = true;
 
-                                self.root_dir_path = path.clone();
+                                self.settings.root_dir_path = path.to_string_lossy().to_string();
                                 self.save_settings();
 
                                 // todo dir_node should be got from dir_tree
                                 let mut extension_allowlist: Vec<&str> = vec![];
-                                if self.target_media_type.include_image {
+                                if self.settings.target_media_type.include_image {
                                     extension_allowlist.extend(IMAGE_EXTENSION_ALLOWLIST);
                                 }
-                                if self.target_media_type.include_video {
+                                if self.settings.target_media_type.include_video {
                                     extension_allowlist.extend(VIDEO_EXTENSION_ALLOWLIST);
                                 }
+
+                                let recurse = if 0 < self.settings.sub_dir_depth_limit {
+                                    Recurse {
+                                        enabled: true,
+                                        depth_limit: Some(self.settings.sub_dir_depth_limit.into()),
+                                    }
+                                } else {
+                                    Recurse {
+                                        enabled: false,
+                                        depth_limit: None,
+                                    }
+                                };
 
                                 let dir_node = Swdir::default()
                                     .set_root_path(path)
                                     .set_extension_allowlist(&extension_allowlist)
                                     .expect("failed to set allowlist")
+                                    .set_recurse(recurse)
                                     .walk();
 
                                 let task = self

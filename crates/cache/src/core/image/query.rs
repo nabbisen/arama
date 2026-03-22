@@ -40,16 +40,16 @@ pub fn all_in_dir(
 
     let dir_glob_str = format!("{}{}*", canonicalized, MAIN_SEPARATOR);
 
-    let subdirs_glob_str = format!("{}{}*{}*", canonicalized, MAIN_SEPARATOR, MAIN_SEPARATOR);
+    let sub_dirs_glob_str = format!("{}{}*{}*", canonicalized, MAIN_SEPARATOR, MAIN_SEPARATOR);
 
     all_impl(
         conn,
         Some("path GLOB ? and path NOT GLOB ?"),
-        &[&dir_glob_str, &subdirs_glob_str],
+        &[&dir_glob_str, &sub_dirs_glob_str],
     )
 }
 
-pub fn all_in_dir_and_subdirs(
+pub fn all_in_dir_and_sub_dirs(
     path: &Path,
     conn: &Connection,
 ) -> Result<Vec<Result<CacheEntry, CacheError>>, CacheError> {

@@ -9,14 +9,16 @@ mod view;
 
 pub struct GallerySettings {
     target_media_type: TargetMediaType,
+    sub_dir_depth_limit: u8,
     thumbnail_size: ThumbnailSizeSlider,
     embedding_cached: bool,
 }
 
 impl GallerySettings {
-    pub fn new(target_media_type: &TargetMediaType) -> Self {
+    pub fn new(target_media_type: &TargetMediaType, sub_dir_depth_limit: u8) -> Self {
         Self {
             target_media_type: target_media_type.to_owned(),
+            sub_dir_depth_limit,
             thumbnail_size: ThumbnailSizeSlider::default(),
             embedding_cached: false,
         }

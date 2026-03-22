@@ -29,19 +29,25 @@ impl FileNode {
             .to_string();
 
         let is_dir = path.is_dir();
-        let mut children = Vec::new();
 
-        if is_dir && recursive {
-            if let Ok(entries) = fs::read_dir(&path) {
-                for entry in entries.flatten() {
-                    // ここで再帰呼び出し
-                    children.push(FileNode::new(entry.path(), true, false));
+        let children = if !init {
+            let mut children = vec![];
+
+            if is_dir && recursive {
+                if let Ok(entries) = fs::read_dir(&path) {
+                    for entry in entries.flatten() {
+                        children.push(FileNode::new(entry.path(), true, false));
+                    }
                 }
             }
-        }
 
-        // 名前順にソート（ディレクトリを優先）
-        children.sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then(a.name.cmp(&b.name)));
+            // 名前順にソート（ディレクトリを優先）
+            children.sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then(a.name.cmp(&b.name)));
+
+            children
+        } else {
+            vec![]
+        };
 
         let base = Self {
             name,

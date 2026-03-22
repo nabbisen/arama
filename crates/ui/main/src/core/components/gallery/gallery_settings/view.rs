@@ -1,7 +1,7 @@
 use arama_env::target_media_type::TargetMediaType;
 use iced::{
     Element,
-    widget::{Button, button, checkbox, row},
+    widget::{Button, button, checkbox, row, text},
 };
 
 use super::{GallerySettings, message::Message};
@@ -28,6 +28,30 @@ impl GallerySettings {
         ]
         .spacing(10);
 
+        let sub_dir_depth_limit = row![
+            text("Sub dir depth"),
+            button(text("⬇").size(12))
+                .padding(2)
+                .on_press_maybe(if 0 < self.sub_dir_depth_limit {
+                    Some(Message::SubDirDepthLimitChanged(
+                        self.sub_dir_depth_limit - 1,
+                    ))
+                } else {
+                    None
+                }),
+            text(self.sub_dir_depth_limit),
+            button(text("⬆").size(12))
+                .padding(2)
+                .on_press_maybe(if self.sub_dir_depth_limit < 2 {
+                    Some(Message::SubDirDepthLimitChanged(
+                        self.sub_dir_depth_limit + 1,
+                    ))
+                } else {
+                    None
+                }),
+        ]
+        .spacing(5);
+
         let similar_pairs_button: Button<Message> =
             button("Similar Pairs").on_press_maybe(if self.embedding_cached {
                 Some(Message::SimilarPairsOpen)
@@ -37,6 +61,7 @@ impl GallerySettings {
 
         row![
             media_types,
+            sub_dir_depth_limit,
             self.thumbnail_size
                 .view()
                 .map(Message::ThumbnailSizeSliderMessage),

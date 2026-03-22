@@ -8,4 +8,5 @@ use target_media_type::TargetMediaType;
 pub struct Settings {
     pub root_dir_path: String,
     pub target_media_type: TargetMediaType,
+    pub sub_dir_depth_limit: u8,
 }

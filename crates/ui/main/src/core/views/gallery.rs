@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
 
 use arama_cache::{ImageCacheWriter, UpsertImageRequest};
 use arama_env::{
@@ -21,7 +21,7 @@ const SPACING: u16 = 10;
 // アプリケーションの状態
 pub struct Gallery {
     dir_node: Option<DirNode>,
-    path_thumbnail_path_map: FastHashMap<String, String>,
+    dir_path_thumbnail_path_map: BTreeMap<PathBuf, FastHashMap<String, String>>,
     pub gallery_settings: GallerySettings,
 }
 
@@ -29,6 +29,7 @@ impl Gallery {
     pub fn new<T: Into<PathBuf>>(
         root_dir_path: T,
         target_media_type: &TargetMediaType,
+        sub_dir_depth_limit: u8,
     ) -> anyhow::Result<Self> {
         let mut extension_allowlist: Vec<&str> = vec![];
         if target_media_type.include_image {
@@ -45,8 +46,8 @@ impl Gallery {
 
         Ok(Self {
             dir_node: Some(dir_node),
-            path_thumbnail_path_map: FastHashMap::default(),
-            gallery_settings: GallerySettings::new(target_media_type),
+            dir_path_thumbnail_path_map: BTreeMap::default(),
+            gallery_settings: GallerySettings::new(target_media_type, sub_dir_depth_limit),
         })
     }
 
