@@ -1,3 +1,4 @@
+use arama_env::MAX_THUMBNAIL_SIZE;
 use iced::{
     Alignment::Center,
     widget::{
@@ -78,13 +79,18 @@ impl MediaFocusDialog {
             } else {
                 x.path.to_owned()
             });
-            let item = mouse_area(image(handle))
-                .on_enter(Message::MediaItemEnter(x.path.clone()))
-                .on_double_click(Message::SimilarMediaItemDoubleClicked(
-                    x.path.to_owned().into(),
-                ))
-                .interaction(iced::mouse::Interaction::Pointer);
-            r.push(column![item, text(x.similarity)].spacing(5))
+            let item = mouse_area(
+                image(handle)
+                    .width(MAX_THUMBNAIL_SIZE as u32)
+                    .height(MAX_THUMBNAIL_SIZE as u32)
+                    .content_fit(iced::ContentFit::Cover),
+            )
+            .on_enter(Message::MediaItemEnter(x.path.clone()))
+            .on_double_click(Message::SimilarMediaItemDoubleClicked(
+                x.path.to_owned().into(),
+            ))
+            .interaction(iced::mouse::Interaction::Pointer);
+            r.push(column![item, text(x.similarity)].spacing(5).padding(10))
         });
         let similar_media_items_footer = if let Some(x) = &self.hovered_media_item_path_str {
             container(text(x))
@@ -92,9 +98,11 @@ impl MediaFocusDialog {
             container(space())
         }
         .height(20);
-        let similar_media_content = column![similar_media_items, similar_media_items_footer];
-        let similar_media = mouse_area(scrollable(container(similar_media_content)))
-            .on_exit(Message::MediaItemExit);
+        let similar_media = column![
+            mouse_area(scrollable(container(similar_media_items)).horizontal())
+                .on_exit(Message::MediaItemExit),
+            similar_media_items_footer
+        ];
 
         let close_button = button("Close").on_press(Message::CloseClick);
         let footer = container(close_button).center_x(Fill).padding(10);
