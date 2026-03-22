@@ -15,7 +15,7 @@ use crate::core::codec::{blob_to_vec, vec_to_blob};
 use crate::core::extension::MediaExtension;
 use crate::core::thumbnail::{generate_video_thumbnail, thumbnail_dest};
 use crate::types::{LookupResult, UpsertVideoRequest, VideoCacheEntry, VideoFeatures};
-use query::all_in_dir;
+use query::{all, all_in_dir, all_in_dir_and_sub_dirs};
 
 // ---------------------------------------------------------------------------
 // Config
@@ -317,9 +317,69 @@ impl VideoCacheReader {
         self.reader.list_paths()
     }
 
+    pub fn all(&self) -> Result<Vec<Result<VideoCacheEntry>>> {
+        let conn = self.reader.read_conn()?;
+        let ret = all(&conn);
+        match ret {
+            Ok(x) => Ok(x
+                .into_iter()
+                .map(|x| match x {
+                    Ok(x) => {
+                        let features = if x.image_features.is_some() || x.audio_features.is_some() {
+                            Some(VideoFeatures {
+                                clip_vector: x.image_features,
+                                wav2vec2_vector: x.audio_features,
+                            })
+                        } else {
+                            None
+                        };
+
+                        Ok(VideoCacheEntry {
+                            path: x.path,
+                            thumbnail_path: x.thumbnail_path,
+                            features,
+                        })
+                    }
+                    Err(err) => Err(err),
+                })
+                .collect::<Vec<_>>()),
+            Err(err) => Err(err),
+        }
+    }
+
     pub fn all_in_dir(&self, path: &Path) -> Result<Vec<Result<VideoCacheEntry>>> {
         let conn = self.reader.read_conn()?;
         let ret = all_in_dir(path, &conn);
+        match ret {
+            Ok(x) => Ok(x
+                .into_iter()
+                .map(|x| match x {
+                    Ok(x) => {
+                        let features = if x.image_features.is_some() || x.audio_features.is_some() {
+                            Some(VideoFeatures {
+                                clip_vector: x.image_features,
+                                wav2vec2_vector: x.audio_features,
+                            })
+                        } else {
+                            None
+                        };
+
+                        Ok(VideoCacheEntry {
+                            path: x.path,
+                            thumbnail_path: x.thumbnail_path,
+                            features,
+                        })
+                    }
+                    Err(err) => Err(err),
+                })
+                .collect::<Vec<_>>()),
+            Err(err) => Err(err),
+        }
+    }
+
+    pub fn all_in_dir_and_sub_dirs(&self, path: &Path) -> Result<Vec<Result<VideoCacheEntry>>> {
+        let conn = self.reader.read_conn()?;
+        let ret = all_in_dir_and_sub_dirs(path, &conn);
         match ret {
             Ok(x) => Ok(x
                 .into_iter()

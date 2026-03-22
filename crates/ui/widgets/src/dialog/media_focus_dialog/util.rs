@@ -44,7 +44,7 @@ fn similar_images(path: &Path, cache_config: CacheConfig) -> Vec<SimilarMediaIte
 
     let cache_entries = image_cache_reader
         // todo
-        .all_in_dir(&path)
+        .all()
         .expect("failed to lookup")
         .into_iter()
         // todo
@@ -104,7 +104,7 @@ fn similar_videos(path: &Path, cache_config: CacheConfig) -> Vec<SimilarMediaIte
 
     let cache_entries = video_cache_reader
         // todo
-        .all_in_dir(&path)
+        .all()
         .expect("failed to lookup")
         .into_iter()
         // todo
