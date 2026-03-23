@@ -13,6 +13,17 @@ pub enum SourceUrl {
     PyTorch(String),
 }
 
+impl SourceUrl {
+    pub fn download_url(&self) -> String {
+        let ret = match self {
+            SourceUrl::ModelSafetensors(s) => s,
+            SourceUrl::ModelSafetensorsConfigJson((s, _)) => s,
+            SourceUrl::PyTorch(s) => s,
+        };
+        ret.to_owned()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct ModelContainer {
     pub name: String,

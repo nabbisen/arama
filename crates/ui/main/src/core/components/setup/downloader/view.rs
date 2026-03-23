@@ -17,14 +17,22 @@ impl Downloader {
                 column!["Not ready:"].max_width(400).spacing(10),
                 |col, state| {
                     let (status, progress) = match &state.download_state {
-                        DownloadState::Idle => ("Missing".to_string(), 0.0),
+                        DownloadState::Idle => ("Missing".to_owned(), 0.0),
                         DownloadState::Downloading(p) => (format!("Downloading... {:.1}%", *p), *p),
-                        DownloadState::Finished => ("Ready".to_string(), 100.0),
+                        DownloadState::Finished => ("Ready".to_owned(), 100.0),
                         DownloadState::Errored(e) => (format!("Error: {}", e), 0.0),
                         DownloadState::NotRequired => unreachable!(),
                     };
 
-                    let name = state_name(&state.config);
+                    let name = format!(
+                        "{} ({} MB)",
+                        state_name(&state.config),
+                        if let Some(x) = state.file_size {
+                            x.to_string()
+                        } else {
+                            "(unknown)".to_owned()
+                        }
+                    );
 
                     col.push(
                         column![

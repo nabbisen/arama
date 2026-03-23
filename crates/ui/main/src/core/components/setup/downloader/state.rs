@@ -3,6 +3,7 @@ use super::config::DownloaderConfig;
 #[derive(Debug, Clone)]
 pub struct DownloaderState {
     pub config: DownloaderConfig,
+    pub file_size: Option<u64>,
     pub download_state: DownloadState,
 }
 
