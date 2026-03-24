@@ -91,12 +91,8 @@ impl App {
             sub_dir_depth_limit,
         };
 
-        let gallery = Gallery::new(
-            &settings.root_dir_path,
-            &settings.target_media_type,
-            settings.sub_dir_depth_limit,
-        )
-        .expect("failed to init gallery");
+        let gallery = Gallery::new(&settings.target_media_type, settings.sub_dir_depth_limit)
+            .expect("failed to init gallery");
 
         let header = Header::default();
         let aside = Aside::new(&settings.root_dir_path, false, false, processing);

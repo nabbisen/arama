@@ -134,7 +134,7 @@ impl App {
                     gallery::message::Message::SimilarPairsOpen => {
                         // todo: error handling
                         let dialog = similar_pairs_dialog::SimilarPairsDialog::new(
-                            self.gallery.dir_node().unwrap(),
+                            self.dir_node.clone().unwrap(),
                             None,
                         );
                         self.dialog = Some(Dialog::SimilarPairsDialog(dialog.clone()));

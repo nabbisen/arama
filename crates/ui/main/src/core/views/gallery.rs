@@ -1,11 +1,9 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
 use arama_env::{
-    IMAGE_EXTENSION_ALLOWLIST, MAX_THUMBNAIL_SIZE, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path,
-    target_media_type::TargetMediaType,
+    IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST, target_media_type::TargetMediaType,
 };
 use iced::wgpu::naga::FastHashMap;
-use swdir::{DirNode, Swdir};
 
 use crate::core::components::gallery::gallery_settings::GallerySettings;
 
@@ -17,14 +15,12 @@ const SPACING: u16 = 10;
 
 // アプリケーションの状態
 pub struct Gallery {
-    dir_node: Option<DirNode>,
     dir_path_thumbnail_path_map: BTreeMap<PathBuf, FastHashMap<String, String>>,
     pub gallery_settings: GallerySettings,
 }
 
 impl Gallery {
-    pub fn new<T: Into<PathBuf>>(
-        root_dir_path: T,
+    pub fn new(
         target_media_type: &TargetMediaType,
         sub_dir_depth_limit: u8,
     ) -> anyhow::Result<Self> {
@@ -36,24 +32,10 @@ impl Gallery {
             extension_allowlist.extend(VIDEO_EXTENSION_ALLOWLIST);
         }
 
-        let dir_node = Swdir::default()
-            .set_root_path(root_dir_path)
-            .set_extension_allowlist(&extension_allowlist)?
-            .walk();
-
         Ok(Self {
-            dir_node: Some(dir_node),
             dir_path_thumbnail_path_map: BTreeMap::default(),
             gallery_settings: GallerySettings::new(target_media_type, sub_dir_depth_limit),
         })
-    }
-
-    pub fn dir_node(&self) -> Option<DirNode> {
-        self.dir_node.clone()
-    }
-
-    pub fn set_dir_node(&mut self, value: DirNode) {
-        self.dir_node = Some(value);
     }
 
     pub fn set_dir_path_thumbnail_path_map(
