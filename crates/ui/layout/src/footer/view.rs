@@ -1,26 +1,29 @@
 use iced::{
     Element,
     Length::Fill,
-    widget::{container, mouse_area, row, text},
+    widget::{container, row, text},
 };
 
 use super::{Footer, message::Message};
 
 impl Footer {
     pub fn view(&self) -> Element<'_, Message> {
-        // todo
+        let files_label = if 1 < self.files_count {
+            "files"
+        } else {
+            "file"
+        };
+        let dirs_label = if 1 < self.files_count { "dirs" } else { "dir" };
+
         container(
             row![
-                text("Repository:").style(text::secondary),
-                mouse_area(text(super::REPOSITORY_URL).style(text::secondary))
-                    .on_press(Message::RepositoryLinkClicked(
-                        super::REPOSITORY_URL.to_owned(),
-                    ))
-                    .interaction(iced::mouse::Interaction::Pointer)
+                text(format!("{} {}", self.files_count, files_label)).style(text::secondary),
+                text(format!("({} {} scanned)", self.dirs_count, dirs_label))
+                    .style(text::secondary),
             ]
             .spacing(10),
         )
-        .padding([0, 20])
+        .padding([10, 20])
         .align_right(Fill)
         .into()
     }

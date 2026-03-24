@@ -239,6 +239,10 @@ impl App {
                                     .set_recurse(recurse)
                                     .walk();
 
+                                let dir_node_count = dir_node.count();
+                                self.footer
+                                    .update_count(dir_node_count.files, dir_node_count.dirs);
+
                                 self.dir_node = Some(dir_node);
 
                                 return Task::batch([

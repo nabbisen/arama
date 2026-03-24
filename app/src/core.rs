@@ -96,7 +96,8 @@ impl App {
 
         let header = Header::default();
         let aside = Aside::new(&settings.root_dir_path, false, false, processing);
-        let footer = Footer::default();
+        let dir_node_count = dir_node.count();
+        let footer = Footer::new(dir_node_count.files, dir_node_count.dirs);
         let dialog = None;
 
         let task = if !setup.finished && !setup::util::ready() {
@@ -116,7 +117,7 @@ impl App {
                 context_menu: ContextMenu::None,
                 dialog,
                 settings,
-                dir_node,
+                dir_node: Some(dir_node),
                 processing,
             },
             task,
@@ -135,7 +136,7 @@ impl App {
     }
 }
 
-fn dir_node(root_dir_path: &str, target_media_type: &TargetMediaType) -> Option<DirNode> {
+fn dir_node(root_dir_path: &str, target_media_type: &TargetMediaType) -> DirNode {
     let mut extension_allowlist: Vec<&str> = vec![];
     if target_media_type.include_image {
         extension_allowlist.extend(IMAGE_EXTENSION_ALLOWLIST);
@@ -151,5 +152,5 @@ fn dir_node(root_dir_path: &str, target_media_type: &TargetMediaType) -> Option<
         .expect("failed to get dir node")
         .walk();
 
-    Some(dir_node)
+    dir_node
 }

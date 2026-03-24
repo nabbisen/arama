@@ -18,6 +18,10 @@ impl SettingsDialog {
                 let task = self.file_system_settings.update(message);
                 return task.map(Message::FileSystemSettingsTabMessage);
             }
+            Message::AboutTabMessage(message) => {
+                let task = self.about.update(message);
+                return task.map(Message::AboutTabMessage);
+            }
         }
         Task::none()
     }

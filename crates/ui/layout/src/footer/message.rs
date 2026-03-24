@@ -1,4 +1,2 @@
 #[derive(Debug, Clone)]
-pub enum Message {
-    RepositoryLinkClicked(String),
-}
+pub enum Message {}

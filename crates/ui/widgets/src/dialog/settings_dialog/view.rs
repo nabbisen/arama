@@ -1,21 +1,17 @@
 use iced::{
     Element,
-    widget::{button, column, row},
+    Length::Fill,
+    widget::{button, column, container, row},
 };
 
 use super::{SettingsDialog, Tab, message::Message};
 
 impl SettingsDialog {
     pub fn view(&self) -> Element<'_, Message> {
-        let tab_menus: Vec<Element<Message>> = Tab::all()
-            .iter()
-            .map(|x| {
-                button(x.label())
-                    .on_press(Message::TabSelect(x.to_owned()))
-                    .into()
-            })
-            .collect();
-        let tab_menus_container = row(tab_menus);
+        let tab_menus = Tab::all().iter().fold(row![].spacing(5), |acc, x| {
+            let menu = button(x.label()).on_press(Message::TabSelect(x.to_owned()));
+            acc.push(menu)
+        });
 
         let tab = match self.tab {
             Tab::General => self
@@ -27,9 +23,12 @@ impl SettingsDialog {
                 .file_system_settings
                 .view()
                 .map(Message::FileSystemSettingsTabMessage),
+            Tab::About => self.about.view().map(Message::AboutTabMessage),
         };
 
         // todo
-        column![tab_menus_container, tab].into()
+        column![tab_menus, container(tab).width(600).height(400)]
+            .spacing(10)
+            .into()
     }
 }
