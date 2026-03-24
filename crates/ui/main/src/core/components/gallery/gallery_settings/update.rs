@@ -9,9 +9,6 @@ impl GallerySettings {
                 self.target_media_type = target_media_type;
             }
             Message::SubDirDepthLimitChanged(value) => self.sub_dir_depth_limit = value,
-            Message::ThumbnailSizeSliderMessage(message) => {
-                let _ = self.thumbnail_size.update(message);
-            }
             Message::SimilarPairsOpen => (),
         }
         Task::none()

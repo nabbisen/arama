@@ -91,14 +91,14 @@ impl App {
             sub_dir_depth_limit,
         };
 
-        let gallery = Gallery::new(&settings.target_media_type, settings.sub_dir_depth_limit)
-            .expect("failed to init gallery");
-
         let header = Header::default();
         let aside = Aside::new(&settings.root_dir_path, false, false, processing);
         let dir_node_count = dir_node.count();
         let footer = Footer::new(dir_node_count.files, dir_node_count.dirs);
         let dialog = None;
+
+        let gallery = Gallery::new(&settings.target_media_type, settings.sub_dir_depth_limit)
+            .expect("failed to init gallery");
 
         let task = if !setup.finished && !setup::util::ready() {
             Task::none()

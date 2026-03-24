@@ -1,7 +1,7 @@
 use iced::{
     Element,
-    Length::Fill,
-    widget::{container, row, text},
+    Length::{Fill, FillPortion},
+    widget::{container, row, space, text},
 };
 
 use super::{Footer, message::Message};
@@ -17,9 +17,23 @@ impl Footer {
 
         container(
             row![
-                text(format!("{} {}", self.files_count, files_label)).style(text::secondary),
-                text(format!("({} {} scanned)", self.dirs_count, dirs_label))
-                    .style(text::secondary),
+                container(space()).align_left(FillPortion(1)),
+                container(
+                    self.thumbnail_size_slider
+                        .view()
+                        .map(Message::ThumbnailSizeSliderMessage),
+                )
+                .center(FillPortion(1)),
+                container(
+                    row![
+                        text(format!("{} {}", self.files_count, files_label))
+                            .style(text::secondary),
+                        text(format!("({} {} scanned)", self.dirs_count, dirs_label))
+                            .style(text::secondary),
+                    ]
+                    .spacing(10),
+                )
+                .align_right(FillPortion(1)),
             ]
             .spacing(10),
         )

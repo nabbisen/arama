@@ -272,6 +272,7 @@ version = "0.17.3"
 dependencies = [
  "arama-ai",
  "arama-cache",
+ "arama-env",
  "arama-ui-widgets",
  "iced",
  "swdir",

@@ -16,7 +16,7 @@ impl App {
 
         let content = self
             .gallery
-            .view()
+            .view(self.footer.thumbnail_size())
             .map(|message| Message::GalleryMessage(message));
 
         let header = self.header.view().map(Message::HeaderMessage);
@@ -48,7 +48,7 @@ impl App {
                         button("file manager")
                             .on_press(Message::FileManagerShow(path.to_path_buf())),
                     ]
-                    .width(self.gallery.gallery_settings.thumbnail_size() as f32)
+                    .width(self.footer.thumbnail_size() as f32)
                     .spacing(5)
                 ]
             ]),

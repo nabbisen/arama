@@ -53,8 +53,4 @@ impl Gallery {
 
         self.gallery_settings.set_embedding_cached(embedding_cached);
     }
-
-    pub fn thumbnail_size(&self) -> u16 {
-        self.gallery_settings.thumbnail_size()
-    }
 }

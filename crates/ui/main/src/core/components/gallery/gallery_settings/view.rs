@@ -59,15 +59,8 @@ impl GallerySettings {
                 None
             });
 
-        row![
-            media_types,
-            sub_dir_depth_limit,
-            self.thumbnail_size
-                .view()
-                .map(Message::ThumbnailSizeSliderMessage),
-            similar_pairs_button,
-        ]
-        .spacing(20)
-        .into()
+        row![media_types, sub_dir_depth_limit, similar_pairs_button,]
+            .spacing(20)
+            .into()
     }
 }
