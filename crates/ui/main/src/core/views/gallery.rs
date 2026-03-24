@@ -1,18 +1,15 @@
-use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
+use std::{collections::BTreeMap, path::PathBuf};
 
-use arama_cache::{ImageCacheWriter, UpsertImageRequest};
 use arama_env::{
     IMAGE_EXTENSION_ALLOWLIST, MAX_THUMBNAIL_SIZE, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path,
     target_media_type::TargetMediaType,
 };
-use iced::{Task, wgpu::naga::FastHashMap};
-// use iced::Task;
+use iced::wgpu::naga::FastHashMap;
 use swdir::{DirNode, Swdir};
 
 use crate::core::components::gallery::gallery_settings::GallerySettings;
 
 pub mod message;
-// mod subscription;
 mod update;
 mod view;
 
@@ -51,46 +48,27 @@ impl Gallery {
         })
     }
 
-    pub fn default_task(&self) -> Task<message::Message> {
-        if let Some(dir_node) = self.dir_node.as_ref() {
-            let dir_node = dir_node.clone();
-            Task::perform(
-                // self.cache_producer.clone().refresh(dir_node.clone()),
-                async move {
-                    let writer = ImageCacheWriter::onetime(arama_cache::DbLocation::Custom(
-                        cache_storage_path().expect("failed to get cache stogate path"),
-                    ))
-                    // todo: error handling
-                    .expect("failed to get cache writer");
-                    let requests: Vec<UpsertImageRequest> = dir_node
-                        .flatten_paths()
-                        .iter()
-                        .map(|x| UpsertImageRequest {
-                            path: x.to_path_buf(),
-                            clip_vector: None,
-                        })
-                        .collect();
-                    let ret = writer.upsert_all(requests);
-                    ret.into_iter()
-                        .map(|x| (x.0, Arc::new(x.1)))
-                        .collect::<Vec<(PathBuf, Arc<arama_cache::Result<()>>)>>()
-                },
-                message::Message::ImageCached,
-            )
-        } else {
-            Task::none()
-        }
-    }
-
     pub fn dir_node(&self) -> Option<DirNode> {
         self.dir_node.clone()
+    }
+
+    pub fn set_dir_node(&mut self, value: DirNode) {
+        self.dir_node = Some(value);
+    }
+
+    pub fn set_dir_path_thumbnail_path_map(
+        &mut self,
+        value: BTreeMap<PathBuf, FastHashMap<String, String>>,
+    ) {
+        self.dir_path_thumbnail_path_map = value;
+    }
+
+    pub fn update_embedding_cached(&mut self) {
+        let embedding_cached = 1 < self.dir_path_thumbnail_path_map.len();
+        self.gallery_settings.set_embedding_cached(embedding_cached);
     }
 
     pub fn thumbnail_size(&self) -> u16 {
         self.gallery_settings.thumbnail_size()
     }
-
-    // fn clear(&mut self) {
-    //     self.dir_node = None;
-    // }
 }

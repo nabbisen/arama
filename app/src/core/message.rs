@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use arama_ui_layout::{aside, footer, header};
 use arama_ui_main::views::{gallery, setup};
@@ -7,6 +7,9 @@ use iced::Point;
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    CacheRequire,
+    ThumbnailCacheFinished(Vec<(PathBuf, Arc<arama_cache::Result<()>>)>),
+    EmbeddingCacheFinished(Option<String>),
     SetupMessage(setup::message::Message),
     GalleryMessage(gallery::message::Message),
     HeaderMessage(header::message::Message),

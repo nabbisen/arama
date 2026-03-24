@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 
 use app_json_settings::ConfigManager;
-use arama_env::Settings;
+use arama_env::{
+    IMAGE_EXTENSION_ALLOWLIST, Settings, VIDEO_EXTENSION_ALLOWLIST,
+    target_media_type::TargetMediaType,
+};
 use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
 use arama_ui_main::views::{
     gallery::Gallery,
@@ -16,6 +19,7 @@ mod update;
 mod view;
 
 use message::Message;
+use swdir::{DirNode, Swdir};
 
 pub struct App {
     setup: Setup,
@@ -27,6 +31,7 @@ pub struct App {
     context_menu: ContextMenu,
     dialog: Option<Dialog>,
     settings: Settings,
+    dir_node: Option<DirNode>,
     processing: bool,
 }
 
@@ -77,6 +82,9 @@ impl App {
         .to_owned();
         let target_media_type = settings.target_media_type;
         let sub_dir_depth_limit = settings.sub_dir_depth_limit;
+
+        let dir_node = dir_node(&root_dir_path, &target_media_type);
+
         let settings = Settings {
             root_dir_path,
             target_media_type,
@@ -98,9 +106,7 @@ impl App {
         let task = if !setup.finished && !setup::util::ready() {
             Task::none()
         } else {
-            gallery
-                .default_task()
-                .map(|message| Message::GalleryMessage(message))
+            Task::done(Message::CacheRequire)
         };
 
         (
@@ -114,6 +120,7 @@ impl App {
                 context_menu: ContextMenu::None,
                 dialog,
                 settings,
+                dir_node,
                 processing,
             },
             task,
@@ -130,4 +137,23 @@ impl App {
             })
             .expect("failed to save config");
     }
+}
+
+fn dir_node(root_dir_path: &str, target_media_type: &TargetMediaType) -> Option<DirNode> {
+    let mut extension_allowlist: Vec<&str> = vec![];
+    if target_media_type.include_image {
+        extension_allowlist.extend(IMAGE_EXTENSION_ALLOWLIST);
+    }
+    if target_media_type.include_video {
+        extension_allowlist.extend(VIDEO_EXTENSION_ALLOWLIST);
+    }
+
+    let dir_node = Swdir::default()
+        .set_root_path(root_dir_path)
+        .set_extension_allowlist(&extension_allowlist)
+        // todo: error handling
+        .expect("failed to get dir node")
+        .walk();
+
+    Some(dir_node)
 }

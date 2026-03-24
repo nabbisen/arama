@@ -1,10 +1,19 @@
-use arama_env::{IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST};
+use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
+
+use arama_ai::{
+    model::model_container::clip, pipeline::encode::image::embeddings::image_embedding,
+};
+use arama_cache::{
+    DbLocation, ImageCacheReader, ImageCacheWriter, LookupResult, UpsertImageRequest,
+    VideoCacheReader,
+};
+use arama_env::{IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path};
 use arama_ui_main::{
     components::gallery::{gallery_settings, image_cell},
     views::gallery,
 };
-use iced::Task;
-use swdir::{Recurse, Swdir};
+use iced::{Task, wgpu::naga::FastHashMap};
+use swdir::{DirNode, Recurse, Swdir};
 
 use super::{App, ContextMenu, Dialog, message::Message};
 use arama_ui_layout::{aside, header};
@@ -16,15 +25,102 @@ use arama_ui_widgets::{
 impl App {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::CacheRequire => {
+                if let Some(dir_node) = &self.dir_node {
+                    let dir_node = dir_node.clone();
+
+                    Task::perform(
+                        async move {
+                            let writer =
+                                ImageCacheWriter::onetime(arama_cache::DbLocation::Custom(
+                                    cache_storage_path().expect("failed to get cache stogate path"),
+                                ))
+                                // todo: error handling
+                                .expect("failed to get cache writer");
+                            let requests: Vec<UpsertImageRequest> = dir_node
+                                .flatten_paths()
+                                .iter()
+                                .map(|x| UpsertImageRequest {
+                                    path: x.to_path_buf(),
+                                    clip_vector: None,
+                                })
+                                .collect();
+                            let ret = writer.upsert_all(requests);
+                            ret.into_iter()
+                                .map(|x| (x.0, Arc::new(x.1)))
+                                .collect::<Vec<(PathBuf, Arc<arama_cache::Result<()>>)>>()
+                        },
+                        Message::ThumbnailCacheFinished,
+                    )
+                } else {
+                    Task::none()
+                }
+            }
+            Message::ThumbnailCacheFinished(ret) => {
+                let errors: Vec<_> = ret.iter().filter(|x| x.1.is_err()).collect();
+                if 0 < errors.len() {
+                    // todo error handling
+                    eprintln!(
+                        "{}",
+                        errors
+                            .into_iter()
+                            .map(|x| format!("{:?}", x.1))
+                            .collect::<Vec<String>>()
+                            .join("\n")
+                    );
+                }
+
+                if let Some(dir_node) = &self.dir_node {
+                    let image_cache_reader = ImageCacheReader::onetime(DbLocation::Custom(
+                        cache_storage_path().expect("failed to get storaget path"),
+                    ))
+                    .expect("failed to get video cache reader");
+
+                    let video_cache_reader = VideoCacheReader::onetime(DbLocation::Custom(
+                        cache_storage_path().expect("failed to get storaget path"),
+                    ))
+                    .expect("failed to get video cache reader");
+
+                    self.gallery
+                        .set_dir_path_thumbnail_path_map(dir_path_thumbnail_path_map(
+                            &dir_node,
+                            &image_cache_reader,
+                            &video_cache_reader,
+                        ));
+                }
+
+                if clip::model().ready().unwrap_or(false) {
+                    Task::perform(
+                        async {
+                            image_embedding(ret.into_iter().map(|x| x.0).collect())
+                                .await
+                                .expect("failed to get embedding")
+                        },
+                        Message::EmbeddingCacheFinished,
+                    )
+                } else {
+                    Task::none()
+                }
+            }
+            Message::EmbeddingCacheFinished(err) => {
+                if let Some(err) = err {
+                    // todo error handling
+                    eprintln!("{}", err);
+                }
+
+                self.processing = false;
+                self.aside.set_processing(self.processing);
+                self.gallery.update_embedding_cached();
+
+                Task::none()
+            }
             Message::SetupMessage(message) => {
                 let task = self
                     .setup
                     .update(message.clone())
                     .map(Message::SetupMessage);
                 if self.setup.finished {
-                    self.gallery
-                        .default_task()
-                        .map(|message| Message::GalleryMessage(message))
+                    Task::done(Message::CacheRequire)
                 } else {
                     task
                 }
@@ -35,10 +131,6 @@ impl App {
                     .update(message.clone())
                     .map(Message::GalleryMessage);
                 match message {
-                    gallery::message::Message::ImageCached(_) => {
-                        self.processing = false;
-                        self.aside.set_processing(self.processing);
-                    }
                     gallery::message::Message::SimilarPairsOpen => {
                         // todo: error handling
                         let dialog = similar_pairs_dialog::SimilarPairsDialog::new(
@@ -89,8 +181,6 @@ impl App {
                             }
                         }
                     },
-                    gallery::message::Message::DirSelect(_) => (),
-                    gallery::message::Message::EmbeddingCached(_) => (),
                 }
                 task
             }
@@ -149,11 +239,12 @@ impl App {
                                     .set_recurse(recurse)
                                     .walk();
 
-                                let task = self
-                                    .gallery
-                                    .update(gallery::message::Message::DirSelect(dir_node))
-                                    .map(Message::GalleryMessage);
-                                return task;
+                                self.dir_node = Some(dir_node);
+
+                                return Task::batch([
+                                    Task::done(Message::CacheRequire),
+                                    task.map(Message::AsideMessage),
+                                ]);
                             }
                             _ => (),
                         }
@@ -228,4 +319,62 @@ impl App {
             }
         }
     }
+}
+
+fn dir_path_thumbnail_path_map(
+    dir_node: &DirNode,
+    image_cache_reader: &ImageCacheReader,
+    video_cache_reader: &VideoCacheReader,
+) -> BTreeMap<PathBuf, FastHashMap<String, String>> {
+    let mut map = FastHashMap::default();
+
+    for path in &dir_node.files {
+        let thumbnail_path = if VIDEO_EXTENSION_ALLOWLIST.contains(
+            &path
+                .extension()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string()
+                .as_str(),
+        ) {
+            match video_cache_reader.lookup(&path) {
+                Ok(LookupResult::Hit(x)) if x.thumbnail_path.is_some() => {
+                    PathBuf::from(x.thumbnail_path.unwrap())
+                }
+                _ => path.to_path_buf(),
+            }
+        } else {
+            match image_cache_reader.lookup(&path) {
+                Ok(LookupResult::Hit(x)) if x.thumbnail_path.is_some() => {
+                    PathBuf::from(x.thumbnail_path.unwrap())
+                }
+                _ => path.to_path_buf(),
+            }
+        };
+
+        map.insert(
+            path.canonicalize()
+                .expect("failed to canonicalize path")
+                .to_string_lossy()
+                .to_string(),
+            thumbnail_path
+                .canonicalize()
+                .expect("failed to canonicalize thumbnail path")
+                .to_string_lossy()
+                .to_string(),
+        );
+    }
+
+    let mut ret = BTreeMap::default();
+    ret.insert(dir_node.path.to_owned(), map);
+
+    for dir_node in &dir_node.sub_dirs {
+        ret.extend(dir_path_thumbnail_path_map(
+            dir_node,
+            image_cache_reader,
+            video_cache_reader,
+        ));
+    }
+
+    ret
 }
