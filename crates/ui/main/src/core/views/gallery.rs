@@ -64,7 +64,11 @@ impl Gallery {
     }
 
     pub fn update_embedding_cached(&mut self) {
-        let embedding_cached = 1 < self.dir_path_thumbnail_path_map.len();
+        let embedding_cached = self
+            .dir_path_thumbnail_path_map
+            .iter()
+            .any(|x| 1 < x.1.len());
+
         self.gallery_settings.set_embedding_cached(embedding_cached);
     }
 
