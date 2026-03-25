@@ -7,7 +7,9 @@ use super::{SettingsDialog, message::Message};
 impl SettingsDialog {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::TargetMediaTypeChanged(_) => Task::none(),
+            Message::TargetMediaTypeChanged(_) | Message::SubDirDepthLimitChanged(_) => {
+                Task::none()
+            }
             Message::TabSelect(tab) => {
                 self.tab = tab;
                 Task::none()
@@ -21,6 +23,9 @@ impl SettingsDialog {
                 match message {
                     general_settings::message::Message::TargetMediaTypeChanged(x) => {
                         Task::batch([task, Task::done(Message::TargetMediaTypeChanged(x))])
+                    }
+                    general_settings::message::Message::SubDirDepthLimitChanged(x) => {
+                        Task::batch([task, Task::done(Message::SubDirDepthLimitChanged(x))])
                     }
                 }
             }

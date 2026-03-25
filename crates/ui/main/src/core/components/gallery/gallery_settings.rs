@@ -3,14 +3,12 @@ mod update;
 mod view;
 
 pub struct GallerySettings {
-    sub_dir_depth_limit: u8,
     embedding_cached: bool,
 }
 
 impl GallerySettings {
-    pub fn new(sub_dir_depth_limit: u8) -> Self {
+    pub fn new() -> Self {
         Self {
-            sub_dir_depth_limit,
             embedding_cached: false,
         }
     }

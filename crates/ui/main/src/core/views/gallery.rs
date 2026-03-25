@@ -17,10 +17,10 @@ pub struct Gallery {
 }
 
 impl Gallery {
-    pub fn new(sub_dir_depth_limit: u8) -> anyhow::Result<Self> {
+    pub fn new() -> anyhow::Result<Self> {
         Ok(Self {
             dir_path_thumbnail_path_map: BTreeMap::default(),
-            gallery_settings: GallerySettings::new(sub_dir_depth_limit),
+            gallery_settings: GallerySettings::new(),
         })
     }
 

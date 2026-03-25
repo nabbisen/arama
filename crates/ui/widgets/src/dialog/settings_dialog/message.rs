@@ -8,6 +8,7 @@ use super::{
 #[derive(Debug, Clone)]
 pub enum Message {
     TargetMediaTypeChanged(TargetMediaType),
+    SubDirDepthLimitChanged(u8),
     TabSelect(Tab),
     GeneralSettingsTabMessage(general_settings::message::Message),
     AiSettingsTabMessage(ai_settings::message::Message),

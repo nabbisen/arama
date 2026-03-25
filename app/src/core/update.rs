@@ -148,13 +148,6 @@ impl App {
                     }
                     gallery::message::Message::GallerySettingsMessage(message) => {
                         let _ = self.gallery.gallery_settings.update(message.clone());
-                        match message {
-                            gallery_settings::message::Message::SubDirDepthLimitChanged(value) => {
-                                self.settings.sub_dir_depth_limit = value;
-                                self.save_settings();
-                            }
-                            _ => (),
-                        }
                     }
                     gallery::message::Message::ImageCellMessage(message) => match message {
                         image_cell::message::Message::ImageSelect(path) => {
@@ -192,7 +185,10 @@ impl App {
                 match message {
                     header::message::Message::SettingsClick => {
                         self.dialog = Some(Dialog::SettingsDialog(
-                            settings_dialog::SettingsDialog::new(&self.settings.target_media_type),
+                            settings_dialog::SettingsDialog::new(
+                                &self.settings.target_media_type,
+                                self.settings.sub_dir_depth_limit,
+                            ),
                         ))
                     }
                     _ => (),
@@ -316,6 +312,17 @@ impl App {
                     match message {
                         settings_dialog::message::Message::TargetMediaTypeChanged(x) => {
                             self.settings.target_media_type = x;
+                            self.save_settings();
+
+                            return if self.processing {
+                                task
+                            } else {
+                                self.processing_on();
+                                Task::batch([task, Task::done(Message::CacheRequire)])
+                            };
+                        }
+                        settings_dialog::message::Message::SubDirDepthLimitChanged(x) => {
+                            self.settings.sub_dir_depth_limit = x;
                             self.save_settings();
 
                             return if self.processing {

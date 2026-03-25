@@ -20,10 +20,10 @@ pub struct SettingsDialog {
 }
 
 impl SettingsDialog {
-    pub fn new(target_media_type: &TargetMediaType) -> Self {
+    pub fn new(target_media_type: &TargetMediaType, sub_dir_depth_limit: u8) -> Self {
         Self {
             tab: Tab::default(),
-            general_settings: GeneralSettings::new(target_media_type),
+            general_settings: GeneralSettings::new(target_media_type, sub_dir_depth_limit),
             ai_settings: AiSettings::default(),
             file_system_settings: FileSystemSettings::default(),
             about: About::default(),

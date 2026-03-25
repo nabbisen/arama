@@ -1,7 +1,7 @@
 use arama_env::target_media_type::TargetMediaType;
 use iced::{
     Element,
-    widget::{checkbox, container, row},
+    widget::{button, checkbox, column, container, row, text},
 };
 
 use super::{GeneralSettings, message::Message};
@@ -28,6 +28,30 @@ impl GeneralSettings {
         ]
         .spacing(10);
 
-        container(target_media_types).into()
+        let sub_dir_depth_limit = row![
+            text("Sub dir depth"),
+            button(text("⬇").size(12))
+                .padding(2)
+                .on_press_maybe(if 0 < self.sub_dir_depth_limit {
+                    Some(Message::SubDirDepthLimitChanged(
+                        self.sub_dir_depth_limit - 1,
+                    ))
+                } else {
+                    None
+                }),
+            text(self.sub_dir_depth_limit),
+            button(text("⬆").size(12))
+                .padding(2)
+                .on_press_maybe(if self.sub_dir_depth_limit < 2 {
+                    Some(Message::SubDirDepthLimitChanged(
+                        self.sub_dir_depth_limit + 1,
+                    ))
+                } else {
+                    None
+                }),
+        ]
+        .spacing(5);
+
+        container(column![target_media_types, sub_dir_depth_limit].spacing(10)).into()
     }
 }
