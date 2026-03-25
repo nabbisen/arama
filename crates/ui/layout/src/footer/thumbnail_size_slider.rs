@@ -1,5 +1,3 @@
-use arama_env::DEFAULT_THUMBNAIL_SIZE;
-
 pub mod message;
 mod update;
 pub mod view;
@@ -11,10 +9,10 @@ pub struct ThumbnailSizeSlider {
     pub value: u16,
 }
 
-impl Default for ThumbnailSizeSlider {
-    fn default() -> Self {
+impl ThumbnailSizeSlider {
+    pub fn new(thumbnail_size: u16) -> Self {
         Self {
-            value: DEFAULT_THUMBNAIL_SIZE,
+            value: thumbnail_size,
         }
     }
 }

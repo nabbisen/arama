@@ -17,21 +17,31 @@ impl Footer {
 
         container(
             row![
-                container(space()).align_left(FillPortion(1)),
-                container(
-                    self.thumbnail_size_slider
-                        .view()
-                        .map(Message::ThumbnailSizeSliderMessage),
-                )
-                .center(FillPortion(1)),
+                if let Some(x) = &self.image_cell_path {
+                    container(text(
+                        x.canonicalize()
+                            .unwrap_or_default()
+                            .to_string_lossy()
+                            .to_string(),
+                    ))
+                } else {
+                    container(space())
+                }
+                .align_left(FillPortion(2)),
                 container(
                     row![
-                        text(format!("{} {}", self.files_count, files_label))
-                            .style(text::secondary),
-                        text(format!("({} {} scanned)", self.dirs_count, dirs_label))
-                            .style(text::secondary),
+                        self.thumbnail_size_slider
+                            .view()
+                            .map(Message::ThumbnailSizeSliderMessage),
+                        row![
+                            text(format!("{} {}", self.files_count, files_label))
+                                .style(text::secondary),
+                            text(format!("({} {} scanned)", self.dirs_count, dirs_label))
+                                .style(text::secondary),
+                        ]
+                        .spacing(10)
                     ]
-                    .spacing(10),
+                    .spacing(30)
                 )
                 .align_right(FillPortion(1)),
             ]

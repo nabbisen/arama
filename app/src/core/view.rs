@@ -3,10 +3,10 @@ use arama_ui_widgets::dialog::overlay;
 use iced::{
     Element,
     Length::Fill,
-    widget::{button, column, container, mouse_area, row, space, stack, text},
+    widget::{column, container, mouse_area, row, stack},
 };
 
-use super::{App, ContextMenu, Dialog, message::Message};
+use super::{App, Dialog, message::Message};
 
 impl App {
     pub fn view(&self) -> Element<'_, Message> {
@@ -32,28 +32,7 @@ impl App {
         ])
         .on_move(Message::CursorMove);
 
-        let context_menu = match &self.context_menu {
-            ContextMenu::ImageCell(path) => container(column![
-                space().height(self.context_menu_point.y),
-                row![
-                    space().width(self.context_menu_point.x),
-                    column![
-                        container(text(
-                            path.canonicalize()
-                                .unwrap_or_default()
-                                .to_string_lossy()
-                                .to_string()
-                        ))
-                        .style(container::secondary),
-                        button("file manager")
-                            .on_press(Message::FileManagerShow(path.to_path_buf())),
-                    ]
-                    .width(self.footer.thumbnail_size() as f32)
-                    .spacing(5)
-                ]
-            ]),
-            ContextMenu::None => container(space()),
-        };
+        let context_menu = self.context_menu.view().map(Message::ContextMenuMessage);
 
         let layout_with_context_menu = stack!(layout, context_menu);
 

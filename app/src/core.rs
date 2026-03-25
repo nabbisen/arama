@@ -10,7 +10,7 @@ use arama_ui_main::views::{
     gallery::Gallery,
     setup::{self, Setup},
 };
-use arama_ui_widgets::dialog;
+use arama_ui_widgets::{context_menu::ContextMenu, dialog};
 use iced::{Point, Task};
 
 mod message;
@@ -27,11 +27,11 @@ pub struct App {
     header: Header,
     aside: Aside,
     footer: Footer,
-    context_menu_point: Point,
     context_menu: ContextMenu,
     dialog: Option<Dialog>,
     settings: Settings,
     dir_node: Option<DirNode>,
+    image_cell_path: Option<PathBuf>,
     processing: bool,
 }
 
@@ -40,12 +40,6 @@ enum Dialog {
     MediaFocusDialog(dialog::media_focus_dialog::MediaFocusDialog),
     SimilarPairsDialog(dialog::similar_pairs_dialog::SimilarPairsDialog),
     SettingsDialog(dialog::settings_dialog::SettingsDialog),
-}
-
-#[derive(Debug)]
-enum ContextMenu {
-    ImageCell(PathBuf),
-    None,
 }
 
 impl App {
@@ -66,13 +60,12 @@ impl App {
             .at_current_dir()
             .load_or_default()
         {
-            Ok(x) => Some(x),
+            Ok(x) => x,
             Err(err) => {
                 eprintln!("failed to load settings: {:?}", err);
-                None
+                Settings::default()
             }
-        }
-        .expect("failed to initialize settings");
+        };
 
         let root_dir_path = if settings.root_dir_path.is_empty() {
             "."
@@ -82,6 +75,7 @@ impl App {
         .to_owned();
         let target_media_type = settings.target_media_type;
         let sub_dir_depth_limit = settings.sub_dir_depth_limit;
+        let thumbnail_size = settings.thumbnail_size;
 
         let dir_node = dir_node(&root_dir_path, &target_media_type);
 
@@ -89,15 +83,19 @@ impl App {
             root_dir_path,
             target_media_type,
             sub_dir_depth_limit,
+            thumbnail_size,
         };
 
         let header = Header::default();
         let aside = Aside::new(&settings.root_dir_path, false, false, processing);
         let dir_node_count = dir_node.count();
-        let footer = Footer::new(dir_node_count.files, dir_node_count.dirs);
+        let footer = Footer::new(thumbnail_size, dir_node_count.files, dir_node_count.dirs);
         let dialog = None;
 
         let gallery = Gallery::new().expect("failed to init gallery");
+
+        let context_menu_point = Point::default();
+        let context_menu = ContextMenu::new(context_menu_point, thumbnail_size);
 
         let task = if !setup.finished && !setup::util::ready() {
             Task::none()
@@ -112,11 +110,11 @@ impl App {
                 header,
                 aside,
                 footer,
-                context_menu_point: Point::default(),
-                context_menu: ContextMenu::None,
+                context_menu,
                 dialog,
                 settings,
                 dir_node: Some(dir_node),
+                image_cell_path: None,
                 processing,
             },
             task,
@@ -130,6 +128,7 @@ impl App {
                 root_dir_path: self.settings.root_dir_path.to_owned(),
                 target_media_type: self.settings.target_media_type.to_owned(),
                 sub_dir_depth_limit: self.settings.sub_dir_depth_limit,
+                thumbnail_size: self.settings.thumbnail_size,
             })
             .expect("failed to save config");
     }
@@ -142,6 +141,17 @@ impl App {
     fn processing_off(&mut self) {
         self.processing = false;
         self.aside.set_processing(self.processing);
+    }
+
+    fn thumbnail_size_update(&mut self, thumbnail_size: u16) {
+        self.settings.thumbnail_size = thumbnail_size;
+        self.save_settings();
+    }
+
+    fn image_cell_path_update(&mut self, path: Option<PathBuf>) {
+        self.image_cell_path = path;
+        self.footer
+            .update_image_cell_path(self.image_cell_path.to_owned());
     }
 }
 

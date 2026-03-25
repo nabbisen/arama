@@ -1,5 +1,5 @@
 use iced::Length::Fill;
-use iced::widget::{Responsive, column, container, row, scrollable, text};
+use iced::widget::{Responsive, column, container, mouse_area, row, scrollable, text};
 use iced::{Element, Size};
 
 use crate::components::gallery::image_cell::ImageCell;
@@ -14,10 +14,11 @@ impl Gallery {
             self.grid(responsive_size, thumbnail_size)
                 .unwrap_or(text("No file to render.").into())
         }));
-        let container = container(grid).center_x(Fill).center_y(Fill);
-        let scrollable = scrollable(container);
 
-        scrollable.into()
+        let content = mouse_area(scrollable(container(grid).center_x(Fill).center_y(Fill)))
+            .on_exit(Message::CursorExit);
+
+        content.into()
     }
 
     // グリッドレイアウトの計算ロジック

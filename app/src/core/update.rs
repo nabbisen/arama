@@ -12,9 +12,10 @@ use arama_ui_main::{components::gallery::image_cell, views::gallery};
 use iced::{Task, wgpu::naga::FastHashMap};
 use swdir::{DirNode, Recurse, Swdir};
 
-use super::{App, ContextMenu, Dialog, message::Message};
-use arama_ui_layout::{aside, header};
+use super::{App, Dialog, message::Message};
+use arama_ui_layout::{aside, footer, header};
 use arama_ui_widgets::{
+    context_menu::ContextMenuState,
     dialog::{media_focus_dialog, settings_dialog, similar_pairs_dialog},
     dir_tree,
 };
@@ -137,28 +138,37 @@ impl App {
 
                 match message {
                     gallery::message::Message::ImageCellMessage(message) => match message {
-                        image_cell::message::Message::ImageSelect(path) => {
-                            let media_focus_dialog =
-                                media_focus_dialog::MediaFocusDialog::new(path);
-                            let dialog = Dialog::MediaFocusDialog(media_focus_dialog.clone());
-                            let default_task = media_focus_dialog.default_task();
-
-                            self.dialog = Some(dialog);
-
-                            return Task::batch([
-                                task,
-                                default_task.map(Message::MediaFocusDialogMessage),
-                            ]);
+                        image_cell::message::Message::ImageCellEnter(path) => {
+                            self.image_cell_path_update(Some(path));
                         }
-                        image_cell::message::Message::ContextMenuOpen(path) => {
-                            match self.context_menu {
-                                ContextMenu::None => {
-                                    self.context_menu = ContextMenu::ImageCell(path)
+                        image_cell::message::Message::ImageSelect => {
+                            if let Some(path) = &self.image_cell_path {
+                                let media_focus_dialog =
+                                    media_focus_dialog::MediaFocusDialog::new(path);
+                                let dialog = Dialog::MediaFocusDialog(media_focus_dialog.clone());
+                                let default_task = media_focus_dialog.default_task();
+
+                                self.dialog = Some(dialog);
+
+                                return Task::batch([
+                                    task,
+                                    default_task.map(Message::MediaFocusDialogMessage),
+                                ]);
+                            }
+                        }
+                        image_cell::message::Message::ContextMenuOpen => {
+                            match self.context_menu.state {
+                                ContextMenuState::None => {
+                                    if let Some(path) = &self.image_cell_path {
+                                        self.context_menu.state =
+                                            ContextMenuState::ImageCell(path.to_owned())
+                                    }
                                 }
-                                _ => self.context_menu = ContextMenu::None,
+                                _ => self.context_menu.state = ContextMenuState::None,
                             }
                         }
                     },
+                    gallery::message::Message::CursorExit => self.image_cell_path_update(None),
                 }
 
                 task
@@ -255,10 +265,21 @@ impl App {
 
                 task
             }
-            Message::FooterMessage(message) => self
-                .footer
-                .update(message)
-                .map(|message| Message::FooterMessage(message)),
+            Message::FooterMessage(message) => {
+                let task = self
+                    .footer
+                    .update(message.clone())
+                    .map(|message| Message::FooterMessage(message));
+
+                match message {
+                    footer::message::Message::ThumbnailSizeChanged(value) => {
+                        self.thumbnail_size_update(value)
+                    }
+                    _ => (),
+                }
+
+                task
+            }
             Message::MediaFocusDialogMessage(message) => {
                 if let Some(Dialog::MediaFocusDialog(x)) = &mut self.dialog {
                     let task = x
@@ -337,17 +358,17 @@ impl App {
                 }
                 Task::none()
             }
-            Message::FileManagerShow(path) => {
-                let _ = file_handle::FileHandle::show(&path);
-                Task::none()
-            }
+            Message::ContextMenuMessage(message) => self
+                .context_menu
+                .update(message)
+                .map(Message::ContextMenuMessage),
             Message::DialogClose => {
                 self.dialog = None;
                 Task::none()
             }
             Message::CursorMove(point) => {
-                match self.context_menu {
-                    ContextMenu::None => self.context_menu_point = point,
+                match self.context_menu.state {
+                    ContextMenuState::None => self.context_menu.update_point(point),
                     _ => (),
                 };
                 Task::none()
