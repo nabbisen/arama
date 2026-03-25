@@ -41,7 +41,13 @@ impl FileNode {
                 Font::DEFAULT
             }))
             .padding([2, 5]),
-        );
+        )
+        .on_double_click(Message::ToggleExpand((
+            self.path.clone(),
+            include_file,
+            include_hidden,
+        )));
+
         if !processing {
             label = label
                 .interaction(iced::mouse::Interaction::Pointer)
