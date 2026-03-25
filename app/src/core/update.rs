@@ -8,10 +8,7 @@ use arama_cache::{
     VideoCacheReader,
 };
 use arama_env::{IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path};
-use arama_ui_main::{
-    components::gallery::{gallery_settings, image_cell},
-    views::gallery,
-};
+use arama_ui_main::{components::gallery::image_cell, views::gallery};
 use iced::{Task, wgpu::naga::FastHashMap};
 use swdir::{DirNode, Recurse, Swdir};
 
@@ -88,6 +85,9 @@ impl App {
                             &image_cache_reader,
                             &video_cache_reader,
                         ));
+
+                    self.header
+                        .set_embedding_cached(self.gallery.embedding_cached());
                 }
 
                 if clip::model().ready().unwrap_or(false) {
@@ -111,7 +111,8 @@ impl App {
                 }
 
                 self.aside.set_processing(self.processing);
-                self.gallery.update_embedding_cached();
+                self.header
+                    .set_embedding_cached(self.gallery.embedding_cached());
 
                 self.processing_off();
                 Task::none()
@@ -135,20 +136,6 @@ impl App {
                     .map(Message::GalleryMessage);
 
                 match message {
-                    gallery::message::Message::SimilarPairsOpen => {
-                        // todo: error handling
-                        let dialog = similar_pairs_dialog::SimilarPairsDialog::new(
-                            self.dir_node.clone().unwrap(),
-                            None,
-                        );
-                        self.dialog = Some(Dialog::SimilarPairsDialog(dialog.clone()));
-                        return dialog
-                            .default_task()
-                            .map(Message::SimilarPairsDialogMessage);
-                    }
-                    gallery::message::Message::GallerySettingsMessage(message) => {
-                        let _ = self.gallery.gallery_settings.update(message.clone());
-                    }
                     gallery::message::Message::ImageCellMessage(message) => match message {
                         image_cell::message::Message::ImageSelect(path) => {
                             let media_focus_dialog =
@@ -183,7 +170,18 @@ impl App {
                     .map(Message::HeaderMessage);
 
                 match message {
-                    header::message::Message::SettingsClick => {
+                    header::message::Message::SimilarPairsDialogOpen => {
+                        // todo: error handling
+                        let dialog = similar_pairs_dialog::SimilarPairsDialog::new(
+                            self.dir_node.clone().unwrap(),
+                            None,
+                        );
+                        self.dialog = Some(Dialog::SimilarPairsDialog(dialog.clone()));
+                        return dialog
+                            .default_task()
+                            .map(Message::SimilarPairsDialogMessage);
+                    }
+                    header::message::Message::SettingsOpen => {
                         self.dialog = Some(Dialog::SettingsDialog(
                             settings_dialog::SettingsDialog::new(
                                 &self.settings.target_media_type,

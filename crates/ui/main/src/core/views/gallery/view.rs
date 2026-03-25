@@ -9,16 +9,6 @@ use super::{Gallery, SPACING, message::Message};
 impl Gallery {
     // ビュー（UI描画）
     pub fn view(&self, thumbnail_size: u16) -> Element<'_, Message> {
-        column![
-            self.gallery_settings
-                .view()
-                .map(Message::GallerySettingsMessage),
-            self.content_view(thumbnail_size)
-        ]
-        .into()
-    }
-
-    fn content_view(&self, thumbnail_size: u16) -> Element<'_, Message> {
         // Responsiveウィジェットを使って、現在のウィンドウ幅(size)を取得する
         let grid = container(Responsive::new(move |responsive_size| {
             self.grid(responsive_size, thumbnail_size)

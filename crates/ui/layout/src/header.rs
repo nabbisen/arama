@@ -11,4 +11,11 @@ use settings_nav::SettingsNav;
 pub struct Header {
     dir_nav: DirNav,
     settings_nav: SettingsNav,
+    embedding_cached: bool,
+}
+
+impl Header {
+    pub fn set_embedding_cached(&mut self, embedding_cached: bool) {
+        self.embedding_cached = embedding_cached;
+    }
 }
