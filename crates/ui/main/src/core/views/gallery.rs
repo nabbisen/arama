@@ -1,8 +1,5 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
-use arama_env::{
-    IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST, target_media_type::TargetMediaType,
-};
 use iced::wgpu::naga::FastHashMap;
 
 use crate::core::components::gallery::gallery_settings::GallerySettings;
@@ -20,21 +17,10 @@ pub struct Gallery {
 }
 
 impl Gallery {
-    pub fn new(
-        target_media_type: &TargetMediaType,
-        sub_dir_depth_limit: u8,
-    ) -> anyhow::Result<Self> {
-        let mut extension_allowlist: Vec<&str> = vec![];
-        if target_media_type.include_image {
-            extension_allowlist.extend(IMAGE_EXTENSION_ALLOWLIST);
-        }
-        if target_media_type.include_video {
-            extension_allowlist.extend(VIDEO_EXTENSION_ALLOWLIST);
-        }
-
+    pub fn new(sub_dir_depth_limit: u8) -> anyhow::Result<Self> {
         Ok(Self {
             dir_path_thumbnail_path_map: BTreeMap::default(),
-            gallery_settings: GallerySettings::new(target_media_type, sub_dir_depth_limit),
+            gallery_settings: GallerySettings::new(sub_dir_depth_limit),
         })
     }
 

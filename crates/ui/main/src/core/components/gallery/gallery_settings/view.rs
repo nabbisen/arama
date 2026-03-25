@@ -1,33 +1,12 @@
-use arama_env::target_media_type::TargetMediaType;
 use iced::{
     Element,
-    widget::{Button, button, checkbox, row, text},
+    widget::{Button, button, row, text},
 };
 
 use super::{GallerySettings, message::Message};
 
 impl GallerySettings {
     pub fn view(&self) -> Element<'_, Message> {
-        let media_types = row![
-            checkbox(self.target_media_type.include_image)
-                .label("Image")
-                .on_toggle(|x| {
-                    Message::TargetMediaTypeChanged(TargetMediaType {
-                        include_image: x,
-                        include_video: self.target_media_type.include_video,
-                    })
-                }),
-            checkbox(self.target_media_type.include_video)
-                .label("Video")
-                .on_toggle(|x| {
-                    Message::TargetMediaTypeChanged(TargetMediaType {
-                        include_image: self.target_media_type.include_image,
-                        include_video: x,
-                    })
-                })
-        ]
-        .spacing(10);
-
         let sub_dir_depth_limit = row![
             text("Sub dir depth"),
             button(text("⬇").size(12))
@@ -53,13 +32,13 @@ impl GallerySettings {
         .spacing(5);
 
         let similar_pairs_button: Button<Message> =
-            button("Similar Pairs").on_press_maybe(if self.embedding_cached {
+            button("🔍️").on_press_maybe(if self.embedding_cached {
                 Some(Message::SimilarPairsOpen)
             } else {
                 None
             });
 
-        row![media_types, sub_dir_depth_limit, similar_pairs_button,]
+        row![sub_dir_depth_limit, similar_pairs_button,]
             .spacing(20)
             .into()
     }

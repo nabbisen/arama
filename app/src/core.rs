@@ -97,8 +97,7 @@ impl App {
         let footer = Footer::new(dir_node_count.files, dir_node_count.dirs);
         let dialog = None;
 
-        let gallery = Gallery::new(&settings.target_media_type, settings.sub_dir_depth_limit)
-            .expect("failed to init gallery");
+        let gallery = Gallery::new(settings.sub_dir_depth_limit).expect("failed to init gallery");
 
         let task = if !setup.finished && !setup::util::ready() {
             Task::none()

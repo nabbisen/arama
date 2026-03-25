@@ -1,3 +1,5 @@
+use arama_env::target_media_type::TargetMediaType;
+
 use super::{
     Tab,
     tab::{about, ai_settings, file_system_settings, general_settings},
@@ -5,6 +7,7 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    TargetMediaTypeChanged(TargetMediaType),
     TabSelect(Tab),
     GeneralSettingsTabMessage(general_settings::message::Message),
     AiSettingsTabMessage(ai_settings::message::Message),

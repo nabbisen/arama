@@ -145,12 +145,6 @@ impl App {
                     gallery::message::Message::GallerySettingsMessage(message) => {
                         let _ = self.gallery.gallery_settings.update(message.clone());
                         match message {
-                            gallery_settings::message::Message::TargetMediaTypeChanged(
-                                target_media_type,
-                            ) => {
-                                self.settings.target_media_type = target_media_type;
-                                self.save_settings();
-                            }
                             gallery_settings::message::Message::SubDirDepthLimitChanged(value) => {
                                 self.settings.sub_dir_depth_limit = value;
                                 self.save_settings();
@@ -192,7 +186,7 @@ impl App {
                 match message {
                     header::message::Message::SettingsClick => {
                         self.dialog = Some(Dialog::SettingsDialog(
-                            settings_dialog::SettingsDialog::default(),
+                            settings_dialog::SettingsDialog::new(&self.settings.target_media_type),
                         ))
                     }
                     _ => (),
@@ -298,11 +292,21 @@ impl App {
                 Task::none()
             }
             Message::SettingsDialogMessage(message) => {
-                // Settingsダイアログが開いている時だけupdateを伝播
                 if let Some(Dialog::SettingsDialog(settings)) = &mut self.dialog {
-                    // ここでダイアログの `Output`（閉じるとか保存するとか）を受け取って処理することも可能
-                    let task = settings.update(message.clone());
-                    return task.map(Message::SettingsDialogMessage);
+                    let task = settings
+                        .update(message.clone())
+                        .map(Message::SettingsDialogMessage);
+
+                    match message {
+                        settings_dialog::message::Message::TargetMediaTypeChanged(x) => {
+                            self.settings.target_media_type = x;
+                            self.save_settings();
+                            return Task::batch([task, Task::done(Message::CacheRequire)]);
+                        }
+                        _ => (),
+                    }
+
+                    return task;
                 }
                 Task::none()
             }
