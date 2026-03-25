@@ -133,6 +133,16 @@ impl App {
             })
             .expect("failed to save config");
     }
+
+    fn processing_on(&mut self) {
+        self.processing = true;
+        self.aside.set_processing(self.processing);
+    }
+
+    fn processing_off(&mut self) {
+        self.processing = false;
+        self.aside.set_processing(self.processing);
+    }
 }
 
 fn dir_node(root_dir_path: &str, target_media_type: &TargetMediaType) -> DirNode {

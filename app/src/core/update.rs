@@ -53,6 +53,7 @@ impl App {
                         Message::ThumbnailCacheFinished,
                     )
                 } else {
+                    self.processing_off();
                     Task::none()
                 }
             }
@@ -99,6 +100,7 @@ impl App {
                         Message::EmbeddingCacheFinished,
                     )
                 } else {
+                    self.processing_off();
                     Task::none()
                 }
             }
@@ -108,10 +110,10 @@ impl App {
                     eprintln!("{}", err);
                 }
 
-                self.processing = false;
                 self.aside.set_processing(self.processing);
                 self.gallery.update_embedding_cached();
 
+                self.processing_off();
                 Task::none()
             }
             Message::SetupMessage(message) => {
@@ -120,6 +122,7 @@ impl App {
                     .update(message.clone())
                     .map(Message::SetupMessage);
                 if self.setup.finished {
+                    self.processing_on();
                     Task::done(Message::CacheRequire)
                 } else {
                     task
@@ -130,6 +133,7 @@ impl App {
                     .gallery
                     .update(message.clone())
                     .map(Message::GalleryMessage);
+
                 match message {
                     gallery::message::Message::SimilarPairsOpen => {
                         // todo: error handling
@@ -176,6 +180,7 @@ impl App {
                         }
                     },
                 }
+
                 task
             }
             Message::HeaderMessage(message) => {
@@ -183,6 +188,7 @@ impl App {
                     .header
                     .update(message.clone())
                     .map(Message::HeaderMessage);
+
                 match message {
                     header::message::Message::SettingsClick => {
                         self.dialog = Some(Dialog::SettingsDialog(
@@ -191,17 +197,19 @@ impl App {
                     }
                     _ => (),
                 }
+
                 task
             }
             Message::AsideMessage(message) => {
-                let task = self.aside.update(message.clone());
+                let task = self
+                    .aside
+                    .update(message.clone())
+                    .map(Message::AsideMessage);
 
                 match message {
                     aside::message::Message::DirTreeMessage(message) => {
                         match message {
                             dir_tree::message::Message::DirClick(path) => {
-                                self.processing = true;
-
                                 self.settings.root_dir_path = path.to_string_lossy().to_string();
                                 self.save_settings();
 
@@ -239,17 +247,19 @@ impl App {
 
                                 self.dir_node = Some(dir_node);
 
-                                return Task::batch([
-                                    Task::done(Message::CacheRequire),
-                                    task.map(Message::AsideMessage),
-                                ]);
+                                return if self.processing {
+                                    task
+                                } else {
+                                    self.processing_on();
+                                    Task::batch([Task::done(Message::CacheRequire), task])
+                                };
                             }
                             _ => (),
                         }
                     }
                 }
 
-                task.map(Message::AsideMessage)
+                task
             }
             Message::FooterMessage(message) => self
                 .footer
@@ -257,12 +267,16 @@ impl App {
                 .map(|message| Message::FooterMessage(message)),
             Message::MediaFocusDialogMessage(message) => {
                 if let Some(Dialog::MediaFocusDialog(x)) = &mut self.dialog {
-                    let task = x.update(message.clone());
+                    let task = x
+                        .update(message.clone())
+                        .map(Message::MediaFocusDialogMessage);
+
                     match message {
                         media_focus_dialog::message::Message::CloseClick => self.dialog = None,
                         _ => (),
                     }
-                    return task.map(Message::MediaFocusDialogMessage);
+
+                    return task;
                 }
                 Task::none()
             }
@@ -271,6 +285,7 @@ impl App {
                     let task = x
                         .update(message.clone())
                         .map(Message::SimilarPairsDialogMessage);
+
                     match message {
                         similar_pairs_dialog::message::Message::MediaItemDoubleClicked(path) => {
                             let media_focus_dialog =
@@ -287,6 +302,7 @@ impl App {
                         }
                         _ => (),
                     }
+
                     return task;
                 }
                 Task::none()
@@ -301,7 +317,13 @@ impl App {
                         settings_dialog::message::Message::TargetMediaTypeChanged(x) => {
                             self.settings.target_media_type = x;
                             self.save_settings();
-                            return Task::batch([task, Task::done(Message::CacheRequire)]);
+
+                            return if self.processing {
+                                task
+                            } else {
+                                self.processing_on();
+                                Task::batch([task, Task::done(Message::CacheRequire)])
+                            };
                         }
                         _ => (),
                     }
