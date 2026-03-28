@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use app_json_settings::ConfigManager;
 use arama_env::{
-    IMAGE_EXTENSION_ALLOWLIST, Settings, VIDEO_EXTENSION_ALLOWLIST,
-    target_media_type::TargetMediaType,
+    IMAGE_EXTENSION_ALLOWLIST, Settings, VIDEO_EXTENSION_ALLOWLIST, local_dir,
+    target_media_type::TargetMediaType, validate_dir,
 };
 use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
 use arama_ui_main::views::{
@@ -51,6 +51,8 @@ impl App {
 
     fn new() -> (Self, Task<Message>) {
         let processing = true;
+
+        setup_validate();
 
         // todo: error handling
         let setup = Setup::default().expect("Failed to setup preparation");
@@ -153,6 +155,11 @@ impl App {
         self.footer
             .update_image_cell_path(self.image_cell_path.to_owned());
     }
+}
+
+fn setup_validate() {
+    let local_dir = local_dir().expect("failed to get local dir");
+    let _ = validate_dir(&local_dir);
 }
 
 fn dir_node(root_dir_path: &str, target_media_type: &TargetMediaType) -> DirNode {

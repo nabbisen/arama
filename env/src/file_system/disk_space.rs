@@ -1,5 +1,12 @@
 use std::path::Path;
 
+pub const MIN_SETUP_DISKSPACE_MB: u16 = 3096;
+
+pub struct DiskSpaceForHuman {
+    pub available: f64,
+    pub total: f64,
+}
+
 pub struct DiskSpace {
     pub available: u64,
     pub total: u64,
@@ -50,10 +57,15 @@ impl DiskSpace {
         }
     }
 
-    pub fn as_gb(&self) -> Self {
-        Self {
-            available: self.available / 1024u64.pow(3),
-            total: self.total / 1024u64.pow(3),
-        }
+    pub fn as_mb(&self) -> DiskSpaceForHuman {
+        let divisor = 1024u64.pow(2) as f64;
+        let (available, total) = (self.available as f64 / divisor, self.total as f64 / divisor);
+        DiskSpaceForHuman { available, total }
+    }
+
+    pub fn as_gb(&self) -> DiskSpaceForHuman {
+        let divisor = 1024u64.pow(3) as f64;
+        let (available, total) = (self.available as f64 / divisor, self.total as f64 / divisor);
+        DiskSpaceForHuman { available, total }
     }
 }
