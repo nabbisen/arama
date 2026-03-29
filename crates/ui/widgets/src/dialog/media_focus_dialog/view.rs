@@ -16,6 +16,7 @@ use iced::{
 };
 
 use super::{MediaFocusDialog, message::Message};
+use crate::similarity_badge;
 
 impl MediaFocusDialog {
     pub fn view(&self) -> Element<'_, Message> {
@@ -104,7 +105,11 @@ impl MediaFocusDialog {
                 x.path.to_owned().into(),
             ))
             .interaction(iced::mouse::Interaction::Pointer);
-            r.push(column![item, text(x.similarity)].spacing(5).padding(10))
+            r.push(
+                column![item, similarity_badge(x.similarity)]
+                    .spacing(5)
+                    .padding(10),
+            )
         });
         let similar_media_items_footer = if let Some(x) = &self.hovered_media_item_path_str {
             container(text(x))
