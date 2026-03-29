@@ -8,43 +8,58 @@ use arama_cache::{
     CacheConfig, DbLocation, ImageCacheConfig, ImageCacheReader, VideoCacheConfig, VideoCacheReader,
 };
 use arama_env::{
-    MIN_IMAGE_SIMILARITY, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path, cache_thumbnail_dir_path,
+    MIN_IMAGE_SIMILARITY, VIDEO_EXTENSION_ALLOWLIST, cache_lookup_strategy::CacheLookupStrategy,
+    cache_storage_path, cache_thumbnail_dir_path,
 };
 
-use super::types::SimilarMediaItem;
+use super::{MediaFocusDialog, types::SimilarMediaItem};
 
-pub fn similar_media(path: &Path) -> Vec<SimilarMediaItem> {
-    let db_location =
-        DbLocation::Custom(cache_storage_path().expect("failed to get cache stogate path"));
-    let read_conns = 4;
-    let thumbnail_dir =
-        Some(cache_thumbnail_dir_path().expect("failed to get cache thumbnail dir path"));
+impl MediaFocusDialog {
+    pub fn similar_media(&self) -> Vec<SimilarMediaItem> {
+        let path = &self.history[self.history_index];
 
-    let cache_config = CacheConfig {
-        db_location,
-        read_conns,
-        thumbnail_dir,
-    };
+        let db_location =
+            DbLocation::Custom(cache_storage_path().expect("failed to get cache stogate path"));
+        let read_conns = 4;
+        let thumbnail_dir =
+            Some(cache_thumbnail_dir_path().expect("failed to get cache thumbnail dir path"));
 
-    let is_video = path.extension().is_some_and(|x| {
-        VIDEO_EXTENSION_ALLOWLIST.contains(&x.to_string_lossy().to_string().as_str())
-    });
+        let cache_config = CacheConfig {
+            db_location,
+            read_conns,
+            thumbnail_dir,
+        };
 
-    // todo
-    if is_video {
-        similar_videos(path, cache_config)
-    } else {
-        similar_images(path, cache_config)
+        let is_video = path.extension().is_some_and(|x| {
+            VIDEO_EXTENSION_ALLOWLIST.contains(&x.to_string_lossy().to_string().as_str())
+        });
+
+        // todo
+        if is_video {
+            similar_videos(path, cache_config, self.cache_lookup_strategy)
+        } else {
+            similar_images(path, cache_config, self.cache_lookup_strategy)
+        }
     }
 }
 
-fn similar_images(path: &Path, cache_config: CacheConfig) -> Vec<SimilarMediaItem> {
+fn similar_images(
+    path: &Path,
+    cache_config: CacheConfig,
+    cache_lookup_strategy: CacheLookupStrategy,
+) -> Vec<SimilarMediaItem> {
     let image_cache_reader = ImageCacheReader::as_session(ImageCacheConfig { cache_config })
         .expect("failed to get image cache writer");
 
-    let cache_entries = image_cache_reader
-        // todo
-        .all()
+    let cache_lookuped = match cache_lookup_strategy {
+        CacheLookupStrategy::Everywhere => image_cache_reader.all(),
+        CacheLookupStrategy::CurrentDirAndSubDirs => {
+            image_cache_reader.all_in_dir_and_sub_dirs(path)
+        }
+        CacheLookupStrategy::CurrentDirOnly => image_cache_reader.all_in_dir(path),
+    };
+
+    let cache_entries = cache_lookuped
         .expect("failed to lookup")
         .into_iter()
         // todo
@@ -95,16 +110,26 @@ fn similar_images(path: &Path, cache_config: CacheConfig) -> Vec<SimilarMediaIte
     ret
 }
 
-fn similar_videos(path: &Path, cache_config: CacheConfig) -> Vec<SimilarMediaItem> {
+fn similar_videos(
+    path: &Path,
+    cache_config: CacheConfig,
+    cache_lookup_strategy: CacheLookupStrategy,
+) -> Vec<SimilarMediaItem> {
     let video_cache_reader = VideoCacheReader::as_session(VideoCacheConfig {
         cache_config,
         ffmpeg_path: Some(VideoEngine::ffmpeg_path().expect("failed to get ffmpeg path")),
     })
     .expect("failed to get video cache writer");
 
-    let cache_entries = video_cache_reader
-        // todo
-        .all()
+    let cache_lookuped = match cache_lookup_strategy {
+        CacheLookupStrategy::Everywhere => video_cache_reader.all(),
+        CacheLookupStrategy::CurrentDirAndSubDirs => {
+            video_cache_reader.all_in_dir_and_sub_dirs(path)
+        }
+        CacheLookupStrategy::CurrentDirOnly => video_cache_reader.all_in_dir(path),
+    };
+
+    let cache_entries = cache_lookuped
         .expect("failed to lookup")
         .into_iter()
         // todo
@@ -187,68 +212,3 @@ fn similar_videos(path: &Path, cache_config: CacheConfig) -> Vec<SimilarMediaIte
 fn dot_product(a: &[f32], b: &[f32]) -> f32 {
     a.iter().zip(b).map(|(x, y)| x * y).sum()
 }
-
-// let mut ret: Vec<(PathBuf, f32)> = vec![];
-
-// let mut image_path_embeddings: Vec<(PathBuf, Vec<f32>)> = vec![];
-// let is_video = path.extension().is_some_and(|x| {
-//     VIDEO_EXTENSION_ALLOWLIST.contains(&x.to_string_lossy().to_string().as_str())
-// });
-// if is_video {
-//     let video_cache_reader = VideoCacheReader::as_session(VideoCacheConfig {
-//         cache_config,
-//         ffmpeg_path: Some(
-//             VideoEngine::ffmpeg_path().expect("failed to get ffmpeg path"),
-//         ),
-//     })
-//     .expect("failed to get video cache writer");
-
-//     let feature = match video_cache_reader.lookup(&path).expect("failed to lookup")
-//     {
-//         LookupResult::Hit(x) => Some((
-//             PathBuf::from(
-//                 // todo
-//                 x.thumbnail_path.unwrap_or_default(),
-//             ),
-//             x.features
-//                 .expect("failed to get feature")
-//                 .clip_vector
-//                 .expect("failed to get video clip embedding list"),
-//         )),
-//         _ => {
-//             // todo: error handling
-//             None
-//         }
-//     };
-
-//     if let Some(feature) = feature {
-//         video_path_embeddings.push(feature);
-//     }
-// } else {
-//     let image_cache_reader = ImageCacheReader::as_session(ImageCacheConfig {
-//         cache_config: cache_config.clone(),
-//     })
-//     .expect("failed to get image cache writer");
-
-//     let feature = match image_cache_reader.lookup(&path).expect("failed to lookup")
-//     {
-//         LookupResult::Hit(x) => Some((
-//             PathBuf::from(x.thumbnail_path.expect("failed to get thumbnail path")),
-//             x.features.expect("failed to get feature").clip_vector,
-//         )),
-//         _ => {
-//             // todo: error handling
-//             None
-//         }
-//     };
-
-//     if let Some(feature) = feature {
-//         image_path_embeddings.push(feature);
-//     }
-// }
-
-// // todo ui sliders for these param(s): threshold (also k_neighbors ?)
-// let mut image_pairs = find_similar_pairs(&image_path_embeddings, 0.86, 50).await;
-// let video_pairs = find_similar_pairs(&video_path_embeddings, 0.86, 50).await;
-
-// ret

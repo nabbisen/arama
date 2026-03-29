@@ -78,6 +78,7 @@ impl App {
         let target_media_type = settings.target_media_type;
         let sub_dir_depth_limit = settings.sub_dir_depth_limit;
         let thumbnail_size = settings.thumbnail_size;
+        let cache_lookup_strategy = settings.cache_lookup_strategy;
 
         let dir_node = dir_node(&root_dir_path, &target_media_type);
 
@@ -86,6 +87,7 @@ impl App {
             target_media_type,
             sub_dir_depth_limit,
             thumbnail_size,
+            cache_lookup_strategy,
         };
 
         let header = Header::default();
@@ -131,6 +133,7 @@ impl App {
                 target_media_type: self.settings.target_media_type.to_owned(),
                 sub_dir_depth_limit: self.settings.sub_dir_depth_limit,
                 thumbnail_size: self.settings.thumbnail_size,
+                cache_lookup_strategy: self.settings.cache_lookup_strategy,
             })
             .expect("failed to save config");
     }

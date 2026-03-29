@@ -4,9 +4,9 @@ use iced::{
     widget::{
         Row,
         image::Handle,
-        mouse_area, row,
+        mouse_area, pick_list, row,
         scrollable::{Direction, Scrollbar},
-        space, text, toggler,
+        space, text,
     },
 };
 use iced::{
@@ -21,9 +21,11 @@ impl MediaFocusDialog {
     pub fn view(&self) -> Element<'_, Message> {
         let path = self.history[self.history_index].clone();
 
+        let path_text = container(text(path.to_string_lossy().to_string())).center_x(Fill);
+
         let handle = Handle::from_path(&path);
         let img = image(handle);
-        let content = if self.actual_size {
+        let img_container = if self.actual_size {
             scrollable(
                 container(img)
                     .width(Fill)
@@ -42,10 +44,23 @@ impl MediaFocusDialog {
                 .width(Fill)
                 .height(Fill)
         };
+        let content = mouse_area(img_container)
+            .on_double_click(Message::ViewSizeToggle)
+            .interaction(iced::mouse::Interaction::Pointer);
 
-        let path_text = text(path.to_string_lossy().to_string());
+        let main_media = column![path_text, content].spacing(10);
 
-        let view_size_toggler = toggler(self.actual_size).on_toggle(Message::ViewSizeToggle);
+        let cache_lookup_strategy_pick_list = row![
+            text("Cache lookup strategy"),
+            pick_list(
+                &super::CacheLookupStrategy::ALL[..],
+                Some(self.cache_lookup_strategy),
+                Message::CacheLookupStrategyChanged,
+            )
+        ]
+        .spacing(10)
+        .padding([0, 20])
+        .align_y(Center);
 
         let history_previous_button = button("⬅").on_press_maybe(if 0 < self.history_index {
             Some(Message::HistoryPrevious)
@@ -61,16 +76,15 @@ impl MediaFocusDialog {
 
         let explore_button = button("📂").on_press(Message::FileShow);
 
-        let view_control = container(
-            column![
-                path_text,
-                row![text("Actual size"), view_size_toggler].spacing(10),
-                row![history_previous_button, history_next_button, explore_button].spacing(10)
-            ]
-            .spacing(10)
-            .align_x(Center),
-        )
-        .center_x(Fill);
+        let control_buttons = row![
+            cache_lookup_strategy_pick_list,
+            history_previous_button,
+            history_next_button,
+            explore_button
+        ]
+        .spacing(10);
+
+        let view_control = container(control_buttons).center_x(Fill);
 
         // todo
         let similar_media_items = self.similar_media.iter().fold(row![], |r: Row<_>, x| {
@@ -107,7 +121,7 @@ impl MediaFocusDialog {
         let close_button = button("Close").on_press(Message::CloseClick);
         let footer = container(close_button).center_x(Fill).padding(10);
 
-        column![content, view_control, similar_media, footer]
+        column![main_media, view_control, similar_media, footer]
             .spacing(20)
             .into()
     }

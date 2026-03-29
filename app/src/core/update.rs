@@ -143,8 +143,10 @@ impl App {
                         }
                         image_cell::message::Message::ImageSelect => {
                             if let Some(path) = &self.image_cell_path {
-                                let media_focus_dialog =
-                                    media_focus_dialog::MediaFocusDialog::new(path);
+                                let media_focus_dialog = media_focus_dialog::MediaFocusDialog::new(
+                                    path,
+                                    self.settings.cache_lookup_strategy,
+                                );
                                 let dialog = Dialog::MediaFocusDialog(media_focus_dialog.clone());
                                 let default_task = media_focus_dialog.default_task();
 
@@ -288,6 +290,10 @@ impl App {
 
                     match message {
                         media_focus_dialog::message::Message::CloseClick => self.dialog = None,
+                        media_focus_dialog::message::Message::CacheLookupStrategyChanged(x) => {
+                            self.settings.cache_lookup_strategy = x;
+                            self.save_settings();
+                        }
                         _ => (),
                     }
 
@@ -303,8 +309,10 @@ impl App {
 
                     match message {
                         similar_pairs_dialog::message::Message::MediaItemDoubleClicked(path) => {
-                            let media_focus_dialog =
-                                media_focus_dialog::MediaFocusDialog::new(path);
+                            let media_focus_dialog = media_focus_dialog::MediaFocusDialog::new(
+                                path,
+                                self.settings.cache_lookup_strategy,
+                            );
                             let dialog = Dialog::MediaFocusDialog(media_focus_dialog.clone());
                             let default_task = media_focus_dialog.default_task();
 

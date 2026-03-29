@@ -1,16 +1,16 @@
 use std::path::PathBuf;
 
+use arama_env::cache_lookup_strategy::CacheLookupStrategy;
 use iced::Task;
 
 pub mod message;
+mod similar_media;
 mod types;
 mod update;
-mod util;
 mod view;
 
 use message::Message;
 use types::SimilarMediaItem;
-use util::similar_media;
 
 #[derive(Clone, Debug)]
 pub struct MediaFocusDialog {
@@ -18,24 +18,26 @@ pub struct MediaFocusDialog {
     history_index: usize,
     hovered_media_item_path_str: Option<String>,
     actual_size: bool,
+    cache_lookup_strategy: CacheLookupStrategy,
     similar_media: Vec<SimilarMediaItem>,
 }
 
 impl MediaFocusDialog {
-    pub fn new<T: Into<PathBuf>>(path: T) -> Self {
+    pub fn new<T: Into<PathBuf>>(path: T, cache_lookup_strategy: CacheLookupStrategy) -> Self {
         Self {
             history: vec![path.into()],
             history_index: 0,
             hovered_media_item_path_str: None,
             actual_size: false,
+            cache_lookup_strategy: cache_lookup_strategy,
             similar_media: vec![],
         }
     }
 
     pub fn default_task(&self) -> Task<Message> {
-        let path = self.history[self.history_index].clone();
+        let cloned = self.clone();
         Task::perform(
-            async move { similar_media(&path) },
+            async move { cloned.similar_media() },
             Message::SimilarMediaReady,
         )
     }

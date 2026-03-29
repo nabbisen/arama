@@ -2,7 +2,6 @@ use iced::Task;
 
 use super::MediaFocusDialog;
 use super::message::Message;
-use super::util::similar_media;
 
 impl MediaFocusDialog {
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -14,24 +13,27 @@ impl MediaFocusDialog {
                 self.hovered_media_item_path_str = None;
                 self.similar_media = vec![];
 
+                let cloned = self.clone();
                 return Task::perform(
-                    async move { similar_media(&path) },
+                    async move { cloned.similar_media() },
                     Message::SimilarMediaReady,
                 );
             }
             Message::HistoryPrevious => {
                 self.history_index -= 1;
-                let path = self.history[self.history_index].clone();
+
+                let cloned = self.clone();
                 return Task::perform(
-                    async move { similar_media(&path) },
+                    async move { cloned.similar_media() },
                     Message::SimilarMediaReady,
                 );
             }
             Message::HistoryNext => {
                 self.history_index += 1;
-                let path = self.history[self.history_index].clone();
+
+                let cloned = self.clone();
                 return Task::perform(
-                    async move { similar_media(&path) },
+                    async move { cloned.similar_media() },
                     Message::SimilarMediaReady,
                 );
             }
@@ -39,9 +41,18 @@ impl MediaFocusDialog {
                 let path = self.history[self.history_index].clone();
                 let _ = file_handle::FileHandle::show(&path);
             }
+            Message::CacheLookupStrategyChanged(x) => {
+                self.cache_lookup_strategy = x;
+
+                let cloned = self.clone();
+                return Task::perform(
+                    async move { cloned.similar_media() },
+                    Message::SimilarMediaReady,
+                );
+            }
             Message::MediaItemEnter(path_str) => self.hovered_media_item_path_str = Some(path_str),
             Message::MediaItemExit => self.hovered_media_item_path_str = None,
-            Message::ViewSizeToggle(actual_size) => self.actual_size = actual_size,
+            Message::ViewSizeToggle => self.actual_size = !self.actual_size,
             Message::CloseClick => (),
         }
         Task::none()
