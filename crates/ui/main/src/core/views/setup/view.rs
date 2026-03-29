@@ -1,4 +1,5 @@
-use arama_env::{DiskSpace, MIN_SETUP_DISKSPACE_MB, local_dir};
+use arama_env::{MIN_SETUP_DISKSPACE_MB, local_dir};
+use disk_space::DiskSpace;
 use iced::{
     Alignment::{self, Center},
     Element,

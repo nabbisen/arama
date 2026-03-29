@@ -1,1 +1,1 @@
-pub mod disk_space;
+pub const MIN_SETUP_DISKSPACE_MB: u16 = 3096;

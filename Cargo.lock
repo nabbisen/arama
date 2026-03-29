@@ -288,6 +288,7 @@ dependencies = [
  "arama-env",
  "arama-sidecar",
  "arama-ui-widgets",
+ "disk-space",
  "iced",
  "reqwest",
  "swdir",
@@ -302,6 +303,7 @@ dependencies = [
  "arama-cache",
  "arama-env",
  "arama-sidecar",
+ "disk-space",
  "file-handle",
  "iced",
  "rayon",
@@ -1280,6 +1282,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "disk-space"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a89976f9630bdc8ca964088c18f8888283f3072733553c4636e2591cc8a225d"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "dispatch"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1601,6 +1612,7 @@ name = "file-feature-cache"
 version = "0.18.1"
 dependencies = [
  "anyhow",
+ "disk-space",
  "ffmpeg-sidecar",
  "image",
  "r2d2",

@@ -13,6 +13,7 @@ arama-ui-widgets = { workspace = true }
 iced = { workspace = true }
 
 anyhow = { workspace = true }
+disk-space = { workspace = true }
 reqwest = { workspace = true }
 swdir = { workspace = true }
 tokio = { workspace = true }

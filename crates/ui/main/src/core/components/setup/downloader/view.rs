@@ -1,4 +1,5 @@
-use arama_env::{DiskSpace, local_dir};
+use arama_env::local_dir;
+use disk_space::DiskSpace;
 use iced::Length::Fill;
 use iced::widget::{column, container, progress_bar, row, text};
 use iced::{Element, Length, alignment};

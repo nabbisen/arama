@@ -1,6 +1,7 @@
-use arama_env::{DiskSpace, local_dir};
+use arama_env::local_dir;
+use disk_space::DiskSpace;
 use iced::Element;
-use iced::widget::{row, text};
+use iced::widget::{column, row, text};
 
 use super::{FileSystemSettings, message::Message};
 
@@ -16,12 +17,13 @@ impl FileSystemSettings {
             .expect("failed to get file system info ")
             .as_gb();
 
-        // todo
-        row![
-            text(format!("{} GB", disk_space.available)),
+        let fs_info = row![
+            text(format!("{:.1} GB", disk_space.available)),
             text("/"),
-            text(format!("{} GB", disk_space.total)),
-        ]
-        .into()
+            text(format!("{:.1} GB", disk_space.total)),
+        ];
+
+        // todo
+        column![fs_info].into()
     }
 }
