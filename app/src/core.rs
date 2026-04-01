@@ -14,6 +14,7 @@ use arama_ui_widgets::{context_menu::ContextMenu, dialog};
 use iced::{Point, Task};
 
 mod message;
+mod settings;
 mod subscription;
 mod update;
 mod view;
@@ -46,6 +47,7 @@ impl App {
     pub fn start() -> iced::Result {
         iced::application(App::new, App::update, App::view)
             .subscription(App::subscription)
+            .settings(App::settings())
             .run()
     }
 

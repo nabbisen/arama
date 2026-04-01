@@ -20,4 +20,6 @@ arama-env = { workspace = true }
 arama-ui-widgets = { workspace = true }
 
 iced = { workspace = true }
+
+lucide-icons = { workspace = true }
 swdir = { workspace = true }

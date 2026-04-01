@@ -13,6 +13,7 @@ iced = { workspace = true }
 
 disk-space = { workspace = true }
 file-handle = { workspace = true }
+lucide-icons = { workspace = true }
 rayon = { workspace = true }
 swdir = { workspace = true }
 webbrowser = { workspace = true }

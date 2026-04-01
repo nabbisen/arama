@@ -2,12 +2,13 @@ use iced::{
     Element,
     widget::{button, row},
 };
+use lucide_icons::iced::icon_group;
 
 use super::{Header, message::Message};
 
 impl Header {
     pub fn view(&self) -> Element<'_, Message> {
-        let similar_pairs_button = button("🔍️").on_press_maybe(if self.embedding_cached {
+        let similar_pairs_button = button(icon_group()).on_press_maybe(if self.embedding_cached {
             Some(Message::SimilarPairsDialogOpen)
         } else {
             None

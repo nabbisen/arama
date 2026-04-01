@@ -3,6 +3,7 @@ use iced::{
     Element,
     widget::{button, checkbox, column, container, row, text},
 };
+use lucide_icons::iced::{icon_arrow_down, icon_arrow_up};
 
 use super::{GeneralSettings, message::Message};
 
@@ -30,7 +31,7 @@ impl GeneralSettings {
 
         let sub_dir_depth_limit = row![
             text("Sub dir depth"),
-            button(text("⬇").size(12))
+            button(icon_arrow_down().size(12))
                 .padding(2)
                 .on_press_maybe(if 0 < self.sub_dir_depth_limit {
                     Some(Message::SubDirDepthLimitChanged(
@@ -40,15 +41,15 @@ impl GeneralSettings {
                     None
                 }),
             text(self.sub_dir_depth_limit),
-            button(text("⬆").size(12))
-                .padding(2)
-                .on_press_maybe(if self.sub_dir_depth_limit < 2 {
+            button(icon_arrow_up().size(12)).padding(2).on_press_maybe(
+                if self.sub_dir_depth_limit < 2 {
                     Some(Message::SubDirDepthLimitChanged(
                         self.sub_dir_depth_limit + 1,
                     ))
                 } else {
                     None
-                }),
+                }
+            ),
         ]
         .spacing(5);
 

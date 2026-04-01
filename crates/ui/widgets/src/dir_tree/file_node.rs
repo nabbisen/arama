@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 pub(super) mod message;
 mod update;
+mod util;
 mod view;
 
 #[derive(Debug, Clone)]

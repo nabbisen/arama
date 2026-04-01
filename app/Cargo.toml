@@ -26,5 +26,6 @@ iced = { workspace = true }
 anyhow = { workspace = true }
 app-json-settings = { workspace = true }
 file-handle = { workspace = true }
+lucide-icons = { workspace = true }
 rayon = { workspace = true }
 swdir = { workspace = true }

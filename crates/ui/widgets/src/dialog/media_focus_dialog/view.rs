@@ -1,6 +1,8 @@
 use arama_env::MAX_THUMBNAIL_SIZE;
 use iced::{
     Alignment::Center,
+    Element,
+    Length::Fill,
     widget::{
         Row,
         image::Handle,
@@ -8,12 +10,9 @@ use iced::{
         scrollable::{Direction, Scrollbar},
         space, text,
     },
-};
-use iced::{
-    Element,
-    Length::Fill,
     widget::{button, column, container, image, scrollable},
 };
+use lucide_icons::iced::{icon_arrow_left, icon_arrow_right, icon_external_link};
 
 use super::{MediaFocusDialog, message::Message};
 use crate::similarity_badge;
@@ -63,19 +62,21 @@ impl MediaFocusDialog {
         .padding([0, 20])
         .align_y(Center);
 
-        let history_previous_button = button("⬅").on_press_maybe(if 0 < self.history_index {
-            Some(Message::HistoryPrevious)
-        } else {
-            None
-        });
-        let history_next_button =
-            button("➡").on_press_maybe(if self.history_index < self.history.len() - 1 {
-                Some(Message::HistoryNext)
+        let history_previous_button =
+            button(icon_arrow_left()).on_press_maybe(if 0 < self.history_index {
+                Some(Message::HistoryPrevious)
             } else {
                 None
             });
+        let history_next_button = button(icon_arrow_right()).on_press_maybe(
+            if self.history_index < self.history.len() - 1 {
+                Some(Message::HistoryNext)
+            } else {
+                None
+            },
+        );
 
-        let explore_button = button("📂").on_press(Message::FileShow);
+        let explore_button = button(icon_external_link()).on_press(Message::FileShow);
 
         let control_buttons = row![
             cache_lookup_strategy_pick_list,
