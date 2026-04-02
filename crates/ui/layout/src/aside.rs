@@ -12,7 +12,7 @@ pub struct Aside {
 }
 
 impl Aside {
-    pub fn new<T: Into<PathBuf>>(
+    pub fn new<T: Into<PathBuf> + Clone>(
         path: T,
         include_file: bool,
         include_hidden: bool,

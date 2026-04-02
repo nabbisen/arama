@@ -17,17 +17,19 @@ pub struct DirTree {
 }
 
 impl DirTree {
-    pub fn new<T: Into<PathBuf>>(
+    pub fn new<T: Into<PathBuf> + Clone>(
         path: T,
         include_file: bool,
         include_hidden: bool,
         processing: bool,
     ) -> Self {
+        let selected_path = Some(path.clone().into());
+
         Self {
             root: FileNode::new(path, true, true),
             include_file,
             include_hidden,
-            selected_path: None,
+            selected_path,
             processing,
         }
     }

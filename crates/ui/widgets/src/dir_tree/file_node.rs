@@ -1,5 +1,7 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+use crate::dir_tree::file_node::util::is_hidden;
 
 pub(super) mod message;
 mod update;
@@ -31,21 +33,8 @@ impl FileNode {
 
         let is_dir = path.is_dir();
 
-        let children = if !init {
-            let mut children = vec![];
-
-            if is_dir && recursive {
-                if let Ok(entries) = fs::read_dir(&path) {
-                    for entry in entries.flatten() {
-                        children.push(FileNode::new(entry.path(), true, false));
-                    }
-                }
-            }
-
-            // 名前順にソート（ディレクトリを優先）
-            children.sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then(a.name.cmp(&b.name)));
-
-            children
+        let children = if !init && is_dir && recursive {
+            FileNode::children(&path, recursive, init)
         } else {
             vec![]
         };
@@ -58,15 +47,43 @@ impl FileNode {
             children,
         };
 
-        if init { parent_file_node(&base) } else { base }
+        if init {
+            parent_file_node(&base, 0)
+        } else {
+            base
+        }
+    }
+
+    pub fn children(path: &Path, recursive: bool, init: bool) -> Vec<FileNode> {
+        let mut children = vec![];
+
+        if let Ok(entries) = fs::read_dir(path) {
+            for entry in entries
+                .flatten()
+                .filter(|x| x.path().is_dir() && !is_hidden(x.path().as_ref()))
+            {
+                children.push(FileNode::new(entry.path(), recursive, init));
+            }
+        }
+
+        // 名前順にソート（ディレクトリを優先）
+        children.sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then(a.name.cmp(&b.name)));
+
+        children
     }
 }
 
-fn parent_file_node(file_node: &FileNode) -> FileNode {
+fn parent_file_node(file_node: &FileNode, step: usize) -> FileNode {
     let path = if let Some(path) = file_node.path.parent() {
         path
     } else {
         return file_node.to_owned();
+    };
+
+    let children = if step == 0 {
+        FileNode::children(path, false, false)
+    } else {
+        vec![file_node.to_owned()]
     };
 
     let base = FileNode {
@@ -78,8 +95,8 @@ fn parent_file_node(file_node: &FileNode) -> FileNode {
         path: path.to_path_buf(),
         is_dir: path.is_dir(),
         is_expanded: true,
-        children: vec![file_node.to_owned()],
+        children,
     };
 
-    parent_file_node(&base)
+    parent_file_node(&base, step + 1)
 }
