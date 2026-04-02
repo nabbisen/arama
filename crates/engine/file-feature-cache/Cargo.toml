@@ -1,6 +1,6 @@
 [package]
 name = "file-feature-cache"
-version = "0.19.2"
+version = "0.19.3"
 edition = "2024"
 
 description = "Cache system for file feature and metadata"
