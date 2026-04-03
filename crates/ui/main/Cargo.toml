@@ -1,6 +1,6 @@
 [package]
 name = "arama-ui-main"
-version = "0.19.3"
+version = "0.19.4"
 edition = "2024"
 
 [dependencies]
