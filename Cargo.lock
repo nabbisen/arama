@@ -199,7 +199,7 @@ dependencies = [
 
 [[package]]
 name = "arama"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "anyhow",
  "app-json-settings",
@@ -218,7 +218,7 @@ dependencies = [
 
 [[package]]
 name = "arama-ai"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "anyhow",
  "arama-cache",
@@ -241,7 +241,7 @@ dependencies = [
 
 [[package]]
 name = "arama-cache"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "anyhow",
  "file-feature-cache",
@@ -253,7 +253,7 @@ dependencies = [
 
 [[package]]
 name = "arama-env"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "libc",
  "serde",
@@ -261,7 +261,7 @@ dependencies = [
 
 [[package]]
 name = "arama-sidecar"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "anyhow",
  "arama-env",
@@ -270,7 +270,7 @@ dependencies = [
 
 [[package]]
 name = "arama-ui-layout"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "arama-ai",
  "arama-cache",
@@ -283,7 +283,7 @@ dependencies = [
 
 [[package]]
 name = "arama-ui-main"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "anyhow",
  "arama-ai",
@@ -300,7 +300,7 @@ dependencies = [
 
 [[package]]
 name = "arama-ui-widgets"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "arama-ai",
  "arama-cache",
@@ -1748,7 +1748,7 @@ dependencies = [
 
 [[package]]
 name = "file-feature-cache"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "anyhow",
  "ffmpeg-sidecar",
