@@ -1,13 +1,11 @@
 use arama_sidecar::media::video::video_engine::VideoEngine;
 use iced::Task;
 
-use crate::components::setup::downloader::config::DownloaderConfig;
-
 use super::{
-    Downloader,
+    Downloader, DownloaderConfig,
     message::Message,
     state::{DownloadProgress, DownloadState},
-    util::download_stream,
+    util::{ai_model_download_stream, general_download_stream},
 };
 
 impl Downloader {
@@ -27,33 +25,68 @@ impl Downloader {
                     state.download_state = DownloadState::Downloading(0.0);
 
                     match &state.config {
-                        DownloaderConfig::AiModel(model_container) => {
-                            // ストリーム関数を呼び出す
-                            Task::run(download_stream(model_container.clone()), move |progress| {
-                                Message::ProgressUpdated(id, progress)
-                            })
+                        DownloaderConfig::AiModel(model_container) => Task::run(
+                            ai_model_download_stream(model_container.clone()),
+                            move |progress| Message::AiModelProgressUpdated(id, progress),
+                        ),
+                        DownloaderConfig::Ffmepg => {
+                            let url = VideoEngine::download_url().unwrap();
+                            let download_dest_path = VideoEngine::download_dest_path().unwrap();
+                            Task::run(
+                                general_download_stream(
+                                    url,
+                                    download_dest_path,
+                                    state.config.clone(),
+                                ),
+                                move |progress| Message::GeneralProgressUpdated(id, progress),
+                            )
                         }
-                        DownloaderConfig::Ffmepg => match VideoEngine::download() {
-                            Ok(_) => {
-                                Task::done(Message::ProgressUpdated(id, DownloadProgress::Finished))
-                            }
-                            Err(err) => Task::done(Message::ProgressUpdated(
-                                id,
-                                DownloadProgress::Errored(err.to_string()),
-                            )),
-                        },
                     }
                 });
 
                 Task::batch(tasks)
             }
 
-            Message::ProgressUpdated(id, progress) => {
+            Message::AiModelProgressUpdated(id, progress) => {
                 match progress {
                     DownloadProgress::Downloading(p) => {
                         self.states[id].download_state = DownloadState::Downloading(p)
                     }
-                    DownloadProgress::Finished => {
+                    DownloadProgress::Finished(_) => {
+                        self.states[id].download_state = DownloadState::Finished
+                    }
+                    DownloadProgress::Errored(err) => {
+                        self.states[id].download_state = DownloadState::Errored(err)
+                    }
+                }
+
+                // すべて完了またはエラーで止まったかチェック
+                let all_done = self.states.iter().all(|state| {
+                    matches!(
+                        state.download_state,
+                        DownloadState::Finished
+                            | DownloadState::Errored(_)
+                            | DownloadState::NotRequired
+                    )
+                });
+                if all_done {
+                    self.is_downloading = false;
+                }
+
+                Task::none()
+            }
+
+            Message::GeneralProgressUpdated(id, progress) => {
+                match progress {
+                    DownloadProgress::Downloading(p) => {
+                        self.states[id].download_state = DownloadState::Downloading(p)
+                    }
+                    DownloadProgress::Finished(downloader_config) => {
+                        match downloader_config {
+                            DownloaderConfig::Ffmepg => VideoEngine::unpack_archive().unwrap(),
+                            _ => (),
+                        };
+
                         self.states[id].download_state = DownloadState::Finished
                     }
                     DownloadProgress::Errored(err) => {

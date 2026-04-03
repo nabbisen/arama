@@ -1,13 +1,144 @@
+use std::path::PathBuf;
+
 use arama_ai::model::model_container::{ModelContainer, SourceUrl};
 use arama_env::validate_dir;
 use iced::futures::{SinkExt, StreamExt, channel::mpsc::Sender};
 use tokio::fs::{self, File};
 use tokio::io::{AsyncWriteExt, BufWriter};
 
-use super::state::DownloadProgress;
+use super::{config::DownloaderConfig, state::DownloadProgress};
 
-/// 実際のダウンロード処理を行い、進捗をStreamとして返す（重複排除済みの完成版）
-pub fn download_stream(model_container: ModelContainer) -> impl StreamExt<Item = DownloadProgress> {
+/// 一般ファイル: ダウンロードを行い、進捗を Stream として返す
+pub fn general_download_stream(
+    url: String,
+    download_dest_path: PathBuf,
+    downloader_config: DownloaderConfig,
+) -> impl StreamExt<Item = DownloadProgress> {
+    iced::stream::channel(
+        100,
+        move |mut output: Sender<DownloadProgress>| async move {
+            // 1. 上書き防止チェック (Downloader struct 初期化時と複合チェック)
+            if download_dest_path.exists() {
+                let _ = output
+                    .send(DownloadProgress::Errored(
+                        "ファイルが既に存在します".to_string(),
+                    ))
+                    .await;
+                return;
+            }
+
+            // 2. HTTPリクエスト
+            let response = match reqwest::get(url).await {
+                Ok(res) => res,
+                Err(e) => {
+                    let _ = output
+                        .send(DownloadProgress::Errored(format!("通信エラー: {}", e)))
+                        .await;
+                    return;
+                }
+            };
+
+            if !response.status().is_success() {
+                let _ = output
+                    .send(DownloadProgress::Errored(format!(
+                        "HTTPエラー: {}",
+                        response.status()
+                    )))
+                    .await;
+                return;
+            }
+
+            let total_size = response.content_length().unwrap_or(0) as f32;
+            let mut downloaded = 0.0;
+
+            // 3. 一時ファイルの作成とBufWriterの準備
+            let parent_dir = download_dest_path.parent();
+            if parent_dir.is_none() || !validate_dir(&parent_dir.unwrap()).is_ok() {
+                let _ = output
+                    .send(DownloadProgress::Errored(format!(
+                        "親フォルダ確保失敗: {}",
+                        download_dest_path.to_string_lossy()
+                    )))
+                    .await;
+                return;
+            }
+            let part_name = format!("{}.part", download_dest_path.to_string_lossy().to_string());
+            let file = match File::create(&part_name).await {
+                Ok(f) => f,
+                Err(e) => {
+                    let _ = output
+                        .send(DownloadProgress::Errored(format!(
+                            "ファイル作成失敗: {}",
+                            e
+                        )))
+                        .await;
+                    return;
+                }
+            };
+            let mut writer = BufWriter::new(file);
+            let mut stream = response.bytes_stream();
+
+            // 4. データ受信と書き込みループ
+            while let Some(item) = stream.next().await {
+                match item {
+                    Ok(chunk) => {
+                        if let Err(e) = writer.write_all(&chunk).await {
+                            let _ = output
+                                .send(DownloadProgress::Errored(format!("書き込み失敗: {}", e)))
+                                .await;
+                            let _ = fs::remove_file(&part_name).await;
+                            return;
+                        }
+
+                        downloaded += chunk.len() as f32;
+                        let percentage = if total_size > 0.0 {
+                            (downloaded / total_size) * 100.0
+                        } else {
+                            0.0
+                        };
+                        let _ = output.send(DownloadProgress::Downloading(percentage)).await;
+                    }
+                    Err(e) => {
+                        let _ = output
+                            .send(DownloadProgress::Errored(format!("受信中断: {}", e)))
+                            .await;
+                        let _ = fs::remove_file(&part_name).await;
+                        return;
+                    }
+                }
+            }
+
+            // 5. 書き込み確定処理
+            if let Err(e) = writer.flush().await {
+                let _ = output
+                    .send(DownloadProgress::Errored(format!("保存失敗: {}", e)))
+                    .await;
+                let _ = fs::remove_file(&part_name).await;
+                return;
+            }
+
+            // ファイルロック解放のため明示的にdrop
+            drop(writer);
+
+            // 6. 完了後のリネーム
+            if let Err(e) = fs::rename(&part_name, &download_dest_path).await {
+                let _ = output
+                    .send(DownloadProgress::Errored(format!("リネーム失敗: {}", e)))
+                    .await;
+            }
+
+            // すべての処理（モデル＋任意の設定ファイル）が完了したら通知
+            let _ = output
+                .send(DownloadProgress::Finished(downloader_config))
+                .await;
+        },
+    )
+}
+
+/// AI model: ダウンロードを行い、進捗を Stream として返す
+pub fn ai_model_download_stream(
+    model_container: ModelContainer,
+) -> impl StreamExt<Item = DownloadProgress> {
     iced::stream::channel(
         100,
         move |mut output: Sender<DownloadProgress>| async move {
@@ -210,7 +341,11 @@ pub fn download_stream(model_container: ModelContainer) -> impl StreamExt<Item =
             }
 
             // すべての処理（モデル＋任意の設定ファイル）が完了したら通知
-            let _ = output.send(DownloadProgress::Finished).await;
+            let _ = output
+                .send(DownloadProgress::Finished(DownloaderConfig::AiModel(
+                    model_container,
+                )))
+                .await;
         },
     )
 }

@@ -58,8 +58,29 @@ impl Downloader {
                         if VideoEngine::ready() != FfmpegStatus::NotExists {
                             (DownloadState::NotRequired, None)
                         } else {
-                            // todo: ffmpeg download size
-                            (DownloadState::default(), None)
+                            let file_size = match reqwest::blocking::Client::new()
+                                .head(VideoEngine::download_url().unwrap())
+                                .send()
+                            {
+                                Ok(x) => {
+                                    if let Some(content_length) = x.headers().get(CONTENT_LENGTH) {
+                                        if let Ok(x) = content_length
+                                            .to_str()
+                                            .unwrap_or_default()
+                                            .parse::<u64>()
+                                        {
+                                            Some(x / 1024 / 1024)
+                                        } else {
+                                            None
+                                        }
+                                    } else {
+                                        None
+                                    }
+                                }
+                                Err(_) => None,
+                            };
+
+                            (DownloadState::default(), file_size)
                         }
                     }
                 };

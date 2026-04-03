@@ -10,7 +10,7 @@ pub struct DownloaderState {
 #[derive(Debug, Clone)]
 pub enum DownloadProgress {
     Downloading(f32),
-    Finished,
+    Finished(DownloaderConfig),
     Errored(String),
 }
 

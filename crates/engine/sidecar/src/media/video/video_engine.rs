@@ -2,7 +2,7 @@ use std::{path::PathBuf, process::Command};
 
 use anyhow::Context;
 use arama_env::{local_bin_dir, validate_dir};
-use ffmpeg_sidecar::download::{download_ffmpeg_package, ffmpeg_download_url, unpack_ffmpeg};
+use ffmpeg_sidecar::download::{ffmpeg_download_url, unpack_ffmpeg};
 
 #[cfg(not(windows))]
 mod bin_name {
@@ -67,13 +67,33 @@ impl VideoEngine {
         FfmpegStatus::NotExists
     }
 
-    pub fn download() -> anyhow::Result<()> {
-        let path = VideoEngine::ffmpeg_path()?;
+    pub fn download_url() -> anyhow::Result<String> {
+        let download_url = ffmpeg_download_url()?;
+        Ok(download_url.to_owned())
+    }
 
-        // todo: skip or delete existing file ?
-        // if path.exists() {
-        //     return Ok(());
-        // }
+    pub fn download_dest_path() -> anyhow::Result<PathBuf> {
+        let download_url = VideoEngine::download_url()?;
+        let file_name = download_url.split("/").last().unwrap();
+
+        let parent_dir = VideoEngine::parent_dir()?;
+
+        let download_dest_path = parent_dir.join(file_name);
+
+        Ok(download_dest_path)
+    }
+
+    pub fn unpack_archive() -> anyhow::Result<()> {
+        let download_dest_path = VideoEngine::download_dest_path()?;
+        let parent_dir = VideoEngine::parent_dir()?;
+
+        unpack_ffmpeg(&download_dest_path, &parent_dir)?;
+
+        Ok(())
+    }
+
+    fn parent_dir() -> anyhow::Result<PathBuf> {
+        let path = VideoEngine::ffmpeg_path()?;
 
         let parent_dir = path.parent().context(format!(
             "failed to get parent dir of {} bin",
@@ -82,12 +102,7 @@ impl VideoEngine {
 
         validate_dir(parent_dir)?;
 
-        // let version = check_latest_version()?;
-        let download_url = ffmpeg_download_url()?;
-        let archive_path = download_ffmpeg_package(&download_url, parent_dir)?;
-        unpack_ffmpeg(&archive_path, &parent_dir)?;
-
-        Ok(())
+        Ok(parent_dir.to_path_buf())
     }
 
     fn ffprobe_path() -> anyhow::Result<PathBuf> {
