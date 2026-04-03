@@ -9,6 +9,7 @@ pub mod view;
 #[derive(Clone, Debug)]
 pub struct Aside {
     dir_tree: DirTree,
+    is_open: bool,
 }
 
 impl Aside {
@@ -19,7 +20,8 @@ impl Aside {
         processing: bool,
     ) -> Self {
         let dir_tree = DirTree::new(path, include_file, include_hidden, processing);
-        Self { dir_tree }
+        let is_open = true;
+        Self { dir_tree, is_open }
     }
 
     pub fn set_processing(&mut self, processing: bool) {
