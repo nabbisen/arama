@@ -37,7 +37,11 @@ impl MediaFocusDialog {
                     Message::SimilarMediaReady,
                 );
             }
-            Message::FileShow => {
+            Message::OpenWithDefault => {
+                let path = self.history[self.history_index].clone();
+                let _ = file_handle::FileHandle::open_with_default(&path);
+            }
+            Message::FileManagerShow => {
                 let path = self.history[self.history_index].clone();
                 let _ = file_handle::FileHandle::show(&path);
             }

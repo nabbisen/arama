@@ -44,7 +44,7 @@ iced = { version = "0.14", features = ["image", "tokio"] }
 anyhow = "1"
 app-json-settings = "2"
 disk-space = "0"
-file-handle = { version = "0", features = ["show", "trash"] }
+file-handle = { version = "0", features = ["open", "show", "trash"] }
 image = "0.25"
 libc = "0.2"
 lucide-icons = { version = "0", features = ["iced"] }

@@ -12,7 +12,7 @@ use iced::{
     },
     widget::{button, column, container, image, scrollable},
 };
-use lucide_icons::iced::{icon_arrow_left, icon_arrow_right, icon_external_link};
+use lucide_icons::iced::{icon_arrow_left, icon_arrow_right, icon_external_link, icon_folder_open};
 
 use super::{MediaFocusDialog, message::Message};
 use crate::similarity_badge;
@@ -76,12 +76,16 @@ impl MediaFocusDialog {
             },
         );
 
-        let explore_button = button(icon_external_link()).on_press(Message::FileShow);
+        let open_with_default_button =
+            button(icon_external_link()).on_press(Message::OpenWithDefault);
+
+        let explore_button = button(icon_folder_open()).on_press(Message::FileManagerShow);
 
         let control_buttons = row![
             cache_lookup_strategy_pick_list,
             history_previous_button,
             history_next_button,
+            open_with_default_button,
             explore_button
         ]
         .spacing(10);

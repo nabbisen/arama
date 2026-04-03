@@ -13,6 +13,8 @@ impl ContextMenu {
                 row![
                     space().width(self.point.x),
                     column![
+                        button("open with default app")
+                            .on_press(Message::OpenWithDefault(path.to_path_buf())),
                         button("file manager")
                             .on_press(Message::FileManagerShow(path.to_path_buf())),
                     ]
