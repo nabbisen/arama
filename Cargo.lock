@@ -116,9 +116,9 @@ dependencies = [
 
 [[package]]
 name = "anndists"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8238f99889a837cd6641360f9f3ead18f70b07bf6ce1f04a319bc6bd8a2f48f1"
+checksum = "9a8396b473aa0bceed68fb32462505387ea39fa47c7029417e0a49f10592b036"
 dependencies = [
  "anyhow",
  "cfg-if",
@@ -199,7 +199,7 @@ dependencies = [
 
 [[package]]
 name = "arama"
-version = "0.20.1"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "app-json-settings",
@@ -218,7 +218,7 @@ dependencies = [
 
 [[package]]
 name = "arama-ai"
-version = "0.20.1"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "arama-cache",
@@ -241,7 +241,7 @@ dependencies = [
 
 [[package]]
 name = "arama-cache"
-version = "0.20.1"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "file-feature-cache",
@@ -253,7 +253,7 @@ dependencies = [
 
 [[package]]
 name = "arama-env"
-version = "0.20.1"
+version = "0.21.0"
 dependencies = [
  "libc",
  "serde",
@@ -261,7 +261,7 @@ dependencies = [
 
 [[package]]
 name = "arama-sidecar"
-version = "0.20.1"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "arama-env",
@@ -270,7 +270,7 @@ dependencies = [
 
 [[package]]
 name = "arama-ui-layout"
-version = "0.20.1"
+version = "0.21.0"
 dependencies = [
  "arama-ai",
  "arama-cache",
@@ -284,7 +284,7 @@ dependencies = [
 
 [[package]]
 name = "arama-ui-main"
-version = "0.20.1"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "arama-ai",
@@ -301,7 +301,7 @@ dependencies = [
 
 [[package]]
 name = "arama-ui-widgets"
-version = "0.20.1"
+version = "0.21.0"
 dependencies = [
  "arama-ai",
  "arama-cache",
@@ -470,9 +470,9 @@ dependencies = [
 
 [[package]]
 name = "async-signal"
-version = "0.2.13"
+version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43c070bbf59cd3570b6b2dd54cd772527c7c3620fce8be898406dd3ed6adc64c"
+checksum = "52b5aaafa020cf5053a01f2a60e8ff5dccf550f0f77ec54a4e47285ac2bab485"
 dependencies = [
  "async-io",
  "async-lock",
@@ -937,9 +937,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.58"
+version = "1.2.59"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1e928d4b69e3077709075a938a05ffbedfa53a84c8f766efbf8220bb1ff60e1"
+checksum = "b7a4d3ec6524d28a329fc53654bbadc9bdd7b0431f5d65f1a56ffb28a1ee5283"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -1701,9 +1701,9 @@ dependencies = [
 
 [[package]]
 name = "fastrand"
-version = "2.3.0"
+version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
+checksum = "9f1f227452a390804cdb637b74a86990f2a7d7ba4b7d5693aac9b4dd6defd8d6"
 
 [[package]]
 name = "fax"
@@ -1751,7 +1751,7 @@ dependencies = [
 
 [[package]]
 name = "file-feature-cache"
-version = "0.20.1"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "ffmpeg-sidecar",
@@ -1769,9 +1769,9 @@ dependencies = [
 
 [[package]]
 name = "file-handle"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5dc7a4d4379a592298f34ddac3f7e4cc17aeb021f4b25a733f9c6b35dd53f2e5"
+checksum = "8a00c51ee00a679effc2a8d09b34c84d1bb7cc728f0d48d2b7cfefba23f61f5d"
 dependencies = [
  "thiserror 2.0.18",
  "trash",
@@ -1861,9 +1861,9 @@ dependencies = [
 
 [[package]]
 name = "font-types"
-version = "0.11.1"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73829a7b5c91198af28a99159b7ae4afbb252fb906159ff7f189f3a2ceaa3df2"
+checksum = "2d9237c6d82152100c691fb77ea18037b402bcc7257d2c876a4ffac81bc22a1c"
 dependencies = [
  "bytemuck",
 ]
@@ -4910,7 +4910,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7b634fabf032fab15307ffd272149b622260f55974d9fad689292a5d33df02e5"
 dependencies = [
  "bytemuck",
- "font-types 0.11.1",
+ "font-types 0.11.2",
 ]
 
 [[package]]
@@ -5339,9 +5339,9 @@ checksum = "b12e76d157a900eb52e81bc6e9f3069344290341720e9178cde2407113ac8d89"
 
 [[package]]
 name = "semver"
-version = "1.0.27"
+version = "1.0.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d767eb0aabc880b29956c35734170f26ed551a859dbd361d140cdbeca61ab1e2"
+checksum = "8a7852d02fc848982e0c167ef163aaff9cd91dc640ba85e263cb1ce46fae51cd"
 
 [[package]]
 name = "seq-macro"
@@ -5999,9 +5999,9 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.25.10+spec-1.1.0"
+version = "0.25.11+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a82418ca169e235e6c399a84e395ab6debeb3bc90edc959bf0f48647c6a32d1b"
+checksum = "0b59c4d22ed448339746c59b905d24568fcbb3ab65a500494f7b8c3e97739f2b"
 dependencies = [
  "indexmap",
  "toml_datetime",
