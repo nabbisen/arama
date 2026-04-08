@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use arama_ui_layout::{aside, footer, header};
-use arama_ui_main::views::{gallery, setup};
+use arama_ui_main::views::{setup, workbench};
 use arama_ui_widgets::{
     context_menu,
     dialog::{media_focus_dialog, settings_dialog, similar_pairs_dialog},
@@ -14,7 +14,7 @@ pub enum Message {
     ThumbnailCacheFinished(Vec<(PathBuf, Arc<arama_cache::Result<()>>)>),
     EmbeddingCacheFinished(Option<String>),
     SetupMessage(setup::message::Message),
-    GalleryMessage(gallery::message::Message),
+    WorkbenchMessage(workbench::message::Message),
     HeaderMessage(header::message::Message),
     AsideMessage(aside::message::Message),
     FooterMessage(footer::message::Message),

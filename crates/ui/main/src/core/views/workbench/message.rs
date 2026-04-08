@@ -1,4 +1,4 @@
-use crate::components::gallery::image_cell;
+use crate::components::workbench::image_cell;
 
 #[derive(Debug, Clone)]
 pub enum Message {

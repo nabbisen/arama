@@ -1,2 +1,2 @@
-pub mod gallery;
 pub mod setup;
+pub mod workbench;

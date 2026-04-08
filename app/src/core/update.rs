@@ -8,7 +8,7 @@ use arama_cache::{
     VideoCacheReader,
 };
 use arama_env::{IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path};
-use arama_ui_main::{components::gallery::image_cell, views::gallery};
+use arama_ui_main::{components::workbench::image_cell, views::workbench};
 use iced::{Task, wgpu::naga::FastHashMap};
 use swdir::{DirNode, Recurse, Swdir};
 
@@ -79,7 +79,7 @@ impl App {
                     ))
                     .expect("failed to get video cache reader");
 
-                    self.gallery
+                    self.workbench
                         .set_dir_path_thumbnail_path_map(dir_path_thumbnail_path_map(
                             &dir_node,
                             &image_cache_reader,
@@ -87,7 +87,7 @@ impl App {
                         ));
 
                     self.header
-                        .set_embedding_cached(self.gallery.embedding_cached());
+                        .set_embedding_cached(self.workbench.embedding_cached());
                 }
 
                 if clip::model().ready().unwrap_or(false) {
@@ -112,7 +112,7 @@ impl App {
 
                 self.aside.set_processing(self.processing);
                 self.header
-                    .set_embedding_cached(self.gallery.embedding_cached());
+                    .set_embedding_cached(self.workbench.embedding_cached());
 
                 self.processing_off();
                 Task::none()
@@ -129,14 +129,14 @@ impl App {
                     task
                 }
             }
-            Message::GalleryMessage(message) => {
+            Message::WorkbenchMessage(message) => {
                 let task = self
-                    .gallery
+                    .workbench
                     .update(message.clone())
-                    .map(Message::GalleryMessage);
+                    .map(Message::WorkbenchMessage);
 
                 match message {
-                    gallery::message::Message::ImageCellMessage(message) => match message {
+                    workbench::message::Message::ImageCellMessage(message) => match message {
                         image_cell::message::Message::ImageCellEnter(path) => {
                             self.image_cell_path_update(Some(path));
                         }
@@ -169,7 +169,7 @@ impl App {
                             }
                         }
                     },
-                    gallery::message::Message::CursorExit => self.image_cell_path_update(None),
+                    workbench::message::Message::CursorExit => self.image_cell_path_update(None),
                 }
 
                 task
@@ -222,6 +222,8 @@ impl App {
                 match message {
                     aside::message::Message::Event(message) => match message {
                         aside::message::Event::DirSelect(path) => {
+                            self.header
+                                .update_dir_nav_path(path.to_string_lossy().to_string().as_str());
                             return self.on_dir_changed(path, task);
                         }
                     },

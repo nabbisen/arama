@@ -26,4 +26,8 @@ impl Header {
     pub fn set_embedding_cached(&mut self, embedding_cached: bool) {
         self.embedding_cached = embedding_cached;
     }
+
+    pub fn update_dir_nav_path(&mut self, path: &str) {
+        self.dir_nav.update_path(path);
+    }
 }

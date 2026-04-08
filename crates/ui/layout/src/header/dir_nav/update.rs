@@ -12,14 +12,14 @@ impl DirNav {
 
             Message::Internal(message) => {
                 match message {
-                    Internal::Input(s) => self.processing = s,
+                    Internal::Input(s) => self.input_str = s,
                     Internal::Submit => {
-                        let path = PathBuf::from(&self.processing);
+                        let path = PathBuf::from(&self.input_str);
                         if path.exists() {
-                            self.path = self.processing.to_owned();
+                            self.original_path_str = self.input_str.clone();
                             return Task::done(Message::Event(Event::DirSelect(path)));
                         } else {
-                            self.processing = self.path.to_owned();
+                            self.input_str = self.original_path_str.clone();
                         }
                     }
                     Internal::RfdOpen => {
@@ -34,8 +34,8 @@ impl DirNav {
                     }
                     Internal::RfdClose(path) => {
                         if let Some(path) = path {
-                            self.path = path.to_string_lossy().to_string();
-                            self.processing = self.path.clone();
+                            self.original_path_str = path.to_string_lossy().to_string();
+                            self.input_str = self.original_path_str.clone();
                             return Task::done(Message::Event(Event::DirSelect(path)));
                         }
                     }

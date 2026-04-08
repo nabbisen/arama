@@ -7,8 +7,8 @@ use arama_env::{
 };
 use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
 use arama_ui_main::views::{
-    gallery::Gallery,
     setup::{self, Setup},
+    workbench::Workbench,
 };
 use arama_ui_widgets::{context_menu::ContextMenu, dialog};
 use iced::{Point, Task};
@@ -24,7 +24,7 @@ use swdir::{DirNode, Swdir};
 
 pub struct App {
     setup: Setup,
-    gallery: Gallery,
+    workbench: Workbench,
     header: Header,
     aside: Aside,
     footer: Footer,
@@ -98,7 +98,7 @@ impl App {
         let footer = Footer::new(thumbnail_size, dir_node_count.files, dir_node_count.dirs);
         let dialog = None;
 
-        let gallery = Gallery::new().expect("failed to init gallery");
+        let workbench = Workbench::new().expect("failed to init workbench");
 
         let context_menu_point = Point::default();
         let context_menu = ContextMenu::new(context_menu_point, thumbnail_size);
@@ -112,7 +112,7 @@ impl App {
         (
             Self {
                 setup,
-                gallery,
+                workbench,
                 header,
                 aside,
                 footer,

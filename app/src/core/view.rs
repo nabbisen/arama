@@ -15,9 +15,9 @@ impl App {
         }
 
         let content = self
-            .gallery
+            .workbench
             .view(self.footer.thumbnail_size())
-            .map(|message| Message::GalleryMessage(message));
+            .map(|message| Message::WorkbenchMessage(message));
 
         let header = self.header.view().map(Message::HeaderMessage);
         let aside = self.aside.view().map(Message::AsideMessage);

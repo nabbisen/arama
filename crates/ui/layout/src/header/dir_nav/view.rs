@@ -6,7 +6,7 @@ use super::message::{Internal, Message};
 
 impl DirNav {
     pub fn view(&self) -> Element<'_, Message> {
-        let input = text_input("", &self.processing)
+        let input = text_input("", &self.input_str)
             .on_input(|x| Message::Internal(Internal::Input(x)))
             .on_submit(Message::Internal(Internal::Submit));
 
