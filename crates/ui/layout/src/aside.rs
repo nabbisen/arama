@@ -24,6 +24,10 @@ impl Aside {
         Self { dir_tree, is_open }
     }
 
+    pub fn update_dir_tree<T: Into<PathBuf> + Clone>(&mut self, path: T) {
+        self.dir_tree.update_selected_path(path);
+    }
+
     pub fn set_processing(&mut self, processing: bool) {
         self.dir_tree.set_processing(processing);
     }

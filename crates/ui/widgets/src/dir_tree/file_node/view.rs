@@ -7,7 +7,11 @@ use lucide_icons::iced::{
     icon_chevron_down, icon_chevron_right, icon_file, icon_folder, icon_folder_open,
 };
 
-use super::{FileNode, message::Message, util::is_hidden};
+use super::{
+    FileNode,
+    message::{Event, Internal, Message},
+    util::is_hidden,
+};
 
 impl FileNode {
     pub fn view(
@@ -44,19 +48,20 @@ impl FileNode {
         ]
         .spacing(5);
 
-        let mut node = mouse_area(container(node_content).padding([2, 5])).on_double_click(
-            Message::ToggleExpand((self.path.clone(), include_file, include_hidden)),
-        );
+        let mut node =
+            mouse_area(container(node_content).padding([2, 5])).on_double_click(Message::Internal(
+                Internal::ToggleExpand((self.path.clone(), include_file, include_hidden)),
+            ));
 
         if !processing {
             node = node
                 .interaction(iced::mouse::Interaction::Pointer)
-                .on_press(Message::DirClick(self.path.clone()))
-                .on_double_click(Message::ToggleExpand((
+                .on_press(Message::Event(Event::DirClick(self.path.clone())))
+                .on_double_click(Message::Internal(Internal::ToggleExpand((
                     self.path.clone(),
                     include_file,
                     include_hidden,
-                )));
+                ))));
         }
 
         // 開閉切り替えボタン（ディレクトリの場合のみ）
@@ -78,11 +83,11 @@ impl FileNode {
 
             if !processing {
                 toggle_btn = toggle_btn
-                    .on_press(Message::ToggleExpand((
+                    .on_press(Message::Internal(Internal::ToggleExpand((
                         self.path.clone(),
                         include_file,
                         include_hidden,
-                    )))
+                    ))))
                     .interaction(iced::mouse::Interaction::Pointer);
             }
 

@@ -34,6 +34,11 @@ impl DirTree {
         }
     }
 
+    pub fn update_selected_path<T: Into<PathBuf> + Clone>(&mut self, path: T) {
+        self.root = FileNode::new(path.clone(), true, true);
+        self.selected_path = Some(path.into());
+    }
+
     pub fn set_processing(&mut self, processing: bool) {
         self.processing = processing;
     }

@@ -17,7 +17,6 @@ use arama_ui_layout::{aside, footer, header};
 use arama_ui_widgets::{
     context_menu::ContextMenuState,
     dialog::{media_focus_dialog, settings_dialog, similar_pairs_dialog},
-    dir_tree,
 };
 
 impl App {
@@ -182,26 +181,34 @@ impl App {
                     .map(Message::HeaderMessage);
 
                 match message {
-                    header::message::Message::SimilarPairsDialogOpen => {
-                        // todo: error handling
-                        let dialog = similar_pairs_dialog::SimilarPairsDialog::new(
-                            self.dir_node.clone().unwrap(),
-                            None,
-                        );
-                        self.dialog = Some(Dialog::SimilarPairsDialog(dialog.clone()));
-                        return dialog
-                            .default_task()
-                            .map(Message::SimilarPairsDialogMessage);
+                    header::message::Message::Event(message) => {
+                        match message {
+                            header::message::Event::DirSelect(path) => {
+                                self.aside.update_dir_tree(&path);
+                                return self.on_dir_changed(path, task);
+                            }
+                            header::message::Event::SimilarPairsDialogOpen => {
+                                // todo: error handling
+                                let dialog = similar_pairs_dialog::SimilarPairsDialog::new(
+                                    self.dir_node.clone().unwrap(),
+                                    None,
+                                );
+                                self.dialog = Some(Dialog::SimilarPairsDialog(dialog.clone()));
+                                return dialog
+                                    .default_task()
+                                    .map(Message::SimilarPairsDialogMessage);
+                            }
+                            header::message::Event::SettingsOpen => {
+                                self.dialog = Some(Dialog::SettingsDialog(
+                                    settings_dialog::SettingsDialog::new(
+                                        &self.settings.target_media_type,
+                                        self.settings.sub_dir_depth_limit,
+                                    ),
+                                ))
+                            }
+                        }
                     }
-                    header::message::Message::SettingsOpen => {
-                        self.dialog = Some(Dialog::SettingsDialog(
-                            settings_dialog::SettingsDialog::new(
-                                &self.settings.target_media_type,
-                                self.settings.sub_dir_depth_limit,
-                            ),
-                        ))
-                    }
-                    _ => (),
+                    header::message::Message::Internal(_) => (),
                 }
 
                 task
@@ -213,57 +220,12 @@ impl App {
                     .map(Message::AsideMessage);
 
                 match message {
-                    aside::message::Message::DirTreeMessage(message) => {
-                        match message {
-                            dir_tree::message::Message::DirClick(path) => {
-                                self.settings.root_dir_path = path.to_string_lossy().to_string();
-                                self.save_settings();
-
-                                // todo dir_node should be got from dir_tree
-                                let mut extension_allowlist: Vec<&str> = vec![];
-                                if self.settings.target_media_type.include_image {
-                                    extension_allowlist.extend(IMAGE_EXTENSION_ALLOWLIST);
-                                }
-                                if self.settings.target_media_type.include_video {
-                                    extension_allowlist.extend(VIDEO_EXTENSION_ALLOWLIST);
-                                }
-
-                                let recurse = if 0 < self.settings.sub_dir_depth_limit {
-                                    Recurse {
-                                        enabled: true,
-                                        depth_limit: Some(self.settings.sub_dir_depth_limit.into()),
-                                    }
-                                } else {
-                                    Recurse {
-                                        enabled: false,
-                                        depth_limit: None,
-                                    }
-                                };
-
-                                let dir_node = Swdir::default()
-                                    .set_root_path(path)
-                                    .set_extension_allowlist(&extension_allowlist)
-                                    .expect("failed to set allowlist")
-                                    .set_recurse(recurse)
-                                    .walk();
-
-                                let dir_node_count = dir_node.count();
-                                self.footer
-                                    .update_count(dir_node_count.files, dir_node_count.dirs);
-
-                                self.dir_node = Some(dir_node);
-
-                                return if self.processing {
-                                    task
-                                } else {
-                                    self.processing_on();
-                                    Task::batch([Task::done(Message::CacheRequire), task])
-                                };
-                            }
-                            _ => (),
+                    aside::message::Message::Event(message) => match message {
+                        aside::message::Event::DirSelect(path) => {
+                            return self.on_dir_changed(path, task);
                         }
-                    }
-                    _ => (),
+                    },
+                    aside::message::Message::Internal(_) => (),
                 }
 
                 task
@@ -383,6 +345,52 @@ impl App {
                 Task::none()
             }
         }
+    }
+
+    fn on_dir_changed(&mut self, path: PathBuf, task: Task<Message>) -> Task<Message> {
+        self.settings.root_dir_path = path.to_string_lossy().to_string();
+        self.save_settings();
+
+        // todo dir_node should be got from dir_tree
+        let mut extension_allowlist: Vec<&str> = vec![];
+        if self.settings.target_media_type.include_image {
+            extension_allowlist.extend(IMAGE_EXTENSION_ALLOWLIST);
+        }
+        if self.settings.target_media_type.include_video {
+            extension_allowlist.extend(VIDEO_EXTENSION_ALLOWLIST);
+        }
+
+        let recurse = if 0 < self.settings.sub_dir_depth_limit {
+            Recurse {
+                enabled: true,
+                depth_limit: Some(self.settings.sub_dir_depth_limit.into()),
+            }
+        } else {
+            Recurse {
+                enabled: false,
+                depth_limit: None,
+            }
+        };
+
+        let dir_node = Swdir::default()
+            .set_root_path(path)
+            .set_extension_allowlist(&extension_allowlist)
+            .expect("failed to set allowlist")
+            .set_recurse(recurse)
+            .walk();
+
+        let dir_node_count = dir_node.count();
+        self.footer
+            .update_count(dir_node_count.files, dir_node_count.dirs);
+
+        self.dir_node = Some(dir_node);
+
+        return if self.processing {
+            task
+        } else {
+            self.processing_on();
+            Task::batch([Task::done(Message::CacheRequire), task])
+        };
     }
 }
 

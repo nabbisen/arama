@@ -1,7 +1,7 @@
 use iced::Element;
 
 use super::DirTree;
-use super::message::Message;
+use super::message::{Internal, Message};
 
 impl DirTree {
     pub fn view(&self) -> Element<'_, Message> {
@@ -13,6 +13,6 @@ impl DirTree {
                 self.include_hidden,
                 self.processing,
             )
-            .map(Message::FileNodeMessage)
+            .map(|x| Message::Internal(Internal::FileNodeMessage(x)))
     }
 }

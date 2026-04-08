@@ -92,7 +92,7 @@ impl App {
             cache_lookup_strategy,
         };
 
-        let header = Header::default();
+        let header = Header::new(&settings.root_dir_path);
         let aside = Aside::new(&settings.root_dir_path, false, false, processing);
         let dir_node_count = dir_node.count();
         let footer = Footer::new(thumbnail_size, dir_node_count.files, dir_node_count.dirs);

@@ -3,25 +3,33 @@ use std::path::PathBuf;
 
 use iced::Task;
 
-use super::{FileNode, message::Message, util::is_hidden};
+use super::{
+    FileNode,
+    message::{Internal, Message},
+    util::is_hidden,
+};
 
 impl FileNode {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::TreeLoaded(file_node) => {
-                self.name = file_node.name;
-                self.path = file_node.path;
-                self.is_dir = file_node.is_dir;
-                self.is_expanded = file_node.is_expanded;
-                self.children = file_node.children;
+            Message::Event(_) => return Task::none(),
+            Message::Internal(message) => {
+                match message {
+                    Internal::TreeLoaded(file_node) => {
+                        self.name = file_node.name;
+                        self.path = file_node.path;
+                        self.is_dir = file_node.is_dir;
+                        self.is_expanded = file_node.is_expanded;
+                        self.children = file_node.children;
+                    }
+                    Internal::ToggleExpand((path, include_file, include_hidden)) => {
+                        // 再帰的にツリーを更新して is_expanded を切り替える
+                        self.update_tree_lazy(&path, include_file, include_hidden);
+                    }
+                }
+                Task::none()
             }
-            Message::ToggleExpand((path, include_file, include_hidden)) => {
-                // 再帰的にツリーを更新して is_expanded を切り替える
-                self.update_tree_lazy(&path, include_file, include_hidden);
-            }
-            Message::DirClick(_path) => (),
         }
-        Task::none()
     }
 
     fn update_tree_lazy(&mut self, path: &PathBuf, include_file: bool, include_hidden: bool) {
