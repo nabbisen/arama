@@ -1,16 +1,21 @@
-//! `ai_cache` インテグレーションテスト。
+//! `arama-cache` integration tests.
+//!
+//! These tests define the facade's public contract. They were written
+//! against the v1 (`file-feature-cache`) implementation and pass
+//! unchanged — modulo the import below — against the v2 (`localcache`)
+//! implementation, which is the API-compatibility proof for RFC 002.
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use arama_cache::{
-    ImageCacheConfig, ImageCacheReader, ImageCacheWriter, LookupResult, UpsertImageRequest,
-    UpsertVideoRequest, VideoCacheConfig, VideoCacheWriter,
+    CacheConfig, CacheRead, DbLocation, ImageCacheConfig, ImageCacheReader, ImageCacheWriter,
+    LookupResult, UpsertImageRequest, UpsertVideoRequest, VideoCacheConfig, VideoCacheWriter,
 };
-use file_feature_cache::{CacheConfig, CacheRead, CacheWrite, DbLocation};
 
 // ---------------------------------------------------------------------------
-// テストヘルパー
+// ---------------------------------------------------------------------------
+// Test helpers
 // ---------------------------------------------------------------------------
 
 struct TempFile {
@@ -24,9 +29,24 @@ impl TempFile {
         let (_, path) = f.keep().unwrap();
         TempFile { path }
     }
+
+    /// Create a temp file whose name ends with `suffix` (e.g. `".jpg"`).
+    /// Required when the crate under test infers file format from the
+    /// extension (as `image::open` does for JPEG content).
+    fn with_suffix(content: &[u8], suffix: &str) -> Self {
+        let mut f = tempfile::Builder::new()
+            .suffix(suffix)
+            .tempfile()
+            .unwrap();
+        f.write_all(content).unwrap();
+        let (_, path) = f.keep().unwrap();
+        TempFile { path }
+    }
+
     fn path(&self) -> &Path {
         &self.path
     }
+
     fn overwrite(&self, content: &[u8]) {
         std::fs::write(&self.path, content).unwrap();
     }
@@ -118,7 +138,9 @@ fn image_lookup_invalidated_on_file_change() {
     let writer = image_writer_with_db(&db);
     let file = TempFile::new(b"original");
     upsert_image(&writer, file.path());
-    file.overwrite(b"modified");
+    // Different byte length makes detection unambiguous: a size change
+    // is caught by metadata comparison alone, regardless of timing.
+    file.overwrite(b"modified!");
     assert!(matches!(
         writer.lookup(file.path()).unwrap(),
         LookupResult::Invalidated
@@ -158,7 +180,10 @@ const MINIMAL_JPEG: &[u8] = &[
 fn image_thumbnail_generated_to_thumbnail_dir() {
     let thumb_dir = tempfile::TempDir::new().unwrap();
     let db = tmp_db();
-    let file = TempFile::new(MINIMAL_JPEG);
+    // Use a .jpg suffix so that image::open can infer the format from the
+    // extension (real gallery files always have one; extensionless temp
+    // files fail format detection even when the bytes are valid JPEG).
+    let file = TempFile::with_suffix(MINIMAL_JPEG, ".jpg");
 
     let writer = ImageCacheWriter::as_session(ImageCacheConfig {
         cache_config: CacheConfig {
@@ -283,7 +308,8 @@ fn video_lookup_invalidated_on_file_change() {
             wav2vec2_vector: None,
         })
         .unwrap();
-    file.overwrite(b"modified video");
+    // Different byte length — detection is unambiguous via size change.
+    file.overwrite(b"modified video!");
     assert!(matches!(
         writer.lookup(file.path()).unwrap(),
         LookupResult::Invalidated

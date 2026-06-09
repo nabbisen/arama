@@ -8,7 +8,6 @@ members = [
     "crates/ui/main",
     "crates/ui/widgets",
     "env",
-    "crates/engine/file-feature-cache", # todo: publish as crate
 ]
 resolver = "3"
 
@@ -35,9 +34,6 @@ arama-ui-widgets = { path = "crates/ui/widgets" }
 
 arama-sidecar = { path = "crates/engine/sidecar" }
 
-# todo: publish as crate
-file-feature-cache = { path = "crates/engine/file-feature-cache" }
-
 iced = { version = "0.14", features = ["image", "tokio"] }
 snora = { version = "0.8", default-features = false }
 
@@ -53,7 +49,6 @@ rayon = "1"
 rfd = "0.17"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sha2 = { version = "0.10", default-features = false }
 swdir = "0"
 thiserror = "2"
 tokio = { version = "1.49", default-features = false, features = ["fs", "sync"] }
@@ -61,7 +56,6 @@ webbrowser = "1"
 
 # sidecar
 # - media processor
-ffmpeg-sidecar = { version = "2.4", features = ["named_pipes"] }
 
 # ai
 # candle series is defined in sub-crate because virtual manifest doesn't support [target] (os-specific) sections
@@ -73,9 +67,12 @@ reqwest = { version = "0.13", default-features = false, features = ["blocking", 
 pt2safetensors = "0"
 
 # cache
-rusqlite = { version = "0.38", default-features = false, features = ["bundled"] }
-r2d2 = "0.8"
-r2d2_sqlite = "0.32"
+localcache = "0.20"
+blake3 = "1"
+# rusqlite is used only by the one-time v1 cache migration importer
+# (crates/cache/src/core/migrate.rs); pinned to the same major as
+# localcache's internal rusqlite to avoid a libsqlite3-sys links conflict.
+rusqlite = { version = "0.40", default-features = false, features = ["bundled"] }
 
 # tests
 tempfile = "3"

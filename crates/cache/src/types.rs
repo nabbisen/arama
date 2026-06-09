@@ -1,38 +1,52 @@
-//! ai-cache で使用する型定義。
+//! Public types of the `arama-cache` facade.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-/// キャッシュ照会の結果。
+use crate::Result;
+
+/// Result of a cache lookup.
 #[derive(Debug)]
 pub enum LookupResult<T> {
-    /// キャッシュヒット。
+    /// Cache hit: the file is unchanged and a payload was stored.
     Hit(T),
-    /// ファイルが変更されていた。古いキャッシュは削除済み。
+    /// The file changed since it was cached. The stored payload is no
+    /// longer valid and will be replaced on the next upsert.
     Invalidated,
-    /// キャッシュに登録されていない。
+    /// The file is not registered in the cache.
     Miss,
 }
 
+/// Read-side capability shared by the image and video readers.
+pub trait CacheRead {
+    /// `true` when the cache entry for `path` exists and is fresh.
+    fn check(&self, path: &Path) -> Result<bool>;
+    /// Batch variant of [`check`](CacheRead::check), parallelized.
+    fn check_all(&self, paths: &[&Path]) -> Vec<(PathBuf, Result<bool>)>;
+    /// Canonicalized paths of every registered entry.
+    fn list_paths(&self) -> Result<Vec<String>>;
+}
+
 // ---------------------------------------------------------------------------
-// 画像
+// Images
 // ---------------------------------------------------------------------------
 
-/// 画像キャッシュへの書き込みリクエスト。
+/// Write request for the image cache.
 #[derive(Debug)]
 pub struct UpsertImageRequest {
     pub path: PathBuf,
-    /// CLIP 特徴量ベクトル (1 枚 → 1 ベクトル)。`None` の場合は書き込まない。
+    /// CLIP feature vector (one per image). `None` preserves the stored
+    /// value.
     pub clip_vector: Option<Vec<f32>>,
 }
 
-/// 画像キャッシュエントリ。
+/// An image cache entry.
 #[derive(Clone, Debug)]
 pub struct ImageCacheEntry {
-    /// DB に保存された正規化済みパス。
+    /// Canonicalized path as stored in the database.
     pub path: String,
-    /// サムネイルファイルのパス。未生成の場合は `None`。
+    /// Thumbnail file path. `None` when not generated.
     pub thumbnail_path: Option<String>,
-    /// 特徴量。未登録の場合は `None`。
+    /// Feature vectors. `None` when not registered.
     pub features: Option<ImageFeatures>,
 }
 
@@ -42,20 +56,22 @@ pub struct ImageFeatures {
 }
 
 // ---------------------------------------------------------------------------
-// 動画
+// Videos
 // ---------------------------------------------------------------------------
 
-/// 動画キャッシュへの書き込みリクエスト。
+/// Write request for the video cache.
 #[derive(Debug)]
 pub struct UpsertVideoRequest {
     pub path: PathBuf,
-    /// コマ平均 CLIP 特徴量ベクトル。`None` の場合は既存の値を保持する。
+    /// Frame-averaged CLIP feature vector. `None` preserves the stored
+    /// value.
     pub clip_vector: Option<Vec<f32>>,
-    /// シーン平均 wav2vec2 特徴量ベクトル。`None` の場合は既存の値を保持する。
+    /// Scene-averaged wav2vec2 feature vector. `None` preserves the
+    /// stored value.
     pub wav2vec2_vector: Option<Vec<f32>>,
 }
 
-/// 動画キャッシュエントリ。
+/// A video cache entry.
 #[derive(Debug)]
 pub struct VideoCacheEntry {
     pub path: String,
@@ -65,8 +81,8 @@ pub struct VideoCacheEntry {
 
 #[derive(Debug, PartialEq)]
 pub struct VideoFeatures {
-    /// コマ平均 CLIP 特徴量ベクトル。
+    /// Frame-averaged CLIP feature vector.
     pub clip_vector: Option<Vec<f32>>,
-    /// シーン平均 wav2vec2 特徴量ベクトル。
+    /// Scene-averaged wav2vec2 feature vector.
     pub wav2vec2_vector: Option<Vec<f32>>,
 }

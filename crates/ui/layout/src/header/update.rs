@@ -1,7 +1,7 @@
 use iced::Task;
 
 use super::{
-    Header, dir_nav,
+    Header, dir_nav, settings_nav,
     message::{Event, Internal, Message},
 };
 
@@ -25,11 +25,11 @@ impl Header {
                     }
                 }
                 Internal::SettingsNavMessage(message) => {
-                    let task = self
-                        .settings_nav
-                        .update(message)
-                        .map(|x| Message::Internal(Internal::SettingsNavMessage(x)));
-                    return task;
+                    match message {
+                        settings_nav::message::Message::SettingsOpen => {
+                            return Task::done(Message::Event(Event::SettingsOpen));
+                        }
+                    }
                 }
             },
         }

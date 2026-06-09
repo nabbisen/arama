@@ -26,7 +26,7 @@ impl App {
                 if let Some(dir_node) = &self.dir_node {
                     let dir_node = dir_node.clone();
 
-                    Task::perform(
+                    let (task, handle) = Task::perform(
                         async move {
                             let writer =
                                 ImageCacheWriter::onetime(arama_cache::DbLocation::Custom(
@@ -49,6 +49,9 @@ impl App {
                         },
                         Message::ThumbnailCacheFinished,
                     )
+                    .abortable();
+                    self.task_handle = Some(handle);
+                    task
                 } else {
                     self.processing_off();
                     Task::none()
@@ -88,7 +91,7 @@ impl App {
                 }
 
                 if clip::model().ready().unwrap_or(false) {
-                    Task::perform(
+                    let (task, handle) = Task::perform(
                         async {
                             image_embedding(ret.into_iter().map(|x| x.0).collect())
                                 .await
@@ -96,7 +99,11 @@ impl App {
                         },
                         Message::EmbeddingCacheFinished,
                     )
+                    .abortable();
+                    self.task_handle = Some(handle);
+                    task
                 } else {
+                    self.task_handle = None;
                     self.processing_off();
                     Task::none()
                 }
@@ -106,6 +113,7 @@ impl App {
                     self.push_error_toast("Embedding error", err);
                 }
 
+                self.task_handle = None;
                 self.aside.set_processing(self.processing);
                 self.header
                     .set_embedding_cached(self.gallery.embedding_cached());
@@ -393,12 +401,13 @@ impl App {
 
         self.dir_node = Some(dir_node);
 
-        return if self.processing {
-            task
-        } else {
-            self.processing_on();
-            Task::batch([Task::done(Message::CacheRequire), task])
-        };
+        // Abort any running indexing task: the user switched directories,
+        // so the old result is no longer wanted.
+        if let Some(handle) = self.task_handle.take() {
+            handle.abort();
+        }
+        self.processing_on();
+        Task::batch([Task::done(Message::CacheRequire), task])
     }
 }
 

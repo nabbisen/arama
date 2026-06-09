@@ -1,67 +1,68 @@
-//! `VideoCacheWriter` / `VideoCacheReader` — 動画専用キャッシュハンドル。
+//! `VideoCacheWriter` / `VideoCacheReader` — video-specific cache handles.
+//!
+//! Backed by `localcache` (RFC 002). Same architecture as the image
+//! handles; video adds ffmpeg poster-thumbnail extraction and a second
+//! feature vector (wav2vec2). `None` fields in an upsert request preserve
+//! the stored value (the v1 SQL `COALESCE` semantics).
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use localcache::{CacheEntry, CacheStatus, ConnectionPool, ReadPool};
 use rayon::prelude::*;
-use rusqlite::OptionalExtension;
 
-use file_feature_cache::Result;
-use file_feature_cache::{CacheConfig, CacheRead, CacheWrite, CacheWriter, DbLocation};
-
-mod query;
-
-use crate::core::codec::{blob_to_vec, vec_to_blob};
-use crate::core::extension::MediaExtension;
+use crate::core::engine::{
+    CacheConfig, DbLocation, NAMESPACE_VIDEO, Result, VIDEO_PAYLOAD_VERSION, cache_options,
+    ensure_db_dir, ensure_schema, is_fresh, read_pool_size,
+};
+use crate::core::payload::VideoPayload;
 use crate::core::thumbnail::{generate_video_thumbnail, thumbnail_dest};
-use crate::types::{LookupResult, UpsertVideoRequest, VideoCacheEntry, VideoFeatures};
-use query::{all, all_in_dir, all_in_dir_and_sub_dirs};
+use crate::types::{CacheRead, LookupResult, UpsertVideoRequest, VideoCacheEntry, VideoFeatures};
 
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct VideoCacheConfig {
     pub cache_config: CacheConfig,
-    /// ffmpeg 実行ファイルのパス。`None` の場合はサムネイル生成をスキップする。
+    /// Path of the ffmpeg executable. `None` skips thumbnail generation.
     pub ffmpeg_path: Option<PathBuf>,
-}
-
-impl Default for VideoCacheConfig {
-    fn default() -> Self {
-        Self {
-            cache_config: CacheConfig::default(),
-            ffmpeg_path: None,
-        }
-    }
 }
 
 // ---------------------------------------------------------------------------
 // VideoCacheWriter
 // ---------------------------------------------------------------------------
 
-/// 動画ファイル専用の更新ハンドル。
+/// Update handle for video files.
 ///
-/// - サムネイルを ffmpeg で自動生成する (5 秒時点、失敗時は 0 秒にフォールバック)
-/// - `Clone` のコストは `Arc` のカウントアップのみ
+/// - Generates poster thumbnails with ffmpeg (frame at 5 s, falling back
+///   to 0 s).
+/// - `Clone` only bumps `Arc` counters.
 #[derive(Clone)]
 pub struct VideoCacheWriter {
-    writer: CacheWriter<MediaExtension>,
+    write: ConnectionPool<VideoPayload>,
+    read: ReadPool<VideoPayload>,
     config: Arc<VideoCacheConfig>,
 }
 
 impl VideoCacheWriter {
-    fn build(writer: CacheWriter<MediaExtension>, config: VideoCacheConfig) -> Self {
-        Self {
-            writer,
-            config: Arc::new(config),
-        }
-    }
-
     pub fn as_session(config: VideoCacheConfig) -> Result<Self> {
-        let writer = CacheWriter::as_session(config.cache_config.clone())?;
-        Ok(Self::build(writer, config))
+        let options = cache_options(
+            &config.cache_config,
+            NAMESPACE_VIDEO,
+            VIDEO_PAYLOAD_VERSION,
+        );
+        // Create the parent directory before localcache touches SQLite.
+        ensure_db_dir(&options)?;
+        let write = ConnectionPool::open(options.clone())?;
+        write.with(|e| e.purge_stale_versions())?;
+        let read = ReadPool::open(options, read_pool_size(&config.cache_config))?;
+        Ok(Self {
+            write,
+            read,
+            config: Arc::new(config),
+        })
     }
 
     pub fn onetime(
@@ -69,60 +70,69 @@ impl VideoCacheWriter {
         thumbnail_dir: Option<PathBuf>,
         ffmpeg_path: Option<PathBuf>,
     ) -> Result<Self> {
-        let writer = CacheWriter::onetime(location)?;
-        let config = VideoCacheConfig {
+        Self::as_session(VideoCacheConfig {
             cache_config: CacheConfig {
+                db_location: location,
                 thumbnail_dir,
                 ..CacheConfig::default()
             },
             ffmpeg_path,
-        };
-        Ok(Self::build(writer, config))
+        })
     }
 
     // -----------------------------------------------------------------------
-    // 更新 API
+    // Update API
     // -----------------------------------------------------------------------
 
     pub fn upsert(&self, req: UpsertVideoRequest) -> Result<()> {
-        let id = self.writer.refresh(&req.path)?;
-        self.write_features(id, &req)
+        let status = self.write.check_status(&req.path)?;
+        let thumbnail = self.ensure_thumbnail(&req.path, &status)?;
+        self.commit(&req, Prepared { status, thumbnail })
     }
 
-    /// `upsert` の一括版。各リクエストに対して `(PathBuf, Result<()>)` を返す。
-    ///
-    /// ## 並列化戦略
-    ///
-    /// - **fingerprint 計算**: rayon で並列実行
-    /// - **DB 書き込み**: write pool の制約に従い直列で処理
-    ///
-    /// 個々のエラーは `Err` として各要素に格納され、他のリクエストの処理は継続する。
+    /// Batch variant of `upsert`. Returns `(PathBuf, Result<()>)` per
+    /// request. Freshness checks and thumbnail extraction run in
+    /// parallel; writes are serialized; fresh nothing-new entries are
+    /// skipped without a write. Individual errors are stored per
+    /// element; other requests continue.
     pub fn upsert_all(&self, reqs: Vec<UpsertVideoRequest>) -> Vec<(PathBuf, Result<()>)> {
-        let paths: Vec<&Path> = reqs.iter().map(|r| r.path.as_path()).collect();
-        let id_results = self.writer.refresh_all(&paths);
+        let prepared: Vec<(UpsertVideoRequest, Result<Prepared>)> = reqs
+            .into_par_iter()
+            .map(|req| {
+                let prep = (|| {
+                    let status = self.read.check_status(&req.path)?;
+                    let thumbnail = self.ensure_thumbnail(&req.path, &status)?;
+                    Ok(Prepared { status, thumbnail })
+                })();
+                (req, prep)
+            })
+            .collect();
 
-        id_results
+        prepared
             .into_iter()
-            .zip(reqs)
-            .map(|((path, id_result), req)| {
-                let result = id_result.and_then(|id| self.write_features(id, &req));
+            .map(|(req, prep)| {
+                let path = req.path.clone();
+                let result = prep.and_then(|p| self.commit(&req, p));
                 (path, result)
             })
             .collect()
     }
 
     pub fn delete(&self, path: &Path) -> Result<bool> {
-        self.writer.delete(path)
+        Ok(self.write.remove(path)?)
     }
 
     pub fn list_paths(&self) -> Result<Vec<String>> {
-        self.writer.list_paths()
+        let keys = self.write.with(|e| e.keys(None))?;
+        Ok(keys
+            .into_iter()
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect())
     }
 
     pub fn as_reader(&self) -> VideoCacheReader {
         VideoCacheReader {
-            reader: self.writer.as_reader(),
-            config: self.config.clone(),
+            read: self.read.clone(),
         }
     }
 
@@ -131,174 +141,120 @@ impl VideoCacheWriter {
     }
 
     // -----------------------------------------------------------------------
-    // 内部
+    // Internal
     // -----------------------------------------------------------------------
 
-    fn write_features(&self, id: i64, req: &UpsertVideoRequest) -> Result<()> {
-        let conn = self.writer.write_conn()?;
+    /// Merge with the existing payload (when fresh) and write. `None`
+    /// vectors in the request preserve stored values, matching the v1
+    /// `COALESCE` update semantics.
+    fn commit(&self, req: &UpsertVideoRequest, prep: Prepared) -> Result<()> {
+        let existing = if is_fresh(&prep.status) {
+            self.write.get(&req.path)?.map(|e| e.payload)
+        } else {
+            None
+        };
 
-        if let (Some(ffmpeg), Some(thumb_dir)) = (
+        // Steady-state skip: fresh entry, no new vectors, thumbnail
+        // already recorded.
+        if is_fresh(&prep.status) && req.clip_vector.is_none() && req.wav2vec2_vector.is_none() {
+            if let Some(p) = &existing {
+                if prep.thumbnail.is_none() || p.thumbnail_path == prep.thumbnail {
+                    return Ok(());
+                }
+            }
+        }
+
+        let mut payload = existing.unwrap_or_default();
+        if let Some(t) = prep.thumbnail {
+            payload.thumbnail_path = Some(t);
+        }
+        if let Some(v) = &req.clip_vector {
+            payload.clip_vector = Some(v.clone());
+        }
+        if let Some(v) = &req.wav2vec2_vector {
+            payload.wav2vec2_vector = Some(v.clone());
+        }
+        self.write.set(&req.path, &payload)?;
+        Ok(())
+    }
+
+    /// Extract (or reuse) the poster thumbnail for `path`. Skipped when
+    /// either `ffmpeg_path` or `thumbnail_dir` is unset. Regenerated when
+    /// the file changed.
+    fn ensure_thumbnail(&self, path: &Path, status: &CacheStatus) -> Result<Option<String>> {
+        let (Some(ffmpeg), Some(thumb_dir)) = (
             &self.config.ffmpeg_path,
             &self.config.cache_config.thumbnail_dir,
-        ) {
-            let dest = thumbnail_dest(thumb_dir, id);
-            if !dest.exists() {
-                generate_video_thumbnail(&req.path, &dest, ffmpeg)?;
-            }
-            conn.execute(
-                "INSERT INTO thumbnails (id, thumbnail_path) VALUES (?1, ?2)
-                 ON CONFLICT(id) DO UPDATE SET thumbnail_path = excluded.thumbnail_path",
-                rusqlite::params![id, dest.to_string_lossy().as_ref()],
-            )?;
+        ) else {
+            return Ok(None);
+        };
+        let dest = thumbnail_dest(thumb_dir, path)?;
+        if !dest.exists() || !is_fresh(status) {
+            generate_video_thumbnail(path, &dest, ffmpeg)?;
         }
-
-        let clip_blob = req.clip_vector.as_deref().map(vec_to_blob);
-        let wav_blob = req.wav2vec2_vector.as_deref().map(vec_to_blob);
-
-        if clip_blob.is_some() || wav_blob.is_some() {
-            conn.execute(
-                "INSERT INTO video_features (id, clip_vector, wav2vec2_vector)
-                 VALUES (?1, ?2, ?3)
-                 ON CONFLICT(id) DO UPDATE
-                     SET clip_vector     = COALESCE(excluded.clip_vector,     clip_vector),
-                         wav2vec2_vector = COALESCE(excluded.wav2vec2_vector, wav2vec2_vector)",
-                rusqlite::params![id, clip_blob, wav_blob],
-            )?;
-        }
-
-        Ok(())
+        Ok(Some(dest.to_string_lossy().into_owned()))
     }
 }
 
-// ---------------------------------------------------------------------------
-// CacheWrite 実装
-// ---------------------------------------------------------------------------
-
-impl CacheWrite for VideoCacheWriter {
-    type Reader = VideoCacheReader;
-
-    fn as_session(cache_config: CacheConfig) -> Result<Self> {
-        VideoCacheWriter::as_session(VideoCacheConfig {
-            cache_config,
-            ffmpeg_path: None,
-        })
-    }
-
-    fn onetime(location: DbLocation) -> Result<Self> {
-        VideoCacheWriter::onetime(location, None, None)
-    }
-
-    fn as_reader(&self) -> VideoCacheReader {
-        VideoCacheWriter::as_reader(self)
-    }
-
-    fn refresh(&self, path: &Path) -> Result<i64> {
-        self.writer.refresh(path)
-    }
-
-    fn refresh_all(&self, paths: &[&Path]) -> Vec<(PathBuf, Result<i64>)> {
-        self.writer.refresh_all(paths)
-    }
-
-    fn delete(&self, path: &Path) -> Result<bool> {
-        VideoCacheWriter::delete(self, path)
-    }
-
-    fn list_paths(&self) -> Result<Vec<String>> {
-        VideoCacheWriter::list_paths(self)
-    }
+/// Intermediate result of the parallel preparation phase.
+struct Prepared {
+    status: CacheStatus,
+    thumbnail: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
 // VideoCacheReader
 // ---------------------------------------------------------------------------
 
-/// 動画ファイル専用の参照ハンドル。`Clone` のコストは `Arc` のカウントアップのみ。
+/// Read-only handle for video files. `Clone` only bumps `Arc` counters;
+/// clones share the same read pool and may be used from many threads.
 #[derive(Clone)]
 pub struct VideoCacheReader {
-    reader: file_feature_cache::CacheReader<MediaExtension>,
-    config: Arc<VideoCacheConfig>,
+    read: ReadPool<VideoPayload>,
 }
 
 impl VideoCacheReader {
     pub fn as_session(config: VideoCacheConfig) -> Result<Self> {
-        let reader = file_feature_cache::CacheReader::as_session(config.cache_config.clone())?;
-        Ok(Self {
-            reader,
-            config: Arc::new(config),
-        })
+        let options = cache_options(
+            &config.cache_config,
+            NAMESPACE_VIDEO,
+            VIDEO_PAYLOAD_VERSION,
+        );
+        // Create the parent directory before localcache touches SQLite.
+        ensure_db_dir(&options)?;
+        ensure_schema::<VideoPayload>(&options)?;
+        let read = ReadPool::open(options, read_pool_size(&config.cache_config))?;
+        Ok(Self { read })
     }
 
     pub fn onetime(location: DbLocation) -> Result<Self> {
-        let reader = file_feature_cache::CacheReader::onetime(location)?;
-        Ok(Self {
-            reader,
-            config: Arc::new(VideoCacheConfig::default()),
+        Self::as_session(VideoCacheConfig {
+            cache_config: CacheConfig {
+                db_location: location,
+                ..CacheConfig::default()
+            },
+            ffmpeg_path: None,
         })
     }
 
     pub fn lookup(&self, path: &Path) -> Result<LookupResult<VideoCacheEntry>> {
         let canonical = match path.canonicalize() {
-            Ok(p) => p.to_string_lossy().into_owned(),
+            Ok(p) => p,
             Err(_) => return Ok(LookupResult::Miss),
         };
 
-        let id = {
-            let conn = self.reader.read_conn()?;
-            conn.query_row(
-                "SELECT id FROM files WHERE path = ?1",
-                [canonical.as_str()],
-                |r| r.get::<_, i64>(0),
-            )
-            .optional()?
-        };
-        let id = match id {
-            None => return Ok(LookupResult::Miss),
-            Some(id) => id,
-        };
-
-        if !self.reader.check(path)? {
-            return Ok(LookupResult::Invalidated);
+        match self.read.check_status(&canonical)? {
+            CacheStatus::Missing => Ok(LookupResult::Miss),
+            CacheStatus::Stale => Ok(LookupResult::Invalidated),
+            CacheStatus::Fresh => match self.read.get(&canonical)? {
+                None => Ok(LookupResult::Miss),
+                Some(entry) => Ok(LookupResult::Hit(to_video_entry(entry))),
+            },
         }
-
-        let conn = self.reader.read_conn()?;
-
-        let thumbnail_path = conn
-            .query_row(
-                "SELECT thumbnail_path FROM thumbnails WHERE id = ?1",
-                [id],
-                |r| r.get::<_, String>(0),
-            )
-            .optional()?;
-
-        let features = conn
-            .query_row(
-                "SELECT clip_vector, wav2vec2_vector FROM video_features WHERE id = ?1",
-                [id],
-                |r| {
-                    Ok((
-                        r.get::<_, Option<Vec<u8>>>(0)?,
-                        r.get::<_, Option<Vec<u8>>>(1)?,
-                    ))
-                },
-            )
-            .optional()?
-            .map(|(clip_raw, wav_raw)| -> Result<VideoFeatures> {
-                Ok(VideoFeatures {
-                    clip_vector: clip_raw.map(|b| blob_to_vec(&b)).transpose()?,
-                    wav2vec2_vector: wav_raw.map(|b| blob_to_vec(&b)).transpose()?,
-                })
-            })
-            .transpose()?;
-
-        Ok(LookupResult::Hit(VideoCacheEntry {
-            path: canonical,
-            thumbnail_path,
-            features,
-        }))
     }
 
-    /// `lookup` の一括版。read pool の複数コネクションを使って rayon で並列実行する。
+    /// Batch variant of `lookup`, parallelized with rayon over the
+    /// read pool's connections.
     pub fn lookup_all(
         &self,
         paths: &[&Path],
@@ -310,118 +266,78 @@ impl VideoCacheReader {
     }
 
     pub fn check(&self, path: &Path) -> Result<bool> {
-        self.reader.check(path)
+        Ok(is_fresh(&self.read.check_status(path)?))
     }
 
     pub fn list_paths(&self) -> Result<Vec<String>> {
-        self.reader.list_paths()
+        Ok(self
+            .read
+            .keys(None)?
+            .into_iter()
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect())
     }
 
     pub fn all(&self) -> Result<Vec<Result<VideoCacheEntry>>> {
-        let conn = self.reader.read_conn()?;
-        let ret = all(&conn);
-        match ret {
-            Ok(x) => Ok(x
-                .into_iter()
-                .map(|x| match x {
-                    Ok(x) => {
-                        let features = if x.image_features.is_some() || x.audio_features.is_some() {
-                            Some(VideoFeatures {
-                                clip_vector: x.image_features,
-                                wav2vec2_vector: x.audio_features,
-                            })
-                        } else {
-                            None
-                        };
-
-                        Ok(VideoCacheEntry {
-                            path: x.path,
-                            thumbnail_path: x.thumbnail_path,
-                            features,
-                        })
-                    }
-                    Err(err) => Err(err),
-                })
-                .collect::<Vec<_>>()),
-            Err(err) => Err(err),
-        }
+        let entries = self.read.query_run(|q| q)?;
+        Ok(entries.into_iter().map(|e| Ok(to_video_entry(e))).collect())
     }
 
     pub fn all_in_dir(&self, path: &Path) -> Result<Vec<Result<VideoCacheEntry>>> {
-        let conn = self.reader.read_conn()?;
-        let ret = all_in_dir(path, &conn);
-        match ret {
-            Ok(x) => Ok(x
-                .into_iter()
-                .map(|x| match x {
-                    Ok(x) => {
-                        let features = if x.image_features.is_some() || x.audio_features.is_some() {
-                            Some(VideoFeatures {
-                                clip_vector: x.image_features,
-                                wav2vec2_vector: x.audio_features,
-                            })
-                        } else {
-                            None
-                        };
-
-                        Ok(VideoCacheEntry {
-                            path: x.path,
-                            thumbnail_path: x.thumbnail_path,
-                            features,
-                        })
-                    }
-                    Err(err) => Err(err),
-                })
-                .collect::<Vec<_>>()),
-            Err(err) => Err(err),
-        }
+        let dir = dir_of(path);
+        let entries = self.read.query_run(|q| q.path_in_dir(dir, false))?;
+        Ok(entries.into_iter().map(|e| Ok(to_video_entry(e))).collect())
     }
 
     pub fn all_in_dir_and_sub_dirs(&self, path: &Path) -> Result<Vec<Result<VideoCacheEntry>>> {
-        let conn = self.reader.read_conn()?;
-        let ret = all_in_dir_and_sub_dirs(path, &conn);
-        match ret {
-            Ok(x) => Ok(x
-                .into_iter()
-                .map(|x| match x {
-                    Ok(x) => {
-                        let features = if x.image_features.is_some() || x.audio_features.is_some() {
-                            Some(VideoFeatures {
-                                clip_vector: x.image_features,
-                                wav2vec2_vector: x.audio_features,
-                            })
-                        } else {
-                            None
-                        };
+        let dir = dir_of(path);
+        let entries = self.read.query_run(|q| q.path_in_dir(dir, true))?;
+        Ok(entries.into_iter().map(|e| Ok(to_video_entry(e))).collect())
+    }
+}
 
-                        Ok(VideoCacheEntry {
-                            path: x.path,
-                            thumbnail_path: x.thumbnail_path,
-                            features,
-                        })
-                    }
-                    Err(err) => Err(err),
-                })
-                .collect::<Vec<_>>()),
-            Err(err) => Err(err),
-        }
+impl CacheRead for VideoCacheReader {
+    fn check(&self, path: &Path) -> Result<bool> {
+        VideoCacheReader::check(self, path)
+    }
+
+    fn check_all(&self, paths: &[&Path]) -> Vec<(PathBuf, Result<bool>)> {
+        paths
+            .par_iter()
+            .map(|p| (p.to_path_buf(), self.check(p)))
+            .collect()
+    }
+
+    fn list_paths(&self) -> Result<Vec<String>> {
+        VideoCacheReader::list_paths(self)
     }
 }
 
 // ---------------------------------------------------------------------------
-// CacheRead 実装
+// Helpers
 // ---------------------------------------------------------------------------
 
-impl CacheRead for VideoCacheReader {
-    fn check(&self, path: &Path) -> Result<bool> {
-        self.reader.check(path)
+fn dir_of(path: &Path) -> &Path {
+    if path.is_dir() {
+        path
+    } else {
+        path.parent().unwrap_or(path)
     }
+}
 
-    fn check_all(&self, paths: &[&Path]) -> Vec<(PathBuf, Result<bool>)> {
-        self.reader.check_all(paths)
-    }
+// ---------------------------------------------------------------------------
+// Mapping
+// ---------------------------------------------------------------------------
 
-    fn list_paths(&self) -> Result<Vec<String>> {
-        self.reader.list_paths()
+fn to_video_entry(entry: CacheEntry<VideoPayload>) -> VideoCacheEntry {
+    let has_features =
+        entry.payload.clip_vector.is_some() || entry.payload.wav2vec2_vector.is_some();
+    VideoCacheEntry {
+        path: entry.path.to_string_lossy().into_owned(),
+        thumbnail_path: entry.payload.thumbnail_path,
+        features: has_features.then_some(VideoFeatures {
+            clip_vector: entry.payload.clip_vector,
+            wav2vec2_vector: entry.payload.wav2vec2_vector,
+        }),
     }
 }

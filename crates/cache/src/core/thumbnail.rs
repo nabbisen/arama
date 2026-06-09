@@ -1,26 +1,33 @@
-//! サムネイル生成ロジック。
+//! Thumbnail generation.
 //!
-//! - **画像**: `image` クレートでリサイズ (224×224 JPEG)
-//! - **動画**: `ffmpeg` コマンドで 5 秒時点のフレームを抽出。
-//!             失敗した場合は 0 秒にフォールバックする。
+//! - **Images**: resized with the `image` crate (224×224 JPEG, Lanczos3).
+//! - **Videos**: a frame extracted with the `ffmpeg` command at the
+//!   5-second mark, falling back to 0 seconds on failure.
+//!
+//! Thumbnails are named by a BLAKE3 hash of the source file's canonical
+//! path: `<thumbnail_dir>/<hash16>.jpg`. (v1 named them by database row
+//! id; row ids no longer exist under `localcache`.)
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use file_feature_cache::CacheError;
+use super::engine::CacheError;
 
-/// CLIP モデルの標準入力サイズ (px)。
+/// Standard CLIP model input size (px).
 const THUMBNAIL_SIZE: u32 = 224;
 
+/// Number of hex characters of the path hash used in the file name.
+const THUMBNAIL_NAME_LEN: usize = 16;
+
 // ---------------------------------------------------------------------------
-// 画像サムネイル
+// Image thumbnails
 // ---------------------------------------------------------------------------
 
-/// 画像ファイルからサムネイルを生成して `dest` に保存する。
+/// Generate a thumbnail from an image file and save it to `dest`.
 ///
-/// - フォーマット: JPEG
-/// - サイズ: `THUMBNAIL_SIZE` × `THUMBNAIL_SIZE` (224 × 224)
-/// - リサイズフィルタ: Lanczos3
+/// - Format: JPEG
+/// - Size: `THUMBNAIL_SIZE` × `THUMBNAIL_SIZE` (224 × 224)
+/// - Resize filter: Lanczos3
 pub(crate) fn generate_image_thumbnail(src: &Path, dest: &Path) -> Result<(), CacheError> {
     ensure_parent(dest)?;
 
@@ -40,13 +47,13 @@ pub(crate) fn generate_image_thumbnail(src: &Path, dest: &Path) -> Result<(), Ca
 }
 
 // ---------------------------------------------------------------------------
-// 動画サムネイル
+// Video thumbnails
 // ---------------------------------------------------------------------------
 
-/// 動画ファイルからサムネイルを生成して `dest` に保存する。
+/// Generate a thumbnail from a video file and save it to `dest`.
 ///
-/// 5 秒時点のフレームを試み、失敗した場合は 0 秒にフォールバックする。
-/// どちらも失敗した場合は `Err(CacheError::ThumbnailGenerationFailed)` を返す。
+/// Tries the frame at the 5-second mark; falls back to 0 seconds.
+/// Returns `Err(CacheError::ThumbnailGenerationFailed)` when both fail.
 pub(crate) fn generate_video_thumbnail(
     src: &Path,
     dest: &Path,
@@ -54,12 +61,12 @@ pub(crate) fn generate_video_thumbnail(
 ) -> Result<(), CacheError> {
     ensure_parent(dest)?;
 
-    // 5 秒時点を試みる
+    // Try the 5-second mark first.
     if run_ffmpeg(ffmpeg_path, src, dest, "00:00:05").is_ok() && dest.exists() {
         return Ok(());
     }
 
-    // 0 秒にフォールバック
+    // Fall back to 0 seconds.
     if run_ffmpeg(ffmpeg_path, src, dest, "00:00:00").is_ok() && dest.exists() {
         return Ok(());
     }
@@ -88,7 +95,7 @@ fn run_ffmpeg(
             &format!(
                 "scale={THUMBNAIL_SIZE}:{THUMBNAIL_SIZE}:force_original_aspect_ratio=decrease"
             ),
-            "-y", // 既存ファイルを上書き
+            "-y", // overwrite an existing file
             dest.to_str().unwrap_or(""),
         ])
         .output()
@@ -104,21 +111,35 @@ fn run_ffmpeg(
 }
 
 // ---------------------------------------------------------------------------
-// 共通ユーティリティ
+// Shared utilities
 // ---------------------------------------------------------------------------
 
-/// サムネイルの保存先パスを決定する: `<thumbnail_dir>/<file_id>.jpg`
-pub(crate) fn thumbnail_dest(thumbnail_dir: &Path, file_id: i64) -> PathBuf {
-    thumbnail_dir.join(format!("{file_id}.jpg"))
+/// Thumbnail destination for a source file:
+/// `<thumbnail_dir>/<blake3(canonical_path)[..16]>.jpg`.
+///
+/// The source file must exist (its path is canonicalized to make the name
+/// stable across relative/absolute spellings).
+pub(crate) fn thumbnail_dest(thumbnail_dir: &Path, src: &Path) -> Result<PathBuf, CacheError> {
+    let canonical = src.canonicalize().map_err(|e| CacheError::io(src, e))?;
+    Ok(thumbnail_dest_for_canonical(
+        thumbnail_dir,
+        &canonical.to_string_lossy(),
+    ))
 }
 
-/// 親ディレクトリを作成する。
+/// Same as [`thumbnail_dest`] for an already-canonicalized path string.
+/// Used by the v1 migration, where the source file's existence has
+/// already been verified.
+pub(crate) fn thumbnail_dest_for_canonical(thumbnail_dir: &Path, canonical: &str) -> PathBuf {
+    let hash = blake3::hash(canonical.as_bytes());
+    let hex = hash.to_hex();
+    thumbnail_dir.join(format!("{}.jpg", &hex.as_str()[..THUMBNAIL_NAME_LEN]))
+}
+
+/// Create the parent directory of `path` when missing.
 fn ensure_parent(path: &Path) -> Result<(), CacheError> {
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| CacheError::Io {
-            path: parent.to_string_lossy().into_owned(),
-            source: e,
-        })?;
+        std::fs::create_dir_all(parent).map_err(|e| CacheError::io(parent, e))?;
     }
     Ok(())
 }

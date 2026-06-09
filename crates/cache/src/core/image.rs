@@ -1,138 +1,136 @@
-//! `ImageCacheWriter` / `ImageCacheReader` — 画像専用キャッシュハンドル。
+//! `ImageCacheWriter` / `ImageCacheReader` — image-specific cache handles.
+//!
+//! Backed by `localcache` (RFC 002): a [`ConnectionPool`] serializes
+//! writes; a [`ReadPool`] of `read_conns` read-only connections serves
+//! parallel lookups. Both are `Arc`-based, so `Clone` is cheap.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use localcache::{CacheEntry, CacheStatus, ConnectionPool, ReadPool};
 use rayon::prelude::*;
-use rusqlite::OptionalExtension;
 
-use file_feature_cache::Result;
-use file_feature_cache::{CacheConfig, CacheRead, CacheWrite, CacheWriter, DbLocation};
-
-mod query;
-
-use crate::core::codec::{blob_to_vec, vec_to_blob};
-use crate::core::extension::MediaExtension;
+use crate::core::engine::{
+    CacheConfig, DbLocation, IMAGE_PAYLOAD_VERSION, NAMESPACE_IMAGE, Result, cache_options,
+    ensure_db_dir, ensure_schema, is_fresh, read_pool_size,
+};
+use crate::core::payload::ImagePayload;
 use crate::core::thumbnail::{generate_image_thumbnail, thumbnail_dest};
-use crate::types::{ImageCacheEntry, ImageFeatures, LookupResult, UpsertImageRequest};
-use query::{all, all_in_dir, all_in_dir_and_sub_dirs};
+use crate::types::{CacheRead, ImageCacheEntry, ImageFeatures, LookupResult, UpsertImageRequest};
 
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ImageCacheConfig {
     pub cache_config: CacheConfig,
-}
-
-impl Default for ImageCacheConfig {
-    fn default() -> Self {
-        Self {
-            cache_config: CacheConfig::default(),
-        }
-    }
 }
 
 // ---------------------------------------------------------------------------
 // ImageCacheWriter
 // ---------------------------------------------------------------------------
 
-/// 画像ファイル専用の更新ハンドル。
+/// Update handle for image files.
 ///
-/// - サムネイルを `image` クレートで自動生成する (224×224 JPEG)
-/// - `Clone` のコストは `Arc` のカウントアップのみ
+/// - Generates thumbnails with the `image` crate (224×224 JPEG).
+/// - `Clone` only bumps `Arc` counters.
 #[derive(Clone)]
 pub struct ImageCacheWriter {
-    writer: CacheWriter<MediaExtension>,
+    write: ConnectionPool<ImagePayload>,
+    read: ReadPool<ImagePayload>,
     config: Arc<ImageCacheConfig>,
 }
 
 impl ImageCacheWriter {
-    fn build(writer: CacheWriter<MediaExtension>, config: ImageCacheConfig) -> Self {
-        Self {
-            writer,
-            config: Arc::new(config),
-        }
-    }
-
     pub fn as_session(config: ImageCacheConfig) -> Result<Self> {
-        let writer = CacheWriter::as_session(config.cache_config.clone())?;
-        Ok(Self::build(writer, config))
+        let options = cache_options(
+            &config.cache_config,
+            NAMESPACE_IMAGE,
+            IMAGE_PAYLOAD_VERSION,
+        );
+        // Create the parent directory before localcache touches SQLite.
+        ensure_db_dir(&options)?;
+        // The writable engine is opened first: it creates the database
+        // file and schema, which the read-only pool cannot.
+        let write = ConnectionPool::open(options.clone())?;
+        // Entries written by an older pipeline version are dead weight.
+        write.with(|e| e.purge_stale_versions())?;
+        let read = ReadPool::open(options, read_pool_size(&config.cache_config))?;
+        Ok(Self {
+            write,
+            read,
+            config: Arc::new(config),
+        })
     }
 
     pub fn onetime(location: DbLocation) -> Result<Self> {
-        let writer = CacheWriter::onetime(location)?;
-        Ok(Self::build(writer, ImageCacheConfig::default()))
+        Self::as_session(ImageCacheConfig {
+            cache_config: CacheConfig {
+                db_location: location,
+                ..CacheConfig::default()
+            },
+        })
     }
 
     // -----------------------------------------------------------------------
-    // 更新 API
+    // Update API
     // -----------------------------------------------------------------------
 
     pub fn upsert(&self, req: UpsertImageRequest) -> Result<()> {
-        let id = self.writer.refresh(&req.path)?;
-        let conn = self.writer.write_conn()?;
-
-        if let Some(thumb_dir) = &self.config.cache_config.thumbnail_dir {
-            let dest = thumbnail_dest(thumb_dir, id);
-            if !dest.exists() {
-                generate_image_thumbnail(&req.path, &dest)?;
-            }
-            conn.execute(
-                "INSERT INTO thumbnails (id, thumbnail_path) VALUES (?1, ?2)
-                 ON CONFLICT(id) DO UPDATE SET thumbnail_path = excluded.thumbnail_path",
-                rusqlite::params![id, dest.to_string_lossy().as_ref()],
-            )?;
-        }
-
-        if let Some(v) = &req.clip_vector {
-            conn.execute(
-                "INSERT INTO image_features (id, clip_vector) VALUES (?1, ?2)
-                 ON CONFLICT(id) DO UPDATE SET clip_vector = excluded.clip_vector",
-                rusqlite::params![id, vec_to_blob(v)],
-            )?;
-        }
-
-        Ok(())
+        let status = self.write.check_status(&req.path)?;
+        self.write_payload(&req, status)
     }
 
-    /// `upsert` の一括版。各リクエストに対して `(PathBuf, Result<()>)` を返す。
+    /// Batch variant of `upsert`. Returns `(PathBuf, Result<()>)` per
+    /// request.
     ///
-    /// ## 並列化戦略
+    /// ## Parallelization strategy
     ///
-    /// - **fingerprint 計算・サムネイル生成**: rayon で並列実行
-    /// - **DB 書き込み**: write pool の制約に従い直列で処理
+    /// - **Freshness checks and thumbnail generation** run in parallel
+    ///   (rayon over the read pool).
+    /// - **Database writes** are serialized on the write connection.
+    /// - Entries that are already fresh and carry nothing new are
+    ///   skipped entirely — the steady-state startup pass over an
+    ///   unchanged library performs no writes and no hashing.
     ///
-    /// 個々のエラーは `Err` として各要素に格納され、他のリクエストの処理は継続する。
+    /// Individual errors are stored per element; other requests continue.
     pub fn upsert_all(&self, reqs: Vec<UpsertImageRequest>) -> Vec<(PathBuf, Result<()>)> {
-        // ① refresh_all で fingerprint 計算を並列化し、id を取得する
-        let paths: Vec<&Path> = reqs.iter().map(|r| r.path.as_path()).collect();
-        let id_results = self.writer.refresh_all(&paths);
+        // Phase 1 (parallel): freshness + thumbnail generation.
+        let prepared: Vec<(UpsertImageRequest, Result<Prepared>)> = reqs
+            .into_par_iter()
+            .map(|req| {
+                let prep = self.prepare(&req);
+                (req, prep)
+            })
+            .collect();
 
-        // ② id_results と reqs を zip して DB 書き込みを直列処理
-        id_results
+        // Phase 2 (serial): payload merge + write.
+        prepared
             .into_iter()
-            .zip(reqs)
-            .map(|((path, id_result), req)| {
-                let result = id_result.and_then(|id| self.write_features(id, &req));
+            .map(|(req, prep)| {
+                let path = req.path.clone();
+                let result = prep.and_then(|p| self.commit(&req, p));
                 (path, result)
             })
             .collect()
     }
 
     pub fn delete(&self, path: &Path) -> Result<bool> {
-        self.writer.delete(path)
+        Ok(self.write.remove(path)?)
     }
 
     pub fn list_paths(&self) -> Result<Vec<String>> {
-        self.writer.list_paths()
+        let keys = self.write.with(|e| e.keys(None))?;
+        Ok(keys
+            .into_iter()
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect())
     }
 
     pub fn as_reader(&self) -> ImageCacheReader {
         ImageCacheReader {
-            reader: self.writer.as_reader(),
-            config: self.config.clone(),
+            read: self.read.clone(),
         }
     }
 
@@ -141,154 +139,129 @@ impl ImageCacheWriter {
     }
 
     // -----------------------------------------------------------------------
-    // 内部
+    // Internal
     // -----------------------------------------------------------------------
 
-    /// id が確定した後の拡張テーブル書き込みを担う内部ヘルパー。
-    /// upsert と upsert_all の両方から呼ばれる。
-    fn write_features(&self, id: i64, req: &UpsertImageRequest) -> Result<()> {
-        let conn = self.writer.write_conn()?;
+    /// Parallel-safe preparation: freshness check (read pool) and
+    /// thumbnail generation. No write-connection access.
+    fn prepare(&self, req: &UpsertImageRequest) -> Result<Prepared> {
+        let status = self.read.check_status(&req.path)?;
+        let thumbnail = self.ensure_thumbnail(&req.path, &status)?;
+        Ok(Prepared { status, thumbnail })
+    }
 
-        if let Some(thumb_dir) = &self.config.cache_config.thumbnail_dir {
-            let dest = thumbnail_dest(thumb_dir, id);
-            if !dest.exists() {
-                generate_image_thumbnail(&req.path, &dest)?;
+    /// Serial commit: merge with the existing payload (when fresh) and
+    /// write. Skips the write entirely in the fresh, nothing-new case.
+    fn commit(&self, req: &UpsertImageRequest, prep: Prepared) -> Result<()> {
+        let existing = if is_fresh(&prep.status) {
+            self.write.get(&req.path)?.map(|e| e.payload)
+        } else {
+            None
+        };
+
+        // Steady-state skip: fresh entry, no new vector, thumbnail
+        // already recorded.
+        if is_fresh(&prep.status) && req.clip_vector.is_none() {
+            if let Some(p) = &existing {
+                if prep.thumbnail.is_none() || p.thumbnail_path == prep.thumbnail {
+                    return Ok(());
+                }
             }
-            conn.execute(
-                "INSERT INTO thumbnails (id, thumbnail_path) VALUES (?1, ?2)
-                 ON CONFLICT(id) DO UPDATE SET thumbnail_path = excluded.thumbnail_path",
-                rusqlite::params![id, dest.to_string_lossy().as_ref()],
-            )?;
         }
 
+        let mut payload = existing.unwrap_or_default();
+        if let Some(t) = prep.thumbnail {
+            payload.thumbnail_path = Some(t);
+        }
         if let Some(v) = &req.clip_vector {
-            conn.execute(
-                "INSERT INTO image_features (id, clip_vector) VALUES (?1, ?2)
-                 ON CONFLICT(id) DO UPDATE SET clip_vector = excluded.clip_vector",
-                rusqlite::params![id, vec_to_blob(v)],
-            )?;
+            payload.clip_vector = Some(v.clone());
         }
-
+        self.write.set(&req.path, &payload)?;
         Ok(())
+    }
+
+    /// Single-upsert path: thumbnail + merge + write in one call.
+    fn write_payload(&self, req: &UpsertImageRequest, status: CacheStatus) -> Result<()> {
+        let thumbnail = self.ensure_thumbnail(&req.path, &status)?;
+        self.commit(req, Prepared { status, thumbnail })
+    }
+
+    /// Generate (or reuse) the thumbnail for `path`, returning its
+    /// destination path string. A thumbnail is regenerated when the file
+    /// changed (`status != Fresh`), fixing the v1 behaviour of serving a
+    /// stale thumbnail after the source was modified.
+    fn ensure_thumbnail(&self, path: &Path, status: &CacheStatus) -> Result<Option<String>> {
+        let Some(thumb_dir) = &self.config.cache_config.thumbnail_dir else {
+            return Ok(None);
+        };
+        let dest = thumbnail_dest(thumb_dir, path)?;
+        if !dest.exists() || !is_fresh(status) {
+            generate_image_thumbnail(path, &dest)?;
+        }
+        Ok(Some(dest.to_string_lossy().into_owned()))
     }
 }
 
-// ---------------------------------------------------------------------------
-// CacheWrite 実装
-// ---------------------------------------------------------------------------
-
-impl CacheWrite for ImageCacheWriter {
-    type Reader = ImageCacheReader;
-
-    fn as_session(cache_config: CacheConfig) -> Result<Self> {
-        ImageCacheWriter::as_session(ImageCacheConfig { cache_config })
-    }
-
-    fn onetime(location: DbLocation) -> Result<Self> {
-        ImageCacheWriter::onetime(location)
-    }
-
-    fn as_reader(&self) -> ImageCacheReader {
-        ImageCacheWriter::as_reader(self)
-    }
-
-    fn refresh(&self, path: &Path) -> Result<i64> {
-        self.writer.refresh(path)
-    }
-
-    fn refresh_all(&self, paths: &[&Path]) -> Vec<(PathBuf, Result<i64>)> {
-        self.writer.refresh_all(paths)
-    }
-
-    fn delete(&self, path: &Path) -> Result<bool> {
-        ImageCacheWriter::delete(self, path)
-    }
-
-    fn list_paths(&self) -> Result<Vec<String>> {
-        ImageCacheWriter::list_paths(self)
-    }
+/// Intermediate result of the parallel preparation phase.
+struct Prepared {
+    status: CacheStatus,
+    thumbnail: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
 // ImageCacheReader
 // ---------------------------------------------------------------------------
 
-/// 画像ファイル専用の参照ハンドル。`Clone` のコストは `Arc` のカウントアップのみ。
+/// Read-only handle for image files. `Clone` only bumps `Arc` counters;
+/// clones share the same read pool and may be used from many threads.
 #[derive(Clone)]
 pub struct ImageCacheReader {
-    reader: file_feature_cache::CacheReader<MediaExtension>,
-    config: Arc<ImageCacheConfig>,
+    read: ReadPool<ImagePayload>,
 }
 
 impl ImageCacheReader {
     pub fn as_session(config: ImageCacheConfig) -> Result<Self> {
-        let reader = file_feature_cache::CacheReader::as_session(config.cache_config.clone())?;
-        Ok(Self {
-            reader,
-            config: Arc::new(config),
-        })
+        let options = cache_options(
+            &config.cache_config,
+            NAMESPACE_IMAGE,
+            IMAGE_PAYLOAD_VERSION,
+        );
+        // Create the parent directory before localcache touches SQLite.
+        ensure_db_dir(&options)?;
+        // A standalone reader may be the first handle to ever touch this
+        // database; make sure the schema exists before going read-only.
+        ensure_schema::<ImagePayload>(&options)?;
+        let read = ReadPool::open(options, read_pool_size(&config.cache_config))?;
+        Ok(Self { read })
     }
 
     pub fn onetime(location: DbLocation) -> Result<Self> {
-        let reader = file_feature_cache::CacheReader::onetime(location)?;
-        Ok(Self {
-            reader,
-            config: Arc::new(ImageCacheConfig::default()),
+        Self::as_session(ImageCacheConfig {
+            cache_config: CacheConfig {
+                db_location: location,
+                ..CacheConfig::default()
+            },
         })
     }
 
     pub fn lookup(&self, path: &Path) -> Result<LookupResult<ImageCacheEntry>> {
         let canonical = match path.canonicalize() {
-            Ok(p) => p.to_string_lossy().into_owned(),
+            Ok(p) => p,
             Err(_) => return Ok(LookupResult::Miss),
         };
 
-        let id = {
-            let conn = self.reader.read_conn()?;
-            conn.query_row(
-                "SELECT id FROM files WHERE path = ?1",
-                [canonical.as_str()],
-                |r| r.get::<_, i64>(0),
-            )
-            .optional()?
-        };
-        let id = match id {
-            None => return Ok(LookupResult::Miss),
-            Some(id) => id,
-        };
-
-        if !self.reader.check(path)? {
-            return Ok(LookupResult::Invalidated);
+        match self.read.check_status(&canonical)? {
+            CacheStatus::Missing => Ok(LookupResult::Miss),
+            CacheStatus::Stale => Ok(LookupResult::Invalidated),
+            CacheStatus::Fresh => match self.read.get(&canonical)? {
+                None => Ok(LookupResult::Miss),
+                Some(entry) => Ok(LookupResult::Hit(to_image_entry(entry))),
+            },
         }
-
-        let conn = self.reader.read_conn()?;
-
-        let thumbnail_path = conn
-            .query_row(
-                "SELECT thumbnail_path FROM thumbnails WHERE id = ?1",
-                [id],
-                |r| r.get::<_, String>(0),
-            )
-            .optional()?;
-
-        let features = conn
-            .query_row(
-                "SELECT clip_vector FROM image_features WHERE id = ?1",
-                [id],
-                |r| r.get::<_, Vec<u8>>(0),
-            )
-            .optional()?
-            .map(|b| blob_to_vec(&b).map(|v| ImageFeatures { clip_vector: v }))
-            .transpose()?;
-
-        Ok(LookupResult::Hit(ImageCacheEntry {
-            path: canonical,
-            thumbnail_path,
-            features,
-        }))
     }
 
-    /// `lookup` の一括版。read pool の複数コネクションを使って rayon で並列実行する。
+    /// Batch variant of `lookup`, parallelized with rayon over the
+    /// read pool's connections.
     pub fn lookup_all(
         &self,
         paths: &[&Path],
@@ -300,103 +273,90 @@ impl ImageCacheReader {
     }
 
     pub fn check(&self, path: &Path) -> Result<bool> {
-        self.reader.check(path)
+        Ok(is_fresh(&self.read.check_status(path)?))
     }
 
     pub fn list_paths(&self) -> Result<Vec<String>> {
-        self.reader.list_paths()
+        Ok(self
+            .read
+            .keys(None)?
+            .into_iter()
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect())
     }
 
     pub fn all(&self) -> Result<Vec<Result<ImageCacheEntry>>> {
-        let conn = self.reader.read_conn()?;
-        let ret = all(&conn);
-        match ret {
-            Ok(x) => Ok(x
-                .into_iter()
-                .map(|x| match x {
-                    Ok(x) => Ok(ImageCacheEntry {
-                        path: x.path,
-                        thumbnail_path: x.thumbnail_path,
-                        features: if let Some(features) = x.features {
-                            Some(ImageFeatures {
-                                clip_vector: features,
-                            })
-                        } else {
-                            None
-                        },
-                    }),
-                    Err(err) => Err(err),
-                })
-                .collect::<Vec<_>>()),
-            Err(err) => Err(err),
-        }
+        let entries = self.read.query_run(|q| q)?;
+        Ok(entries.into_iter().map(|e| Ok(to_image_entry(e))).collect())
     }
 
+    /// Return all entries whose file lives directly inside `path`.
+    ///
+    /// If `path` is a file rather than a directory (the common call-site
+    /// pattern: "find all entries in the same directory as this file"),
+    /// its parent directory is used automatically.
     pub fn all_in_dir(&self, path: &Path) -> Result<Vec<Result<ImageCacheEntry>>> {
-        let conn = self.reader.read_conn()?;
-        let ret = all_in_dir(path, &conn);
-        match ret {
-            Ok(x) => Ok(x
-                .into_iter()
-                .map(|x| match x {
-                    Ok(x) => Ok(ImageCacheEntry {
-                        path: x.path,
-                        thumbnail_path: x.thumbnail_path,
-                        features: if let Some(features) = x.features {
-                            Some(ImageFeatures {
-                                clip_vector: features,
-                            })
-                        } else {
-                            None
-                        },
-                    }),
-                    Err(err) => Err(err),
-                })
-                .collect::<Vec<_>>()),
-            Err(err) => Err(err),
-        }
+        let dir = dir_of(path);
+        let entries = self.read.query_run(|q| q.path_in_dir(dir, false))?;
+        Ok(entries.into_iter().map(|e| Ok(to_image_entry(e))).collect())
     }
 
+    /// Return all entries whose file lives anywhere under `path`
+    /// (recursively).
+    ///
+    /// If `path` is a file, its parent directory is used automatically.
     pub fn all_in_dir_and_sub_dirs(&self, path: &Path) -> Result<Vec<Result<ImageCacheEntry>>> {
-        let conn = self.reader.read_conn()?;
-        let ret = all_in_dir_and_sub_dirs(path, &conn);
-        match ret {
-            Ok(x) => Ok(x
-                .into_iter()
-                .map(|x| match x {
-                    Ok(x) => Ok(ImageCacheEntry {
-                        path: x.path,
-                        thumbnail_path: x.thumbnail_path,
-                        features: if let Some(features) = x.features {
-                            Some(ImageFeatures {
-                                clip_vector: features,
-                            })
-                        } else {
-                            None
-                        },
-                    }),
-                    Err(err) => Err(err),
-                })
-                .collect::<Vec<_>>()),
-            Err(err) => Err(err),
-        }
+        let dir = dir_of(path);
+        let entries = self.read.query_run(|q| q.path_in_dir(dir, true))?;
+        Ok(entries.into_iter().map(|e| Ok(to_image_entry(e))).collect())
+    }
+}
+
+impl CacheRead for ImageCacheReader {
+    fn check(&self, path: &Path) -> Result<bool> {
+        ImageCacheReader::check(self, path)
+    }
+
+    fn check_all(&self, paths: &[&Path]) -> Vec<(PathBuf, Result<bool>)> {
+        paths
+            .par_iter()
+            .map(|p| (p.to_path_buf(), self.check(p)))
+            .collect()
+    }
+
+    fn list_paths(&self) -> Result<Vec<String>> {
+        ImageCacheReader::list_paths(self)
     }
 }
 
 // ---------------------------------------------------------------------------
-// CacheRead 実装
+// Helpers
 // ---------------------------------------------------------------------------
 
-impl CacheRead for ImageCacheReader {
-    fn check(&self, path: &Path) -> Result<bool> {
-        self.reader.check(path)
+/// Return `path` itself when it is a directory; otherwise return its parent.
+///
+/// Call sites that pass a media *file* path to `all_in_dir` / `all_in_dir_and_sub_dirs`
+/// expect to query the directory that *contains* the file.  `path_in_dir`
+/// requires a directory, so we resolve automatically here.
+fn dir_of(path: &Path) -> &Path {
+    if path.is_dir() {
+        path
+    } else {
+        path.parent().unwrap_or(path)
     }
+}
 
-    fn check_all(&self, paths: &[&Path]) -> Vec<(PathBuf, Result<bool>)> {
-        self.reader.check_all(paths)
-    }
+// ---------------------------------------------------------------------------
+// Mapping
+// ---------------------------------------------------------------------------
 
-    fn list_paths(&self) -> Result<Vec<String>> {
-        self.reader.list_paths()
+fn to_image_entry(entry: CacheEntry<ImagePayload>) -> ImageCacheEntry {
+    ImageCacheEntry {
+        path: entry.path.to_string_lossy().into_owned(),
+        thumbnail_path: entry.payload.thumbnail_path,
+        features: entry
+            .payload
+            .clip_vector
+            .map(|v| ImageFeatures { clip_vector: v }),
     }
 }

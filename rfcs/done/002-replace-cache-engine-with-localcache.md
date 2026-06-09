@@ -1,15 +1,17 @@
-# RFC 002 — Replace the in-house cache engine with localcache (v0.16)
+# RFC 002 — Replace the in-house cache engine with localcache
 
-**Status.** Proposed
+**Status.** Implemented (v0.23.0)
 **Tracks.** Retirement of the in-repo `file-feature-cache`
-engine in favour of the published `localcache` crate, v0.16.x.
+engine in favour of the published `localcache` crate, v0.20.x.
 The `arama-cache` facade crate is kept; only its engine layer
 is swapped.
 **Touches.** `crates/engine/file-feature-cache/` (removed at
 the end of the migration), `crates/cache/` (internals rewritten
 on top of `localcache`; public API preserved), workspace
 `Cargo.toml` (drop `file-feature-cache`, `r2d2`,
-`r2d2_sqlite`, `sha2`; add `localcache = "0.16"`),
+`r2d2_sqlite`, `sha2`; add `localcache = "0.19"`,
+`blake3 = "1"`, upgrade `rusqlite` to `0.39` to match
+localcache's bundled version),
 `env/src/...` (cache DB path naming), on-disk cache database
 format (breaking; see § Data migration).
 
@@ -19,7 +21,7 @@ arama caches AI inference results (CLIP / wav2vec2 feature
 vectors) and thumbnails per media file in SQLite, via the
 in-repo `file-feature-cache` engine (r2d2 connection pools,
 SHA-256 fingerprinting, a `CacheExtension` trait for
-per-media-type tables). `localcache` 0.16 is a published,
+per-media-type tables). `localcache` 0.20 is a published,
 maintained crate covering the same problem — payloads tied to
 local files with freshness detection — with capabilities the
 in-house engine lacks: pluggable change detection (metadata-
@@ -233,7 +235,7 @@ Assessment:
 | `r2d2`, `r2d2_sqlite` | removed |
 | `sha2` | removed (blake3 inside localcache supersedes) |
 | `rusqlite` | removed from `arama-cache`; remains only if the migration shim (§ below) needs to read the old DB — the shim may pin its own copy |
-| `localcache` | added, `"0.16"`, default features (no `async`/`json` initially) |
+| `localcache` | added, `"0.20"`, default features (no `async`/`json` initially); `blake3 = "1"` also added (thumbnail naming) |
 
 Note: localcache pins `rusqlite 0.39` (bundled); arama's
 remaining direct uses are at `0.38`. After this RFC,
@@ -338,7 +340,7 @@ Per project guidelines, tests validate the design spec:
 | `path_like` (SQL LIKE) can't express "dir, non-recursive" exactly (current code uses GLOB + NOT GLOB) | facade post-filters by `Path::parent()` equality; correctness identical, minor over-fetch; Q1 asks for native glob/depth predicates |
 | bincode payload evolution (adding fields later breaks decode) | treat payload struct changes as `payload_version` bumps — documented in `core/engine.rs` |
 | Migration importer bugs corrupt user caches | importer is read-only on the v1 file; new DB written separately; failure ⇒ fall back to recompute path |
-| localcache pre-1.0 API churn | pin `=0.16.x`; author reachable; migration guide exists upstream |
+| localcache pre-1.0 API churn | pin `=0.20.x`; author reachable; migration guide exists upstream |
 
 ## Alternatives considered
 
@@ -372,6 +374,64 @@ Per project guidelines, tests validate the design spec:
 - **Q4.** `cleanup_missing_files()` semantics: does it
   canonicalize before comparing? arama stores canonicalized
   paths and runs on case-insensitive filesystems (Windows).
+
+## Implementation notes (v0.23.0)
+
+These notes record the as-built state for readers comparing the
+design above to the shipped code.
+
+**Target version raised to v0.20.** The RFC was written against
+v0.16. Before implementation began, the localcache author
+resolved all four open questions across v0.17–v0.20:
+
+- `path_in_dir(dir, recursive: bool)` and `path_glob` landed
+  in v0.18, replacing the facade's LIKE + post-filter workaround
+  noted in the Risks table.
+- `ReadPool<T>` — a cloneable, `Send+Sync` pool of read-only
+  WAL connections — landed in v0.19. The Phase B benchmark gate
+  was therefore not needed: all reader handles (standalone and
+  via `as_reader()`) hold a `ReadPool` sized to
+  `CacheConfig::read_conns`, giving full read concurrency. The
+  serialization risk noted in the Risks table is obsolete.
+- Bincode wire-format stability was formally guaranteed and
+  golden-fixture tested in v0.19.
+- Path-handling semantics (canonicalization, deleted-file
+  fallback, `cleanup_missing_files`, Windows case-insensitivity)
+  were documented and regression-tested in v0.19.
+- `mtime` nanosecond precision landed in v0.20: `localcache`
+  now stores `mtime` as nanoseconds since the UNIX epoch, so
+  `MetadataThenFullHash` has no same-second blind window.
+  The integration tests use different-length overwrite content
+  (size change) for unambiguous detection independent of timing,
+  which remains a sound practice regardless of mtime precision.
+
+**Phases A–D implemented in one pass.** The all-phases-one-
+release option was taken (single v0.23.0 change). The migration
+shim (`core/migrate.rs`) is present and wired to app startup;
+it is scheduled for removal in the next release cycle, at which
+point `rusqlite` drops out of `arama-cache`'s deps.
+
+**`Invalidated` no longer deletes the stale row.** The v1
+engine deleted the row when `Invalidated` was returned; readers
+in v2 are read-only, so the stale row is overwritten on the
+next writer `upsert`. Observable behaviour at all five consumer
+sites is identical (`Invalidated` and `Miss` are both treated as
+"recompute").
+
+**Thumbnail regeneration on file change.** v1 checked only
+`if !dest.exists()` and skipped regeneration when the thumbnail
+was present, even if the source file had changed. v2 also
+regenerates the thumbnail whenever `status != Fresh`. This is
+a correctness fix, not a behaviour change visible at the API
+boundary.
+
+**`TempFile::with_suffix` added to the test helper.** The
+thumbnail integration test requires a source file with a `.jpg`
+extension so that `image::open` can infer the format. The
+pre-existing `TempFile::new` creates extensionless files, which
+failed in the same way on the original code (pre-existing test
+environment issue). A `with_suffix` constructor was added; the
+thumbnail test is updated to use it.
 
 ## Open questions
 

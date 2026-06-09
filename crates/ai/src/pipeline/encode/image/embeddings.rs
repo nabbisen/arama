@@ -34,6 +34,11 @@ pub async fn image_embedding(paths: Vec<PathBuf>) -> anyhow::Result<Option<Strin
     let pipeline = VideoSimilarityPipeline::new(video_similarity_config)?;
 
     for path in paths {
+        // Yield to the async runtime at each file boundary so that
+        // Task::abortable() can cancel this loop when the user switches
+        // to a different directory before indexing finishes.
+        tokio::task::yield_now().await;
+
         if path.extension().is_some_and(|x| {
             VIDEO_EXTENSION_ALLOWLIST.contains(&x.to_string_lossy().to_string().as_str())
         }) {

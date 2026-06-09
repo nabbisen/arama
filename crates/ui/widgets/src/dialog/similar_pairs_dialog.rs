@@ -78,11 +78,7 @@ async fn prepare_embeddings(dir_node: DirNode) -> Vec<SimilarPair> {
 
         for path in &image_paths {
             let feature = match image_cache_reader.lookup(&path).expect("failed to lookup") {
-                LookupResult::Hit(x) => Some((
-                    x.path,
-                    x.thumbnail_path,
-                    x.features.expect("failed to get feature").clip_vector,
-                )),
+                LookupResult::Hit(x) => x.features.map(|f| (x.path, x.thumbnail_path, f.clip_vector)),
                 _ => {
                     // todo: error handling
                     None
@@ -113,14 +109,9 @@ async fn prepare_embeddings(dir_node: DirNode) -> Vec<SimilarPair> {
 
         for path in &video_paths {
             let feature = match video_cache_reader.lookup(&path).expect("failed to lookup") {
-                LookupResult::Hit(x) => Some((
-                    x.path,
-                    x.thumbnail_path,
-                    x.features
-                        .expect("failed to get feature")
-                        .clip_vector
-                        .expect("failed to get video clip embedding list"),
-                )),
+                LookupResult::Hit(x) => x
+                    .features
+                    .and_then(|f| f.clip_vector.map(|v| (x.path, x.thumbnail_path, v))),
                 _ => {
                     // todo: error handling
                     None

@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use app_json_settings::ConfigManager;
 use arama_env::{
-    IMAGE_EXTENSION_ALLOWLIST, Settings, VIDEO_EXTENSION_ALLOWLIST, local_dir,
-    target_media_type::TargetMediaType, validate_dir,
+    IMAGE_EXTENSION_ALLOWLIST, Settings, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path,
+    cache_storage_path_v1, local_dir, target_media_type::TargetMediaType, validate_dir,
 };
 use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
 use arama_ui_main::views::{
@@ -37,6 +37,9 @@ pub struct App {
     dir_node: Option<DirNode>,
     image_cell_path: Option<PathBuf>,
     processing: bool,
+    /// Handle for the active thumbnail-cache or embedding task, used to
+    /// abort it when the user switches to a different directory.
+    task_handle: Option<iced::task::Handle>,
 }
 
 #[derive(Clone, Debug)]
@@ -58,6 +61,26 @@ impl App {
         let processing = true;
 
         setup_validate();
+
+        // One-time migration of the v1 cache database, if present.
+        // A failure is not fatal — the cache is rebuilt lazily — but the
+        // person should know recomputation is coming, so it surfaces as
+        // a startup toast.
+        let mut startup_toasts: Vec<Toast<Message>> = vec![];
+        let mut toast_id_counter: u64 = 0;
+        if let (Ok(v1), Ok(v2)) = (cache_storage_path_v1(), cache_storage_path()) {
+            if let Err(err) = arama_cache::migrate_v1_if_present(&v1, &v2) {
+                let id = toast_id_counter;
+                toast_id_counter += 1;
+                startup_toasts.push(Toast::new(
+                    id,
+                    ToastIntent::Error,
+                    "Cache migration failed",
+                    format!("The previous cache could not be imported and will be rebuilt: {err}"),
+                    Message::ToastDismiss(id),
+                ));
+            }
+        }
 
         // todo: error handling
         let setup = Setup::default().expect("Failed to setup preparation");
@@ -121,12 +144,13 @@ impl App {
                 footer,
                 context_menu,
                 dialog,
-                toasts: vec![],
-                toast_id_counter: 0,
+                toasts: startup_toasts,
+                toast_id_counter,
                 settings,
                 dir_node: Some(dir_node),
                 image_cell_path: None,
                 processing,
+                task_handle: None,
             },
             task,
         )
