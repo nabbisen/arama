@@ -1,6 +1,6 @@
 # RFC 004 — Cache control page
 
-**Status.** Proposed
+**Status.** Implemented (v0.25.0)
 **Tracks.** A third side-nav page giving users per-directory
 visibility and control over the embedding/thumbnail cache: a
 filterable summary table, per-row clearing, and on-demand caching
@@ -334,10 +334,10 @@ Validating the design spec, not the code:
 
 ## Open questions
 
-1. Should the Cached at column render relative time ("2 days ago") or
-   absolute local time? The design says absolute (`YYYY-MM-DD HH:MM`);
-   relative time needs periodic re-render and adds little. Default:
-   absolute, revisit on feedback.
-2. Should an Explorer-initiated run also be cancellable from the Cache
-   page (a stop button on the ⏳ row)? Deferred — not in the requested
-   scope; trivially added later since the abort handle already exists.
+Both resolved at review:
+
+1. **Timestamps: absolute.** The Cached at column renders absolute
+   local time (`YYYY-MM-DD HH:MM`). Relative time ("2 days ago") is
+   recorded as a future small plan, not part of this RFC.
+2. **Stop button on the ⏳ row: deferred.** Not in scope; trivially
+   added later since the abort handle already exists.

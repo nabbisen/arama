@@ -17,7 +17,9 @@ use crate::core::engine::{
 };
 use crate::core::payload::VideoPayload;
 use crate::core::thumbnail::{generate_video_thumbnail, thumbnail_dest};
-use crate::types::{CacheRead, LookupResult, UpsertVideoRequest, VideoCacheEntry, VideoFeatures};
+use crate::types::{
+    CacheRead, DirCacheSummary, LookupResult, UpsertVideoRequest, VideoCacheEntry, VideoFeatures,
+};
 
 // ---------------------------------------------------------------------------
 // Config
@@ -120,6 +122,23 @@ impl VideoCacheWriter {
 
     pub fn delete(&self, path: &Path) -> Result<bool> {
         Ok(self.write.remove(path)?)
+    }
+
+    /// Remove every cached entry whose file lives directly in `dir`,
+    /// deleting the associated thumbnail file (when recorded) as well.
+    /// Non-recursive. Returns the number of entries removed (RFC 004).
+    pub fn delete_in_dir(&self, dir: &Path) -> Result<usize> {
+        let entries = self.read.query_run(|q| q.path_in_dir(dir, false))?;
+        let mut removed = 0;
+        for entry in entries {
+            if let Some(thumb) = &entry.payload.thumbnail_path {
+                let _ = std::fs::remove_file(thumb);
+            }
+            if self.write.remove(&entry.path)? {
+                removed += 1;
+            }
+        }
+        Ok(removed)
     }
 
     pub fn list_paths(&self) -> Result<Vec<String>> {
@@ -281,6 +300,12 @@ impl VideoCacheReader {
     pub fn all(&self) -> Result<Vec<Result<VideoCacheEntry>>> {
         let entries = self.read.query_run(|q| q)?;
         Ok(entries.into_iter().map(|e| Ok(to_video_entry(e))).collect())
+    }
+
+    /// Group all cached entries by their parent directory and aggregate
+    /// count, total size, and the newest cached-at timestamp (RFC 004).
+    pub fn summarize_by_dir(&self) -> Result<Vec<DirCacheSummary>> {
+        crate::core::image::summarize_entries(self.read.list_entries()?)
     }
 
     pub fn all_in_dir(&self, path: &Path) -> Result<Vec<Result<VideoCacheEntry>>> {

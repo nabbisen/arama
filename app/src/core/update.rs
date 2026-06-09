@@ -8,7 +8,10 @@ use arama_cache::{
     VideoCacheReader,
 };
 use arama_env::{IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path};
-use arama_ui_main::{components::gallery::image_cell, views::gallery};
+use arama_ui_main::{
+    components::gallery::image_cell,
+    views::{cache_page, gallery},
+};
 use iced::{Task, wgpu::naga::FastHashMap};
 use swdir::{DirNode, Recurse, Swdir};
 
@@ -23,12 +26,17 @@ impl App {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::NavTo(page) => {
+                let reload = if page == NavPage::Cache {
+                    self.cache_page.load_task().map(Message::CachePageMessage)
+                } else {
+                    Task::none()
+                };
                 self.nav_page = page;
-                Task::none()
+                reload
             }
-            Message::CacheRequire => {
-                if let Some(dir_node) = &self.dir_node {
-                    let dir_node = dir_node.clone();
+            Message::CacheRequire(target) => {
+                let node = target.or_else(|| self.dir_node.clone());
+                if let Some(dir_node) = node {
 
                     let (task, handle) = Task::perform(
                         async move {
@@ -109,7 +117,7 @@ impl App {
                 } else {
                     self.task_handle = None;
                     self.processing_off();
-                    Task::none()
+                    self.run_finished_reload()
                 }
             }
             Message::EmbeddingCacheFinished(err) => {
@@ -123,7 +131,34 @@ impl App {
                     .set_embedding_cached(self.gallery.embedding_cached());
 
                 self.processing_off();
-                Task::none()
+                self.run_finished_reload()
+            }
+            Message::CachePageMessage(message) => {
+                let task = self
+                    .cache_page
+                    .update(message.clone())
+                    .map(Message::CachePageMessage);
+
+                match message {
+                    cache_page::message::Message::Event(event) => match event {
+                        cache_page::message::Event::CacheRequest(path) => {
+                            return Task::batch([task, self.on_cache_page_request(path)]);
+                        }
+                        cache_page::message::Event::ClearRequest(dir) => {
+                            return Task::batch([task, clear_dir_task(dir)]);
+                        }
+                    },
+                    cache_page::message::Message::Internal(_) => (),
+                }
+
+                task
+            }
+            Message::CacheClearFinished(result) => {
+                if let Err(err) = result {
+                    self.push_error_toast("Cache clear failed", err);
+                }
+                // Reload so partial deletions are shown truthfully.
+                self.cache_page.load_task().map(Message::CachePageMessage)
             }
             Message::SetupMessage(message) => {
                 let task = self
@@ -132,7 +167,7 @@ impl App {
                     .map(Message::SetupMessage);
                 if self.setup.finished {
                     self.processing_on();
-                    Task::done(Message::CacheRequire)
+                    Task::done(Message::CacheRequire(None))
                 } else {
                     task
                 }
@@ -308,7 +343,7 @@ impl App {
                             task
                         } else {
                             self.processing_on();
-                            Task::batch([task, Task::done(Message::CacheRequire)])
+                            Task::batch([task, Task::done(Message::CacheRequire(None))])
                         };
                     }
                     settings_dialog::message::Message::SubDirDepthLimitChanged(x) => {
@@ -319,7 +354,7 @@ impl App {
                             task
                         } else {
                             self.processing_on();
-                            Task::batch([task, Task::done(Message::CacheRequire)])
+                            Task::batch([task, Task::done(Message::CacheRequire(None))])
                         };
                     }
                     _ => (),
@@ -383,7 +418,7 @@ impl App {
         };
 
         let dir_node = Swdir::default()
-            .set_root_path(path)
+            .set_root_path(path.clone())
             .set_extension_allowlist(&extension_allowlist)
             .expect("failed to set allowlist")
             .set_recurse(recurse)
@@ -400,9 +435,90 @@ impl App {
         if let Some(handle) = self.task_handle.take() {
             handle.abort();
         }
+        // Mark the run on the Cache page (RFC 004 ⏳ indicator).
+        self.cache_page.run_started(path);
         self.processing_on();
-        Task::batch([Task::done(Message::CacheRequire), task])
+        Task::batch([Task::done(Message::CacheRequire(None)), task])
     }
+
+    /// Handle a Cache-page request to index `path`: validate, mark the
+    /// run, abort any in-flight task, and start the pipeline with an
+    /// explicit target — without touching the Explorer's selection.
+    fn on_cache_page_request(&mut self, path: PathBuf) -> Task<Message> {
+        if !path.is_dir() {
+            self.push_error_toast(
+                "Invalid directory",
+                format!("Not an existing directory: {}", path.display()),
+            );
+            return Task::none();
+        }
+
+        let mut extension_allowlist: Vec<&str> = vec![];
+        if self.settings.target_media_type.include_image {
+            extension_allowlist.extend(IMAGE_EXTENSION_ALLOWLIST);
+        }
+        if self.settings.target_media_type.include_video {
+            extension_allowlist.extend(VIDEO_EXTENSION_ALLOWLIST);
+        }
+        let recurse = if 0 < self.settings.sub_dir_depth_limit {
+            Recurse {
+                enabled: true,
+                depth_limit: Some(self.settings.sub_dir_depth_limit.into()),
+            }
+        } else {
+            Recurse {
+                enabled: false,
+                depth_limit: None,
+            }
+        };
+        let node = Swdir::default()
+            .set_root_path(path.clone())
+            .set_extension_allowlist(&extension_allowlist)
+            .expect("failed to set allowlist")
+            .set_recurse(recurse)
+            .walk();
+
+        // Single-task rule: a new run replaces any in-flight one.
+        if let Some(handle) = self.task_handle.take() {
+            handle.abort();
+        }
+        self.cache_page.run_started(path);
+        self.processing_on();
+        Task::done(Message::CacheRequire(Some(node)))
+    }
+
+    /// At the end of an indexing run: clear the ⏳ marker and reload
+    /// the Cache page table when it has been visited at least once.
+    fn run_finished_reload(&mut self) -> Task<Message> {
+        self.cache_page.run_finished();
+        if self.cache_page.is_loaded() {
+            self.cache_page.load_task().map(Message::CachePageMessage)
+        } else {
+            Task::none()
+        }
+    }
+}
+
+/// Async per-directory clear across both cache namespaces.
+fn clear_dir_task(dir: PathBuf) -> Task<Message> {
+    Task::perform(
+        async move {
+            let location = arama_cache::DbLocation::Custom(
+                cache_storage_path().map_err(|e| e.to_string())?,
+            );
+            let removed_images = ImageCacheWriter::onetime(location.clone())
+                .map_err(|e| e.to_string())?
+                .delete_in_dir(&dir)
+                .map_err(|e| e.to_string())?;
+            let removed_videos =
+                arama_cache::VideoCacheWriter::onetime(location, None, None)
+                    .map_err(|e| e.to_string())?
+                    .delete_in_dir(&dir)
+                    .map_err(|e| e.to_string())?;
+            Ok(removed_images + removed_videos)
+        },
+        Message::CacheClearFinished,
+    )
 }
 
 fn dir_path_thumbnail_path_map(

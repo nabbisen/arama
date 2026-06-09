@@ -26,6 +26,20 @@ pub trait CacheRead {
     fn list_paths(&self) -> Result<Vec<String>>;
 }
 
+/// Per-directory aggregate of cached entries, for cache-management UIs
+/// (RFC 004).
+#[derive(Debug, Clone)]
+pub struct DirCacheSummary {
+    /// Canonical path of the directory containing the cached files.
+    pub dir_path: String,
+    /// Number of cached files directly in this directory.
+    pub file_count: usize,
+    /// Sum of the cached files' recorded sizes, in bytes.
+    pub total_size: u64,
+    /// Newest `updated_at` among the entries (unix seconds).
+    pub latest_cached_at: i64,
+}
+
 // ---------------------------------------------------------------------------
 // Images
 // ---------------------------------------------------------------------------

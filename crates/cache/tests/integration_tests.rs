@@ -635,3 +635,140 @@ fn video_lookup_all_returns_hits_for_upserted_files() {
         assert!(matches!(r.as_ref().unwrap(), LookupResult::Hit(_)));
     }
 }
+
+// ---------------------------------------------------------------------------
+// RFC 004 — directory summaries and per-directory clearing
+// ---------------------------------------------------------------------------
+
+/// Create `count` files with the given byte contents inside `dir`.
+fn files_in_dir(dir: &Path, contents: &[&[u8]]) -> Vec<PathBuf> {
+    contents
+        .iter()
+        .enumerate()
+        .map(|(i, c)| {
+            let p = dir.join(format!("file_{i}.bin"));
+            std::fs::write(&p, c).unwrap();
+            p
+        })
+        .collect()
+}
+
+#[test]
+fn summarize_by_dir_groups_and_aggregates() {
+    let db = tmp_db();
+    let writer = image_writer_with_db(&db);
+
+    let dir_a = tempfile::TempDir::new().unwrap();
+    let dir_b = tempfile::TempDir::new().unwrap();
+    let a_files = files_in_dir(dir_a.path(), &[b"aaaa", b"bbbbbb", b"cc"]); // 4+6+2 = 12 bytes
+    let b_files = files_in_dir(dir_b.path(), &[b"zzzzzzzz"]); // 8 bytes
+
+    for p in a_files.iter().chain(b_files.iter()) {
+        upsert_image(&writer, p);
+    }
+
+    let mut summaries = writer.as_reader().summarize_by_dir().unwrap();
+    summaries.sort_by(|x, y| x.dir_path.cmp(&y.dir_path));
+    assert_eq!(summaries.len(), 2);
+
+    let canon_a = dir_a.path().canonicalize().unwrap();
+    let a = summaries
+        .iter()
+        .find(|s| s.dir_path == canon_a.to_string_lossy())
+        .expect("dir A summary present");
+    assert_eq!(a.file_count, 3);
+    assert_eq!(a.total_size, 12);
+    assert!(0 < a.latest_cached_at, "timestamp recorded");
+
+    let canon_b = dir_b.path().canonicalize().unwrap();
+    let b = summaries
+        .iter()
+        .find(|s| s.dir_path == canon_b.to_string_lossy())
+        .expect("dir B summary present");
+    assert_eq!(b.file_count, 1);
+    assert_eq!(b.total_size, 8);
+}
+
+#[test]
+fn summarize_by_dir_empty_cache() {
+    let db = tmp_db();
+    let writer = image_writer_with_db(&db);
+    let summaries = writer.as_reader().summarize_by_dir().unwrap();
+    assert!(summaries.is_empty());
+}
+
+#[test]
+fn delete_in_dir_removes_entries_and_thumbnails() {
+    let thumb_dir = tempfile::TempDir::new().unwrap();
+    let db = tmp_db();
+    let writer = ImageCacheWriter::as_session(ImageCacheConfig {
+        cache_config: CacheConfig {
+            db_location: DbLocation::Custom(db.path().to_path_buf()),
+            read_conns: 2,
+            thumbnail_dir: Some(thumb_dir.path().to_path_buf()),
+        },
+    })
+    .unwrap();
+
+    let target_dir = tempfile::TempDir::new().unwrap();
+    let sibling_dir = tempfile::TempDir::new().unwrap();
+    // Real JPEG content so thumbnail generation succeeds.
+    let target = target_dir.path().join("a.jpg");
+    std::fs::write(&target, MINIMAL_JPEG).unwrap();
+    let sibling = sibling_dir.path().join("b.jpg");
+    std::fs::write(&sibling, MINIMAL_JPEG).unwrap();
+
+    upsert_image(&writer, &target);
+    upsert_image(&writer, &sibling);
+
+    // The target's thumbnail file exists before clearing.
+    let thumb_count_before = std::fs::read_dir(thumb_dir.path()).unwrap().count();
+    assert_eq!(thumb_count_before, 2);
+
+    let removed = writer.delete_in_dir(target_dir.path()).unwrap();
+    assert_eq!(removed, 1);
+
+    // Entry gone, sibling untouched.
+    assert!(matches!(
+        writer.lookup(&target).unwrap(),
+        LookupResult::Miss
+    ));
+    assert!(matches!(
+        writer.lookup(&sibling).unwrap(),
+        LookupResult::Hit(_)
+    ));
+
+    // The target's thumbnail file is removed; the sibling's remains.
+    let thumb_count_after = std::fs::read_dir(thumb_dir.path()).unwrap().count();
+    assert_eq!(thumb_count_after, 1);
+}
+
+#[test]
+fn delete_in_dir_is_not_recursive() {
+    let db = tmp_db();
+    let writer = image_writer_with_db(&db);
+
+    let parent = tempfile::TempDir::new().unwrap();
+    let child = parent.path().join("sub");
+    std::fs::create_dir(&child).unwrap();
+
+    let in_parent = parent.path().join("p.bin");
+    std::fs::write(&in_parent, b"parent").unwrap();
+    let in_child = child.join("c.bin");
+    std::fs::write(&in_child, b"child").unwrap();
+
+    upsert_image(&writer, &in_parent);
+    upsert_image(&writer, &in_child);
+
+    let removed = writer.delete_in_dir(parent.path()).unwrap();
+    assert_eq!(removed, 1, "only the direct child entry is removed");
+
+    assert!(matches!(
+        writer.lookup(&in_parent).unwrap(),
+        LookupResult::Miss
+    ));
+    assert!(matches!(
+        writer.lookup(&in_child).unwrap(),
+        LookupResult::Hit(_)
+    ));
+}

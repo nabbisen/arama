@@ -9,6 +9,7 @@
 - [Installation](./users/installation.md)
 - [First Run](./users/first-run.md)
 - [Using arama](./users/using-arama.md)
+- [Cache Control](./users/cache.md)
 - [Settings](./users/settings.md)
 - [FAQ](./users/faq.md)
 

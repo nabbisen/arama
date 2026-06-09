@@ -80,6 +80,6 @@ pub use core::image::{ImageCacheConfig, ImageCacheReader, ImageCacheWriter};
 pub use core::migrate::{MigrationReport, migrate_v1_if_present};
 pub use core::video::{VideoCacheConfig, VideoCacheReader, VideoCacheWriter};
 pub use types::{
-    CacheRead, ImageCacheEntry, ImageFeatures, LookupResult, UpsertImageRequest,
+    CacheRead, DirCacheSummary, ImageCacheEntry, ImageFeatures, LookupResult, UpsertImageRequest,
     UpsertVideoRequest, VideoCacheEntry, VideoFeatures,
 };

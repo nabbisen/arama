@@ -7,12 +7,46 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
-### Planned — Cache control page (RFC tbd)
+### Planned
 
-A **Cache control page** is planned as the next navigation destination
-(`NavPage::Cache`). It will surface cache status, manual invalidation,
-and storage usage in one place, slotting in as a third nav-rail item
-with no structural change to the side-nav shell.
+- Relative-time rendering ("2 days ago") for the Cache page table —
+  small follow-up; absolute local time is the v0.25.0 default.
+- Stop button on the Cache page's in-progress row — the abort handle
+  already exists; only UI wiring is needed.
+
+---
+
+## [0.25.0]
+
+### Added
+
+- **Cache control page** (RFC 004; external design in
+  `docs/src/dev/design/`). A third side-nav page (🗃) with:
+
+  A **per-directory table** of cached entries — directory path, file
+  count (images + videos merged), total size, and the newest cached-at
+  timestamp in absolute local time — sorted newest-first, with a
+  case-insensitive path filter and a refresh button. The summary line
+  always shows unfiltered totals.
+
+  **Per-row clearing** (🗑) — removes that directory's database entries
+  in both namespaces and deletes the generated thumbnail files.
+  Non-recursive: each row is exactly one directory.
+
+  An **add-directory form** — runs the existing indexing pipeline
+  (thumbnails → embeddings) for an arbitrary directory without changing
+  the Explorer's selection. The run is reflected in the table at start
+  (⏳ row indicator, placeholder row for never-cached directories) and
+  at finish (reload with final values). Explorer-initiated runs mark
+  the table identically. The single-task rule is preserved: a new run
+  aborts an in-flight one.
+
+  Facade additions in `arama-cache`: `DirCacheSummary`,
+  `summarize_by_dir()` on both readers (payload-free enumeration via
+  `localcache::EntryInfo`), and `delete_in_dir()` on both writers.
+  Four new spec tests cover grouping/aggregation, the empty cache,
+  thumbnail deletion, and non-recursiveness. New workspace dependency:
+  `chrono` (clock feature only) for local-time formatting.
 
 ---
 

@@ -4,7 +4,7 @@ use iced::{
     Length::Fill,
     widget::{button, column, container, mouse_area, row},
 };
-use lucide_icons::iced::{icon_folder, icon_settings};
+use lucide_icons::iced::{icon_database, icon_folder, icon_settings};
 use snora::{AppLayout, Dialog as SnoraDialog, ToastPosition, render};
 
 use super::{App, Dialog, NavPage, message::Message};
@@ -26,6 +26,14 @@ impl App {
                 })
                 .on_press(Message::NavTo(NavPage::Explorer));
 
+            let cache = button(icon_database())
+                .style(if self.nav_page == NavPage::Cache {
+                    button::primary
+                } else {
+                    button::text
+                })
+                .on_press(Message::NavTo(NavPage::Cache));
+
             let settings = button(icon_settings())
                 .style(if self.nav_page == NavPage::Settings {
                     button::primary
@@ -34,7 +42,7 @@ impl App {
                 })
                 .on_press(Message::NavTo(NavPage::Settings));
 
-            column![explorer, settings]
+            column![explorer, cache, settings]
                 .spacing(4)
                 .padding(8)
                 .into()
@@ -63,6 +71,7 @@ impl App {
 
                 column![header, tiling].into()
             }
+            NavPage::Cache => self.cache_page.view().map(Message::CachePageMessage),
             NavPage::Settings => container(
                 self.settings_page
                     .view()

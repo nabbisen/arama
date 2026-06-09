@@ -7,6 +7,7 @@ use arama_env::{
 };
 use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
 use arama_ui_main::views::{
+    cache_page::CachePage,
     gallery::Gallery,
     setup::{self, Setup},
 };
@@ -27,6 +28,7 @@ use swdir::{DirNode, Swdir};
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum NavPage {
     Explorer,
+    Cache,
     Settings,
 }
 
@@ -52,6 +54,9 @@ pub struct App {
     /// Settings page widget — persistent so tab state is preserved across
     /// navigation.
     settings_page: dialog::settings_dialog::SettingsDialog,
+    /// Cache control page (RFC 004) — persistent so rows and filter
+    /// survive navigation.
+    cache_page: CachePage,
 }
 
 #[derive(Clone, Debug)]
@@ -147,7 +152,7 @@ impl App {
         let task = if !setup.finished && !setup::util::ready() {
             Task::none()
         } else {
-            Task::done(Message::CacheRequire)
+            Task::done(Message::CacheRequire(None))
         };
 
         (
@@ -168,6 +173,7 @@ impl App {
                 task_handle: None,
                 nav_page: NavPage::Explorer,
                 settings_page,
+                cache_page: CachePage::default(),
             },
             task,
         )

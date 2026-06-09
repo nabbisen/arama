@@ -9,7 +9,7 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| 004 | [Cache control page](./proposed/004-cache-control-page.md) | High |
+| — | (none currently) | |
 
 ## Implemented
 
@@ -19,6 +19,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 001 | [Migrate the UI layer to the snora framework (v0.8)](./done/001-migrate-ui-to-snora.md) | v0.22.0 |
 | 002 | [Replace the in-house cache engine with localcache](./done/002-replace-cache-engine-with-localcache.md) | v0.23.0 |
 | 003 | [Side-nav shell redesign](./done/003-side-nav-shell.md) | v0.24.0 |
+| 004 | [Cache control page](./done/004-cache-control-page.md) | v0.25.0 |
 
 ## Archive
 

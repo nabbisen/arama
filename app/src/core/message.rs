@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use arama_ui_layout::{aside, footer, header};
-use arama_ui_main::views::{gallery, setup};
+use arama_ui_main::views::{cache_page, gallery, setup};
 use arama_ui_widgets::{
     context_menu,
     dialog::{media_focus_dialog, settings_dialog, similar_pairs_dialog},
@@ -13,7 +13,13 @@ use super::NavPage;
 #[derive(Debug, Clone)]
 pub enum Message {
     NavTo(NavPage),
-    CacheRequire,
+    /// Start the indexing pipeline. `None` targets the Explorer's
+    /// current directory; `Some` targets an explicit directory tree
+    /// (Cache page requests).
+    CacheRequire(Option<swdir::DirNode>),
+    CachePageMessage(cache_page::message::Message),
+    /// Async per-row cache clear finished: removed count or error.
+    CacheClearFinished(Result<usize, String>),
     ThumbnailCacheFinished(Vec<(PathBuf, Arc<arama_cache::Result<()>>)>),
     EmbeddingCacheFinished(Option<String>),
     SetupMessage(setup::message::Message),

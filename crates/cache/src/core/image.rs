@@ -16,7 +16,9 @@ use crate::core::engine::{
 };
 use crate::core::payload::ImagePayload;
 use crate::core::thumbnail::{generate_image_thumbnail, thumbnail_dest};
-use crate::types::{CacheRead, ImageCacheEntry, ImageFeatures, LookupResult, UpsertImageRequest};
+use crate::types::{
+    CacheRead, DirCacheSummary, ImageCacheEntry, ImageFeatures, LookupResult, UpsertImageRequest,
+};
 
 // ---------------------------------------------------------------------------
 // Config
@@ -118,6 +120,25 @@ impl ImageCacheWriter {
 
     pub fn delete(&self, path: &Path) -> Result<bool> {
         Ok(self.write.remove(path)?)
+    }
+
+    /// Remove every cached entry whose file lives directly in `dir`,
+    /// deleting the associated thumbnail file (when recorded) as well.
+    /// Non-recursive: entries in subdirectories are untouched.
+    /// Returns the number of entries removed (RFC 004).
+    pub fn delete_in_dir(&self, dir: &Path) -> Result<usize> {
+        let entries = self.read.query_run(|q| q.path_in_dir(dir, false))?;
+        let mut removed = 0;
+        for entry in entries {
+            if let Some(thumb) = &entry.payload.thumbnail_path {
+                // Best-effort: a missing thumbnail file is not an error.
+                let _ = std::fs::remove_file(thumb);
+            }
+            if self.write.remove(&entry.path)? {
+                removed += 1;
+            }
+        }
+        Ok(removed)
     }
 
     pub fn list_paths(&self) -> Result<Vec<String>> {
@@ -290,6 +311,13 @@ impl ImageCacheReader {
         Ok(entries.into_iter().map(|e| Ok(to_image_entry(e))).collect())
     }
 
+    /// Group all cached entries by their parent directory and aggregate
+    /// count, total size, and the newest cached-at timestamp (RFC 004).
+    /// Cheap: enumerates entry metadata without decoding payloads.
+    pub fn summarize_by_dir(&self) -> Result<Vec<DirCacheSummary>> {
+        summarize_entries(self.read.list_entries()?)
+    }
+
     /// Return all entries whose file lives directly inside `path`.
     ///
     /// If `path` is a file rather than a directory (the common call-site
@@ -332,6 +360,35 @@ impl CacheRead for ImageCacheReader {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/// Fold a flat entry listing into per-directory aggregates.
+pub(crate) fn summarize_entries(
+    entries: Vec<localcache::EntryInfo>,
+) -> Result<Vec<DirCacheSummary>> {
+    use std::collections::BTreeMap;
+
+    let mut map: BTreeMap<PathBuf, (usize, u64, i64)> = BTreeMap::new();
+    for e in entries {
+        let dir = e
+            .path
+            .parent()
+            .map(|p| p.to_path_buf())
+            .unwrap_or_default();
+        let agg = map.entry(dir).or_insert((0, 0, 0));
+        agg.0 += 1;
+        agg.1 += e.metadata.file_size;
+        agg.2 = agg.2.max(e.updated_at);
+    }
+    Ok(map
+        .into_iter()
+        .map(|(dir, (file_count, total_size, latest_cached_at))| DirCacheSummary {
+            dir_path: dir.to_string_lossy().into_owned(),
+            file_count,
+            total_size,
+            latest_cached_at,
+        })
+        .collect())
+}
 
 /// Return `path` itself when it is a directory; otherwise return its parent.
 ///
