@@ -1,6 +1,6 @@
 use iced::{
     Element,
-    widget::{button, row},
+    widget::{button, container, row},
 };
 use lucide_icons::iced::icon_group;
 
@@ -17,7 +17,7 @@ impl Header {
             None
         });
 
-        row![
+        let inner = row![
             self.dir_nav
                 .view()
                 .map(|x| Message::Internal(Internal::DirNavMessage(x))),
@@ -30,7 +30,8 @@ impl Header {
             .spacing(10)
         ]
         .spacing(20)
-        .padding(10)
-        .into()
+        .padding(10);
+
+        container(inner).height(60).into()
     }
 }

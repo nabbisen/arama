@@ -7,11 +7,12 @@ use arama_env::{
 };
 use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
 use arama_ui_main::views::{
+    gallery::Gallery,
     setup::{self, Setup},
-    workbench::Workbench,
 };
 use arama_ui_widgets::{context_menu::ContextMenu, dialog};
 use iced::{Point, Task};
+use snora::{Toast, ToastIntent};
 
 mod message;
 mod settings;
@@ -24,12 +25,14 @@ use swdir::{DirNode, Swdir};
 
 pub struct App {
     setup: Setup,
-    workbench: Workbench,
+    gallery: Gallery,
     header: Header,
     aside: Aside,
     footer: Footer,
     context_menu: ContextMenu,
     dialog: Option<Dialog>,
+    toasts: Vec<Toast<Message>>,
+    toast_id_counter: u64,
     settings: Settings,
     dir_node: Option<DirNode>,
     image_cell_path: Option<PathBuf>,
@@ -98,7 +101,7 @@ impl App {
         let footer = Footer::new(thumbnail_size, dir_node_count.files, dir_node_count.dirs);
         let dialog = None;
 
-        let workbench = Workbench::new().expect("failed to init workbench");
+        let gallery = Gallery::new().expect("failed to init gallery");
 
         let context_menu_point = Point::default();
         let context_menu = ContextMenu::new(context_menu_point, thumbnail_size);
@@ -112,12 +115,14 @@ impl App {
         (
             Self {
                 setup,
-                workbench,
+                gallery,
                 header,
                 aside,
                 footer,
                 context_menu,
                 dialog,
+                toasts: vec![],
+                toast_id_counter: 0,
                 settings,
                 dir_node: Some(dir_node),
                 image_cell_path: None,
@@ -159,6 +164,19 @@ impl App {
         self.image_cell_path = path;
         self.footer
             .update_image_cell_path(self.image_cell_path.to_owned());
+    }
+
+    /// Push a transient error toast to the notification queue.
+    fn push_error_toast(&mut self, title: impl Into<String>, body: impl Into<String>) {
+        let id = self.toast_id_counter;
+        self.toast_id_counter += 1;
+        self.toasts.push(Toast::new(
+            id,
+            ToastIntent::Error,
+            title,
+            body,
+            Message::ToastDismiss(id),
+        ));
     }
 }
 

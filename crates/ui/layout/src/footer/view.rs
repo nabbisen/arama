@@ -49,6 +49,7 @@ impl Footer {
         )
         .padding([10, 20])
         .align_right(Fill)
+        .height(40)
         .into()
     }
 }

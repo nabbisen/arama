@@ -1,10 +1,10 @@
 [package]
 name = "file-feature-cache"
-version = "0.21.0"
+version = "0.22.0"
 edition = "2024"
 
 description = "Cache system for file feature and metadata"
-authors = ["nabbisen <nabbisen@scqr.net>"]
+authors = ["nabbisen"]
 license = "Apache-2.0"
 
 categories = ["gui"]

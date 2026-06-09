@@ -2,11 +2,11 @@ use iced::Length::Fill;
 use iced::widget::{Responsive, column, container, mouse_area, row, scrollable, text};
 use iced::{Element, Size};
 
-use crate::components::workbench::image_cell::ImageCell;
+use crate::components::gallery::image_cell::ImageCell;
 
-use super::{SPACING, Workbench, message::Message};
+use super::{Gallery, SPACING, message::Message};
 
-impl Workbench {
+impl Gallery {
     // ビュー（UI描画）
     pub fn view(&self, thumbnail_size: u16) -> Element<'_, Message> {
         // Responsiveウィジェットを使って、現在のウィンドウ幅(size)を取得する

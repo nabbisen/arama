@@ -8,7 +8,7 @@ use arama_cache::{
     VideoCacheReader,
 };
 use arama_env::{IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path};
-use arama_ui_main::{components::workbench::image_cell, views::workbench};
+use arama_ui_main::{components::gallery::image_cell, views::gallery};
 use iced::{Task, wgpu::naga::FastHashMap};
 use swdir::{DirNode, Recurse, Swdir};
 
@@ -56,16 +56,13 @@ impl App {
             }
             Message::ThumbnailCacheFinished(ret) => {
                 let errors: Vec<_> = ret.iter().filter(|x| x.1.is_err()).collect();
-                if 0 < errors.len() {
-                    // todo error handling
-                    eprintln!(
-                        "{}",
-                        errors
-                            .into_iter()
-                            .map(|x| format!("{:?}", x.1))
-                            .collect::<Vec<String>>()
-                            .join("\n")
-                    );
+                if !errors.is_empty() {
+                    let detail = errors
+                        .iter()
+                        .map(|x| format!("{:?}", x.1))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    self.push_error_toast("Cache error", detail);
                 }
 
                 if let Some(dir_node) = &self.dir_node {
@@ -79,7 +76,7 @@ impl App {
                     ))
                     .expect("failed to get video cache reader");
 
-                    self.workbench
+                    self.gallery
                         .set_dir_path_thumbnail_path_map(dir_path_thumbnail_path_map(
                             &dir_node,
                             &image_cache_reader,
@@ -87,7 +84,7 @@ impl App {
                         ));
 
                     self.header
-                        .set_embedding_cached(self.workbench.embedding_cached());
+                        .set_embedding_cached(self.gallery.embedding_cached());
                 }
 
                 if clip::model().ready().unwrap_or(false) {
@@ -106,13 +103,12 @@ impl App {
             }
             Message::EmbeddingCacheFinished(err) => {
                 if let Some(err) = err {
-                    // todo error handling
-                    eprintln!("{}", err);
+                    self.push_error_toast("Embedding error", err);
                 }
 
                 self.aside.set_processing(self.processing);
                 self.header
-                    .set_embedding_cached(self.workbench.embedding_cached());
+                    .set_embedding_cached(self.gallery.embedding_cached());
 
                 self.processing_off();
                 Task::none()
@@ -129,14 +125,14 @@ impl App {
                     task
                 }
             }
-            Message::WorkbenchMessage(message) => {
+            Message::GalleryMessage(message) => {
                 let task = self
-                    .workbench
+                    .gallery
                     .update(message.clone())
-                    .map(Message::WorkbenchMessage);
+                    .map(Message::GalleryMessage);
 
                 match message {
-                    workbench::message::Message::ImageCellMessage(message) => match message {
+                    gallery::message::Message::ImageCellMessage(message) => match message {
                         image_cell::message::Message::ImageCellEnter(path) => {
                             self.image_cell_path_update(Some(path));
                         }
@@ -169,7 +165,7 @@ impl App {
                             }
                         }
                     },
-                    workbench::message::Message::CursorExit => self.image_cell_path_update(None),
+                    gallery::message::Message::CursorExit => self.image_cell_path_update(None),
                 }
 
                 task
@@ -222,8 +218,6 @@ impl App {
                 match message {
                     aside::message::Message::Event(message) => match message {
                         aside::message::Event::DirSelect(path) => {
-                            self.header
-                                .update_dir_nav_path(path.to_string_lossy().to_string().as_str());
                             return self.on_dir_changed(path, task);
                         }
                     },
@@ -337,6 +331,18 @@ impl App {
                 .map(Message::ContextMenuMessage),
             Message::DialogClose => {
                 self.dialog = None;
+                Task::none()
+            }
+            Message::CloseMenus => {
+                self.context_menu.state = ContextMenuState::None;
+                Task::none()
+            }
+            Message::ToastDismiss(id) => {
+                self.toasts.retain(|t| t.id != id);
+                Task::none()
+            }
+            Message::ToastSweep => {
+                snora::toast::sweep_expired(&mut self.toasts, std::time::Instant::now());
                 Task::none()
             }
             Message::CursorMove(point) => {

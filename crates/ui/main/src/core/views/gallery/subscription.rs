@@ -16,7 +16,7 @@ use arama_embedding::{
     // pipeline::clip::inference::{self, calculator::Calculator, clip},
 };
 
-use super::{Workbench, message::Message};
+use super::{Gallery, message::Message};
 
 #[derive(Debug, Clone)]
 pub enum Input {
@@ -24,7 +24,7 @@ pub enum Input {
     ImageSimilarity(DirNode),
 }
 
-impl Workbench {
+impl Gallery {
     pub fn subscription(&self) -> Subscription<Message> {
         if !self.processing {
             return Subscription::none();

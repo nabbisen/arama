@@ -31,4 +31,11 @@ impl ContextMenu {
     pub fn update_point(&mut self, point: Point) {
         self.point = point;
     }
+
+    /// Returns `true` when a context menu item is actively shown.
+    /// Used by `App::view` to decide whether to populate snora's
+    /// `context_menu` slot (and therefore activate the dismissal backdrop).
+    pub fn is_open(&self) -> bool {
+        !matches!(self.state, ContextMenuState::None)
+    }
 }

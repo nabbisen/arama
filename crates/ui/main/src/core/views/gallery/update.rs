@@ -1,8 +1,8 @@
 use iced::Task;
 
-use super::{Workbench, message::Message};
+use super::{Gallery, message::Message};
 
-impl Workbench {
+impl Gallery {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::ImageCellMessage(_message) => (),

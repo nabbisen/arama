@@ -1,57 +1,68 @@
 use arama_ui_main::views::setup;
-use arama_ui_widgets::dialog::overlay;
 use iced::{
     Element,
     Length::Fill,
-    widget::{column, container, mouse_area, row, stack},
+    widget::{container, mouse_area, row},
 };
+use snora::{AppLayout, Dialog as SnoraDialog, ToastPosition, render};
 
 use super::{App, Dialog, message::Message};
 
 impl App {
     pub fn view(&self) -> Element<'_, Message> {
+        // Setup screen: bypass the main skeleton entirely.
         if !self.setup.finished && !setup::util::ready() {
-            return self.setup.view().map(Message::SetupMessage).into();
+            return self.setup.view().map(Message::SetupMessage);
         }
 
-        let content = self
-            .workbench
-            .view(self.footer.thumbnail_size())
-            .map(|message| Message::WorkbenchMessage(message));
-
-        let header = self.header.view().map(Message::HeaderMessage);
+        // ---- body: aside rail + gallery, with horizontal padding --------
         let aside = self.aside.view().map(Message::AsideMessage);
-        let footer = self.footer.view().map(Message::FooterMessage);
+        let gallery = self
+            .gallery
+            .view(self.footer.thumbnail_size())
+            .map(Message::GalleryMessage);
 
-        let layout = mouse_area(column![
-            container(header).height(60),
-            container(row![aside, content])
+        // CursorMove is only needed to track context-menu position over
+        // gallery cells, so wrapping the body row is sufficient.
+        let body = mouse_area(
+            container(row![aside, gallery])
                 .height(Fill)
                 .padding([0, 20]),
-            container(footer).height(40)
-        ])
+        )
         .on_move(Message::CursorMove);
 
-        let context_menu = self.context_menu.view().map(Message::ContextMenuMessage);
+        // ---- slots: header and footer own their own slot heights -----------
+        let header = self.header.view().map(Message::HeaderMessage);
+        let footer = self.footer.view().map(Message::FooterMessage);
 
-        let layout_with_context_menu = stack!(layout, context_menu);
+        // ---- AppLayout: build the layered skeleton ----------------------
+        let mut layout: AppLayout<Element<'_, Message>, Message> = AppLayout::new(body.into())
+            .header(header)
+            .footer(footer)
+            .on_close_menus(Message::CloseMenus)
+            .on_close_modals(Message::DialogClose)
+            .toasts(self.toasts.clone())
+            .toast_position(ToastPosition::BottomEnd);
 
-        let dialog = match &self.dialog {
-            Some(Dialog::MediaFocusDialog(x)) => {
-                Some(x.view().map(Message::MediaFocusDialogMessage))
-            }
-            Some(Dialog::SimilarPairsDialog(x)) => {
-                Some(x.view().map(Message::SimilarPairsDialogMessage))
-            }
-            Some(Dialog::SettingsDialog(x)) => Some(x.view().map(Message::SettingsDialogMessage)),
-            None => None,
-        };
+        // Context menu: only populate the slot when open so snora's
+        // transparent backdrop and dismissal are active only then.
+        if self.context_menu.is_open() {
+            layout = layout.context_menu(
+                self.context_menu.view().map(Message::ContextMenuMessage),
+            );
+        }
 
-        overlay(
-            layout_with_context_menu.into(),
-            dialog,
-            Some(Message::DialogClose),
-        )
-        .into()
+        // Modal dialogs: map the active dialog variant to an Element and
+        // hand it to snora for centered, dimmed presentation.
+        if let Some(dialog) = &self.dialog {
+            let elem: Element<'_, Message> = match dialog {
+                Dialog::MediaFocusDialog(x) => x.view().map(Message::MediaFocusDialogMessage),
+                Dialog::SimilarPairsDialog(x) => x.view().map(Message::SimilarPairsDialogMessage),
+                Dialog::SettingsDialog(x) => x.view().map(Message::SettingsDialogMessage),
+            };
+            layout = layout.dialog(SnoraDialog::new(elem));
+        }
+
+        render(layout)
     }
 }

@@ -8,11 +8,12 @@ mod view;
 
 const SPACING: u16 = 10;
 
-pub struct Workbench {
+// アプリケーションの状態
+pub struct Gallery {
     dir_path_thumbnail_path_map: BTreeMap<PathBuf, FastHashMap<String, String>>,
 }
 
-impl Workbench {
+impl Gallery {
     pub fn new() -> anyhow::Result<Self> {
         Ok(Self {
             dir_path_thumbnail_path_map: BTreeMap::default(),
