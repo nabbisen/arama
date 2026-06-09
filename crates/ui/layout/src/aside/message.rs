@@ -15,7 +15,5 @@ pub enum Event {
 
 #[derive(Debug, Clone)]
 pub enum Internal {
-    Open,
-    Close,
     DirTreeMessage(dir_tree::message::Message),
 }

@@ -8,8 +8,11 @@ use arama_ui_widgets::{
 };
 use iced::Point;
 
+use super::NavPage;
+
 #[derive(Debug, Clone)]
 pub enum Message {
+    NavTo(NavPage),
     CacheRequire,
     ThumbnailCacheFinished(Vec<(PathBuf, Arc<arama_cache::Result<()>>)>),
     EmbeddingCacheFinished(Option<String>),

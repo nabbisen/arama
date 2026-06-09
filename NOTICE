@@ -1,0 +1,30 @@
+arama
+Copyright 2024 nabbisen
+
+This product is licensed under the Apache License, Version 2.0.
+A copy of the license is available at:
+  https://www.apache.org/licenses/LICENSE-2.0
+or in the LICENSE file distributed with this source.
+
+-------------------------------------------------------------------------------
+Third-party components
+-------------------------------------------------------------------------------
+
+This application downloads the following AI models from Hugging Face Hub
+at first launch. Each model is subject to its own license:
+
+  openai/clip-vit-base-patch32
+    License: MIT
+    https://huggingface.co/openai/clip-vit-base-patch32
+
+  facebook/wav2vec2-base-960h
+    License: Apache 2.0
+    https://huggingface.co/facebook/wav2vec2-base-960h
+
+This application downloads a pre-built ffmpeg binary at first launch.
+The binary is provided by yt-dlp/FFmpeg-Builds and is subject to the
+FFmpeg project license (LGPL/GPL, depending on the build):
+    https://github.com/yt-dlp/FFmpeg-Builds
+
+For Rust crate dependencies, see Cargo.lock and the individual crates'
+license files (available via `cargo license` or on crates.io).

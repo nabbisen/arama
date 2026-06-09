@@ -21,13 +21,7 @@ impl Header {
             self.dir_nav
                 .view()
                 .map(|x| Message::Internal(Internal::DirNavMessage(x))),
-            row![
-                similar_pairs_button,
-                self.settings_nav
-                    .view()
-                    .map(|x| Message::Internal(Internal::SettingsNavMessage(x)))
-            ]
-            .spacing(10)
+            similar_pairs_button,
         ]
         .spacing(20)
         .padding(10);

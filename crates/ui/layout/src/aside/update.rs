@@ -10,26 +10,19 @@ impl Aside {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Event(_) => Task::none(),
-            Message::Internal(message) => {
+            Message::Internal(Internal::DirTreeMessage(message)) => {
+                let task = self
+                    .dir_tree
+                    .update(message.clone())
+                    .map(|x| Message::Internal(Internal::DirTreeMessage(x)));
                 match message {
-                    Internal::Open => self.is_open = true,
-                    Internal::Close => self.is_open = false,
-                    Internal::DirTreeMessage(message) => {
-                        let task = self
-                            .dir_tree
-                            .update(message.clone())
-                            .map(|x| Message::Internal(Internal::DirTreeMessage(x)));
-                        match message {
-                            dir_tree::message::Message::Event(message) => match message {
-                                dir_tree::message::Event::DirClick(path) => {
-                                    return Task::done(Message::Event(Event::DirSelect(path)));
-                                }
-                            },
-                            dir_tree::message::Message::Internal(_) => return task,
+                    dir_tree::message::Message::Event(message) => match message {
+                        dir_tree::message::Event::DirClick(path) => {
+                            Task::done(Message::Event(Event::DirSelect(path)))
                         }
-                    }
+                    },
+                    dir_tree::message::Message::Internal(_) => task,
                 }
-                Task::none()
             }
         }
     }

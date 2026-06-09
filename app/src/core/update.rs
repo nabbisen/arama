@@ -12,7 +12,7 @@ use arama_ui_main::{components::gallery::image_cell, views::gallery};
 use iced::{Task, wgpu::naga::FastHashMap};
 use swdir::{DirNode, Recurse, Swdir};
 
-use super::{App, Dialog, message::Message};
+use super::{App, Dialog, NavPage, message::Message};
 use arama_ui_layout::{aside, footer, header};
 use arama_ui_widgets::{
     context_menu::ContextMenuState,
@@ -22,6 +22,10 @@ use arama_ui_widgets::{
 impl App {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::NavTo(page) => {
+                self.nav_page = page;
+                Task::none()
+            }
             Message::CacheRequire => {
                 if let Some(dir_node) = &self.dir_node {
                     let dir_node = dir_node.clone();
@@ -202,14 +206,6 @@ impl App {
                                     .default_task()
                                     .map(Message::SimilarPairsDialogMessage);
                             }
-                            header::message::Event::SettingsOpen => {
-                                self.dialog = Some(Dialog::SettingsDialog(
-                                    settings_dialog::SettingsDialog::new(
-                                        &self.settings.target_media_type,
-                                        self.settings.sub_dir_depth_limit,
-                                    ),
-                                ))
-                            }
                         }
                     }
                     header::message::Message::Internal(_) => (),
@@ -298,40 +294,38 @@ impl App {
                 Task::none()
             }
             Message::SettingsDialogMessage(message) => {
-                if let Some(Dialog::SettingsDialog(settings)) = &mut self.dialog {
-                    let task = settings
-                        .update(message.clone())
-                        .map(Message::SettingsDialogMessage);
+                let task = self
+                    .settings_page
+                    .update(message.clone())
+                    .map(Message::SettingsDialogMessage);
 
-                    match message {
-                        settings_dialog::message::Message::TargetMediaTypeChanged(x) => {
-                            self.settings.target_media_type = x;
-                            self.save_settings();
+                match message {
+                    settings_dialog::message::Message::TargetMediaTypeChanged(x) => {
+                        self.settings.target_media_type = x;
+                        self.save_settings();
 
-                            return if self.processing {
-                                task
-                            } else {
-                                self.processing_on();
-                                Task::batch([task, Task::done(Message::CacheRequire)])
-                            };
-                        }
-                        settings_dialog::message::Message::SubDirDepthLimitChanged(x) => {
-                            self.settings.sub_dir_depth_limit = x;
-                            self.save_settings();
-
-                            return if self.processing {
-                                task
-                            } else {
-                                self.processing_on();
-                                Task::batch([task, Task::done(Message::CacheRequire)])
-                            };
-                        }
-                        _ => (),
+                        return if self.processing {
+                            task
+                        } else {
+                            self.processing_on();
+                            Task::batch([task, Task::done(Message::CacheRequire)])
+                        };
                     }
+                    settings_dialog::message::Message::SubDirDepthLimitChanged(x) => {
+                        self.settings.sub_dir_depth_limit = x;
+                        self.save_settings();
 
-                    return task;
+                        return if self.processing {
+                            task
+                        } else {
+                            self.processing_on();
+                            Task::batch([task, Task::done(Message::CacheRequire)])
+                        };
+                    }
+                    _ => (),
                 }
-                Task::none()
+
+                task
             }
             Message::ContextMenuMessage(message) => self
                 .context_menu

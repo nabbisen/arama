@@ -1,0 +1,9 @@
+[book]
+title = "arama"
+authors = ["nabbisen"]
+language = "en"
+src = "src"
+
+[output.html]
+git-repository-url = "https://github.com/nabbisen/arama"
+edit-url-template = "https://github.com/nabbisen/arama/edit/main/docs/{path}"

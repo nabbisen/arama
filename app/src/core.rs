@@ -23,6 +23,13 @@ mod view;
 use message::Message;
 use swdir::{DirNode, Swdir};
 
+/// Top-level navigation pages rendered in the body slot.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum NavPage {
+    Explorer,
+    Settings,
+}
+
 pub struct App {
     setup: Setup,
     gallery: Gallery,
@@ -40,13 +47,17 @@ pub struct App {
     /// Handle for the active thumbnail-cache or embedding task, used to
     /// abort it when the user switches to a different directory.
     task_handle: Option<iced::task::Handle>,
+    /// Currently displayed top-level page.
+    nav_page: NavPage,
+    /// Settings page widget — persistent so tab state is preserved across
+    /// navigation.
+    settings_page: dialog::settings_dialog::SettingsDialog,
 }
 
 #[derive(Clone, Debug)]
 enum Dialog {
     MediaFocusDialog(dialog::media_focus_dialog::MediaFocusDialog),
     SimilarPairsDialog(dialog::similar_pairs_dialog::SimilarPairsDialog),
-    SettingsDialog(dialog::settings_dialog::SettingsDialog),
 }
 
 impl App {
@@ -123,6 +134,10 @@ impl App {
         let dir_node_count = dir_node.count();
         let footer = Footer::new(thumbnail_size, dir_node_count.files, dir_node_count.dirs);
         let dialog = None;
+        let settings_page = dialog::settings_dialog::SettingsDialog::new(
+            &settings.target_media_type,
+            settings.sub_dir_depth_limit,
+        );
 
         let gallery = Gallery::new().expect("failed to init gallery");
 
@@ -151,6 +166,8 @@ impl App {
                 image_cell_path: None,
                 processing,
                 task_handle: None,
+                nav_page: NavPage::Explorer,
+                settings_page,
             },
             task,
         )

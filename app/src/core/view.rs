@@ -2,11 +2,12 @@ use arama_ui_main::views::setup;
 use iced::{
     Element,
     Length::Fill,
-    widget::{container, mouse_area, row},
+    widget::{button, column, container, mouse_area, row},
 };
+use lucide_icons::iced::{icon_folder, icon_settings};
 use snora::{AppLayout, Dialog as SnoraDialog, ToastPosition, render};
 
-use super::{App, Dialog, message::Message};
+use super::{App, Dialog, NavPage, message::Message};
 
 impl App {
     pub fn view(&self) -> Element<'_, Message> {
@@ -15,50 +16,88 @@ impl App {
             return self.setup.view().map(Message::SetupMessage);
         }
 
-        // ---- body: aside rail + gallery, with horizontal padding --------
-        let aside = self.aside.view().map(Message::AsideMessage);
-        let gallery = self
-            .gallery
-            .view(self.footer.thumbnail_size())
-            .map(Message::GalleryMessage);
+        // ── Side-bar nav rail ─────────────────────────────────────────
+        let side_bar: Element<Message> = {
+            let explorer = button(icon_folder())
+                .style(if self.nav_page == NavPage::Explorer {
+                    button::primary
+                } else {
+                    button::text
+                })
+                .on_press(Message::NavTo(NavPage::Explorer));
 
-        // CursorMove is only needed to track context-menu position over
-        // gallery cells, so wrapping the body row is sufficient.
-        let body = mouse_area(
-            container(row![aside, gallery])
-                .height(Fill)
-                .padding([0, 20]),
-        )
-        .on_move(Message::CursorMove);
+            let settings = button(icon_settings())
+                .style(if self.nav_page == NavPage::Settings {
+                    button::primary
+                } else {
+                    button::text
+                })
+                .on_press(Message::NavTo(NavPage::Settings));
 
-        // ---- slots: header and footer own their own slot heights -----------
-        let header = self.header.view().map(Message::HeaderMessage);
+            column![explorer, settings]
+                .spacing(4)
+                .padding(8)
+                .into()
+        };
+
+        // ── Page body ─────────────────────────────────────────────────
+        let body: Element<Message> = match self.nav_page {
+            NavPage::Explorer => {
+                // Header (dir input + action buttons) spans the full
+                // width of the Explorer page.
+                let header = self.header.view().map(Message::HeaderMessage);
+
+                // Tiling row: always-visible dir tree + gallery.
+                let aside = self.aside.view().map(Message::AsideMessage);
+                let gallery = self
+                    .gallery
+                    .view(self.footer.thumbnail_size())
+                    .map(Message::GalleryMessage);
+
+                let tiling = mouse_area(
+                    container(row![aside, gallery])
+                        .height(Fill)
+                        .padding([0, 20]),
+                )
+                .on_move(Message::CursorMove);
+
+                column![header, tiling].into()
+            }
+            NavPage::Settings => container(
+                self.settings_page
+                    .view()
+                    .map(Message::SettingsDialogMessage),
+            )
+            .padding(20)
+            .into(),
+        };
+
+        // ── AppLayout skeleton ────────────────────────────────────────
         let footer = self.footer.view().map(Message::FooterMessage);
 
-        // ---- AppLayout: build the layered skeleton ----------------------
-        let mut layout: AppLayout<Element<'_, Message>, Message> = AppLayout::new(body.into())
-            .header(header)
-            .footer(footer)
-            .on_close_menus(Message::CloseMenus)
-            .on_close_modals(Message::DialogClose)
-            .toasts(self.toasts.clone())
-            .toast_position(ToastPosition::BottomEnd);
+        let mut layout: AppLayout<Element<'_, Message>, Message> =
+            AppLayout::new(body)
+                .side_bar(side_bar)
+                .footer(footer)
+                .on_close_menus(Message::CloseMenus)
+                .on_close_modals(Message::DialogClose)
+                .toasts(self.toasts.clone())
+                .toast_position(ToastPosition::BottomEnd);
 
-        // Context menu: only populate the slot when open so snora's
-        // transparent backdrop and dismissal are active only then.
+        // Context menu: only populate when open so snora's backdrop is
+        // active only then.
         if self.context_menu.is_open() {
             layout = layout.context_menu(
                 self.context_menu.view().map(Message::ContextMenuMessage),
             );
         }
 
-        // Modal dialogs: map the active dialog variant to an Element and
-        // hand it to snora for centered, dimmed presentation.
+        // Modal dialogs (MediaFocus, SimilarPairs only — Settings is a
+        // page now).
         if let Some(dialog) = &self.dialog {
             let elem: Element<'_, Message> = match dialog {
                 Dialog::MediaFocusDialog(x) => x.view().map(Message::MediaFocusDialogMessage),
                 Dialog::SimilarPairsDialog(x) => x.view().map(Message::SimilarPairsDialogMessage),
-                Dialog::SettingsDialog(x) => x.view().map(Message::SettingsDialogMessage),
             };
             layout = layout.dialog(SnoraDialog::new(elem));
         }
