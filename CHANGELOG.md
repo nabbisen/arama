@@ -10,9 +10,32 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 ### Planned
 
 - Relative-time rendering ("2 days ago") for the Cache page table —
-  small follow-up; absolute local time is the v0.25.0 default.
-- Stop button on the Cache page's in-progress row — the abort handle
-  already exists; only UI wiring is needed.
+  absolute local time is the default; relative rendering is a future
+  small follow-up.
+- Stop button on the Cache page's in-progress ⏳ row.
+
+---
+
+## [0.26.0]
+
+### Added
+
+- **Configurable similarity threshold** (RFC 005). A labeled slider
+  (range 0.50–1.00, step 0.01) in Settings → General replaces the
+  hardcoded 0.86 constant that was marked `// todo ui sliders for
+  these param(s): threshold` in the codebase. The value is persisted in
+  `settings.json` with `serde(default)` so existing files continue to
+  load. Both the focus-view filter (`MediaFocusDialog`) and the
+  similarity-pairs finder (`SimilarPairsDialog`) now read the stored
+  setting instead of the compile-time constant.
+
+- **Working ffmpeg re-download** (RFC 005). The "Get" button in
+  Settings → AI now downloads and unpacks the ffmpeg binary using the
+  same GitHub CDN source as the first-run setup. Status is shown
+  inline ("Downloading ffmpeg…", "ffmpeg is ready.", or an error
+  message) using the same component pattern as the clip "Load" button.
+  `VideoEngine::download_and_install()` async helper added to the
+  sidecar crate.
 
 ---
 

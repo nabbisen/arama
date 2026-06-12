@@ -123,6 +123,7 @@ impl App {
         let sub_dir_depth_limit = settings.sub_dir_depth_limit;
         let thumbnail_size = settings.thumbnail_size;
         let cache_lookup_strategy = settings.cache_lookup_strategy;
+        let similarity_threshold = settings.similarity_threshold;
 
         let dir_node = dir_node(&root_dir_path, &target_media_type);
 
@@ -132,6 +133,7 @@ impl App {
             sub_dir_depth_limit,
             thumbnail_size,
             cache_lookup_strategy,
+            similarity_threshold,
         };
 
         let header = Header::new(&settings.root_dir_path);
@@ -142,6 +144,7 @@ impl App {
         let settings_page = dialog::settings_dialog::SettingsDialog::new(
             &settings.target_media_type,
             settings.sub_dir_depth_limit,
+            settings.similarity_threshold,
         );
 
         let gallery = Gallery::new().expect("failed to init gallery");
@@ -188,6 +191,7 @@ impl App {
                 sub_dir_depth_limit: self.settings.sub_dir_depth_limit,
                 thumbnail_size: self.settings.thumbnail_size,
                 cache_lookup_strategy: self.settings.cache_lookup_strategy,
+                similarity_threshold: self.settings.similarity_threshold,
             })
             .expect("failed to save config");
     }

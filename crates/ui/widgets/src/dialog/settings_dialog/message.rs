@@ -9,6 +9,7 @@ use super::{
 pub enum Message {
     TargetMediaTypeChanged(TargetMediaType),
     SubDirDepthLimitChanged(u8),
+    SimilarityThresholdChanged(f32),
     TabSelect(Tab),
     GeneralSettingsTabMessage(general_settings::message::Message),
     AiSettingsTabMessage(ai_settings::message::Message),

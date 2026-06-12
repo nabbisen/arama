@@ -28,8 +28,7 @@ impl AiSettings {
                 text(
                     "ffmpeg for video analysis is not found.\nShould get executable. Network will be used"
                 ),
-                // todo: on_press()
-                button("Get"),
+                button("Get").on_press(Message::GetFfmpegStart),
             ].into()
         };
 

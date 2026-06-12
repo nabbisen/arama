@@ -155,13 +155,6 @@ impl VideoEngine {
         }
 
         // ── Locate binaries ──────────────────────────────────────────────
-        //
-        // yt-dlp/FFmpeg-Builds (Linux, Windows):
-        //   <inner-dir>/bin/ffmpeg[.exe]
-        //
-        // evermeet.cx / osxexperts.net (macOS):
-        //   ffmpeg (flat, at the temp-dir root — no inner directory)
-
         #[cfg(any(target_os = "linux", target_os = "windows"))]
         let (ffmpeg_src, ffprobe_src) = {
             let inner = std::fs::read_dir(&temp_dir)?
@@ -206,6 +199,38 @@ impl VideoEngine {
             std::fs::remove_file(&from_archive)?;
         }
 
+        Ok(())
+    }
+
+    /// Download and install the ffmpeg binary in one step.
+    ///
+    /// Fetches the archive from [`VideoEngine::download_url()`], saves it
+    /// to [`VideoEngine::download_dest_path()`], then calls
+    /// [`VideoEngine::unpack_archive()`]. The binary is buffered in memory
+    /// during download (~80 MB); acceptable for a one-time re-installation
+    /// from the Settings → AI page.
+    pub async fn download_and_install() -> anyhow::Result<()> {
+        let url = VideoEngine::download_url()?;
+        let dest = VideoEngine::download_dest_path()?;
+
+        let response = reqwest::get(&url)
+            .await
+            .with_context(|| format!("failed to fetch {url}"))?;
+
+        if !response.status().is_success() {
+            anyhow::bail!("HTTP error {}: {}", response.status(), url);
+        }
+
+        let bytes = response
+            .bytes()
+            .await
+            .context("failed to read ffmpeg download")?;
+
+        tokio::fs::write(&dest, &bytes)
+            .await
+            .with_context(|| format!("failed to write {}", dest.display()))?;
+
+        VideoEngine::unpack_archive().context("failed to unpack ffmpeg archive")?;
         Ok(())
     }
 

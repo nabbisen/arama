@@ -6,7 +6,7 @@ use arama_cache::{
     VideoCacheReader,
 };
 use arama_env::{
-    IMAGE_EXTENSION_ALLOWLIST, MIN_IMAGE_SIMILARITY, MIN_VIDEO_SIMILARITY,
+    IMAGE_EXTENSION_ALLOWLIST,
     VIDEO_EXTENSION_ALLOWLIST, cache_storage_path, cache_thumbnail_dir_path,
 };
 use arama_sidecar::media::video::video_engine::VideoEngine;
@@ -27,27 +27,34 @@ pub struct SimilarPairsDialog {
     dir_node: DirNode,
     pairs: Option<Vec<SimilarPair>>,
     hovered_media_item_path_str: Option<String>,
+    similarity_threshold: f32,
 }
 
 impl SimilarPairsDialog {
-    pub fn new<T: Into<DirNode>>(dir_node: T, pairs: Option<Vec<SimilarPair>>) -> Self {
+    pub fn new<T: Into<DirNode>>(
+        dir_node: T,
+        pairs: Option<Vec<SimilarPair>>,
+        similarity_threshold: f32,
+    ) -> Self {
         Self {
             dir_node: dir_node.into(),
             pairs,
             hovered_media_item_path_str: None,
+            similarity_threshold,
         }
     }
 
     pub fn default_task(&self) -> Task<message::Message> {
         let dir_node = self.dir_node.clone();
+        let threshold = self.similarity_threshold;
         Task::perform(
-            prepare_embeddings(dir_node),
+            prepare_embeddings(dir_node, threshold),
             message::Message::EmbeddingsReady,
         )
     }
 }
 
-async fn prepare_embeddings(dir_node: DirNode) -> Vec<SimilarPair> {
+async fn prepare_embeddings(dir_node: DirNode, similarity_threshold: f32) -> Vec<SimilarPair> {
     let paths = dir_node.flatten_paths();
 
     let db_location =
@@ -126,8 +133,8 @@ async fn prepare_embeddings(dir_node: DirNode) -> Vec<SimilarPair> {
 
     // todo ui sliders for these param(s): threshold (also k_neighbors ?)
     let mut similar_pairs =
-        find_similar_pairs(&image_path_embeddings, MIN_IMAGE_SIMILARITY, 50).await;
-    let video_pairs = find_similar_pairs(&video_path_embeddings, MIN_VIDEO_SIMILARITY, 50).await;
+        find_similar_pairs(&image_path_embeddings, similarity_threshold, 50).await;
+    let video_pairs = find_similar_pairs(&video_path_embeddings, similarity_threshold, 50).await;
     similar_pairs.extend(video_pairs);
     similar_pairs
         .into_iter()

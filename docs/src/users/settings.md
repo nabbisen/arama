@@ -10,6 +10,7 @@ has four tabs.
 | **Include image** | Index image files (png, jpg, jpeg, webp, gif, bmp) | On |
 | **Include video** | Index video files (mp4) | On |
 | **Sub-dir depth** | How many subdirectory levels to scan (0 = current directory only, 1 = one level deep, 2 = two levels) | 1 |
+| **Similarity** | Cosine-similarity threshold used by the focus view and the similarity pairs finder. Range 0.50–1.00; higher = stricter (fewer, more exact matches). | 0.86 |
 | **Look up strategy** | Scope of the similarity search in the focus view | Current directory and subdirectories |
 
 Changes to media type or subdirectory depth take effect immediately:

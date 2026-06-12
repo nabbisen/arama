@@ -188,6 +188,7 @@ impl App {
                                 let media_focus_dialog = media_focus_dialog::MediaFocusDialog::new(
                                     path,
                                     self.settings.cache_lookup_strategy,
+                                    self.settings.similarity_threshold,
                                 );
                                 let dialog = Dialog::MediaFocusDialog(media_focus_dialog.clone());
                                 let default_task = media_focus_dialog.default_task();
@@ -235,6 +236,7 @@ impl App {
                                 let dialog = similar_pairs_dialog::SimilarPairsDialog::new(
                                     self.dir_node.clone().unwrap(),
                                     None,
+                                    self.settings.similarity_threshold,
                                 );
                                 self.dialog = Some(Dialog::SimilarPairsDialog(dialog.clone()));
                                 return dialog
@@ -310,6 +312,7 @@ impl App {
                             let media_focus_dialog = media_focus_dialog::MediaFocusDialog::new(
                                 path,
                                 self.settings.cache_lookup_strategy,
+                                self.settings.similarity_threshold,
                             );
                             let dialog = Dialog::MediaFocusDialog(media_focus_dialog.clone());
                             let default_task = media_focus_dialog.default_task();
@@ -356,6 +359,10 @@ impl App {
                             self.processing_on();
                             Task::batch([task, Task::done(Message::CacheRequire(None))])
                         };
+                    }
+                    settings_dialog::message::Message::SimilarityThresholdChanged(v) => {
+                        self.settings.similarity_threshold = v;
+                        self.save_settings();
                     }
                     _ => (),
                 }

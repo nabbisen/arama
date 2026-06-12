@@ -19,17 +19,23 @@ pub struct MediaFocusDialog {
     hovered_media_item_path_str: Option<String>,
     actual_size: bool,
     cache_lookup_strategy: CacheLookupStrategy,
+    similarity_threshold: f32,
     similar_media: Vec<SimilarMediaItem>,
 }
 
 impl MediaFocusDialog {
-    pub fn new<T: Into<PathBuf>>(path: T, cache_lookup_strategy: CacheLookupStrategy) -> Self {
+    pub fn new<T: Into<PathBuf>>(
+        path: T,
+        cache_lookup_strategy: CacheLookupStrategy,
+        similarity_threshold: f32,
+    ) -> Self {
         Self {
             history: vec![path.into()],
             history_index: 0,
             hovered_media_item_path_str: None,
             actual_size: false,
             cache_lookup_strategy: cache_lookup_strategy,
+            similarity_threshold,
             similar_media: vec![],
         }
     }

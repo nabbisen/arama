@@ -8,7 +8,7 @@ use arama_cache::{
     CacheConfig, DbLocation, ImageCacheConfig, ImageCacheReader, VideoCacheConfig, VideoCacheReader,
 };
 use arama_env::{
-    MIN_IMAGE_SIMILARITY, VIDEO_EXTENSION_ALLOWLIST, cache_lookup_strategy::CacheLookupStrategy,
+    VIDEO_EXTENSION_ALLOWLIST, cache_lookup_strategy::CacheLookupStrategy,
     cache_storage_path, cache_thumbnail_dir_path,
 };
 
@@ -16,6 +16,7 @@ use super::{MediaFocusDialog, types::SimilarMediaItem};
 
 impl MediaFocusDialog {
     pub fn similar_media(&self) -> Vec<SimilarMediaItem> {
+        let threshold = self.similarity_threshold;
         let path = &self.history[self.history_index];
 
         let db_location =
@@ -36,9 +37,9 @@ impl MediaFocusDialog {
 
         // todo
         if is_video {
-            similar_videos(path, cache_config, self.cache_lookup_strategy)
+            similar_videos(path, cache_config, self.cache_lookup_strategy, threshold)
         } else {
-            similar_images(path, cache_config, self.cache_lookup_strategy)
+            similar_images(path, cache_config, self.cache_lookup_strategy, threshold)
         }
     }
 }
@@ -47,6 +48,7 @@ fn similar_images(
     path: &Path,
     cache_config: CacheConfig,
     cache_lookup_strategy: CacheLookupStrategy,
+    threshold: f32,
 ) -> Vec<SimilarMediaItem> {
     let image_cache_reader = ImageCacheReader::as_session(ImageCacheConfig { cache_config })
         .expect("failed to get image cache writer");
@@ -97,7 +99,7 @@ fn similar_images(
                 similarity,
             }
         })
-        .filter(|x| MIN_IMAGE_SIMILARITY <= x.similarity)
+        .filter(|x| threshold <= x.similarity)
         .collect::<Vec<_>>();
 
     // 類似度の降順でソート（不安定ソートの方が高速）
@@ -114,6 +116,7 @@ fn similar_videos(
     path: &Path,
     cache_config: CacheConfig,
     cache_lookup_strategy: CacheLookupStrategy,
+    threshold: f32,
 ) -> Vec<SimilarMediaItem> {
     let video_cache_reader = VideoCacheReader::as_session(VideoCacheConfig {
         cache_config,
@@ -195,7 +198,7 @@ fn similar_videos(
                 similarity,
             }
         })
-        .filter(|x| MIN_IMAGE_SIMILARITY <= x.similarity)
+        .filter(|x| threshold <= x.similarity)
         .collect::<Vec<_>>();
 
     // 類似度の降順でソート（不安定ソートの方が高速）

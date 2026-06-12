@@ -4,4 +4,5 @@ use arama_env::target_media_type::TargetMediaType;
 pub enum Message {
     TargetMediaTypeChanged(TargetMediaType),
     SubDirDepthLimitChanged(u8),
+    SimilarityThresholdChanged(f32),
 }

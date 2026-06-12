@@ -1,12 +1,14 @@
 [package]
 name = "arama-sidecar"
-version = "0.25.0"
+version = "0.26.0"
 edition = "2024"
 
 [dependencies]
 arama-env = { workspace = true }
 
 anyhow = { workspace = true }
+reqwest = { workspace = true }
+tokio = { workspace = true }
 
 # ffmpeg archive extraction
 [target.'cfg(target_os = "linux")'.dependencies]

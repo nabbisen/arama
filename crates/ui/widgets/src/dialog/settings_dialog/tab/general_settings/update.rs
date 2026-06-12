@@ -9,6 +9,7 @@ impl GeneralSettings {
                 self.target_media_type = x;
             }
             Message::SubDirDepthLimitChanged(value) => self.sub_dir_depth_limit = value,
+            Message::SimilarityThresholdChanged(v) => self.similarity_threshold = v,
         }
         Task::none()
     }

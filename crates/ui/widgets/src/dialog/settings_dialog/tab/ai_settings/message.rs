@@ -2,4 +2,6 @@
 pub enum Message {
     LoadStart,
     Loaded(Option<String>),
+    GetFfmpegStart,
+    FfmpegGot(Option<String>),
 }

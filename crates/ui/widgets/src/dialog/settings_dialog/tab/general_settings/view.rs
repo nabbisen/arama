@@ -1,7 +1,7 @@
 use arama_env::target_media_type::TargetMediaType;
 use iced::{
     Element,
-    widget::{button, checkbox, column, container, row, text},
+    widget::{button, checkbox, column, container, row, slider, text},
 };
 use lucide_icons::iced::{icon_arrow_down, icon_arrow_up};
 
@@ -53,6 +53,23 @@ impl GeneralSettings {
         ]
         .spacing(5);
 
-        container(column![target_media_types, sub_dir_depth_limit].spacing(10)).into()
+        let threshold_slider = row![
+            text("Similarity"),
+            text("0.50").style(text::secondary),
+            slider(0.50_f32..=1.00_f32, self.similarity_threshold, |v| {
+                // Round to 2 decimal places so small float noise doesn't
+                // propagate to persistent settings.
+                Message::SimilarityThresholdChanged((v * 100.0).round() / 100.0)
+            })
+            .step(0.01_f32),
+            text("1.00").style(text::secondary),
+            text(format!("{:.2}", self.similarity_threshold)),
+        ]
+        .spacing(8);
+
+        container(
+            column![target_media_types, sub_dir_depth_limit, threshold_slider].spacing(10),
+        )
+        .into()
     }
 }
