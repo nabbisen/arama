@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use arama_ui_widgets::dir_tree;
+use iced_swdir_tree::DirectoryTreeEvent;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -8,12 +8,14 @@ pub enum Message {
     Internal(Internal),
 }
 
+/// Events that bubble up to the parent application.
 #[derive(Debug, Clone)]
 pub enum Event {
     DirSelect(PathBuf),
 }
 
+/// Internal routing: async scan results and drag machinery from the tree widget.
 #[derive(Debug, Clone)]
 pub enum Internal {
-    DirTreeMessage(dir_tree::message::Message),
+    TreeEvent(DirectoryTreeEvent),
 }

@@ -199,7 +199,7 @@ dependencies = [
 
 [[package]]
 name = "arama"
-version = "0.29.0"
+version = "0.30.0"
 dependencies = [
  "anyhow",
  "app-json-settings",
@@ -220,7 +220,7 @@ dependencies = [
 
 [[package]]
 name = "arama-ai"
-version = "0.29.0"
+version = "0.30.0"
 dependencies = [
  "anyhow",
  "arama-cache",
@@ -243,7 +243,7 @@ dependencies = [
 
 [[package]]
 name = "arama-cache"
-version = "0.29.0"
+version = "0.30.0"
 dependencies = [
  "anyhow",
  "blake3",
@@ -258,7 +258,7 @@ dependencies = [
 
 [[package]]
 name = "arama-env"
-version = "0.29.0"
+version = "0.30.0"
 dependencies = [
  "arama-i18n",
  "libc",
@@ -267,14 +267,14 @@ dependencies = [
 
 [[package]]
 name = "arama-i18n"
-version = "0.29.0"
+version = "0.30.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "arama-sidecar"
-version = "0.29.0"
+version = "0.30.0"
 dependencies = [
  "anyhow",
  "arama-env",
@@ -287,7 +287,7 @@ dependencies = [
 
 [[package]]
 name = "arama-ui-layout"
-version = "0.29.0"
+version = "0.30.0"
 dependencies = [
  "arama-ai",
  "arama-cache",
@@ -295,6 +295,7 @@ dependencies = [
  "arama-i18n",
  "arama-ui-widgets",
  "iced",
+ "iced-swdir-tree",
  "lucide-icons",
  "rfd",
  "swdir",
@@ -302,7 +303,7 @@ dependencies = [
 
 [[package]]
 name = "arama-ui-main"
-version = "0.29.0"
+version = "0.30.0"
 dependencies = [
  "anyhow",
  "arama-ai",
@@ -322,7 +323,7 @@ dependencies = [
 
 [[package]]
 name = "arama-ui-widgets"
-version = "0.29.0"
+version = "0.30.0"
 dependencies = [
  "arama-ai",
  "arama-cache",
@@ -2715,6 +2716,17 @@ dependencies = [
  "iced_winit",
  "image",
  "thiserror 2.0.18",
+]
+
+[[package]]
+name = "iced-swdir-tree"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86af81f42c52e0f2197e1e520dcf1d02d39f0e3eddc1b902e78d5852036c8c9e"
+dependencies = [
+ "iced",
+ "lucide-icons",
+ "swdir",
 ]
 
 [[package]]

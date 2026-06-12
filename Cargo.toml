@@ -25,6 +25,7 @@ lto = false           # disable link-time optimizations
 incremental = false
 
 [workspace.dependencies]
+iced-swdir-tree = { version = "0.9", features = ["icons"] }
 arama-env = { path = "env" }
 
 arama-ai = { path = "crates/ai" }

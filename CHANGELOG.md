@@ -44,6 +44,28 @@ Migration reports at `rfcs/notes/dep-migration-lucide-icons.md` and
 
 ---
 
+## [0.30.0]
+
+### Changed
+
+- **Replace custom `DirTree` with `iced-swdir-tree` 0.9.0** (RFC 009).
+  The 455-line custom directory-tree widget in `crates/ui/widgets/src/dir_tree/`
+  is removed and replaced by the `iced-swdir-tree` crate (same author; uses
+  the same `iced 0.14`, `swdir 0.11`, and `lucide-icons 1` versions already
+  in the workspace — no new transitive dependencies).
+
+  Behaviour changes:
+  - **Async scanning.** Expanding a directory no longer blocks the UI thread;
+    it issues an async `iced::Task` that merges the result back when complete.
+  - **`ensure_expanded` removed.** `iced-swdir-tree` natively shows all
+    children on first expand, making the workaround added in v0.29.0 unnecessary.
+  - **`Aside::new` simplified.** The `include_file` and `include_hidden`
+    parameters are removed; `DirectoryFilter::FoldersOnly` encodes both.
+  - **`Aside` is no longer `Clone`.** `DirectoryTree` holds an executor
+    handle; the derive was unused.
+
+---
+
 ## [0.29.0]
 
 ### Added

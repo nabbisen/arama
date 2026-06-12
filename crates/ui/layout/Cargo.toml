@@ -1,6 +1,6 @@
 [package]
 name = "arama-ui-layout"
-version = "0.29.0"
+version = "0.30.0"
 edition = "2024"
 
 description = "Image viewer and similarity calculator with offline AI power"
@@ -18,6 +18,7 @@ arama-ai = { workspace = true }
 arama-cache = { workspace = true }
 arama-env = { workspace = true }
 arama-i18n = { workspace = true }
+iced-swdir-tree = { workspace = true }
 arama-ui-widgets = { workspace = true }
 
 iced = { workspace = true }

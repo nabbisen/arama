@@ -24,6 +24,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 006 | [Multilingual GUI — i18n foundation](./done/006-i18n-foundation.md) | v0.27.0 |
 | 007 | [i18n Phase 2 sweep](./done/007-i18n-phase2.md) | v0.28.0 |
 | 008 | [Gallery filter, AI debug cleanup, error handling](./done/008-gallery-filter-cleanup.md) | v0.29.0 |
+| 009 | [Replace custom DirTree with iced-swdir-tree](./done/009-iced-swdir-tree.md) | v0.30.0 |
 
 ## Archive
 

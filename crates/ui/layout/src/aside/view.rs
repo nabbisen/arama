@@ -7,14 +7,13 @@ use super::{
 
 impl Aside {
     pub fn view(&self) -> Element<'_, Message> {
-        let dir_tree = container(
-            self.dir_tree
-                .view()
-                .map(|x| Message::Internal(Internal::DirTreeMessage(x))),
+        let tree = container(
+            self.tree
+                .view(|e| Message::Internal(Internal::TreeEvent(e))),
         )
         .padding([5, 0]);
 
-        column![dir_tree]
+        column![tree]
             .width(Length::Shrink)
             .spacing(5)
             .into()
