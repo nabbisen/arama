@@ -1,3 +1,4 @@
+use arama_i18n::t;
 use std::path::PathBuf;
 
 use arama_env::MAX_THUMBNAIL_SIZE;
@@ -10,7 +11,7 @@ impl SimilarPairsDialog {
     pub fn view(&self) -> Element<'_, Message> {
         let pairs = match &self.pairs {
             Some(x) => x,
-            None => return text("No valid pairs.").into(),
+            None => return text(t("pairs.no_valid")).into(),
         };
 
         let header = if let Some(x) = &self.hovered_media_item_path_str {

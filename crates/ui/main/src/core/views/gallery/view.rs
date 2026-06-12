@@ -1,3 +1,4 @@
+use arama_i18n::t;
 use iced::Length::Fill;
 use iced::widget::{Responsive, column, container, mouse_area, row, scrollable, text};
 use iced::{Element, Size};
@@ -7,12 +8,12 @@ use crate::components::gallery::image_cell::ImageCell;
 use super::{Gallery, SPACING, message::Message};
 
 impl Gallery {
-    // ビュー（UI描画）
     pub fn view(&self, thumbnail_size: u16) -> Element<'_, Message> {
-        // Responsiveウィジェットを使って、現在のウィンドウ幅(size)を取得する
+        // Use a Responsive widget to obtain the current window width and
+        // compute column count from it.
         let grid = container(Responsive::new(move |responsive_size| {
             self.grid(responsive_size, thumbnail_size)
-                .unwrap_or(text("No file to render.").into())
+                .unwrap_or_else(|| text(t("gallery.empty")).into())
         }));
 
         let content = mouse_area(scrollable(container(grid).center_x(Fill).center_y(Fill)))
@@ -21,18 +22,13 @@ impl Gallery {
         content.into()
     }
 
-    // グリッドレイアウトの計算ロジック
+    // Compute the grid layout and return column-of-rows.
     fn grid(&self, responsive_size: Size, thumbnail_size: u16) -> Option<Element<'_, Message>> {
         let total_width = responsive_size.width;
         let item_width = (thumbnail_size + SPACING) as f32;
-        // 1行に収まるカラム数を計算 (ゼロ除算回避のためmax(1)を使用)
-        let num_of_columns_in_row = (total_width / item_width).floor() as usize;
-        let num_of_columns_in_row = num_of_columns_in_row.max(1);
-        if let Some(columns_in_rows) = self.columns_in_rows(num_of_columns_in_row, thumbnail_size) {
-            Some(columns_in_rows)
-        } else {
-            None
-        }
+        // Number of columns per row; clamped to at least 1 to avoid division by zero.
+        let num_of_columns_in_row = ((total_width / item_width).floor() as usize).max(1);
+        self.columns_in_rows(num_of_columns_in_row, thumbnail_size)
     }
 
     fn columns_in_rows(

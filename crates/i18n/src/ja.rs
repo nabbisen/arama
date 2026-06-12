@@ -53,6 +53,39 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "nav.cache"    => "\u{30ad}\u{30e3}\u{30c3}\u{30b7}\u{30e5}",  // キャッシュ
         "nav.settings" => "\u{8a2d}\u{5b9a}",  // 設定
 
+
+        // Setup wizard
+        "setup.download"          => "\u{30c0}\u{30a6}\u{30f3}\u{30ed}\u{30fc}\u{30c9}",  // ダウンロード
+        "setup.skip"              => "\u{30b9}\u{30ad}\u{30c3}\u{30d7}",  // スキップ
+        "setup.no_space"          => "\u{30c0}\u{30a6}\u{30f3}\u{30ed}\u{30fc}\u{30c9}\u{306b}\u{5341}\u{5206}\u{306a}\u{30c7}\u{30a3}\u{30b9}\u{30af}\u{7a7a}\u{304d}\u{5bb9}\u{91cf}\u{304c}\u{3042}\u{308a}\u{307e}\u{305b}\u{3093}\u{3002}",  // ダウンロードに十分なディスク空き容量がありません。
+        "setup.item.clip"         => "\u{753b}\u{50cf}\u{89e3}\u{6790}AI\u{30e2}\u{30c7}\u{30eb}\u{ff08}CLIP\u{ff09}",  // 画像解析AIモデル（CLIP）
+        "setup.item.wav2vec2"     => "\u{97f3}\u{58f0}\u{89e3}\u{6790}AI\u{30e2}\u{30c7}\u{30eb}\u{ff08}wav2vec2\u{ff09}",  // 音声解析AIモデル（wav2vec2）
+        "setup.item.ffmpeg"       => "\u{52d5}\u{753b}\u{51e6}\u{7406}\u{30bd}\u{30d5}\u{30c8}\u{ff08}ffmpeg\u{ff09}",  // 動画処理ソフト（ffmpeg）
+        "setup.item.size_unknown" => "\u{ff08}\u{4e0d}\u{660e}\u{ff09}",  // （不明）
+        "setup.status.missing"    => "\u{672a}\u{53d6}\u{5f97}",  // 未取得
+        "setup.status.downloading" => "\u{30c0}\u{30a6}\u{30f3}\u{30ed}\u{30fc}\u{30c9}\u{4e2d}...",  // ダウンロード中...
+        "setup.status.ready"      => "\u{4f7f}\u{7528}\u{53ef}\u{80fd}",  // 使用可能
+        "setup.status.error"      => "\u{30a8}\u{30e9}\u{30fc}",  // エラー
+        "setup.not_ready"         => "\u{672a}\u{6e96}\u{5099}\u{ff1a}",  // 未準備：
+        "setup.ready"             => "\u{6e96}\u{5099}\u{6e08}\u{307f}\u{ff1a}",  // 準備済み：
+        "setup.download_into"     => "\u{30c0}\u{30a6}\u{30f3}\u{30ed}\u{30fc}\u{30c9}\u{5148}\u{ff1a}",  // ダウンロード先：
+        "setup.disk_space"        => "\u{30c7}\u{30a3}\u{30b9}\u{30af}\u{5bb9}\u{91cf}",  // ディスク容量
+        "setup.disk_gb_avail"     => "GB \u{7a7a}\u{304d}",  // GB 空き
+        "setup.disk_gb_total"     => "GB \u{5408}\u{8a08}",  // GB 合計
+
+        // Focus dialog
+        "focus.strategy"          => "\u{30ad}\u{30e3}\u{30c3}\u{30b7}\u{30e5}\u{691c}\u{7d22}\u{7bc4}\u{56f2}",  // キャッシュ検索範囲
+        "focus.close"             => "\u{9589}\u{3058}\u{308b}",  // 閉じる
+
+        // Similar-pairs dialog
+        "pairs.no_valid"          => "\u{985e}\u{4f3c}\u{30da}\u{30a2}\u{306f}\u{3042}\u{308a}\u{307e}\u{305b}\u{3093}\u{3002}",  // 類似ペアはありません。
+
+        // Header
+        "header.folder"           => "\u{30d5}\u{30a9}\u{30eb}\u{30c0}\u{30fc}",  // フォルダー
+
+        // Gallery
+        "gallery.empty"           => "\u{8868}\u{793a}\u{3059}\u{308b}\u{30d5}\u{30a1}\u{30a4}\u{30eb}\u{304c}\u{3042}\u{308a}\u{307e}\u{305b}\u{3093}\u{3002}",  // 表示するファイルがありません。
+
         _ => return None,
     })
 }

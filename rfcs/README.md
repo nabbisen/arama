@@ -22,6 +22,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 004 | [Cache control page](./done/004-cache-control-page.md) | v0.25.0 |
 | 005 | [Configurable similarity threshold + ffmpeg re-download](./done/005-threshold-and-ffmpeg-redownload.md) | v0.26.0 |
 | 006 | [Multilingual GUI — i18n foundation](./done/006-i18n-foundation.md) | v0.27.0 |
+| 007 | [i18n Phase 2 sweep](./done/007-i18n-phase2.md) | v0.28.0 |
 
 ## Archive
 

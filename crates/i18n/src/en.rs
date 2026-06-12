@@ -53,6 +53,39 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "nav.cache"    => "Cache",
         "nav.settings" => "Settings",
 
+
+        // Setup wizard
+        "setup.download"          => "Download",
+        "setup.skip"              => "Skip",
+        "setup.no_space"          => "Not enough space on device for download.",
+        "setup.item.clip"         => "Image analysis AI model (CLIP)",
+        "setup.item.wav2vec2"     => "Audio analysis AI model (wav2vec2)",
+        "setup.item.ffmpeg"       => "Video manipulator (ffmpeg)",
+        "setup.item.size_unknown" => "(unknown)",
+        "setup.status.missing"    => "Missing",
+        "setup.status.downloading" => "Downloading...",
+        "setup.status.ready"      => "Ready",
+        "setup.status.error"      => "Error",
+        "setup.not_ready"         => "Not ready:",
+        "setup.ready"             => "Ready:",
+        "setup.download_into"     => "Will be downloaded into:",
+        "setup.disk_space"        => "Disk space",
+        "setup.disk_gb_avail"     => "GB available",
+        "setup.disk_gb_total"     => "GB total",
+
+        // Focus dialog
+        "focus.strategy"          => "Cache lookup strategy",
+        "focus.close"             => "Close",
+
+        // Similar-pairs dialog
+        "pairs.no_valid"          => "No valid pairs.",
+
+        // Header
+        "header.folder"           => "Folder",
+
+        // Gallery
+        "gallery.empty"           => "No file to render.",
+
         _ => return None,
     })
 }

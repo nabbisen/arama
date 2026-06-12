@@ -1,3 +1,4 @@
+use arama_i18n::t;
 use arama_env::MAX_THUMBNAIL_SIZE;
 use iced::{
     Alignment::Center,
@@ -51,7 +52,7 @@ impl MediaFocusDialog {
         let main_media = column![path_text, content].spacing(10);
 
         let cache_lookup_strategy_pick_list = row![
-            text("Cache lookup strategy"),
+            text(t("focus.strategy")),
             pick_list(
                 &super::CacheLookupStrategy::ALL[..],
                 Some(self.cache_lookup_strategy),
@@ -128,7 +129,7 @@ impl MediaFocusDialog {
             similar_media_items_footer
         ];
 
-        let close_button = button("Close").on_press(Message::CloseClick);
+        let close_button = button(text(t("focus.close"))).on_press(Message::CloseClick);
         let footer = container(close_button).center_x(Fill).padding(10);
 
         column![main_media, view_control, similar_media, footer]

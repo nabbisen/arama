@@ -10,8 +10,35 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 ### Planned
 
 - Relative-time rendering ("2 days ago") for the Cache page table.
-- Phase 2 i18n sweep: gallery, focus dialog, similar-pairs dialog,
-  and setup wizard views.
+
+---
+
+## [0.28.0]
+
+### Changed
+
+- **i18n Phase 2 sweep** (RFC 007). All remaining hardcoded English
+  strings translated to use `t()`. Six views covered:
+
+  **Setup wizard** — "Download" / "Skip" buttons, "Not enough space"
+  message, all three component names (CLIP, wav2vec2, ffmpeg),
+  download-state labels (Missing, Downloading, Ready, Error), and the
+  disk-space display.
+
+  **Focus dialog** — "Cache lookup strategy" label, "Close" button.
+
+  **Similar-pairs dialog** — "No valid pairs." empty state.
+
+  **Header folder-picker** — "Folder" button label.
+
+  **Gallery** — "No file to render." empty state.
+
+- **Panic removed.** `state_name()` in the setup downloader no longer
+  panics on an unrecognised AI model config; it falls back to the CLIP
+  label and logs via `eprintln!`. Typo "donwload" corrected throughout.
+
+- **Code comment language.** Japanese comments in `gallery/view.rs`
+  translated to English (project convention).
 
 ---
 

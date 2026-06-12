@@ -1,4 +1,5 @@
 use arama_env::local_dir;
+use arama_i18n::t;
 use disk_space::DiskSpace;
 use iced::Length::Fill;
 use iced::widget::{column, container, progress_bar, row, text};
@@ -15,24 +16,29 @@ impl Downloader {
             .iter()
             .filter(|x| x.download_state != DownloadState::NotRequired)
             .fold(
-                column!["Not ready:"].max_width(400).spacing(10),
+                column![text(t("setup.not_ready"))].max_width(400).spacing(10),
                 |col, state| {
                     let (status, progress) = match &state.download_state {
-                        DownloadState::Idle => ("Missing".to_owned(), 0.0),
-                        DownloadState::Downloading(p) => (format!("Downloading... {:.1}%", *p), *p),
-                        DownloadState::Finished => ("Ready".to_owned(), 100.0),
-                        DownloadState::Errored(e) => (format!("Error: {}", e), 0.0),
+                        DownloadState::Idle => (t("setup.status.missing"), 0.0),
+                        DownloadState::Downloading(p) => {
+                            (format!("{} {:.1}%", t("setup.status.downloading"), *p), *p)
+                        }
+                        DownloadState::Finished => (t("setup.status.ready"), 100.0),
+                        DownloadState::Errored(e) => {
+                            (format!("{}: {}", t("setup.status.error"), e), 0.0)
+                        }
                         DownloadState::NotRequired => unreachable!(),
                     };
 
+                    let size_str = if let Some(x) = state.file_size {
+                        x.to_string()
+                    } else {
+                        t("setup.item.size_unknown")
+                    };
                     let name = format!(
                         "{} ({} MB)",
                         state_name(&state.config),
-                        if let Some(x) = state.file_size {
-                            x.to_string()
-                        } else {
-                            "(unknown)".to_owned()
-                        }
+                        size_str,
                     );
 
                     col.push(
@@ -46,26 +52,29 @@ impl Downloader {
             );
 
         let download_not_requires = row![
-            text("Ready:"),
+            text(t("setup.ready")),
             self.states
                 .iter()
                 .filter(|x| x.download_state == DownloadState::NotRequired)
                 .fold(column![].spacing(5), |col, state| {
-                    let name = state_name(&state.config);
-                    col.push(text(name))
+                    col.push(text(state_name(&state.config)))
                 })
         ]
         .spacing(5);
 
         let local_dir = local_dir().unwrap();
-        let disk_space = DiskSpace::new(&local_dir).expect("failed to get file system info ");
+        let disk_space = DiskSpace::new(&local_dir).expect("failed to get file system info");
         let disk_space_as_gb = disk_space.as_gb();
         let disk = column![
-            text("Will be downloaded into:"),
+            text(t("setup.download_into")),
             text(local_dir.to_string_lossy().to_string()),
             text(format!(
-                "(Disk space: {:.1} GB available / {:.1} GB total)",
-                disk_space_as_gb.available, disk_space_as_gb.total
+                "({}: {:.1} {} / {:.1} {})",
+                t("setup.disk_space"),
+                disk_space_as_gb.available,
+                t("setup.disk_gb_avail"),
+                disk_space_as_gb.total,
+                t("setup.disk_gb_total"),
             ))
         ]
         .spacing(5);
@@ -84,31 +93,26 @@ impl Downloader {
 }
 
 fn state_name(config: &DownloaderConfig) -> String {
-    let name = match config {
+    match config {
         DownloaderConfig::AiModel(model_container) => {
-            let safetensors_path = model_container
-                .safetensors_path()
-                .expect("failed to get safetensors path");
-
-            let parent_dir_name = if let Some(x) = safetensors_path.parent() {
-                x.file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string()
-            } else {
-                String::new()
+            let Ok(safetensors_path) = model_container.safetensors_path() else {
+                return t("setup.item.clip"); // safe fallback
             };
+            let parent_name = safetensors_path
+                .parent()
+                .and_then(|p| p.file_name())
+                .map(|n| n.to_string_lossy().to_lowercase())
+                .unwrap_or_default();
 
-            if parent_dir_name.contains("clip") {
-                "Image analysis ai model (clip)".to_owned()
-            } else if parent_dir_name.contains("wav2vec2") {
-                "Audio analysis ai model (wav2vec2)".to_owned()
+            if parent_name.contains("clip") {
+                t("setup.item.clip")
+            } else if parent_name.contains("wav2vec2") {
+                t("setup.item.wav2vec2")
             } else {
-                panic!("Unknown donwload config");
+                eprintln!("state_name: unknown AI model config at {}", safetensors_path.display());
+                t("setup.item.clip") // degrade gracefully instead of panicking
             }
         }
-        DownloaderConfig::Ffmepg => "Video manipulator (ffmpeg)".to_owned(),
-    };
-
-    name
+        DownloaderConfig::Ffmepg => t("setup.item.ffmpeg"),
+    }
 }
