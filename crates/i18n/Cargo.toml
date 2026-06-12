@@ -1,9 +1,7 @@
 [package]
-name = "arama-env"
+name = "arama-i18n"
 version = "0.26.0"
 edition = "2024"
 
 [dependencies]
-arama-i18n = { workspace = true }
-libc = { workspace = true }
 serde = { workspace = true }

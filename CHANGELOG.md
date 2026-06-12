@@ -9,10 +9,36 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Planned
 
-- Relative-time rendering ("2 days ago") for the Cache page table —
-  absolute local time is the default; relative rendering is a future
-  small follow-up.
-- Stop button on the Cache page's in-progress ⏳ row.
+- Relative-time rendering ("2 days ago") for the Cache page table.
+- Phase 2 i18n sweep: gallery, focus dialog, similar-pairs dialog,
+  and setup wizard views.
+
+---
+
+## [0.27.0]
+
+### Added
+
+- **Stop button on Cache page ⏳ row.** While a caching run is active
+  the in-progress row shows a ◉ stop button next to the "⏳ caching…"
+  indicator. Pressing it aborts the active task via the existing
+  `task_handle` and reloads the table.
+
+- **Multilingual GUI — i18n foundation** (RFC 006). A new zero-dependency
+  `arama-i18n` workspace crate (`crates/i18n/`) exposes `t(key)`,
+  `set_locale(Locale)`, and `current_locale()`. The active locale is
+  stored in a global `AtomicU8` — lock-free, callable from any thread.
+  Fallback chain: current locale → English → raw key string, so
+  partially-translated locales degrade gracefully.
+
+  **English and Japanese** locale tables ship for the Settings page
+  (all four tabs), the Cache page, and the side-nav tooltips.
+  `Settings::locale: Locale` (serde default `En`) is persisted across
+  restarts. A language selector (EN / 日本語 buttons) in Settings →
+  General changes the locale immediately with no restart required.
+
+  Phase 2 (gallery, focus dialog, similar-pairs dialog, setup wizard)
+  is tracked in Unreleased.
 
 ---
 

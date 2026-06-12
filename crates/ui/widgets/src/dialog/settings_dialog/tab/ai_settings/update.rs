@@ -1,4 +1,5 @@
 use arama_ai::model::{model_container::clip, model_manager::ModelManager};
+use arama_i18n::t;
 use arama_sidecar::media::video::video_engine::VideoEngine;
 use iced::Task;
 
@@ -8,7 +9,7 @@ impl AiSettings {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::LoadStart => {
-                self.message = "loading...".to_owned();
+                self.message = t("settings.ai.clip_loading");
 
                 Task::perform(
                     async {
@@ -31,7 +32,7 @@ impl AiSettings {
                 Task::none()
             }
             Message::GetFfmpegStart => {
-                self.message = "Downloading ffmpeg…".to_owned();
+                self.message = t("settings.ai.ffmpeg_fetching");
                 Task::perform(
                     async { VideoEngine::download_and_install().await.err().map(|e| e.to_string()) },
                     Message::FfmpegGot,
@@ -39,7 +40,7 @@ impl AiSettings {
             }
             Message::FfmpegGot(result) => {
                 self.message = match result {
-                    None => "ffmpeg is ready.".to_owned(),
+                    None => t("settings.ai.ffmpeg_ready"),
                     Some(err) => err,
                 };
                 Task::none()

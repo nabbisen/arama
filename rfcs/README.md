@@ -21,6 +21,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 003 | [Side-nav shell redesign](./done/003-side-nav-shell.md) | v0.24.0 |
 | 004 | [Cache control page](./done/004-cache-control-page.md) | v0.25.0 |
 | 005 | [Configurable similarity threshold + ffmpeg re-download](./done/005-threshold-and-ffmpeg-redownload.md) | v0.26.0 |
+| 006 | [Multilingual GUI — i18n foundation](./done/006-i18n-foundation.md) | v0.27.0 |
 
 ## Archive
 

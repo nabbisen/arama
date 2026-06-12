@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 arama-ai = { workspace = true }
 arama-cache = { workspace = true }
+arama-i18n = { workspace = true }
 arama-env = { workspace = true }
 chrono = { workspace = true }
 lucide-icons = { workspace = true }

@@ -1,6 +1,6 @@
 use iced::{
     Element,
-    widget::{button, column, container, row},
+    widget::{button, column, container, row, text},
 };
 
 use super::{SettingsDialog, Tab, message::Message};
@@ -8,7 +8,7 @@ use super::{SettingsDialog, Tab, message::Message};
 impl SettingsDialog {
     pub fn view(&self) -> Element<'_, Message> {
         let tab_menus = Tab::all().iter().fold(row![].spacing(5), |acc, x| {
-            let menu = button(x.label()).on_press(Message::TabSelect(x.to_owned()));
+            let menu = button(text(x.label())).on_press(Message::TabSelect(x.to_owned()));
             acc.push(menu)
         });
 

@@ -2,8 +2,9 @@ use arama_ui_main::views::setup;
 use iced::{
     Element,
     Length::Fill,
-    widget::{button, column, container, mouse_area, row},
+    widget::{button, column, container, mouse_area, row, text, tooltip},
 };
+use arama_i18n::t;
 use lucide_icons::iced::{icon_database, icon_folder, icon_settings};
 use snora::{AppLayout, Dialog as SnoraDialog, ToastPosition, render};
 
@@ -18,29 +19,41 @@ impl App {
 
         // ── Side-bar nav rail ─────────────────────────────────────────
         let side_bar: Element<Message> = {
-            let explorer = button(icon_folder())
-                .style(if self.nav_page == NavPage::Explorer {
-                    button::primary
-                } else {
-                    button::text
-                })
-                .on_press(Message::NavTo(NavPage::Explorer));
+            let explorer = tooltip(
+                button(icon_folder())
+                    .style(if self.nav_page == NavPage::Explorer {
+                        button::primary
+                    } else {
+                        button::text
+                    })
+                    .on_press(Message::NavTo(NavPage::Explorer)),
+                text(t("nav.explorer")),
+                tooltip::Position::Right,
+            );
 
-            let cache = button(icon_database())
-                .style(if self.nav_page == NavPage::Cache {
-                    button::primary
-                } else {
-                    button::text
-                })
-                .on_press(Message::NavTo(NavPage::Cache));
+            let cache = tooltip(
+                button(icon_database())
+                    .style(if self.nav_page == NavPage::Cache {
+                        button::primary
+                    } else {
+                        button::text
+                    })
+                    .on_press(Message::NavTo(NavPage::Cache)),
+                text(t("nav.cache")),
+                tooltip::Position::Right,
+            );
 
-            let settings = button(icon_settings())
-                .style(if self.nav_page == NavPage::Settings {
-                    button::primary
-                } else {
-                    button::text
-                })
-                .on_press(Message::NavTo(NavPage::Settings));
+            let settings = tooltip(
+                button(icon_settings())
+                    .style(if self.nav_page == NavPage::Settings {
+                        button::primary
+                    } else {
+                        button::text
+                    })
+                    .on_press(Message::NavTo(NavPage::Settings)),
+                text(t("nav.settings")),
+                tooltip::Position::Right,
+            );
 
             column![explorer, cache, settings]
                 .spacing(4)

@@ -15,6 +15,8 @@ pub enum Event {
     CacheRequest(PathBuf),
     /// Ask the app to clear this directory's cached entries.
     ClearRequest(PathBuf),
+    /// Ask the app to abort the active caching run.
+    StopRequest,
 }
 
 /// Page-internal state changes.

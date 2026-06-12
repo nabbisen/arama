@@ -9,7 +9,8 @@ impl SettingsDialog {
         match message {
             Message::TargetMediaTypeChanged(_)
             | Message::SubDirDepthLimitChanged(_)
-            | Message::SimilarityThresholdChanged(_) => {
+            | Message::SimilarityThresholdChanged(_)
+            | Message::LocaleChanged(_) => {
                 Task::none()
             }
             Message::TabSelect(tab) => {
@@ -31,6 +32,9 @@ impl SettingsDialog {
                     }
                     general_settings::message::Message::SimilarityThresholdChanged(v) => {
                         Task::batch([task, Task::done(Message::SimilarityThresholdChanged(v))])
+                    }
+                    general_settings::message::Message::LocaleChanged(l) => {
+                        Task::batch([task, Task::done(Message::LocaleChanged(l))])
                     }
                 }
             }

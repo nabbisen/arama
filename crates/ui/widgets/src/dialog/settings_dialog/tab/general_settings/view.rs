@@ -1,4 +1,5 @@
 use arama_env::target_media_type::TargetMediaType;
+use arama_i18n::{Locale, t};
 use iced::{
     Element,
     widget::{button, checkbox, column, container, row, slider, text},
@@ -11,7 +12,7 @@ impl GeneralSettings {
     pub fn view(&self) -> Element<'_, Message> {
         let target_media_types = row![
             checkbox(self.target_media_type.include_image)
-                .label("Image")
+                .label(t("settings.general.include_image"))
                 .on_toggle(|x| {
                     Message::TargetMediaTypeChanged(TargetMediaType {
                         include_image: x,
@@ -19,7 +20,7 @@ impl GeneralSettings {
                     })
                 }),
             checkbox(self.target_media_type.include_video)
-                .label("Video")
+                .label(t("settings.general.include_video"))
                 .on_toggle(|x| {
                     Message::TargetMediaTypeChanged(TargetMediaType {
                         include_image: self.target_media_type.include_image,
@@ -30,7 +31,7 @@ impl GeneralSettings {
         .spacing(10);
 
         let sub_dir_depth_limit = row![
-            text("Sub dir depth"),
+            text(t("settings.general.sub_dir_depth")),
             button(icon_arrow_down().size(12))
                 .padding(2)
                 .on_press_maybe(if 0 < self.sub_dir_depth_limit {
@@ -54,11 +55,9 @@ impl GeneralSettings {
         .spacing(5);
 
         let threshold_slider = row![
-            text("Similarity"),
+            text(t("settings.general.similarity")),
             text("0.50").style(text::secondary),
             slider(0.50_f32..=1.00_f32, self.similarity_threshold, |v| {
-                // Round to 2 decimal places so small float noise doesn't
-                // propagate to persistent settings.
                 Message::SimilarityThresholdChanged((v * 100.0).round() / 100.0)
             })
             .step(0.01_f32),
@@ -67,8 +66,23 @@ impl GeneralSettings {
         ]
         .spacing(8);
 
+        let locale_buttons = Locale::all().iter().fold(
+            row![text(t("settings.general.language"))].spacing(8),
+            |row, locale| {
+                let btn = button(locale.display_name())
+                    .style(if &self.locale == locale {
+                        button::primary
+                    } else {
+                        button::text
+                    })
+                    .on_press(Message::LocaleChanged(*locale));
+                row.push(btn)
+            },
+        );
+
         container(
-            column![target_media_types, sub_dir_depth_limit, threshold_slider].spacing(10),
+            column![target_media_types, sub_dir_depth_limit, threshold_slider, locale_buttons]
+                .spacing(10),
         )
         .into()
     }

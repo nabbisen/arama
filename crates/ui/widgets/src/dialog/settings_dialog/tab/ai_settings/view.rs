@@ -1,4 +1,5 @@
 use arama_ai::model::model_container::clip;
+use arama_i18n::t;
 use arama_sidecar::media::video::video_engine::{FfmpegStatus, VideoEngine};
 use iced::{
     Element,
@@ -9,27 +10,24 @@ use super::{AiSettings, message::Message};
 
 impl AiSettings {
     pub fn view(&self) -> Element<'_, Message> {
-        // todo
         let clip: Element<Message> = if clip::model().ready().unwrap_or(false) {
-            text("AI model is ready.").into()
+            text(t("settings.ai.clip_ready")).into()
         } else {
             column![
-                text(
-                    "AI model for image analysis is not found.\nShould get model from huggingface.co. Network will be used"
-                ),
-                button("Load").on_press(Message::LoadStart),
-            ].into()
+                text(t("settings.ai.clip_missing")),
+                button(text(t("settings.ai.clip_load"))).on_press(Message::LoadStart),
+            ]
+            .into()
         };
 
         let ffmpeg: Element<Message> = if VideoEngine::ready() != FfmpegStatus::NotExists {
-            text("ffmpeg is ready.").into()
+            text(t("settings.ai.ffmpeg_ready")).into()
         } else {
             column![
-                text(
-                    "ffmpeg for video analysis is not found.\nShould get executable. Network will be used"
-                ),
-                button("Get").on_press(Message::GetFfmpegStart),
-            ].into()
+                text(t("settings.ai.ffmpeg_missing")),
+                button(text(t("settings.ai.ffmpeg_get"))).on_press(Message::GetFfmpegStart),
+            ]
+            .into()
         };
 
         let message = if !self.message.is_empty() {

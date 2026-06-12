@@ -15,6 +15,7 @@ use arama_ui_main::{
 use iced::{Task, wgpu::naga::FastHashMap};
 use swdir::{DirNode, Recurse, Swdir};
 
+use arama_i18n::set_locale;
 use super::{App, Dialog, NavPage, message::Message};
 use arama_ui_layout::{aside, footer, header};
 use arama_ui_widgets::{
@@ -146,6 +147,13 @@ impl App {
                         }
                         cache_page::message::Event::ClearRequest(dir) => {
                             return Task::batch([task, clear_dir_task(dir)]);
+                        }
+                        cache_page::message::Event::StopRequest => {
+                            if let Some(handle) = self.task_handle.take() {
+                                handle.abort();
+                            }
+                            self.run_finished_reload();
+                            return task;
                         }
                     },
                     cache_page::message::Message::Internal(_) => (),
@@ -362,6 +370,11 @@ impl App {
                     }
                     settings_dialog::message::Message::SimilarityThresholdChanged(v) => {
                         self.settings.similarity_threshold = v;
+                        self.save_settings();
+                    }
+                    settings_dialog::message::Message::LocaleChanged(l) => {
+                        self.settings.locale = l;
+                        set_locale(l);
                         self.save_settings();
                     }
                     _ => (),

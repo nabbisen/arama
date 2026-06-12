@@ -1,3 +1,4 @@
+use arama_i18n::Locale;
 use serde::{Deserialize, Serialize};
 
 pub mod cache_lookup_strategy;
@@ -19,6 +20,8 @@ pub struct Settings {
     /// `serde(default)` ensures existing settings files load cleanly.
     #[serde(default = "default_similarity_threshold")]
     pub similarity_threshold: f32,
+    #[serde(default)]
+    pub locale: Locale,
 }
 
 fn default_similarity_threshold() -> f32 {
@@ -34,6 +37,7 @@ impl Default for Settings {
             thumbnail_size: DEFAULT_THUMBNAIL_SIZE,
             cache_lookup_strategy: CacheLookupStrategy::default(),
             similarity_threshold: default_similarity_threshold(),
+            locale: Locale::default(),
         }
     }
 }

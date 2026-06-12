@@ -10,6 +10,7 @@ impl GeneralSettings {
             }
             Message::SubDirDepthLimitChanged(value) => self.sub_dir_depth_limit = value,
             Message::SimilarityThresholdChanged(v) => self.similarity_threshold = v,
+            Message::LocaleChanged(l) => self.locale = l,
         }
         Task::none()
     }

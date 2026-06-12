@@ -1,3 +1,5 @@
+use arama_i18n::t;
+
 pub(super) mod about;
 pub(super) mod ai_settings;
 pub(super) mod file_system_settings;
@@ -16,12 +18,12 @@ impl Tab {
         &[Tab::General, Tab::Ai, Tab::FileSystem, Tab::About]
     }
 
-    pub fn label(&self) -> &'static str {
+    pub fn label(&self) -> String {
         match self {
-            Tab::General => "General",
-            Tab::Ai => "AI",
-            Tab::FileSystem => "File system",
-            Tab::About => "About",
+            Tab::General => t("settings.tab.general"),
+            Tab::Ai => t("settings.tab.ai"),
+            Tab::FileSystem => t("settings.tab.filesystem"),
+            Tab::About => t("settings.tab.about"),
         }
     }
 }

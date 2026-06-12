@@ -5,6 +5,7 @@ use arama_env::{
     IMAGE_EXTENSION_ALLOWLIST, Settings, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path,
     cache_storage_path_v1, local_dir, target_media_type::TargetMediaType, validate_dir,
 };
+use arama_i18n::{Locale, set_locale};
 use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
 use arama_ui_main::views::{
     cache_page::CachePage,
@@ -124,6 +125,8 @@ impl App {
         let thumbnail_size = settings.thumbnail_size;
         let cache_lookup_strategy = settings.cache_lookup_strategy;
         let similarity_threshold = settings.similarity_threshold;
+        let locale = settings.locale;
+        set_locale(locale);
 
         let dir_node = dir_node(&root_dir_path, &target_media_type);
 
@@ -134,6 +137,7 @@ impl App {
             thumbnail_size,
             cache_lookup_strategy,
             similarity_threshold,
+            locale,
         };
 
         let header = Header::new(&settings.root_dir_path);
@@ -145,6 +149,7 @@ impl App {
             &settings.target_media_type,
             settings.sub_dir_depth_limit,
             settings.similarity_threshold,
+            settings.locale,
         );
 
         let gallery = Gallery::new().expect("failed to init gallery");
@@ -192,6 +197,7 @@ impl App {
                 thumbnail_size: self.settings.thumbnail_size,
                 cache_lookup_strategy: self.settings.cache_lookup_strategy,
                 similarity_threshold: self.settings.similarity_threshold,
+                locale: self.settings.locale,
             })
             .expect("failed to save config");
     }

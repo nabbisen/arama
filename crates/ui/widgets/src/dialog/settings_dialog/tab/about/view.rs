@@ -1,3 +1,4 @@
+use arama_i18n::t;
 use iced::{
     Element,
     widget::container,
@@ -10,7 +11,7 @@ impl About {
     pub fn view(&self) -> Element<'_, Message> {
         container(
             row![
-                text("Repository:"),
+                text(t("settings.about.repository")),
                 mouse_area(text(super::REPOSITORY_URL))
                     .on_press(Message::RepositoryLinkClicked(
                         super::REPOSITORY_URL.to_owned(),

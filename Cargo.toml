@@ -3,6 +3,7 @@ members = [
     "app",
     "crates/ai",
     "crates/cache",
+    "crates/i18n",
     "crates/engine/sidecar",
     "crates/ui/layout",
     "crates/ui/main",
@@ -28,6 +29,7 @@ arama-env = { path = "env" }
 
 arama-ai = { path = "crates/ai" }
 arama-cache = { path = "crates/cache" }
+arama-i18n = { path = "crates/i18n" }
 arama-ui-layout = { path = "crates/ui/layout" }
 arama-ui-main = { path = "crates/ui/main" }
 arama-ui-widgets = { path = "crates/ui/widgets" }

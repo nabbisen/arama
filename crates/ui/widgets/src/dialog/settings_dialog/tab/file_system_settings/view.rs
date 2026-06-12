@@ -1,3 +1,4 @@
+use arama_i18n::t;
 use arama_env::{cache_dir, local_dir};
 use disk_space::DiskSpace;
 use iced::Element;
@@ -23,7 +24,7 @@ impl FileSystemSettings {
             text(format!("{:.1} GB", disk_space.total)),
         ];
 
-        let button = button("Cache delete").on_press_maybe(if cache_dir().unwrap().exists() {
+        let button = button(text(t("settings.fs.cache_delete"))).on_press_maybe(if cache_dir().unwrap().exists() {
             Some(Message::CacheDelete)
         } else {
             None
