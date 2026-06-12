@@ -14,6 +14,15 @@ pub struct Setup {
 }
 
 impl Setup {
+    /// Create a fallback Setup that reports itself as already finished,
+    /// bypassing the setup wizard. Used when `Setup::default()` fails.
+    pub fn fallback() -> Self {
+        Self {
+            finished: true,
+            downloader: Downloader::new(vec![]),
+        }
+    }
+
     pub fn default() -> Result<Self> {
         let configs = vec![
             DownloaderConfig::AiModel(clip::model()),

@@ -4,4 +4,6 @@ use crate::components::gallery::image_cell;
 pub enum Message {
     ImageCellMessage(image_cell::message::Message),
     CursorExit,
+    FilterChanged(String),
+    FilterClear,
 }

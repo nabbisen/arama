@@ -46,7 +46,7 @@ disk-space = "0"
 file-handle = { version = "0", features = ["open", "show", "trash"] }
 image = "0.25"
 libc = "0.2"
-lucide-icons = { version = "0", features = ["iced"] }
+lucide-icons = { version = "1", features = ["iced"] }
 rayon = "1"
 rfd = "0.17"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
@@ -64,7 +64,7 @@ webbrowser = "1"
 # candle series is defined in sub-crate because virtual manifest doesn't support [target] (os-specific) sections
 # - calc
 hnsw_rs = "0"
-naga = "28"
+naga = "27"
 # - model loader
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "multipart", "rustls", "stream"] }
 pt2safetensors = "0"

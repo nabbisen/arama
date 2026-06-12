@@ -28,22 +28,6 @@ impl VideoExtractor {
     ///
     /// ffmpeg-sidecar に同梱された ffprobe を使用するため別途インストール不要。
     pub fn get_duration(&self, path: &Path) -> anyhow::Result<f64> {
-        println!(
-            "{:?}",
-            VideoEngine::ffprobe()
-                .with_context(|| "failed to get ffprobe")?
-                .args([
-                    "-v",
-                    "error",
-                    "-show_entries",
-                    "format=duration",
-                    "-of",
-                    "default=noprint_wrappers=1:nokey=1",
-                    path.to_string_lossy().as_ref(),
-                ])
-                .get_program()
-        );
-
         let output = VideoEngine::ffprobe()
             .with_context(|| "failed to get ffprobe")?
             .args([
@@ -62,9 +46,6 @@ impl VideoExtractor {
             .trim()
             .parse()
             .with_context(|| format!("Failed to parse duration: '{}'", stdout.trim()))?;
-
-        // todo: delete debugger
-        println!("Duration of {:?}: {:.2}s", path, duration);
 
         Ok(duration)
     }
@@ -87,20 +68,10 @@ impl VideoExtractor {
         for &ts in timestamps {
             match self.seek_single_frame(path, ts, size) {
                 Ok(Some(f)) => frames.push(f),
-                // todo: delete debugger
-                Ok(None) => println!("No frame at t={:.1}s in {:?}", ts, path),
-                // todo: delete debugger
-                Err(e) => println!("Frame extract error at t={:.1}s: {}", ts, e),
+                Ok(None) => eprintln!("arama: no frame at t={:.1}s in {:?}", ts, path),
+                Err(e) => eprintln!("arama: frame extract error at t={:.1}s: {}", ts, e),
             }
         }
-
-        // todo: delete debugger
-        println!(
-            "Extracted {}/{} video frames from {:?}",
-            frames.len(),
-            timestamps.len(),
-            path
-        );
 
         Ok(frames)
     }

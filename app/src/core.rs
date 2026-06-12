@@ -5,7 +5,7 @@ use arama_env::{
     IMAGE_EXTENSION_ALLOWLIST, Settings, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path,
     cache_storage_path_v1, local_dir, target_media_type::TargetMediaType, validate_dir,
 };
-use arama_i18n::{Locale, set_locale};
+use arama_i18n::set_locale;
 use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
 use arama_ui_main::views::{
     cache_page::CachePage,
@@ -23,7 +23,7 @@ mod update;
 mod view;
 
 use message::Message;
-use swdir::{DirNode, Swdir};
+use swdir::{DirNode, FilterRule, Swdir};
 
 /// Top-level navigation pages rendered in the body slot.
 #[derive(Debug, Clone, PartialEq)]
@@ -99,10 +99,21 @@ impl App {
             }
         }
 
-        // todo: error handling
-        let setup = Setup::default().expect("Failed to setup preparation");
-
-        // todo: after setup
+        let setup = match Setup::default() {
+            Ok(s) => s,
+            Err(err) => {
+                let id = toast_id_counter;
+                toast_id_counter += 1;
+                startup_toasts.push(Toast::new(
+                    id,
+                    ToastIntent::Error,
+                    "Setup initialization failed",
+                    format!("The setup wizard could not be initialized: {err}"),
+                    Message::ToastDismiss(id),
+                ));
+                Setup::fallback()
+            }
+        };
         let settings = match ConfigManager::<Settings>::new()
             .at_current_dir()
             .load_or_default()
@@ -251,12 +262,17 @@ fn dir_node(root_dir_path: &str, target_media_type: &TargetMediaType) -> DirNode
         extension_allowlist.extend(VIDEO_EXTENSION_ALLOWLIST);
     }
 
-    let dir_node = Swdir::default()
-        .set_root_path(root_dir_path)
-        .set_extension_allowlist(&extension_allowlist)
-        // todo: error handling
-        .expect("failed to get dir node")
-        .walk();
+    // If the allowlist fails (e.g. an extension string is malformed), walk
+    // without filtering rather than panicking.
+    let filter = FilterRule::extension_allowlist(extension_allowlist.iter().copied())
+        .unwrap_or_else(|err| {
+            eprintln!("extension allowlist error (walking without filter): {err}");
+            FilterRule::skip_hidden()
+        });
 
-    dir_node
+    Swdir::new()
+        .root_path(root_dir_path)
+        .filter(filter)
+        .walk()
+        .into_tree()
 }

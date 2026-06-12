@@ -6,13 +6,12 @@
 ┌──────────────────────────────────────────────────────────────┐
 │  arama (desktop app — iced 0.14 + snora 0.8)                 │
 │                                                              │
-│  ┌──────────────────────────┐  ┌────────────────────────┐   │
-│  │  Explorer page           │  │  Settings page         │   │
-│  │  ┌──────┬──────────────┐ │  │  General / AI /        │   │
-│  │  │ Dir  │  Gallery     │ │  │  File system / About   │   │
-│  │  │ tree │  thumbnails  │ │  └────────────────────────┘   │
-│  │  └──────┴──────────────┘ │                               │
-│  └──────────────────────────┘                               │
+│  ┌──────────────────────┐  ┌─────────────────┐  ┌──────────────────────┐   │
+│  │  Explorer page       │  │  Cache page     │  │  Settings page       │   │
+│  │  ┌──────┬──────────┐ │  │  dir table      │  │  General / AI /      │   │
+│  │  │ tree │ gallery  │ │  │  filter  clear  │  │  File system / About │   │
+│  │  └──────┴──────────┘ │  └─────────────────┘  └──────────────────────┘   │
+│  └──────────────────────┘                                                    │
 │            │                                                 │
 │  ┌─────────▼──────────────────────────────────────────────┐ │
 │  │  AI pipeline  (arama-ai)                               │ │
@@ -51,8 +50,10 @@ App::update / on_dir_changed
   └── Task::done(CacheRequire)
                │
                ▼
-        CacheRequire handler
+        CacheRequire(target) handler
           └── Task::perform(upsert_all thumbnails, ThumbnailCacheFinished)
+                (target = None: uses Explorer's dir_node
+                 target = Some: Cache page explicit request)
                               │
                               ▼
                     ThumbnailCacheFinished

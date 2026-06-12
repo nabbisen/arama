@@ -86,6 +86,11 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         // Gallery
         "gallery.empty"           => "No file to render.",
 
+        // Gallery filter
+        "gallery.filter.placeholder" => "Filter by filename…",
+        "gallery.filter.clear" => "✕",
+        "gallery.filter.count_of" => "of",
+
         _ => return None,
     })
 }

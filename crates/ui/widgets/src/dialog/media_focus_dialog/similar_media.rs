@@ -35,7 +35,6 @@ impl MediaFocusDialog {
             VIDEO_EXTENSION_ALLOWLIST.contains(&x.to_string_lossy().to_string().as_str())
         });
 
-        // todo
         if is_video {
             similar_videos(path, cache_config, self.cache_lookup_strategy, threshold)
         } else {
@@ -64,7 +63,6 @@ fn similar_images(
     let cache_entries = cache_lookuped
         .expect("failed to lookup")
         .into_iter()
-        // todo
         .filter(|x| x.is_ok())
         .map(|x| x.unwrap())
         .collect::<Vec<_>>();
@@ -135,7 +133,6 @@ fn similar_videos(
     let cache_entries = cache_lookuped
         .expect("failed to lookup")
         .into_iter()
-        // todo
         .filter(|x| x.is_ok())
         .map(|x| x.unwrap())
         .collect::<Vec<_>>();

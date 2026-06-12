@@ -72,8 +72,8 @@ Once setup completes, no further network access is required.
   [candle](https://github.com/huggingface/candle). No telemetry.
 - **iced GUI.** Built on [iced](https://github.com/iced-rs/iced) 0.14
   with the [snora](https://github.com/nabbisen/snora) shell framework.
-  Side-nav pages: **Explorer** (directory tree + gallery tiling view)
-  and **Settings**.
+  Side-nav pages: **Explorer** (directory tree + gallery tiling view),
+  **Cache** (per-directory cache management), and **Settings**.
 - **localcache persistence.** Embeddings and thumbnails are stored in
   a two-namespace SQLite database via
   [localcache](https://github.com/nabbisen/localcache), keyed by file

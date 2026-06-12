@@ -1,4 +1,4 @@
-use arama_ai::model::{model_container::clip, model_manager::ModelManager};
+use arama_ai::model::model_container::clip;
 use arama_i18n::t;
 use arama_sidecar::media::video::video_engine::VideoEngine;
 use iced::Task;
@@ -13,11 +13,9 @@ impl AiSettings {
 
                 Task::perform(
                     async {
-                        let clip_model_manager = match ModelManager::new(clip::model()) {
-                            Ok(x) => x,
-                            Err(err) => return Some(err.to_string()),
-                        };
-                        match clip_model_manager.ensure().await {
+                        // ensure_safetensors converts the downloaded PyTorch model to
+                        // SafeTensors format if necessary; it is synchronous.
+                        match clip::model().ensure_safetensors() {
                             Ok(_) => None,
                             Err(err) => Some(err.to_string()),
                         }

@@ -86,6 +86,11 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         // Gallery
         "gallery.empty"           => "\u{8868}\u{793a}\u{3059}\u{308b}\u{30d5}\u{30a1}\u{30a4}\u{30eb}\u{304c}\u{3042}\u{308a}\u{307e}\u{305b}\u{3093}\u{3002}",  // 表示するファイルがありません。
 
+        // Gallery filter
+        "gallery.filter.placeholder" => "ファイル名でフィルター…",
+        "gallery.filter.clear" => "✕",
+        "gallery.filter.count_of" => "件中",
+
         _ => return None,
     })
 }

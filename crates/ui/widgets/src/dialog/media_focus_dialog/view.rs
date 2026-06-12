@@ -93,7 +93,6 @@ impl MediaFocusDialog {
 
         let view_control = container(control_buttons).center_x(Fill);
 
-        // todo
         let similar_media_items = self.similar_media.iter().fold(row![], |r: Row<_>, x| {
             let handle = Handle::from_path(if let Some(thumbnail_path) = &x.thumbnail_path {
                 thumbnail_path.to_owned()

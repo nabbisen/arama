@@ -8,6 +8,7 @@ arama-0.vX.Y.Z/
 ├── crates/
 │   ├── ai/                   # AI inference pipeline
 │   ├── cache/                # Embedding and thumbnail cache facade
+│   ├── i18n/                 # Locale tables and t() translation function
 │   ├── engine/
 │   │   └── sidecar/          # ffmpeg binary management
 │   └── ui/
@@ -87,6 +88,14 @@ Self-contained reusable widgets:
 - `dialog/settings_dialog` — tabbed settings panel (reused as both a
   page widget and the Settings page component)
 
+### `crates/i18n`
+
+`arama-i18n` provides the runtime translation function `t(key) -> String`,
+`set_locale(Locale)`, `current_locale()`, and the `Locale` enum (`En`,
+`Ja`). The active locale is stored in a global `AtomicU8`. English and
+Japanese translation tables live in `en.rs` and `ja.rs` as static
+`match` expressions. All UI crates depend on this crate.
+
 ### `env`
 
 Shared constants and path helpers used across all crates:
@@ -102,6 +111,7 @@ app
  ├── crates/ai
  │    └── crates/engine/sidecar
  ├── crates/cache
+ ├── crates/i18n       (all UI crates depend on this)
  ├── crates/ui/layout
  │    └── crates/ui/widgets
  │         └── crates/ai  (for similarity computation in dialogs)

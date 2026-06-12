@@ -56,10 +56,10 @@ benefit from reducing the scope to a subdirectory at a time.
 
 **My similar images don't appear. What is the threshold?**
 
-The similarity threshold is **0.86** (cosine similarity). Files scoring
-below this are not shown in the focus view or similarity pairs. This
-value is not currently configurable in the UI; it is defined in the
-source at `env/src/similarity.rs`.
+The similarity threshold defaults to **0.86** (cosine similarity). Files
+scoring below this are not shown in the focus view or similarity pairs.
+The threshold is configurable in **Settings → General → Similarity**
+(range 0.50–1.00).
 
 **I see false positives — unrelated images marked as similar.**
 

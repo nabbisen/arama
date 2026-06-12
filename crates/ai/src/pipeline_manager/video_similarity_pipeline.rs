@@ -3,8 +3,6 @@ use std::path::Path;
 use arama_cache::{LookupResult, UpsertVideoRequest, VideoCacheReader, VideoCacheWriter};
 use arama_env::{cache_storage_path, cache_thumbnail_dir_path};
 use arama_sidecar::media::video::video_engine::VideoEngine;
-use candle_core::Device;
-
 use crate::{
     config::video_similarity_config::VideoSimilarityConfig,
     model::model_manager::ModelManager,
@@ -15,8 +13,7 @@ use crate::{
         },
         extract::video_extractor::{VideoExtractor, audio_segment::AudioSegmentView},
         score::similarity::video::{
-            video_features::VideoFeatures, video_similarity_calculator::VideoSimilarityCalculator,
-            video_similarity_result::VideoSimilarityResult,
+            video_features::VideoFeatures,
         },
     },
 };
@@ -26,7 +23,6 @@ pub struct VideoSimilarityPipeline {
     extractor: VideoExtractor,
     clip_encoder: ClipEncoder,
     audio_encoder: Box<dyn AudioEncoder>,
-    calculator: VideoSimilarityCalculator,
     // cache: FeatureCache,
 }
 
@@ -36,11 +32,6 @@ impl VideoSimilarityPipeline {
 
         let clip_encoder = ClipEncoder::load(device.clone())?;
         let audio_encoder = Wav2vec2Encoder::load(device)?;
-        let calculator = VideoSimilarityCalculator::new(
-            cfg.image_weight,
-            cfg.audio_weight,
-            cfg.cross_max_similarity_threshold,
-        );
         let extractor = VideoExtractor::new(cfg.clone());
 
         // let cache = FeatureCache::open(db_path, &cfg)?;
@@ -52,7 +43,6 @@ impl VideoSimilarityPipeline {
             extractor,
             clip_encoder,
             audio_encoder: Box::new(audio_encoder),
-            calculator,
             // cache,
         })
     }
@@ -95,13 +85,6 @@ impl VideoSimilarityPipeline {
             _ => (),
         };
 
-        // todo: delete debugger
-        println!(
-            "[CACHE MISS] {:?} ({:?})",
-            path.file_name().unwrap_or_default(),
-            path
-        );
-
         let features = self.extract_features(path)?;
 
         let writer = VideoCacheWriter::onetime(
@@ -133,9 +116,6 @@ impl VideoSimilarityPipeline {
         let duration = self.extractor.get_duration(path)?;
         let timestamps = self.cfg.compute_sample_timestamps(duration);
 
-        // todo: delete debugger
-        println!("{}", self.cfg.sampling_summary(duration));
-
         // 2. 映像フレームを個別シーク取得 → CLIP でバッチエンコード
         let frames = self.extractor.extract_video_frames(path, &timestamps)?;
         let video_raw_embeddings = self.clip_encoder.encode_frames(&frames)?;
@@ -161,12 +141,6 @@ impl VideoSimilarityPipeline {
         let audio_raw_embeddings = self.audio_encoder.encode_segments(&views);
         let audio_embeddings = mean_embeddings(&audio_raw_embeddings);
 
-        // // todo: delete debugger
-        // println!(
-        //     "  → video_embeddings={}, audio_embeddings={}",
-        //     video_embeddings.len(),
-        //     audio_embeddings.len()
-        // );
 
         Ok(VideoFeatures {
             path: path.to_string_lossy().to_string(),

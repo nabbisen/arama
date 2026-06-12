@@ -11,6 +11,73 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 - Relative-time rendering ("2 days ago") for the Cache page table.
 
+### Added
+
+- **Smoke tests for `arama-i18n`** (`locale_round_trip`, `translation_and_fallback`).
+  Cover locale switching, the current→English→raw-key fallback chain, and the
+  `Locale` code/display-name accessors. The crate has zero heavyweight dependencies
+  so the test binary is fast to build.
+  `iced_test` was evaluated as a candidate for view-layer smoke tests but not
+  adopted: its `Simulator` links the full iced rendering stack (wgpu, winit,
+  wayland, tiny-skia) even for headless tests, making test builds prohibitively
+  heavy with no proportionate benefit for a project whose testable logic lives
+  outside the view layer.
+
+### Dependency updates applied after migration analysis
+
+API-level source analysis (diffing public symbols across registry
+sources) confirmed both updates are drop-in for arama's usage.
+Migration reports at `rfcs/notes/dep-migration-lucide-icons.md` and
+`rfcs/notes/dep-migration-candle.md`.
+
+- **`lucide-icons` 0.576.0 → 1.17.0.** The 20 removed icons are all
+  brand/social-media icons (Twitter, GitHub, Figma, etc.); none are
+  used in arama. The `iced` feature and all function signatures are
+  unchanged. Workspace constraint updated to `"1"`.
+
+- **`candle-core` / `candle-nn` / `candle-transformers` 0.9.2 → 0.10.2.**
+  Zero items removed from any of the three crates. Every struct, trait,
+  and function that arama-ai imports exists unchanged in 0.10.2. The
+  two additions (`TokenizerFromGguf` in core, `remove_mean` in nn) are
+  unrelated to arama's CLIP/wav2vec2 pipeline. Constraints in
+  `arama-ai/Cargo.toml` updated to `"0.10"`.
+
+---
+
+## [0.29.0]
+
+### Added
+
+- **Gallery filename filter** (RFC 008). A search row above the
+  thumbnail grid lets users filter visible files by filename substring
+  (case-insensitive). The filter row shows a text input, a clear (✕)
+  button, and a `N of M` count while filtering. Only matching files are
+  shown; directory group labels are preserved as long as they have at
+  least one matching entry. The filter resets automatically when the
+  selected directory changes.
+
+### Fixed
+
+- **AI pipeline debug output removed** (RFC 008). Development
+  `println!` calls annotated `// todo: delete debugger` have been
+  removed from `video_extractor.rs`, `clip_encoder.rs`, and
+  `video_similarity_pipeline.rs`. Frame extraction errors are now
+  reported via `eprintln!` (prefixed `arama:`) rather than stdout.
+
+- **Error handling sweep** (RFC 008).
+  - `Setup::default()` failure is caught and surfaced as a startup
+    error toast rather than panicking; the app falls back to a
+    `Setup::fallback()` state that skips the wizard.
+  - `set_extension_allowlist()` failure in `dir_node()` degrades
+    gracefully to an unfiltered directory walk instead of panicking.
+  - The thumbnail cache writer construction inside the async indexing
+    task uses an early `return vec![]` instead of `.expect()`.
+  - `SimilarPairsDialog` now checks for a `None` directory node and
+    shows an error toast ("Select a directory first.") rather than
+    unwrapping unconditionally.
+  - Stale `// todo` placeholder comments removed from
+    `media_focus_dialog/view.rs` and `similar_media.rs`.
+
 ---
 
 ## [0.28.0]

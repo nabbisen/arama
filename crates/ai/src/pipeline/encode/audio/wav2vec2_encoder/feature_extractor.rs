@@ -1,5 +1,5 @@
 use candle_core::{Module, Tensor};
-use candle_nn::{Conv1dConfig, VarBuilder, conv1d, conv1d_no_bias};
+use candle_nn::{Conv1dConfig, VarBuilder, conv1d_no_bias};
 
 use super::super::wav2vec2_config::Wav2vec2Config;
 

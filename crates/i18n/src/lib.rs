@@ -114,3 +114,33 @@ pub fn t(key: &str) -> String {
     // Last resort: return the key itself.
     key.to_owned()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn locale_round_trip() {
+        assert_eq!(Locale::En.code(), "en");
+        assert_eq!(Locale::Ja.code(), "ja");
+        assert_eq!(Locale::all().len(), 2);
+    }
+
+    // Locale state is global (AtomicU8), so all switching assertions live in
+    // one test to keep them ordered and free of cross-test interference.
+    #[test]
+    fn translation_and_fallback() {
+        // English (default explicit).
+        set_locale(Locale::En);
+        assert_eq!(t("settings.tab.general"), "General");
+
+        // Japanese.
+        set_locale(Locale::Ja);
+        assert_eq!(t("settings.tab.general"), "\u{4e00}\u{822c}");
+
+        // Unknown key falls back to the key string itself, in any locale.
+        assert_eq!(t("no.such.key"), "no.such.key");
+        set_locale(Locale::En);
+        assert_eq!(t("no.such.key"), "no.such.key");
+    }
+}

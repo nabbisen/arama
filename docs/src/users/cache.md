@@ -45,8 +45,10 @@ directory selection in the Explorer uses — thumbnails first, then AI
 embeddings — without changing the Explorer's selected directory.
 
 While the run is active:
-- The directory's row shows **⏳ caching…** in the Cached at column
-  (a placeholder row appears if the directory had no cache yet).
+- The directory's row shows **⏳ caching…** alongside a **◉ Stop**
+  button in the Cached at column (a placeholder row appears if the
+  directory had no cache yet).
+- Pressing **◉ Stop** aborts the run immediately.
 - The add and clear buttons are disabled (one run at a time).
 
 When the run finishes, the table reloads and the row shows final

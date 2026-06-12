@@ -52,9 +52,6 @@ impl ClipEncoder {
 
         let model = ClipModel::new(vb, &config).context("Failed to load CLIP model")?;
 
-        // todo: delete debugger
-        println!("CLIP model loaded on {:?}", device);
-
         Ok(Self {
             model,
             config,

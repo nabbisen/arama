@@ -8,8 +8,8 @@ areas:
 ```
 ┌──────────────────────────────────────────────────────────┐
 │  📁  │  [ directory path input ]       [ ⊞ pairs ]      │
-│  ⚙   ├────────────────┬─────────────────────────────────┤
-│      │  Directory     │  Gallery                        │
+│  🗃  ├────────────────┬─────────────────────────────────┤
+│  ⚙   │  Directory     │  Gallery                        │
 │      │  tree          │  ┌──┐ ┌──┐ ┌──┐                │
 │      │                │  │  │ │  │ │  │                │
 │      │                │  └──┘ └──┘ └──┘                │
@@ -19,8 +19,9 @@ areas:
 └──────────────────────────────────────────────────────────┘
 ```
 
-**Side nav** (far left) — two icon buttons:
+**Side nav** (far left) — three icon buttons:
 - 📁 Explorer (current page)
+- 🗃 Cache
 - ⚙ Settings
 
 **Header bar** — directory path input and the **Similarity Pairs**
@@ -61,6 +62,12 @@ to see its full path in the footer.
 Use the **thumbnail size slider** in the footer to zoom in or out
 (range: 128 – 384 px).
 
+Type in the **filter box** at the top of the gallery to narrow the
+display to files whose filename contains the typed text
+(case-insensitive). A `N of M` count shows how many files match. Press
+✕ or clear the box to show all files again. The filter resets when you
+select a different directory.
+
 Right-clicking a thumbnail opens a **context menu** with:
 - Open file
 - Show in folder
@@ -73,8 +80,8 @@ view shows files sorted by similarity to the selected item, highest
 first, filtered to those above the similarity threshold (0.86 by
 default).
 
-The scope of the search is set in **Settings → General → Look up
-strategy**:
+The scope of the search is set using the **Cache lookup strategy**
+pick list in the focus view:
 - **Everywhere** — all indexed files across the directory tree
 - **Current directory and subdirectories** — files under the same
   parent folder and below

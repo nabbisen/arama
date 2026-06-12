@@ -70,4 +70,41 @@ impl FileNode {
             child.update_tree_lazy(path, include_file, include_hidden);
         }
     }
+
+    /// Expand `path` and (re-)load all its immediate subdirectory children
+    /// from disk, replacing any previously-shown partial children list.
+    /// Called on single-click so the user always sees every sibling of the
+    /// active descendant, not just the one that was in the initial path.
+    pub fn ensure_expanded(
+        &mut self,
+        path: &PathBuf,
+        include_file: bool,
+        include_hidden: bool,
+    ) {
+        if self.path == *path {
+            self.is_expanded = true;
+            if let Ok(entries) = fs::read_dir(&self.path) {
+                self.children.clear();
+                for entry in entries.flatten() {
+                    if !include_file {
+                        if let Ok(ft) = entry.file_type() {
+                            if !ft.is_dir() {
+                                continue;
+                            }
+                        }
+                    }
+                    if !include_hidden && is_hidden(&entry.path()) {
+                        continue;
+                    }
+                    self.children.push(FileNode::new(entry.path(), false, false));
+                }
+                self.children
+                    .sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then(a.name.cmp(&b.name)));
+            }
+            return;
+        }
+        for child in &mut self.children {
+            child.ensure_expanded(path, include_file, include_hidden);
+        }
+    }
 }

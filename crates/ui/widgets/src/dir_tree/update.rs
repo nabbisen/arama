@@ -22,6 +22,14 @@ impl DirTree {
                         file_node::message::Message::Event(message) => match message {
                             file_node::message::Event::DirClick(path) => {
                                 self.selected_path = Some(path.to_path_buf());
+                                // Expand the clicked directory so all its
+                                // children are visible, not just the single
+                                // descendant shown during initialisation.
+                                self.root.ensure_expanded(
+                                    &path,
+                                    self.include_file,
+                                    self.include_hidden,
+                                );
                                 return Task::done(Message::Event(Event::DirClick(path)));
                             }
                         },

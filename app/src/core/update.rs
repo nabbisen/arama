@@ -13,7 +13,7 @@ use arama_ui_main::{
     views::{cache_page, gallery},
 };
 use iced::{Task, wgpu::naga::FastHashMap};
-use swdir::{DirNode, Recurse, Swdir};
+use swdir::{DirNode, FilterRule, Recurse, Swdir};
 
 use arama_i18n::set_locale;
 use super::{App, Dialog, NavPage, message::Message};
@@ -41,12 +41,14 @@ impl App {
 
                     let (task, handle) = Task::perform(
                         async move {
-                            let writer =
+                            let Ok(writer) =
                                 ImageCacheWriter::onetime(arama_cache::DbLocation::Custom(
-                                    cache_storage_path().expect("failed to get cache stogate path"),
+                                    cache_storage_path()
+                                        .expect("failed to get cache storage path"),
                                 ))
-                                // todo: error handling
-                                .expect("failed to get cache writer");
+                            else {
+                                return vec![];
+                            };
                             let requests: Vec<UpsertImageRequest> = dir_node
                                 .flatten_paths()
                                 .iter()
@@ -152,8 +154,8 @@ impl App {
                             if let Some(handle) = self.task_handle.take() {
                                 handle.abort();
                             }
-                            self.run_finished_reload();
-                            return task;
+                            let reload = self.run_finished_reload();
+                            return Task::batch([task, reload]);
                         }
                     },
                     cache_page::message::Message::Internal(_) => (),
@@ -187,6 +189,8 @@ impl App {
                     .map(Message::GalleryMessage);
 
                 match message {
+                    gallery::message::Message::FilterChanged(_)
+                    | gallery::message::Message::FilterClear => (),
                     gallery::message::Message::ImageCellMessage(message) => match message {
                         image_cell::message::Message::ImageCellEnter(path) => {
                             self.image_cell_path_update(Some(path));
@@ -240,9 +244,15 @@ impl App {
                                 return self.on_dir_changed(path, task);
                             }
                             header::message::Event::SimilarPairsDialogOpen => {
-                                // todo: error handling
+                                let Some(dir_node) = self.dir_node.clone() else {
+                                    self.push_error_toast(
+                                        "Similarity pairs",
+                                        "Select a directory first.".to_owned(),
+                                    );
+                                    return task;
+                                };
                                 let dialog = similar_pairs_dialog::SimilarPairsDialog::new(
-                                    self.dir_node.clone().unwrap(),
+                                    dir_node,
                                     None,
                                     self.settings.similarity_threshold,
                                 );
@@ -426,29 +436,29 @@ impl App {
         }
 
         let recurse = if 0 < self.settings.sub_dir_depth_limit {
-            Recurse {
-                enabled: true,
-                depth_limit: Some(self.settings.sub_dir_depth_limit.into()),
-            }
+            Recurse::Depth(self.settings.sub_dir_depth_limit as usize)
         } else {
-            Recurse {
-                enabled: false,
-                depth_limit: None,
-            }
+            Recurse::None
         };
 
-        let dir_node = Swdir::default()
-            .set_root_path(path.clone())
-            .set_extension_allowlist(&extension_allowlist)
-            .expect("failed to set allowlist")
-            .set_recurse(recurse)
-            .walk();
+        let dir_node = Swdir::new()
+            .root_path(path.clone())
+            .filter(
+                FilterRule::extension_allowlist(extension_allowlist.iter().copied())
+                    .expect("failed to set allowlist"),
+            )
+            .recurse(recurse)
+            .walk()
+            .into_tree();
 
         let dir_node_count = dir_node.count();
         self.footer
             .update_count(dir_node_count.files, dir_node_count.dirs);
 
         self.dir_node = Some(dir_node);
+
+        // Reset the gallery search filter for the new directory.
+        self.gallery.clear_filter();
 
         // Abort any running indexing task: the user switched directories,
         // so the old result is no longer wanted.
@@ -481,22 +491,19 @@ impl App {
             extension_allowlist.extend(VIDEO_EXTENSION_ALLOWLIST);
         }
         let recurse = if 0 < self.settings.sub_dir_depth_limit {
-            Recurse {
-                enabled: true,
-                depth_limit: Some(self.settings.sub_dir_depth_limit.into()),
-            }
+            Recurse::Depth(self.settings.sub_dir_depth_limit as usize)
         } else {
-            Recurse {
-                enabled: false,
-                depth_limit: None,
-            }
+            Recurse::None
         };
-        let node = Swdir::default()
-            .set_root_path(path.clone())
-            .set_extension_allowlist(&extension_allowlist)
-            .expect("failed to set allowlist")
-            .set_recurse(recurse)
-            .walk();
+        let node = Swdir::new()
+            .root_path(path.clone())
+            .filter(
+                FilterRule::extension_allowlist(extension_allowlist.iter().copied())
+                    .expect("failed to set allowlist"),
+            )
+            .recurse(recurse)
+            .walk()
+            .into_tree();
 
         // Single-task rule: a new run replaces any in-flight one.
         if let Some(handle) = self.task_handle.take() {
@@ -577,11 +584,7 @@ fn dir_path_thumbnail_path_map(
                 .expect("failed to canonicalize path")
                 .to_string_lossy()
                 .to_string(),
-            thumbnail_path
-                .canonicalize()
-                .expect("failed to canonicalize thumbnail path")
-                .to_string_lossy()
-                .to_string(),
+            thumbnail_path.to_string_lossy().to_string(),
         );
     }
 

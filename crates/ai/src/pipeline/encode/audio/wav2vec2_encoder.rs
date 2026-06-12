@@ -1,4 +1,4 @@
-use candle_core::{DType, Device, Module, Tensor};
+use candle_core::{DType, Device, Tensor};
 use candle_nn::VarBuilder;
 
 // --- モデルコンポーネントの定義 ---
