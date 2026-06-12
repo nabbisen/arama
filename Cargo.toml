@@ -38,7 +38,7 @@ arama-ui-widgets = { path = "crates/ui/widgets" }
 arama-sidecar = { path = "crates/engine/sidecar" }
 
 iced = { version = "0.14", features = ["image", "tokio"] }
-snora = { version = "0.8", default-features = false }
+snora = { version = "0.18", default-features = false }
 
 # general
 anyhow = "1"

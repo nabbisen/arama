@@ -44,6 +44,25 @@ Migration reports at `rfcs/notes/dep-migration-lucide-icons.md` and
 
 ---
 
+## [0.31.0]
+
+### Changed
+
+- **snora 0.8.0 → 0.18.0** (ten minor versions). Drop-in update —
+  no source changes required. All `AppLayout` builder methods, `Toast`,
+  `ToastIntent`, `ToastPosition`, `render`, `toast::subscription`, and
+  `toast::sweep_expired` are present and signature-identical in 0.18.0.
+
+  Notable changes across the skipped versions: `AppLayout` is marked
+  `#[non_exhaustive]` (arama already used the builder, not struct
+  literal); toast ordering fixed (newest toast now correctly appears
+  closest to the anchor edge); `snora::keyboard::dismiss_on_escape`
+  helper added (not yet used by arama); `Icon: PartialEq` added.
+
+  Migration report at `rfcs/notes/dep-migration-snora.md`.
+
+---
+
 ## [0.30.0]
 
 ### Changed
