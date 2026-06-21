@@ -33,9 +33,13 @@ is mandatory.
   other persisted setting enums). `arama-theme` depends on `arama-env` and
   maps the preset to `Tokens` (layers A/B) and iced `Theme` (layer C). No
   dependency cycle; `arama-env` stays GUI-free.
-- iced 0.14 has no high-contrast base theme, so HC presets map to the
-  matching `Theme::Light` / `Theme::Dark` for layer C. Documented limitation;
-  full `Tokens → Theme::custom` bridge is a named future RFC.
+- Layer C maps HC presets to `Theme::Light` / `Theme::Dark`. This is not
+  an iced limitation — it is because snora's 18-role `Palette` collapses
+  to iced's 6-field `theme::Palette`, and iced's own expansion algorithm
+  cannot reproduce the hand-tuned HC values for the 12 roles that don't
+  survive (on-color pairs, `surface` variants, `border`, `focus`, etc.).
+  snora won't provide a full-palette bridge by design. A future arama
+  task may hand-roll `Theme::custom` from the 6 mappable roles.
 - The `.theme()` callback must be a **named free function**
   (`fn app_theme(&App) -> iced::Theme`), not a closure — a closure fails
   iced's `ThemeFn` higher-ranked lifetime bound ("implementation of `Fn` is

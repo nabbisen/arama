@@ -45,6 +45,7 @@ and are not numbered, but are kept here as permanent project records.
 | [dep-migration-lucide-icons](./notes/dep-migration-lucide-icons.md) | lucide-icons 0.576 → 1.17: API diff and safe-to-update confirmation |
 | [dep-migration-candle](./notes/dep-migration-candle.md) | candle-{core,nn,transformers} 0.9 → 0.10: symbol audit and safe-to-update confirmation |
 | [dep-migration-snora](./notes/dep-migration-snora.md) | snora 0.8 → 0.18: API diff across ten minor versions, safe-to-update confirmation |
+| [snora-recipe-theme-custom](./notes/snora-recipe-theme-custom.md) | RFC-033 recipe: `Theme::custom` from Snora Design tokens (contribution to snora) |
 
 
 ## Handoffs

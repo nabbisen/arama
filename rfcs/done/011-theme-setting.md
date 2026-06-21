@@ -70,19 +70,30 @@ style-function level, layers A/B). We map conservatively:
 | `HighContrastDark` | `Tokens::high_contrast_dark()` | `Theme::Dark` |
 
 The high-contrast presets reuse the matching light/dark iced base theme
-for layer C. This is a deliberate, documented approximation: iced 0.14
-has no built-in high-contrast theme, and authoring a full custom iced
-`Theme::custom(...)` palette from snora tokens is **out of scope** for
-this RFC (it would require mapping all 18 snora palette roles onto iced's
-`theme::Palette`, an exercise worth its own RFC). The high-contrast
+for layer C. This is a deliberate, documented approximation whose root
+cause is precise: snora's `Palette` has 18 semantic roles; iced 0.14's
+`theme::Palette` has 6 (`background`, `text`, `primary`, `success`,
+`warning`, `danger`). A lossy mapping of the 6 core roles is
+straightforward, but iced then **expands** those 6 into its full extended
+palette via its own algorithm — and that expansion cannot reproduce
+snora's hand-tuned high-contrast values. The roles that don't survive the
+round-trip are exactly the ones that matter most for high-contrast:
+`surface` vs `surface_raised`, the `*_text` on-color pairs, `border`,
+`focus`, `text_secondary`, `text_muted`. So it is not that the mapping
+is impossible; it is that the expansion is lossy in precisely the
+high-contrast-critical roles. snora's position (`design-decisions.md`,
+RFC-025): "No replacement for iced `Theme`" — the per-widget style bridge
+is deliberate, not a gap to be filled by snora. The high-contrast
 presets still deliver their full benefit on the surfaces arama controls
-directly (buttons via layer A, and any future cards via layer B); the
-base iced widgets fall back to standard light/dark. This is honestly
-described to the user (see §6).
+directly (buttons via layer A, any future cards via layer B); the base
+iced widgets fall back to standard light/dark. This is honestly described
+to the user (see §6).
 
-A future RFC may build a complete `Tokens` → `Theme::custom` bridge to
-make layer C fully high-contrast; this RFC is explicitly scoped to the
-four-way preset switch with the conservative base-theme mapping.
+A future arama task may hand-roll a `Theme::custom(...)` from the 6
+mappable palette roles to make layer C partially high-contrast for stock
+widgets. That is an arama-side exercise — snora will not provide a
+full-palette bridge by design — and it is bounded: only the 6 core roles
+can be mapped; iced's expansion handles the rest.
 
 ---
 
@@ -333,12 +344,13 @@ locale test (avoids cross-test global-state interference).
 - **Switch only snora tokens (layers A/B), ignore layer C.** Rejected:
   produces dark buttons on a light window. The `.theme()` callback is
   mandatory for a coherent result.
-- **Full `Tokens` → `Theme::custom` bridge for layer C.** Deferred:
-  mapping 18 snora palette roles onto iced's `theme::Palette` is a
-  substantial, separable effort. The conservative `Light`/`Dark` base
-  mapping ships the feature now; the custom bridge is a clean follow-up
-  RFC that would upgrade high-contrast fidelity without changing any of
-  this RFC's call sites.
+- **Full `Tokens` → `Theme::custom` bridge for layer C.** Out of scope
+  for snora by design ("theme-aware, not theme-owning"). A future arama
+  task may hand-roll `Theme::custom` from the 6 mappable palette roles;
+  this is an arama-side exercise with a known caveat: only 6 of snora's
+  18 roles survive iced's palette-expansion algorithm, and the 12 that
+  don't are exactly the high-contrast-critical ones (`surface` variants,
+  `*_text` on-colors, `border`, `focus`, `text_secondary/muted`).
 - **Auto-detect OS dark mode.** Out of scope. iced 0.14 has no portable
   OS-theme query; an explicit user setting is simpler, testable, and
   predictable. Could be a future enhancement layered on top (an `Auto`

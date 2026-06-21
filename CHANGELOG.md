@@ -7,6 +7,14 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+### Changed
+
+- **RFC 011 high-contrast caveat sharpened.** The explanation "iced 0.14 has no built-in high-contrast theme" replaced with the precise mechanism confirmed by the snora team: snora's 18-role `Palette` collapses to iced's 6-field `theme::Palette`, and iced's own palette-expansion algorithm cannot reproduce the hand-tuned HC values for the 12 roles that don't survive (`surface` variants, `*_text` on-colors, `border`, `focus`, `text_secondary/muted`). The "future RFC" framing corrected: a full-palette bridge is out of scope for snora by design; the future work is an arama-side `Theme::custom` task. Updated in RFC 011, the theme-setting handoff, and `docs/src/users/settings.md`.
+
+### Added
+
+- **Snora recipe: `Theme::custom` from design tokens** (`rfcs/notes/snora-recipe-theme-custom.md`). RFC-033 nine-section recipe documenting how to map a `Tokens` preset onto an iced `Theme::custom` so stock iced widgets track the active design preset. Covers the 6-role mapping, the expansion caveat, call-site patterns, and customization points. Intended as a contribution to the snora recipe collection; seeded from arama's implementation.
+
 ### Planned
 
 - Relative-time rendering ("2 days ago") for the Cache page table.
