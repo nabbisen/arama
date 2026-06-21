@@ -1,11 +1,11 @@
-use chrono::{Local, TimeZone};
 use arama_i18n::t;
+use chrono::{Local, TimeZone};
 use iced::{
     Element,
     Length::{Fill, FillPortion},
     widget::{button, column, container, row, scrollable, text, text_input},
 };
-use lucide_icons::iced::{icon_refresh_cw, icon_circle_stop, icon_trash_2};
+use lucide_icons::iced::{icon_circle_stop, icon_refresh_cw, icon_trash_2};
 
 use super::{
     CachePage, DirRow,
@@ -114,7 +114,9 @@ impl CachePage {
             .on_press_maybe(if run_active {
                 None
             } else {
-                Some(Message::Event(Event::ClearRequest(r.dir_path.clone().into())))
+                Some(Message::Event(Event::ClearRequest(
+                    r.dir_path.clone().into(),
+                )))
             });
 
         row![
@@ -132,12 +134,10 @@ impl CachePage {
 
 fn table_header<'a>() -> Element<'a, Message> {
     row![
-        container(text(t("cache.column.directory")).style(text::secondary))
-            .width(FillPortion(5)),
+        container(text(t("cache.column.directory")).style(text::secondary)).width(FillPortion(5)),
         container(text(t("cache.column.files")).style(text::secondary)).width(FillPortion(1)),
         container(text(t("cache.column.size")).style(text::secondary)).width(FillPortion(1)),
-        container(text(t("cache.column.cached_at")).style(text::secondary))
-            .width(FillPortion(2)),
+        container(text(t("cache.column.cached_at")).style(text::secondary)).width(FillPortion(2)),
         container(text("")).width(30),
     ]
     .spacing(10)

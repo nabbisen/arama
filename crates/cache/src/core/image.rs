@@ -46,11 +46,7 @@ pub struct ImageCacheWriter {
 
 impl ImageCacheWriter {
     pub fn as_session(config: ImageCacheConfig) -> Result<Self> {
-        let options = cache_options(
-            &config.cache_config,
-            NAMESPACE_IMAGE,
-            IMAGE_PAYLOAD_VERSION,
-        );
+        let options = cache_options(&config.cache_config, NAMESPACE_IMAGE, IMAGE_PAYLOAD_VERSION);
         // Create the parent directory before localcache touches SQLite.
         ensure_db_dir(&options)?;
         // The writable engine is opened first: it creates the database
@@ -242,11 +238,7 @@ pub struct ImageCacheReader {
 
 impl ImageCacheReader {
     pub fn as_session(config: ImageCacheConfig) -> Result<Self> {
-        let options = cache_options(
-            &config.cache_config,
-            NAMESPACE_IMAGE,
-            IMAGE_PAYLOAD_VERSION,
-        );
+        let options = cache_options(&config.cache_config, NAMESPACE_IMAGE, IMAGE_PAYLOAD_VERSION);
         // Create the parent directory before localcache touches SQLite.
         ensure_db_dir(&options)?;
         // A standalone reader may be the first handle to ever touch this
@@ -369,11 +361,7 @@ pub(crate) fn summarize_entries(
 
     let mut map: BTreeMap<PathBuf, (usize, u64, i64)> = BTreeMap::new();
     for e in entries {
-        let dir = e
-            .path
-            .parent()
-            .map(|p| p.to_path_buf())
-            .unwrap_or_default();
+        let dir = e.path.parent().map(|p| p.to_path_buf()).unwrap_or_default();
         let agg = map.entry(dir).or_insert((0, 0, 0));
         agg.0 += 1;
         agg.1 += e.metadata.file_size;
@@ -381,12 +369,14 @@ pub(crate) fn summarize_entries(
     }
     Ok(map
         .into_iter()
-        .map(|(dir, (file_count, total_size, latest_cached_at))| DirCacheSummary {
-            dir_path: dir.to_string_lossy().into_owned(),
-            file_count,
-            total_size,
-            latest_cached_at,
-        })
+        .map(
+            |(dir, (file_count, total_size, latest_cached_at))| DirCacheSummary {
+                dir_path: dir.to_string_lossy().into_owned(),
+                file_count,
+                total_size,
+                latest_cached_at,
+            },
+        )
         .collect())
 }
 

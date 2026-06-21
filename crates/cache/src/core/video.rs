@@ -50,11 +50,7 @@ pub struct VideoCacheWriter {
 
 impl VideoCacheWriter {
     pub fn as_session(config: VideoCacheConfig) -> Result<Self> {
-        let options = cache_options(
-            &config.cache_config,
-            NAMESPACE_VIDEO,
-            VIDEO_PAYLOAD_VERSION,
-        );
+        let options = cache_options(&config.cache_config, NAMESPACE_VIDEO, VIDEO_PAYLOAD_VERSION);
         // Create the parent directory before localcache touches SQLite.
         ensure_db_dir(&options)?;
         let write = ConnectionPool::open(options.clone())?;
@@ -234,11 +230,7 @@ pub struct VideoCacheReader {
 
 impl VideoCacheReader {
     pub fn as_session(config: VideoCacheConfig) -> Result<Self> {
-        let options = cache_options(
-            &config.cache_config,
-            NAMESPACE_VIDEO,
-            VIDEO_PAYLOAD_VERSION,
-        );
+        let options = cache_options(&config.cache_config, NAMESPACE_VIDEO, VIDEO_PAYLOAD_VERSION);
         // Create the parent directory before localcache touches SQLite.
         ensure_db_dir(&options)?;
         ensure_schema::<VideoPayload>(&options)?;

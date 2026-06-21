@@ -156,7 +156,10 @@ impl App {
         };
 
         let header = Header::new(&settings.root_dir_path);
-        let aside = Aside::new(std::path::PathBuf::from(&settings.root_dir_path), processing);
+        let aside = Aside::new(
+            std::path::PathBuf::from(&settings.root_dir_path),
+            processing,
+        );
         let dir_node_count = dir_node.count();
         let footer = Footer::new(thumbnail_size, dir_node_count.files, dir_node_count.dirs);
         let dialog = None;

@@ -34,3 +34,4 @@ feature work, so it has no handoff.
 | 010 | [Adopt the Snora Design system](./010-snora-design-system-handoff.md) | v0.32.0 |
 | 011 | [Application theme setting](./011-theme-setting-handoff.md) | v0.33.0 |
 | 012 | [Workspace housekeeping](./012-workspace-housekeeping-handoff.md) | v0.35.0 |
+| 013 | [ELOC splits](./013-eloc-splits-handoff.md) | v0.36.0 |

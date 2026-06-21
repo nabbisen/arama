@@ -6,8 +6,8 @@ use arama_cache::{
     VideoCacheReader,
 };
 use arama_env::{
-    IMAGE_EXTENSION_ALLOWLIST,
-    VIDEO_EXTENSION_ALLOWLIST, cache_storage_path, cache_thumbnail_dir_path,
+    IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path,
+    cache_thumbnail_dir_path,
 };
 use arama_sidecar::media::video::video_engine::VideoEngine;
 use iced::Task;
@@ -85,7 +85,9 @@ async fn prepare_embeddings(dir_node: DirNode, similarity_threshold: f32) -> Vec
 
         for path in &image_paths {
             let feature = match image_cache_reader.lookup(&path).expect("failed to lookup") {
-                LookupResult::Hit(x) => x.features.map(|f| (x.path, x.thumbnail_path, f.clip_vector)),
+                LookupResult::Hit(x) => x
+                    .features
+                    .map(|f| (x.path, x.thumbnail_path, f.clip_vector)),
                 _ => {
                     // todo: error handling
                     None

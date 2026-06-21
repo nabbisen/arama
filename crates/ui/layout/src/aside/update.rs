@@ -31,7 +31,10 @@ impl Aside {
                         .tree
                         .update(event)
                         .map(|e| Message::Internal(Internal::TreeEvent(e)));
-                    return Task::batch([scan_task, Task::done(Message::Event(Event::DirSelect(path)))]);
+                    return Task::batch([
+                        scan_task,
+                        Task::done(Message::Event(Event::DirSelect(path))),
+                    ]);
                 }
 
                 // All other variants (Toggled, Loaded, Drag, DragCompleted,

@@ -1,8 +1,5 @@
 use std::path::Path;
 
-use arama_cache::{LookupResult, UpsertVideoRequest, VideoCacheReader, VideoCacheWriter};
-use arama_env::{cache_storage_path, cache_thumbnail_dir_path};
-use arama_sidecar::media::video::video_engine::VideoEngine;
 use crate::{
     config::video_similarity_config::VideoSimilarityConfig,
     model::model_manager::ModelManager,
@@ -12,11 +9,12 @@ use crate::{
             image::clip_encoder::ClipEncoder,
         },
         extract::video_extractor::{VideoExtractor, audio_segment::AudioSegmentView},
-        score::similarity::video::{
-            video_features::VideoFeatures,
-        },
+        score::similarity::video::video_features::VideoFeatures,
     },
 };
+use arama_cache::{LookupResult, UpsertVideoRequest, VideoCacheReader, VideoCacheWriter};
+use arama_env::{cache_storage_path, cache_thumbnail_dir_path};
+use arama_sidecar::media::video::video_engine::VideoEngine;
 
 pub struct VideoSimilarityPipeline {
     cfg: VideoSimilarityConfig,
@@ -140,7 +138,6 @@ impl VideoSimilarityPipeline {
             .collect();
         let audio_raw_embeddings = self.audio_encoder.encode_segments(&views);
         let audio_embeddings = mean_embeddings(&audio_raw_embeddings);
-
 
         Ok(VideoFeatures {
             path: path.to_string_lossy().to_string(),

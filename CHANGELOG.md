@@ -10,8 +10,44 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 ### Planned
 
 - Relative-time rendering ("2 days ago") for the Cache page table.
-- ELOC splits for `app/src/core/update.rs` and the `arama-cache`
-  integration tests (RFC 013).
+
+---
+
+## [0.36.0]
+
+### Changed
+
+- **ELOC splits** (RFC 013). Two files that exceeded the 500 ELOC threshold
+  are split along natural logical seams; every `.rs` file is now under 300 ELOC.
+
+  `app/src/core/update.rs` (543 ELOC) becomes a 35-ELOC router that delegates
+  to three sub-files under `update/`: `cache.rs` (pipeline handlers and dir
+  helpers), `component.rs` (Setup, Gallery, Header, Aside, Footer, and dialog
+  delegation), and `ui.rs` (nav, toast, cursor, and dialog-close housekeeping).
+
+  `crates/cache/tests/integration_tests.rs` (615 ELOC) becomes a 0-ELOC
+  module doc, with tests split into four sibling files: `helpers.rs` (shared
+  fixtures), `image.rs` (9 image-namespace tests), `video.rs` (7
+  video-namespace tests), `cross.rs` (11 cross-namespace / session / parallel
+  / directory tests). `crates/cache/Cargo.toml` gains `autotests = false`
+  and four explicit `[[test]]` entries so `helpers.rs` is not compiled as a
+  standalone binary.
+
+### Fixed
+
+- **Stale test assertions in `arama-ai`** (`video_similarity_config` tests).
+  `test_1hour` asserted `len == 12` and `test_90s` checked all consecutive
+  gaps ≥ 20 s, both written against an earlier algorithm that lacked
+  `head_fixed_anchors_secs`. The current design intentionally keeps fixed
+  head anchors (3 s, 9 s, 15 s) regardless of gap; the correct count for a
+  1-hour video is 13. Tests rewritten to validate the design spec: fixed
+  anchors are always present, and only non-fixed consecutive pairs must
+  respect `min_sample_gap_secs`.
+- **Dead-code and unused-import warnings** in `arama-cache` integration
+  tests. Each sibling test binary (`image.rs`, `video.rs`, `cross.rs`)
+  includes `helpers.rs` via `#[path]` but uses only a subset of its items.
+  Added `#[allow(dead_code)]` on the `mod helpers` declaration in each
+  binary; removed the unused `use std::path::Path` import from `cross.rs`.
 
 ---
 
@@ -46,15 +82,13 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Fixed
 
-- **`pt2safetensors` build break** against current dependency versions.
-  `pt2safetensors` 0.1.2 declares `safetensors` with `default-features = false`
-  but uses `serialize_to_file` (gated behind the `std` feature since
-  safetensors 0.5.0) and passes `candle_core::Tensor` to it — which requires
-  both crates to agree on the same safetensors version. The workspace now
-  carries a `[patch.crates-io]` override (`vendor/pt2safetensors`) that pins
-  safetensors to `0.7` with `features = ["std"]`, matching the version used
-  by `candle-core` 0.10. The patch is a temporary workaround pending a
-  `pt2safetensors` 0.1.3 release that fixes the dep declarations upstream.
+- **`pt2safetensors` 0.1.2 build break resolved** by upgrading to 0.1.3.
+  0.1.2 declared `safetensors` with `default-features = false` but called
+  `serialize_to_file` (gated behind `std` since safetensors 0.5.0), and
+  resolved a different safetensors minor version (0.8) than `candle-core`
+  0.10 (0.7), making the `View` trait incompatible across crate instances.
+  0.1.3 pins `candle-core = "0.10"` and `safetensors = { version = "0.7",
+  features = ["std"] }`; the workspace constraint is updated to `"0.1.3"`.
   See `rfcs/notes/dep-fix-pt2safetensors.md` for the full analysis.
 
 - **Incorrect `readme` paths** in the `arama`, `arama-ai`, and

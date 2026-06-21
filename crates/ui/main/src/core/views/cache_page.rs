@@ -6,9 +6,7 @@
 
 use std::path::PathBuf;
 
-use arama_cache::{
-    CacheConfig, DbLocation, DirCacheSummary, ImageCacheReader, VideoCacheReader,
-};
+use arama_cache::{CacheConfig, DbLocation, DirCacheSummary, ImageCacheReader, VideoCacheReader};
 use arama_env::cache_storage_path;
 use iced::Task;
 
@@ -94,9 +92,8 @@ impl CachePage {
 fn load_rows() -> arama_cache::Result<Vec<DirRow>> {
     use std::collections::BTreeMap;
 
-    let location = DbLocation::Custom(
-        cache_storage_path().expect("failed to get cache storage path"),
-    );
+    let location =
+        DbLocation::Custom(cache_storage_path().expect("failed to get cache storage path"));
     let config = CacheConfig {
         db_location: location,
         ..CacheConfig::default()

@@ -14,7 +14,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.35.0"
+version = "0.36.0"
 edition         = "2024"
 rust-version    = "1.90"
 license         = "Apache-2.0"
@@ -24,15 +24,15 @@ keywords        = ["image", "walk", "filter"]
 repository      = "https://github.com/nabbisen/arama"
 
 [workspace.dependencies]
-arama-ai            = { version = "0.35.0", path = "crates/ai" }
-arama-cache         = { version = "0.35.0", path = "crates/cache" }
-arama-env           = { version = "0.35.0", path = "env" }
-arama-i18n          = { version = "0.35.0", path = "crates/i18n" }
-arama-sidecar       = { version = "0.35.0", path = "crates/engine/sidecar" }
-arama-theme         = { version = "0.35.0", path = "crates/theme" }
-arama-ui-layout     = { version = "0.35.0", path = "crates/ui/layout" }
-arama-ui-main       = { version = "0.35.0", path = "crates/ui/main" }
-arama-ui-widgets    = { version = "0.35.0", path = "crates/ui/widgets" }
+arama-ai            = { version = "0.36.0", path = "crates/ai" }
+arama-cache         = { version = "0.36.0", path = "crates/cache" }
+arama-env           = { version = "0.36.0", path = "env" }
+arama-i18n          = { version = "0.36.0", path = "crates/i18n" }
+arama-sidecar       = { version = "0.36.0", path = "crates/engine/sidecar" }
+arama-theme         = { version = "0.36.0", path = "crates/theme" }
+arama-ui-layout     = { version = "0.36.0", path = "crates/ui/layout" }
+arama-ui-main       = { version = "0.36.0", path = "crates/ui/main" }
+arama-ui-widgets    = { version = "0.36.0", path = "crates/ui/widgets" }
 
 # UI
 iced                = { version = "0.14", features = ["image", "tokio"] }
@@ -65,7 +65,7 @@ hnsw_rs             = "0"
 naga                = "27"
 # - model loader
 reqwest             = { version = "0.13", default-features = false, features = ["blocking", "multipart", "rustls", "stream"] }
-pt2safetensors      = "0"
+pt2safetensors      = "0.1.3"
 
 # cache
 localcache          = "0.20"
@@ -89,3 +89,4 @@ codegen-units   = 1
 opt-level       = 1         # slightly optimize
 lto             = false     # disable link-time optimizations
 incremental     = false
+

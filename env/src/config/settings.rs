@@ -8,7 +8,6 @@ use crate::{DEFAULT_THUMBNAIL_SIZE, MIN_IMAGE_SIMILARITY};
 use cache_lookup_strategy::CacheLookupStrategy;
 use target_media_type::TargetMediaType;
 
-
 /// User-selectable application theme preset. Maps to the four Snora Design
 /// token presets (and, for the base iced theme, to `Theme::Light` / `Dark`).
 /// Pure data — no GUI dependency, so it lives in `arama-env` alongside the

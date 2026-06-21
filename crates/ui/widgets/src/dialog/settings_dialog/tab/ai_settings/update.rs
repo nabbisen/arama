@@ -32,7 +32,12 @@ impl AiSettings {
             Message::GetFfmpegStart => {
                 self.message = t("settings.ai.ffmpeg_fetching");
                 Task::perform(
-                    async { VideoEngine::download_and_install().await.err().map(|e| e.to_string()) },
+                    async {
+                        VideoEngine::download_and_install()
+                            .await
+                            .err()
+                            .map(|e| e.to_string())
+                    },
                     Message::FfmpegGot,
                 )
             }

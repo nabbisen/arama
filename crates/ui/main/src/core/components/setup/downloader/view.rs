@@ -16,7 +16,9 @@ impl Downloader {
             .iter()
             .filter(|x| x.download_state != DownloadState::NotRequired)
             .fold(
-                column![text(t("setup.not_ready"))].max_width(400).spacing(10),
+                column![text(t("setup.not_ready"))]
+                    .max_width(400)
+                    .spacing(10),
                 |col, state| {
                     let (status, progress) = match &state.download_state {
                         DownloadState::Idle => (t("setup.status.missing"), 0.0),
@@ -35,11 +37,7 @@ impl Downloader {
                     } else {
                         t("setup.item.size_unknown")
                     };
-                    let name = format!(
-                        "{} ({} MB)",
-                        state_name(&state.config),
-                        size_str,
-                    );
+                    let name = format!("{} ({} MB)", state_name(&state.config), size_str,);
 
                     col.push(
                         column![
@@ -109,7 +107,10 @@ fn state_name(config: &DownloaderConfig) -> String {
             } else if parent_name.contains("wav2vec2") {
                 t("setup.item.wav2vec2")
             } else {
-                eprintln!("state_name: unknown AI model config at {}", safetensors_path.display());
+                eprintln!(
+                    "state_name: unknown AI model config at {}",
+                    safetensors_path.display()
+                );
                 t("setup.item.clip") // degrade gracefully instead of panicking
             }
         }

@@ -28,6 +28,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 010 | [Adopt the Snora Design system (token-driven button styling)](./done/010-snora-design-system.md) | v0.32.0 |
 | 011 | [Application theme setting (light / dark / high-contrast)](./done/011-theme-setting.md) | v0.33.0 |
 | 012 | [Workspace housekeeping (manifest inheritance, orphan removal, changelog & doc reconciliation)](./done/012-workspace-housekeeping.md) | v0.35.0 |
+| 013 | [ELOC splits: update.rs and cache integration tests](./done/013-eloc-splits.md) | v0.36.0 |
 
 ## Archive
 

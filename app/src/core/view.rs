@@ -1,10 +1,10 @@
+use arama_i18n::t;
 use arama_ui_main::views::setup;
 use iced::{
     Element,
     Length::Fill,
     widget::{button, column, container, mouse_area, row, text, tooltip},
 };
-use arama_i18n::t;
 use lucide_icons::iced::{icon_database, icon_folder, icon_settings};
 use snora::{AppLayout, Dialog as SnoraDialog, ToastPosition, render};
 
@@ -97,21 +97,18 @@ impl App {
         // ── AppLayout skeleton ────────────────────────────────────────
         let footer = self.footer.view().map(Message::FooterMessage);
 
-        let mut layout: AppLayout<Element<'_, Message>, Message> =
-            AppLayout::new(body)
-                .side_bar(side_bar)
-                .footer(footer)
-                .on_close_menus(Message::CloseMenus)
-                .on_close_modals(Message::DialogClose)
-                .toasts(self.toasts.clone())
-                .toast_position(ToastPosition::BottomEnd);
+        let mut layout: AppLayout<Element<'_, Message>, Message> = AppLayout::new(body)
+            .side_bar(side_bar)
+            .footer(footer)
+            .on_close_menus(Message::CloseMenus)
+            .on_close_modals(Message::DialogClose)
+            .toasts(self.toasts.clone())
+            .toast_position(ToastPosition::BottomEnd);
 
         // Context menu: only populate when open so snora's backdrop is
         // active only then.
         if self.context_menu.is_open() {
-            layout = layout.context_menu(
-                self.context_menu.view().map(Message::ContextMenuMessage),
-            );
+            layout = layout.context_menu(self.context_menu.view().map(Message::ContextMenuMessage));
         }
 
         // Modal dialogs (MediaFocus, SimilarPairs only — Settings is a

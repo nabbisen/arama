@@ -4,9 +4,9 @@ mod view;
 
 mod tab;
 
-use arama_i18n::Locale;
 use arama_env::ThemePreset;
 use arama_env::target_media_type::TargetMediaType;
+use arama_i18n::Locale;
 use tab::{
     Tab, about::About, ai_settings::AiSettings, file_system_settings::FileSystemSettings,
     general_settings::GeneralSettings,

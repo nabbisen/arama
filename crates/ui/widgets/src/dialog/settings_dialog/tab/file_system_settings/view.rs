@@ -1,5 +1,5 @@
-use arama_i18n::t;
 use arama_env::{cache_dir, local_dir};
+use arama_i18n::t;
 use disk_space::DiskSpace;
 use iced::Element;
 use iced::widget::{button, column, row, text};
@@ -24,11 +24,13 @@ impl FileSystemSettings {
             text(format!("{:.1} GB", disk_space.total)),
         ];
 
-        let button = button(text(t("settings.fs.cache_delete"))).on_press_maybe(if cache_dir().unwrap().exists() {
-            Some(Message::CacheDelete)
-        } else {
-            None
-        });
+        let button = button(text(t("settings.fs.cache_delete"))).on_press_maybe(
+            if cache_dir().unwrap().exists() {
+                Some(Message::CacheDelete)
+            } else {
+                None
+            },
+        );
 
         column![fs_info, button].into()
     }

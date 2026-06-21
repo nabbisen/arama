@@ -11,9 +11,7 @@ impl SettingsDialog {
             | Message::SubDirDepthLimitChanged(_)
             | Message::SimilarityThresholdChanged(_)
             | Message::LocaleChanged(_)
-            | Message::ThemeChanged(_) => {
-                Task::none()
-            }
+            | Message::ThemeChanged(_) => Task::none(),
             Message::TabSelect(tab) => {
                 self.tab = tab;
                 Task::none()

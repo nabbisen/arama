@@ -1,4 +1,7 @@
-use iced::{Element, Length, widget::{column, container}};
+use iced::{
+    Element, Length,
+    widget::{column, container},
+};
 
 use super::{
     Aside,
@@ -13,9 +16,6 @@ impl Aside {
         )
         .padding([5, 0]);
 
-        column![tree]
-            .width(Length::Shrink)
-            .spacing(5)
-            .into()
+        column![tree].width(Length::Shrink).spacing(5).into()
     }
 }

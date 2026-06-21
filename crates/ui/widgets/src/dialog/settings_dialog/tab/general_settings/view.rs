@@ -1,5 +1,5 @@
-use arama_env::target_media_type::TargetMediaType;
 use arama_env::ThemePreset;
+use arama_env::target_media_type::TargetMediaType;
 use arama_i18n::{Locale, t};
 use iced::{
     Element,

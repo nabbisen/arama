@@ -50,8 +50,7 @@ async fn stream_to_file(
     let parent = dest
         .parent()
         .ok_or_else(|| format!("no parent directory: {}", dest.display()))?;
-    validate_dir(parent)
-        .map_err(|e| format!("could not create parent directory: {e}"))?;
+    validate_dir(parent).map_err(|e| format!("could not create parent directory: {e}"))?;
 
     // Write to a `.part` file; rename to the final name only on success.
     let part = format!("{}.part", dest.to_string_lossy());
@@ -131,9 +130,7 @@ pub fn general_download_stream(
         move |mut output: Sender<DownloadProgress>| async move {
             if download_dest_path.exists() {
                 let _ = output
-                    .send(DownloadProgress::Errored(
-                        "file already exists".to_string(),
-                    ))
+                    .send(DownloadProgress::Errored("file already exists".to_string()))
                     .await;
                 return;
             }
@@ -174,23 +171,19 @@ pub fn ai_model_download_stream(
 
             if safetensors_path.exists() {
                 let _ = output
-                    .send(DownloadProgress::Errored(
-                        "file already exists".to_string(),
-                    ))
+                    .send(DownloadProgress::Errored("file already exists".to_string()))
                     .await;
                 return;
             }
 
             // Resolve the primary download URL and save path.
             let (model_url, path_to_save) = match &model_container.source_url {
-                SourceUrl::ModelSafetensors(u) | SourceUrl::ModelSafetensorsConfigJson((u, _)) => {
-                    (
-                        u.clone(),
-                        model_container
-                            .safetensors_path()
-                            .expect("failed to get safetensors path"),
-                    )
-                }
+                SourceUrl::ModelSafetensors(u) | SourceUrl::ModelSafetensorsConfigJson((u, _)) => (
+                    u.clone(),
+                    model_container
+                        .safetensors_path()
+                        .expect("failed to get safetensors path"),
+                ),
                 SourceUrl::PyTorch(u) => (
                     u.clone(),
                     model_container

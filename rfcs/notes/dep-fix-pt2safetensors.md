@@ -1,19 +1,20 @@
 # dep-fix-pt2safetensors
 
 **Subject.** Build break in `pt2safetensors` 0.1.2 against `candle-core`
-0.10 + `safetensors` ≥ 0.5; temporary workspace patch applied in v0.35.0.
+0.10 + `safetensors` ≥ 0.5; resolved in v0.35.0 by upgrading to
+`pt2safetensors` 0.1.3.
 
 ---
 
 ## Root cause
 
-`pt2safetensors` 0.1.2 (`nabbisen/pt2safetensors`) has two latent bugs that
-surface together when resolved against current dependency versions:
+`pt2safetensors` 0.1.2 (`nabbisen/pt2safetensors`) had two latent bugs that
+surfaced together when resolved against current dependency versions:
 
 ### Bug 1 — `std` feature gating (safetensors ≥ 0.5)
 
 ```toml
-# pt2safetensors 0.1.2 Cargo.toml.orig
+# pt2safetensors 0.1.2 Cargo.toml
 safetensors = { version = "0", default-features = false }
 ```
 
@@ -30,11 +31,9 @@ note: found an item that was configured out
 ### Bug 2 — `View` trait version mismatch (candle-core 0.10)
 
 `candle-core` 0.10 depends on `safetensors` **0.7**. `pt2safetensors` with
-`version = "0"` resolves independently to `safetensors` **0.8**. Because both
-are SemVer-incompatible minor versions, Cargo links two separate copies of the
-`safetensors` crate. The `View` trait from 0.8 and the `View` trait from 0.7
-are different types — so `candle_core::Tensor` (which implements 0.7's `View`)
-does not satisfy the `serialize_to_file` bound from 0.8:
+`version = "0"` resolved independently to `safetensors` **0.8**. Two
+SemVer-incompatible copies of the crate entered the dependency graph, making
+the `View` trait from one incompatible with the bound from the other:
 
 ```
 error[E0277]: the trait bound `&candle_core::Tensor: View` is not satisfied
@@ -42,47 +41,20 @@ note: there are multiple different versions of crate `safetensors` in the
       dependency graph
 ```
 
-## Fix applied in v0.35.0
+## Fix — pt2safetensors 0.1.3
 
-A local patched copy lives at `vendor/pt2safetensors/`. Changes from 0.1.2:
+The upstream crate was patched and published as 0.1.3. Changes:
 
 ```toml
-# before
+# [dependencies] — was:
+candle-core = "0"
 safetensors = { version = "0", default-features = false }
-# after
+# now:
+candle-core = "0.10"
 safetensors = { version = "0.7", features = ["std"] }
 ```
 
-The root `Cargo.toml` routes `pt2safetensors` to this copy:
+Pinning `candle-core` to `"0.10"` prevents the `View` trait split.
+Adding `features = ["std"]` restores `serialize_to_file`.
 
-```toml
-[patch.crates-io]
-pt2safetensors = { path = "vendor/pt2safetensors" }
-```
-
-This pins `pt2safetensors` to the same safetensors minor version as
-`candle-core` 0.10, eliminating both bugs simultaneously.
-
-## Upstream fix required — pt2safetensors 0.1.3
-
-The `vendor/` patch is a temporary workaround. The permanent fix is to
-publish `pt2safetensors` 0.1.3 with the corrected dep declaration.
-
-Minimal diff for that release (`Cargo.toml.orig`):
-
-```toml
-# [dependencies]
-# before:
-safetensors = { version = "0", default-features = false }
-# after:
-safetensors = { version = "0.7", features = ["std"] }
-```
-
-**When 0.1.3 is on crates.io:**
-
-1. Delete `vendor/pt2safetensors/`.
-2. Remove the `[patch.crates-io]` block from the root `Cargo.toml`.
-3. Update `workspace.dependencies`: `pt2safetensors = "0.1"` (or `"0"`).
-4. Run `cargo update pt2safetensors`.
-5. Verify `cargo check --workspace` is clean.
-6. Record the cleanup in CHANGELOG under the next release.
+arama's `workspace.dependencies` updated to `pt2safetensors = "0.1.3"`.

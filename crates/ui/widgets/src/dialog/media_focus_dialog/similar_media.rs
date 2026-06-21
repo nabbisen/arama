@@ -8,8 +8,8 @@ use arama_cache::{
     CacheConfig, DbLocation, ImageCacheConfig, ImageCacheReader, VideoCacheConfig, VideoCacheReader,
 };
 use arama_env::{
-    VIDEO_EXTENSION_ALLOWLIST, cache_lookup_strategy::CacheLookupStrategy,
-    cache_storage_path, cache_thumbnail_dir_path,
+    VIDEO_EXTENSION_ALLOWLIST, cache_lookup_strategy::CacheLookupStrategy, cache_storage_path,
+    cache_thumbnail_dir_path,
 };
 
 use super::{MediaFocusDialog, types::SimilarMediaItem};

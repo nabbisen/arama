@@ -1,5 +1,5 @@
-use arama_i18n::t;
 use arama_env::MAX_THUMBNAIL_SIZE;
+use arama_i18n::t;
 use iced::{
     Alignment::Center,
     Element,

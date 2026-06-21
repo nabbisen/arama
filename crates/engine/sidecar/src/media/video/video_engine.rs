@@ -138,20 +138,23 @@ impl VideoEngine {
         // ── Extract ──────────────────────────────────────────────────────
         #[cfg(target_os = "linux")]
         {
-            let file = std::fs::File::open(&from_archive)
-                .context("failed to open ffmpeg archive")?;
+            let file =
+                std::fs::File::open(&from_archive).context("failed to open ffmpeg archive")?;
             let decompressed = xz2::read::XzDecoder::new(file);
             let mut archive = tar::Archive::new(decompressed);
-            archive.unpack(&temp_dir).context("failed to extract tar.xz")?;
+            archive
+                .unpack(&temp_dir)
+                .context("failed to extract tar.xz")?;
         }
 
         #[cfg(not(target_os = "linux"))]
         {
-            let file = std::fs::File::open(&from_archive)
-                .context("failed to open ffmpeg archive")?;
-            let mut archive = zip::ZipArchive::new(file)
-                .context("failed to read zip archive")?;
-            archive.extract(&temp_dir).context("failed to extract zip")?;
+            let file =
+                std::fs::File::open(&from_archive).context("failed to open ffmpeg archive")?;
+            let mut archive = zip::ZipArchive::new(file).context("failed to read zip archive")?;
+            archive
+                .extract(&temp_dir)
+                .context("failed to extract zip")?;
         }
 
         // ── Locate binaries ──────────────────────────────────────────────
@@ -162,8 +165,10 @@ impl VideoEngine {
                 .context("extraction produced an empty directory")?
                 .context("failed to read extraction directory")?
                 .path();
-            (inner.join("bin").join(bin_name::FFMPEG),
-             inner.join("bin").join(bin_name::FFPROBE))
+            (
+                inner.join("bin").join(bin_name::FFMPEG),
+                inner.join("bin").join(bin_name::FFPROBE),
+            )
         };
 
         #[cfg(target_os = "macos")]

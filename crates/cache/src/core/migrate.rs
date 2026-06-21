@@ -64,11 +64,9 @@ pub fn migrate_v1_if_present(v1_db: &Path, v2_db: &Path) -> Result<Option<Migrat
 }
 
 fn import(v1_db: &Path, v2_db: &Path) -> Result<MigrationReport> {
-    let conn = rusqlite::Connection::open_with_flags(
-        v1_db,
-        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
-    )
-    .map_err(|e| CacheError::Migration(e.to_string()))?;
+    let conn =
+        rusqlite::Connection::open_with_flags(v1_db, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .map_err(|e| CacheError::Migration(e.to_string()))?;
 
     let config = CacheConfig {
         db_location: DbLocation::Custom(v2_db.to_path_buf()),

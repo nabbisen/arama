@@ -38,7 +38,12 @@ impl Gallery {
             button(text(t("gallery.filter.clear")))
                 .on_press_maybe(filter_active.then_some(Message::FilterClear)),
             text(if filter_active {
-                format!("{} {} {}", matching, t("gallery.filter.count_of"), total_files)
+                format!(
+                    "{} {} {}",
+                    matching,
+                    t("gallery.filter.count_of"),
+                    total_files
+                )
             } else {
                 String::new()
             })
@@ -88,9 +93,7 @@ impl Gallery {
                 // Apply filter: keep only entries whose filename matches.
                 let entries: Vec<_> = map
                     .iter()
-                    .filter(|(path, _)| {
-                        !filter_active || filename_matches(path, &filter_lc)
-                    })
+                    .filter(|(path, _)| !filter_active || filename_matches(path, &filter_lc))
                     .collect();
 
                 if entries.is_empty() {

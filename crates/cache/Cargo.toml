@@ -11,6 +11,26 @@ repository.workspace   = true
 categories.workspace   = true
 keywords.workspace     = true
 
+# Integration tests are split across named files; disable autodiscovery so
+# that helpers.rs (a shared fixture, not a test binary) is not picked up.
+autotests = false
+
+[[test]]
+name = "integration_tests"
+path = "tests/integration_tests.rs"
+
+[[test]]
+name = "image"
+path = "tests/image.rs"
+
+[[test]]
+name = "video"
+path = "tests/video.rs"
+
+[[test]]
+name = "cross"
+path = "tests/cross.rs"
+
 [dependencies]
 localcache = { workspace = true }
 
