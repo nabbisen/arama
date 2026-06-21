@@ -71,9 +71,9 @@ impl GeneralSettings {
             |row, locale| {
                 let btn = button(locale.display_name())
                     .style(if &self.locale == locale {
-                        button::primary
+                        arama_theme::primary
                     } else {
-                        button::text
+                        arama_theme::ghost
                     })
                     .on_press(Message::LocaleChanged(*locale));
                 row.push(btn)

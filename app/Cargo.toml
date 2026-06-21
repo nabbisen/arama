@@ -1,6 +1,6 @@
 [package]
 name = "arama"
-version = "0.31.0"
+version = "0.32.0"
 edition = "2024"
 
 description = "Image / video viewer and similarity calculator with offline AI power"
@@ -17,6 +17,7 @@ rust-version = "1.90.0"
 arama-ai = { workspace = true }
 arama-cache = { workspace = true }
 arama-i18n = { workspace = true }
+arama-theme = { workspace = true }
 arama-env = { workspace = true }
 arama-ui-layout = { workspace = true }
 arama-ui-main = { workspace = true }

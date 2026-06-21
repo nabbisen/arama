@@ -44,6 +44,41 @@ Migration reports at `rfcs/notes/dep-migration-lucide-icons.md` and
 
 ---
 
+## [0.32.0]
+
+### Changed
+
+- **snora 0.18.1 → 0.25.0** (RFC 010). Drop-in for arama's existing usage —
+  all `AppLayout` builder methods, `Toast`, `ToastIntent`, `ToastPosition`,
+  `render`, `toast::subscription`, and `toast::sweep_expired` are unchanged.
+  The one breaking change in the range (`Palette::roles()` made test-only in
+  0.24.0) is not used by arama.
+
+### Added
+
+- **Adopt the Snora Design system for button styling** (RFC 010). snora
+  0.25.0 ships an opt-in `design` feature: an iced-free, zero-dependency
+  token crate (`snora-design`) plus an iced style bridge whose button
+  colors are verified to meet WCAG AA contrast (≥4.5:1) across four
+  built-in presets.
+
+  - New `arama-theme` crate holds the active design tokens globally
+    (the same pattern arama uses for i18n) and exposes drop-in button
+    style functions (`primary`, `ghost`, `secondary`, `danger`) with
+    iced's exact `fn(&Theme, button::Status) -> button::Style` shape.
+  - arama's buttons migrate from iced's built-in styles to the
+    token-driven equivalents: nav rail (active = primary, inactive =
+    ghost), locale selector, cache-page stop button (danger), and
+    setup skip button (secondary).
+  - Initialised with `Tokens::light()` to match arama's default
+    `Theme::Light`. A future light / dark / high-contrast setting can
+    change only the initialisation, with no call-site churn.
+
+  Migration analysis at `rfcs/notes/dep-migration-snora.md` (updated for
+  the 0.18 → 0.25 range).
+
+---
+
 ## [0.31.0]
 
 ### Changed

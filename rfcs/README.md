@@ -25,6 +25,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 007 | [i18n Phase 2 sweep](./done/007-i18n-phase2.md) | v0.28.0 |
 | 008 | [Gallery filter, AI debug cleanup, error handling](./done/008-gallery-filter-cleanup.md) | v0.29.0 |
 | 009 | [Replace custom DirTree with iced-swdir-tree](./done/009-iced-swdir-tree.md) | v0.30.0 |
+| 010 | [Adopt the Snora Design system (token-driven button styling)](./done/010-snora-design-system.md) | v0.32.0 |
 
 ## Archive
 

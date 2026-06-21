@@ -1,0 +1,8 @@
+[package]
+name = "arama-theme"
+version = "0.32.0"
+edition = "2024"
+
+[dependencies]
+iced = { workspace = true }
+snora = { workspace = true }

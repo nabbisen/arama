@@ -95,3 +95,36 @@ snora = { version = "0.18", default-features = false }
 
 Then `cargo update -p snora -p snora-core`.
 No source changes required.
+
+
+---
+
+## Addendum: 0.18.1 → 0.25.0 (RFC 010)
+
+Updated again when adopting the Snora Design system. The 0.18 → 0.25
+range adds the design system across versions 0.19–0.25:
+
+| Version | Design-system milestone |
+|---|---|
+| 0.19.0 | `snora-design` token crate introduced (groundwork, `publish = false`) |
+| 0.20.0 | `snora-design` published; `design` feature live (opt-in); pilot button + card helpers |
+| 0.21.0 | Notice, chip, progress primitives |
+| 0.22.0 | Chip style refactor + tests |
+| 0.23.0 | Four design recipes |
+| 0.24.0 | **Breaking:** `Palette::roles()` → test-only; chip selected-state contrast fixed to WCAG AA |
+| 0.25.0 | Measurement methodology fixes; size-probe crates |
+
+**Non-design API:** unchanged across the whole range. Every symbol arama
+uses from the snora facade (`AppLayout` + builder, `Toast`, `ToastIntent`,
+`ToastPosition`, `render`, `toast::subscription`, `toast::sweep_expired`)
+is present and signature-identical in 0.25.0.
+
+**Only breaking change (0.24.0):** `Palette::roles()` made `#[cfg(test)]
+pub(crate)`. arama does not use `Palette::roles()` — unaffected.
+
+**Design feature cost:** `snora-design` is iced-free with **zero external
+dependencies**; the `design` feature adds the style-bridge code but no new
+crates. Build-cost and binary-size impact are minimal.
+
+arama enables `features = ["widgets", "design"]` and consumes the design
+button style functions via the new `arama-theme` crate. See RFC 010.

@@ -100,7 +100,7 @@ impl CachePage {
                 text(t("cache.row.caching")),
                 button(icon_circle_stop().size(14))
                     .padding(4)
-                    .style(button::danger)
+                    .style(arama_theme::danger)
                     .on_press(Message::Event(Event::StopRequest)),
             ]
             .spacing(6)

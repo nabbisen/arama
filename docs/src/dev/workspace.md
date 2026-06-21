@@ -9,6 +9,7 @@ arama-0.vX.Y.Z/
 │   ├── ai/                   # AI inference pipeline
 │   ├── cache/                # Embedding and thumbnail cache facade
 │   ├── i18n/                 # Locale tables and t() translation function
+│   ├── theme/                # Snora Design token-driven button styles
 │   ├── engine/
 │   │   └── sidecar/          # ffmpeg binary management
 │   └── ui/
@@ -95,6 +96,14 @@ Self-contained reusable widgets:
 `Ja`). The active locale is stored in a global `AtomicU8`. English and
 Japanese translation tables live in `en.rs` and `ja.rs` as static
 `match` expressions. All UI crates depend on this crate.
+
+### `crates/theme`
+
+`arama-theme` adopts the Snora Design system (RFC 010). It holds the
+active design tokens globally (`Tokens::light()` by default) and exposes
+drop-in iced button style functions (`primary`, `ghost`, `secondary`,
+`danger`) with verified WCAG AA contrast. The app and UI crates depend on
+it for button styling.
 
 ### `env`
 

@@ -30,7 +30,7 @@ impl Setup {
             row![
                 download_button,
                 button(text(t("setup.skip")))
-                    .style(button::secondary)
+                    .style(arama_theme::secondary)
                     .on_press_maybe(if !self.downloader.is_downloading {
                         Some(Message::Skip)
                     } else {

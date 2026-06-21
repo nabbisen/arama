@@ -4,6 +4,7 @@ members = [
     "crates/ai",
     "crates/cache",
     "crates/i18n",
+    "crates/theme",
     "crates/engine/sidecar",
     "crates/ui/layout",
     "crates/ui/main",
@@ -31,6 +32,7 @@ arama-env = { path = "env" }
 arama-ai = { path = "crates/ai" }
 arama-cache = { path = "crates/cache" }
 arama-i18n = { path = "crates/i18n" }
+arama-theme = { path = "crates/theme" }
 arama-ui-layout = { path = "crates/ui/layout" }
 arama-ui-main = { path = "crates/ui/main" }
 arama-ui-widgets = { path = "crates/ui/widgets" }
@@ -38,7 +40,7 @@ arama-ui-widgets = { path = "crates/ui/widgets" }
 arama-sidecar = { path = "crates/engine/sidecar" }
 
 iced = { version = "0.14", features = ["image", "tokio"] }
-snora = { version = "0.18", default-features = false }
+snora = { version = "0.25", default-features = false, features = ["widgets", "design"] }
 
 # general
 anyhow = "1"

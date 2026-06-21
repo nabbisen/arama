@@ -22,9 +22,9 @@ impl App {
             let explorer = tooltip(
                 button(icon_folder())
                     .style(if self.nav_page == NavPage::Explorer {
-                        button::primary
+                        arama_theme::primary
                     } else {
-                        button::text
+                        arama_theme::ghost
                     })
                     .on_press(Message::NavTo(NavPage::Explorer)),
                 text(t("nav.explorer")),
@@ -34,9 +34,9 @@ impl App {
             let cache = tooltip(
                 button(icon_database())
                     .style(if self.nav_page == NavPage::Cache {
-                        button::primary
+                        arama_theme::primary
                     } else {
-                        button::text
+                        arama_theme::ghost
                     })
                     .on_press(Message::NavTo(NavPage::Cache)),
                 text(t("nav.cache")),
@@ -46,9 +46,9 @@ impl App {
             let settings = tooltip(
                 button(icon_settings())
                     .style(if self.nav_page == NavPage::Settings {
-                        button::primary
+                        arama_theme::primary
                     } else {
-                        button::text
+                        arama_theme::ghost
                     })
                     .on_press(Message::NavTo(NavPage::Settings)),
                 text(t("nav.settings")),
