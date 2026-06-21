@@ -58,6 +58,10 @@ pub struct App {
     /// Cache control page (RFC 004) — persistent so rows and filter
     /// survive navigation.
     cache_page: CachePage,
+    /// Whether the Explorer aside tree pane is currently open.
+    /// Closed by default so the gallery has full width on startup.
+    /// Session-only: not persisted across restarts.
+    aside_open: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -156,10 +160,7 @@ impl App {
         };
 
         let header = Header::new(&settings.root_dir_path);
-        let aside = Aside::new(
-            std::path::PathBuf::from(&settings.root_dir_path),
-            processing,
-        );
+        let aside = Aside::new(processing);
         let dir_node_count = dir_node.count();
         let footer = Footer::new(thumbnail_size, dir_node_count.files, dir_node_count.dirs);
         let dialog = None;
@@ -201,6 +202,7 @@ impl App {
                 nav_page: NavPage::Explorer,
                 settings_page,
                 cache_page: CachePage::default(),
+                aside_open: false,
             },
             task,
         )

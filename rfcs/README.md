@@ -29,6 +29,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 011 | [Application theme setting (light / dark / high-contrast)](./done/011-theme-setting.md) | v0.33.0 |
 | 012 | [Workspace housekeeping (manifest inheritance, orphan removal, changelog & doc reconciliation)](./done/012-workspace-housekeeping.md) | v0.35.0 |
 | 013 | [ELOC splits: update.rs and cache integration tests](./done/013-eloc-splits.md) | v0.36.0 |
+| 014 | [Explorer aside tree toggle](./done/014-aside-tree-toggle.md) | v0.36.1 |
 
 ## Archive
 

@@ -66,6 +66,9 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "cache.summary.files" => "\u{30d5}\u{30a1}\u{30a4}\u{30eb}", // ファイル
         "cache.summary.total" => "\u{5408}\u{8a08}",                 // 合計
 
+        // Aside tree toggle
+        "aside.toggle.open" => "フォルダーツリーを開く", // フォルダーツリーを開く
+        "aside.toggle.close" => "フォルダーツリーを閉じる", // フォルダーツリーを閉じる
         // Nav rail tooltips
         "nav.explorer" => "\u{30a8}\u{30af}\u{30b9}\u{30d7}\u{30ed}\u{30fc}\u{30e9}\u{30fc}", // エクスプローラー
         "nav.cache" => "\u{30ad}\u{30e3}\u{30c3}\u{30b7}\u{30e5}", // キャッシュ

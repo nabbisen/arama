@@ -31,6 +31,7 @@ pub enum Message {
     SimilarPairsDialogMessage(similar_pairs_dialog::message::Message),
     SettingsDialogMessage(settings_dialog::message::Message),
     ContextMenuMessage(context_menu::message::Message),
+    ToggleAside,
     DialogClose,
     CloseMenus,
     ToastDismiss(u64),

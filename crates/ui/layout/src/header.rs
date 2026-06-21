@@ -22,4 +22,9 @@ impl Header {
     pub fn set_embedding_cached(&mut self, embedding_cached: bool) {
         self.embedding_cached = embedding_cached;
     }
+
+    /// Sync the header path input after an external navigation (e.g. aside tree click).
+    pub fn set_path(&mut self, path: &str) {
+        self.dir_nav.set_path(path);
+    }
 }

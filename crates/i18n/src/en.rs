@@ -50,6 +50,9 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "cache.summary.files" => "files",
         "cache.summary.total" => "total",
 
+        // Aside tree toggle
+        "aside.toggle.open" => "Open folder tree",
+        "aside.toggle.close" => "Close folder tree",
         // Nav rail tooltips
         "nav.explorer" => "Explorer",
         "nav.cache" => "Cache",

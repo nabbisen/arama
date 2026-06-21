@@ -15,4 +15,10 @@ impl DirNav {
             processing: path.to_owned(),
         }
     }
+
+    /// Sync the displayed path after an external navigation (e.g. aside tree click).
+    pub(super) fn set_path(&mut self, path: &str) {
+        self.path = path.to_owned();
+        self.processing = path.to_owned();
+    }
 }

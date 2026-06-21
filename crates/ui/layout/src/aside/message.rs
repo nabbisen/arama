@@ -18,4 +18,6 @@ pub enum Event {
 #[derive(Debug, Clone)]
 pub enum Internal {
     TreeEvent(DirectoryTreeEvent),
+    /// Emitted when the expand cascade finishes: scroll the tree into view.
+    ExpandDone,
 }

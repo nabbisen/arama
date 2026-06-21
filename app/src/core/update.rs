@@ -35,6 +35,7 @@ impl App {
 
             // --- ui housekeeping ---
             Message::ContextMenuMessage(message) => self.handle_context_menu_message(message),
+            Message::ToggleAside => self.handle_toggle_aside(),
             Message::DialogClose => self.handle_dialog_close(),
             Message::CloseMenus => self.handle_close_menus(),
             Message::ToastDismiss(id) => self.handle_toast_dismiss(id),

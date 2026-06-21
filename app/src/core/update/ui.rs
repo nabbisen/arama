@@ -4,6 +4,18 @@ use iced::Task;
 use super::super::{App, NavPage, message::Message};
 
 impl App {
+    pub(super) fn handle_toggle_aside(&mut self) -> Task<Message> {
+        self.aside_open = !self.aside_open;
+        // When opening, expand the tree to the current directory so
+        // the user immediately sees their location in the hierarchy.
+        if self.aside_open {
+            let current = std::path::PathBuf::from(&self.settings.root_dir_path);
+            let expand_task = self.aside.expand_to(&current);
+            return expand_task.map(Message::AsideMessage);
+        }
+        Task::none()
+    }
+
     pub(super) fn handle_nav_to(&mut self, page: NavPage) -> Task<Message> {
         let reload = if page == NavPage::Cache {
             self.cache_page.load_task().map(Message::CachePageMessage)

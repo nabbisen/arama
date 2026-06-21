@@ -5,7 +5,9 @@ use iced::{
     Length::Fill,
     widget::{button, column, container, mouse_area, row, text, tooltip},
 };
-use lucide_icons::iced::{icon_database, icon_folder, icon_settings};
+use lucide_icons::iced::{
+    icon_database, icon_folder, icon_panel_left_close, icon_panel_left_open, icon_settings,
+};
 use snora::{AppLayout, Dialog as SnoraDialog, ToastPosition, render};
 
 use super::{App, Dialog, NavPage, message::Message};
@@ -64,25 +66,51 @@ impl App {
         // ── Page body ─────────────────────────────────────────────────
         let body: Element<Message> = match self.nav_page {
             NavPage::Explorer => {
-                // Header (dir input + action buttons) spans the full
-                // width of the Explorer page.
-                let header = self.header.view().map(Message::HeaderMessage);
+                // Toggle button: opens/closes the aside tree pane.
+                let toggle_icon = if self.aside_open {
+                    icon_panel_left_close()
+                } else {
+                    icon_panel_left_open()
+                };
+                let toggle_tooltip = if self.aside_open {
+                    t("aside.toggle.close")
+                } else {
+                    t("aside.toggle.open")
+                };
+                let toggle = tooltip(
+                    button(toggle_icon)
+                        .style(if self.aside_open {
+                            arama_theme::primary
+                        } else {
+                            arama_theme::ghost
+                        })
+                        .on_press(Message::ToggleAside),
+                    text(toggle_tooltip),
+                    tooltip::Position::Right,
+                );
 
-                // Tiling row: always-visible dir tree + gallery.
-                let aside = self.aside.view().map(Message::AsideMessage);
+                // Header row: toggle + dir input + action buttons.
+                let header_row = row![toggle, self.header.view().map(Message::HeaderMessage),]
+                    .spacing(4)
+                    .align_y(iced::Alignment::Center);
+
+                // Tiling row: optional tree pane + gallery.
                 let gallery = self
                     .gallery
                     .view(self.footer.thumbnail_size())
                     .map(Message::GalleryMessage);
 
-                let tiling = mouse_area(
-                    container(row![aside, gallery])
-                        .height(Fill)
-                        .padding([0, 20]),
-                )
-                .on_move(Message::CursorMove);
+                let content: iced::Element<Message> = if self.aside_open {
+                    let aside = self.aside.view().map(Message::AsideMessage);
+                    row![aside, gallery].into()
+                } else {
+                    gallery
+                };
 
-                column![header, tiling].into()
+                let tiling = mouse_area(container(content).height(Fill).padding([0, 20]))
+                    .on_move(Message::CursorMove);
+
+                column![header_row, tiling].into()
             }
             NavPage::Cache => self.cache_page.view().map(Message::CachePageMessage),
             NavPage::Settings => container(

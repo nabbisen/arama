@@ -14,7 +14,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.36.0"
+version = "0.36.1"
 edition         = "2024"
 rust-version    = "1.90"
 license         = "Apache-2.0"
@@ -24,15 +24,15 @@ keywords        = ["image", "walk", "filter"]
 repository      = "https://github.com/nabbisen/arama"
 
 [workspace.dependencies]
-arama-ai            = { version = "0.36.0", path = "crates/ai" }
-arama-cache         = { version = "0.36.0", path = "crates/cache" }
-arama-env           = { version = "0.36.0", path = "env" }
-arama-i18n          = { version = "0.36.0", path = "crates/i18n" }
-arama-sidecar       = { version = "0.36.0", path = "crates/engine/sidecar" }
-arama-theme         = { version = "0.36.0", path = "crates/theme" }
-arama-ui-layout     = { version = "0.36.0", path = "crates/ui/layout" }
-arama-ui-main       = { version = "0.36.0", path = "crates/ui/main" }
-arama-ui-widgets    = { version = "0.36.0", path = "crates/ui/widgets" }
+arama-ai            = { version = "0.36.1", path = "crates/ai" }
+arama-cache         = { version = "0.36.1", path = "crates/cache" }
+arama-env           = { version = "0.36.1", path = "env" }
+arama-i18n          = { version = "0.36.1", path = "crates/i18n" }
+arama-sidecar       = { version = "0.36.1", path = "crates/engine/sidecar" }
+arama-theme         = { version = "0.36.1", path = "crates/theme" }
+arama-ui-layout     = { version = "0.36.1", path = "crates/ui/layout" }
+arama-ui-main       = { version = "0.36.1", path = "crates/ui/main" }
+arama-ui-widgets    = { version = "0.36.1", path = "crates/ui/widgets" }
 
 # UI
 iced                = { version = "0.14", features = ["image", "tokio"] }

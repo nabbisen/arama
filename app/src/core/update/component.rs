@@ -85,8 +85,11 @@ impl App {
         match message {
             header::message::Message::Event(message) => match message {
                 header::message::Event::DirSelect(path) => {
-                    self.aside.update_dir_tree(&path);
-                    return self.on_dir_changed(path, task);
+                    let expand_task = self.aside.update_dir_tree(&path);
+                    return Task::batch([
+                        self.on_dir_changed(path, task),
+                        expand_task.map(Message::AsideMessage),
+                    ]);
                 }
                 header::message::Event::SimilarPairsDialogOpen => {
                     let Some(dir_node) = self.dir_node.clone() else {

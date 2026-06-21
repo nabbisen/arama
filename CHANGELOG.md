@@ -13,6 +13,64 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ---
 
+## [0.36.1]
+
+### Fixed
+
+- **Aside tree panel width collapses on deep directories; header path not
+  synced after aside click.**
+
+  *Width / scroll (Issue 1):* The previous fix set a hard 200 px width on
+  the aside column, which clips long paths in deeply-nested directories with
+  no way to scroll horizontally. The outer column now uses
+  `Length::FillPortion(1)` so the panel scales responsively with the window
+  (gallery implicitly takes the remaining space). The tree widget is wrapped
+  in a second `scrollable` with `Direction::Both` to add a horizontal
+  scrollbar when paths overflow the panel width.
+
+  *Header sync / gallery update (Issue 2):* After clicking a directory in
+  the aside tree, `on_dir_changed` correctly started the cache pipeline and
+  updated the gallery, but the header path input remained frozen at the
+  previous directory because `DirNav` had no external setter.
+  `DirNav::set_path` and `Header::set_path` were added; `on_dir_changed`
+  now calls `self.header.set_path(…)` so the input stays in sync regardless
+  of how navigation was triggered (header submit, file-picker, or aside click).
+
+- **Explorer aside tree: focus current directory; no auto-close** (RFC 014 follow-up).
+  Three UX corrections:
+
+  *No auto-close on selection:* The pane stays open after the user picks a
+  directory so they can navigate multiple subdirectories before closing manually.
+
+  *Parent directories visible:* `DirectoryTree` is rooted at the filesystem
+  root (`/` on Unix, `C:\\` on Windows). When the pane opens or navigation
+  changes, the tree cascades `Toggled` events from root down to the current
+  directory, revealing the full ancestor chain. `Aside` holds an `expand_queue`
+  (outermost-first) drained one level per `Loaded` event.
+
+  *Current directory selected and scrolled into view:* When the cascade
+  completes (`ExpandDone`), `finish_expand` issues `Selected(target, Replace)`
+  to highlight the current directory, then calls `widget::operation::snap_to`
+  on a named outer `scrollable` (`aside-tree-scroll`) with `RelativeOffset::END`
+  to scroll the viewport down to the selected row.
+
+- **Explorer aside tree: always-visible panel replaced with toggle** (RFC 014).
+  The previous always-on panel caused scroll/width problems (fixed width clipped
+  deep paths; `Direction::Both` scrollbars were visually confusing). The panel
+  is now toggled open/closed via a button left of the header path input
+  (`icon_panel_left_open` / `icon_panel_left_close`). Selecting a directory in
+  the tree closes the pane automatically. Gallery has full width by default.
+  `Header::set_path` / `DirNav::set_path` keep the header input in sync after
+  an aside-driven navigation.
+
+- **Aside (directory tree) invisible on Explorer view** (v0.36.0 initial fix).
+  `Aside::view()` used `column![tree].width(Length::Shrink)`, which collapses
+  to zero width before the first async directory scan completes.
+  Fixed by giving the column an explicit width; superseded above by the
+  toggle approach.
+
+---
+
 ## [0.36.0]
 
 ### Changed

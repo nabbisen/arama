@@ -165,6 +165,10 @@ impl App {
         self.settings.root_dir_path = path.to_string_lossy().to_string();
         self.save_settings();
 
+        // Keep the header path input in sync regardless of how navigation
+        // was triggered (header submit, file-picker, or aside tree click).
+        self.header.set_path(&path.to_string_lossy());
+
         // todo dir_node should be got from dir_tree
         let dir_node = build_dir_node(&path, &self.settings);
 
