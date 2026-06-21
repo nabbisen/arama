@@ -1,4 +1,5 @@
 use arama_env::target_media_type::TargetMediaType;
+use arama_env::ThemePreset;
 use arama_i18n::{Locale, t};
 use iced::{
     Element,
@@ -80,9 +81,40 @@ impl GeneralSettings {
             },
         );
 
+        let theme_buttons = ThemePreset::all().iter().fold(
+            row![text(t("settings.general.theme"))].spacing(8),
+            |row, preset| {
+                let label = match preset {
+                    ThemePreset::Light => t("settings.general.theme.light"),
+                    ThemePreset::Dark => t("settings.general.theme.dark"),
+                    ThemePreset::HighContrastLight => t("settings.general.theme.hc_light"),
+                    ThemePreset::HighContrastDark => t("settings.general.theme.hc_dark"),
+                };
+                let btn = button(text(label))
+                    .style(if &self.theme == preset {
+                        arama_theme::primary
+                    } else {
+                        arama_theme::ghost
+                    })
+                    .on_press(Message::ThemeChanged(*preset));
+                row.push(btn)
+            },
+        );
+
+        let theme_note = text(t("settings.general.theme.hc_note"))
+            .size(12)
+            .style(text::secondary);
+
         container(
-            column![target_media_types, sub_dir_depth_limit, threshold_slider, locale_buttons]
-                .spacing(10),
+            column![
+                target_media_types,
+                sub_dir_depth_limit,
+                threshold_slider,
+                locale_buttons,
+                theme_buttons,
+                theme_note
+            ]
+            .spacing(10),
         )
         .into()
     }

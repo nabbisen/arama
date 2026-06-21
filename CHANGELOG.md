@@ -44,6 +44,43 @@ Migration reports at `rfcs/notes/dep-migration-lucide-icons.md` and
 
 ---
 
+## [0.33.0]
+
+### Added
+
+- **Application theme setting — light / dark / high-contrast** (RFC 011).
+  A new Theme selector in Settings → General lets users choose among the
+  four Snora Design presets. The choice is persisted in `settings.json`
+  (`theme` field, `serde(default)` = light) and applied immediately with
+  no restart.
+
+  The switch moves three styling layers together: snora button tokens
+  (and reserved container tokens) resolve from the active preset via
+  `arama-theme`, and a new iced `.theme()` callback returns the matching
+  base `Theme::Light` / `Theme::Dark` so the window background and all
+  stock iced widgets track the preset. `arama-theme`'s global moved from
+  a write-once `OnceLock` to a mutable `AtomicU8` (the same pattern as the
+  i18n locale).
+
+  High-contrast presets apply their full token set to arama's own
+  controls; iced 0.14 has no built-in high-contrast base theme, so stock
+  iced widgets fall back to the matching light/dark base — documented in
+  the settings UI and as a named future RFC (a full `Tokens` →
+  `Theme::custom` bridge).
+
+  New `ThemePreset` enum lives in `arama-env` (pure data, GUI-free,
+  alongside the other persisted setting enums); `arama-theme` maps it to
+  tokens and the iced theme. Round-trip tests for the enum's discriminants
+  and serde mapping added to `arama-env`.
+
+### Changed
+
+- **snora 0.25.0 → 0.25.1.** Additive re-export fix:
+  `snora::design::contrast` now resolves through the facade. Drop-in; no
+  source change required.
+
+---
+
 ## [0.32.0]
 
 ### Changed

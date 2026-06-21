@@ -1,4 +1,5 @@
 use arama_i18n::Locale;
+use arama_env::ThemePreset;
 use arama_env::target_media_type::TargetMediaType;
 
 use super::{
@@ -12,6 +13,7 @@ pub enum Message {
     SubDirDepthLimitChanged(u8),
     SimilarityThresholdChanged(f32),
     LocaleChanged(Locale),
+    ThemeChanged(ThemePreset),
     TabSelect(Tab),
     GeneralSettingsTabMessage(general_settings::message::Message),
     AiSettingsTabMessage(ai_settings::message::Message),

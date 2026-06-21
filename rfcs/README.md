@@ -26,6 +26,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 008 | [Gallery filter, AI debug cleanup, error handling](./done/008-gallery-filter-cleanup.md) | v0.29.0 |
 | 009 | [Replace custom DirTree with iced-swdir-tree](./done/009-iced-swdir-tree.md) | v0.30.0 |
 | 010 | [Adopt the Snora Design system (token-driven button styling)](./done/010-snora-design-system.md) | v0.32.0 |
+| 011 | [Application theme setting (light / dark / high-contrast)](./done/011-theme-setting.md) | v0.33.0 |
 
 ## Archive
 
@@ -44,3 +45,12 @@ and are not numbered, but are kept here as permanent project records.
 | [dep-migration-lucide-icons](./notes/dep-migration-lucide-icons.md) | lucide-icons 0.576 → 1.17: API diff and safe-to-update confirmation |
 | [dep-migration-candle](./notes/dep-migration-candle.md) | candle-{core,nn,transformers} 0.9 → 0.10: symbol audit and safe-to-update confirmation |
 | [dep-migration-snora](./notes/dep-migration-snora.md) | snora 0.8 → 0.18: API diff across ten minor versions, safe-to-update confirmation |
+
+
+## Handoffs
+
+Per-RFC developer handoff documents (Implementation Handoff, Task
+Breakdown / PR Plan, Acceptance / QA Checklist) live under
+[`handoffs/`](./handoffs/). Like the notes, they are companion documents
+outside the numbered RFC lifecycle. See [`handoffs/README.md`](./handoffs/README.md)
+for the index.

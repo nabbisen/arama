@@ -1,9 +1,12 @@
 [package]
 name = "arama-env"
-version = "0.32.0"
+version = "0.33.0"
 edition = "2024"
 
 [dependencies]
 arama-i18n = { workspace = true }
 libc = { workspace = true }
 serde = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

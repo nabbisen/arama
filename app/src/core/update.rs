@@ -387,6 +387,11 @@ impl App {
                         set_locale(l);
                         self.save_settings();
                     }
+                    settings_dialog::message::Message::ThemeChanged(theme) => {
+                        self.settings.theme = theme;
+                        arama_theme::set_theme(theme);
+                        self.save_settings();
+                    }
                     _ => (),
                 }
 

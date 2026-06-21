@@ -91,6 +91,14 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "gallery.filter.clear" => "✕",
         "gallery.filter.count_of" => "of",
 
+        // Theme selector (RFC 011)
+        "settings.general.theme" => "Theme",
+        "settings.general.theme.light" => "Light",
+        "settings.general.theme.dark" => "Dark",
+        "settings.general.theme.hc_light" => "High contrast light",
+        "settings.general.theme.hc_dark" => "High contrast dark",
+        "settings.general.theme.hc_note" => "High-contrast affects arama's own controls; some standard widgets use the base light/dark theme.",
+
         _ => return None,
     })
 }

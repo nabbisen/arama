@@ -71,6 +71,7 @@ impl App {
         iced::application(App::new, App::update, App::view)
             .subscription(App::subscription)
             .settings(App::settings())
+            .theme(app_theme)
             .run()
     }
 
@@ -138,6 +139,8 @@ impl App {
         let similarity_threshold = settings.similarity_threshold;
         let locale = settings.locale;
         set_locale(locale);
+        let theme = settings.theme;
+        arama_theme::set_theme(theme);
 
         let dir_node = dir_node(&root_dir_path, &target_media_type);
 
@@ -149,6 +152,7 @@ impl App {
             cache_lookup_strategy,
             similarity_threshold,
             locale,
+            theme,
         };
 
         let header = Header::new(&settings.root_dir_path);
@@ -161,6 +165,7 @@ impl App {
             settings.sub_dir_depth_limit,
             settings.similarity_threshold,
             settings.locale,
+            settings.theme,
         );
 
         let gallery = Gallery::new().expect("failed to init gallery");
@@ -209,6 +214,7 @@ impl App {
                 cache_lookup_strategy: self.settings.cache_lookup_strategy,
                 similarity_threshold: self.settings.similarity_threshold,
                 locale: self.settings.locale,
+                theme: self.settings.theme,
             })
             .expect("failed to save config");
     }
@@ -246,6 +252,14 @@ impl App {
             Message::ToastDismiss(id),
         ));
     }
+}
+
+/// The iced base theme for the active preset (RFC 011, layer C).
+///
+/// A free function (rather than a closure) so the `Fn(&State) -> Theme`
+/// bound resolves with a fully general state lifetime for iced's `ThemeFn`.
+fn app_theme(_state: &App) -> iced::Theme {
+    arama_theme::iced_theme()
 }
 
 fn setup_validate() {

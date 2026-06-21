@@ -10,7 +10,8 @@ impl SettingsDialog {
             Message::TargetMediaTypeChanged(_)
             | Message::SubDirDepthLimitChanged(_)
             | Message::SimilarityThresholdChanged(_)
-            | Message::LocaleChanged(_) => {
+            | Message::LocaleChanged(_)
+            | Message::ThemeChanged(_) => {
                 Task::none()
             }
             Message::TabSelect(tab) => {
@@ -35,6 +36,9 @@ impl SettingsDialog {
                     }
                     general_settings::message::Message::LocaleChanged(l) => {
                         Task::batch([task, Task::done(Message::LocaleChanged(l))])
+                    }
+                    general_settings::message::Message::ThemeChanged(t) => {
+                        Task::batch([task, Task::done(Message::ThemeChanged(t))])
                     }
                 }
             }

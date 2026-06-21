@@ -91,6 +91,14 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "gallery.filter.clear" => "✕",
         "gallery.filter.count_of" => "件中",
 
+        // Theme selector (RFC 011)
+        "settings.general.theme" => "テーマ",
+        "settings.general.theme.light" => "ライト",
+        "settings.general.theme.dark" => "ダーク",
+        "settings.general.theme.hc_light" => "ハイコントラスト（明）",
+        "settings.general.theme.hc_dark" => "ハイコントラスト（暗）",
+        "settings.general.theme.hc_note" => "ハイコントラストは arama 独自のコントロールに適用されます。一部の標準ウィジェットは基本のライト/ダークテーマを使用します。",
+
         _ => return None,
     })
 }

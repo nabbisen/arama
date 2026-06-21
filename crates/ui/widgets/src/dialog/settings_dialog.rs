@@ -5,6 +5,7 @@ mod view;
 mod tab;
 
 use arama_i18n::Locale;
+use arama_env::ThemePreset;
 use arama_env::target_media_type::TargetMediaType;
 use tab::{
     Tab, about::About, ai_settings::AiSettings, file_system_settings::FileSystemSettings,
@@ -26,6 +27,7 @@ impl SettingsDialog {
         sub_dir_depth_limit: u8,
         similarity_threshold: f32,
         locale: Locale,
+        theme: ThemePreset,
     ) -> Self {
         Self {
             tab: Tab::default(),
@@ -34,6 +36,7 @@ impl SettingsDialog {
                 sub_dir_depth_limit,
                 similarity_threshold,
                 locale,
+                theme,
             ),
             ai_settings: AiSettings::default(),
             file_system_settings: FileSystemSettings::default(),
