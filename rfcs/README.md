@@ -27,6 +27,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 009 | [Replace custom DirTree with iced-swdir-tree](./done/009-iced-swdir-tree.md) | v0.30.0 |
 | 010 | [Adopt the Snora Design system (token-driven button styling)](./done/010-snora-design-system.md) | v0.32.0 |
 | 011 | [Application theme setting (light / dark / high-contrast)](./done/011-theme-setting.md) | v0.33.0 |
+| 012 | [Workspace housekeeping (manifest inheritance, orphan removal, changelog & doc reconciliation)](./done/012-workspace-housekeeping.md) | v0.35.0 |
 
 ## Archive
 
@@ -46,6 +47,7 @@ and are not numbered, but are kept here as permanent project records.
 | [dep-migration-candle](./notes/dep-migration-candle.md) | candle-{core,nn,transformers} 0.9 → 0.10: symbol audit and safe-to-update confirmation |
 | [dep-migration-snora](./notes/dep-migration-snora.md) | snora 0.8 → 0.18: API diff across ten minor versions, safe-to-update confirmation |
 | [snora-recipe-theme-custom](./notes/snora-recipe-theme-custom.md) | RFC-033 recipe: `Theme::custom` from Snora Design tokens (contribution to snora) |
+| [dep-fix-pt2safetensors](./notes/dep-fix-pt2safetensors.md) | `pt2safetensors` 0.1.2 build break against candle-core 0.10 + safetensors ≥ 0.5; root cause, workspace patch, and upstream fix instructions |
 
 
 ## Handoffs

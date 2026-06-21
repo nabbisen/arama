@@ -1,29 +1,39 @@
 #!/bin/sh
 #
-# version.sh — list or bulk-update crate versions in the arama workspace.
+# version.sh — show or set the single workspace version for arama.
 #
-# Required tools: cargo, jq, awk, grep
+# The version lives in two places in the root Cargo.toml — both are
+# updated atomically by --update:
+#
+#   1. [workspace.package]  version = "X.Y.Z"
+#      (inherited by every member via version.workspace = true)
+#
+#   2. [workspace.dependencies]  arama-* = { version = "X.Y.Z", path = "…" }
+#      (required alongside `path` so crates can be published; deps.rs
+#      and docs.rs also need it to resolve the dependency graph)
+#
+# No external tools are required (no jq, no cargo metadata).
 #
 # Examples:
 #   ./version.sh --list
 #   ./version.sh --update 1.2.3
 #   ./version.sh --update 1.2.3 --dry-run
 
-# ---------- constants ----------
-CARGO_LOCK=./Cargo.lock
+CARGO_TOML=./Cargo.toml
 
-# ---------- help ----------
 show_help() {
     cat <<EOF
 Usage: ${0##*/} [OPTIONS]
 
 Options:
-  -l, --list                List each crate with its current version.
-  -u, --update VERSION      Set all crates to VERSION.
-  -d, --dry-run             Show what would be changed, but do not modify files.
+  -l, --list                Show the current workspace version.
+  -u, --update VERSION      Set the workspace version to VERSION.
+  -d, --dry-run             Show what would change, but do not modify files.
   -h, --help                Show this help and exit.
 
-If no option is given, this help text is shown.
+Updates two locations in ${CARGO_TOML}:
+  - [workspace.package] version field (inherited by all members)
+  - [workspace.dependencies] version fields for internal arama-* crates
 
 Examples:
   ${0##*/} --list
@@ -33,7 +43,6 @@ EOF
     exit 0
 }
 
-# ---------- argument parsing ----------
 LIST_MODE=0
 UPDATE_MODE=0
 DRY_RUN=0
@@ -49,7 +58,7 @@ while [ $# -gt 0 ]; do
                           exit 1
                       fi
                       NEW_VERSION=$1; shift ;;
-        -d|--dry-run) DRY_RUN=1;    NO_OPTION=0; shift ;;
+        -d|--dry-run) DRY_RUN=1;     NO_OPTION=0; shift ;;
         -h|--help)    show_help ;;
         *) printf 'Unknown option: %s\n' "$1" >&2; exit 1 ;;
     esac
@@ -57,74 +66,69 @@ done
 
 [ "$NO_OPTION" -eq 1 ] && show_help
 
-# ---------- required tools ----------
-command -v cargo >/dev/null 2>&1 || { printf 'Error: cargo not found in PATH.\n' >&2; exit 1; }
-command -v jq    >/dev/null 2>&1 || { printf 'Error: jq not found in PATH.\n' >&2; exit 1; }
-command -v awk   >/dev/null 2>&1 || { printf 'Error: awk not found in PATH.\n' >&2; exit 1; }
-
-# ---------- fetch workspace metadata ----------
-METADATA_JSON=$(cargo metadata --no-deps --format-version 1)
-
-if [ -z "$METADATA_JSON" ]; then
-    printf 'Error: Failed to obtain cargo metadata.\n' >&2
+if [ ! -f "$CARGO_TOML" ]; then
+    printf 'Error: %s not found (run from the workspace root).\n' "$CARGO_TOML" >&2
     exit 1
 fi
 
-# ---------- list ----------
+# Read the version value from inside the [workspace.package] table.
+current_version() {
+    awk '
+        /^\[/ { in_wp = ($0 ~ /^\[workspace\.package\]/) }
+        in_wp && /^[[:space:]]*version[[:space:]]*=/ {
+            gsub(/.*=[[:space:]]*"/, ""); gsub(/".*/, "")
+            print; exit
+        }
+    ' "$CARGO_TOML"
+}
+
+CUR=$(current_version)
+
 if [ "$LIST_MODE" -eq 1 ]; then
-    printf 'Crate versions in this workspace:\n'
-    echo "$METADATA_JSON" |
-        jq -r '.packages[] | "\(.name)\t\(.version)\t\(.manifest_path)"' |
-        while IFS=$(printf '\t') read -r crate_name crate_version manifest_path; do
-            printf '  %s : %s\n' "$crate_name" "$crate_version"
-        done
+    printf 'Workspace version: %s\n' "${CUR:-<not found>}"
     [ "$UPDATE_MODE" -eq 0 ] && exit 0
 fi
 
-# ---------- update ----------
 if [ "$UPDATE_MODE" -eq 1 ]; then
     if [ -z "$NEW_VERSION" ]; then
         printf 'Error: No new version supplied.\n' >&2
         exit 1
     fi
-
-    printf 'Updating all crates to version "%s"%s\n' \
-           "$NEW_VERSION" "$( [ "$DRY_RUN" -eq 1 ] && printf ' (dry-run)' )"
-
-    echo "$METADATA_JSON" |
-        jq -r '.packages[] | "\(.name)\t\(.version)\t\(.manifest_path)"' |
-        while IFS=$(printf '\t') read -r crate_name old_version manifest_path; do
-            if [ ! -f "$manifest_path" ]; then
-                printf '  %s : manifest not found (skipped)\n' "$crate_name" >&2
-                continue
-            fi
-
-            if [ "$DRY_RUN" -eq 1 ]; then
-                printf '  %s : %s → %s (would modify)\n' \
-                       "$crate_name" "$old_version" "$NEW_VERSION"
-            else
-                tmp=$(mktemp) || exit 1
-                awk -v nv="$NEW_VERSION" '
-                    $0 ~ /^[[:space:]]*version[[:space:]]*=/ {
-                        print "version = \"" nv "\""
-                        next
-                    }
-                    { print }
-                ' "$manifest_path" >"$tmp" && mv "$tmp" "$manifest_path"
-
-                printf '  %s : %s → %s (updated)\n' \
-                       "$crate_name" "$old_version" "$NEW_VERSION"
-
-                git add "$manifest_path"
-            fi
-        done
-
-    if [ -f "$CARGO_LOCK" ]; then
-        sleep 5
-        git add "$CARGO_LOCK"
-    else
-        printf 'Warn: %s is missing. Failed to git add.\n' "$CARGO_LOCK" >&2
+    if [ -z "$CUR" ]; then
+        printf 'Error: could not find version in [workspace.package].\n' >&2
+        exit 1
     fi
+
+    if [ "$DRY_RUN" -eq 1 ]; then
+        printf '%s -> %s (would modify %s)\n' "$CUR" "$NEW_VERSION" "$CARGO_TOML"
+        exit 0
+    fi
+
+    tmp=$(mktemp) || exit 1
+    awk -v cur="$CUR" -v nv="$NEW_VERSION" '
+        # Track which top-level table we are in.
+        /^\[/ {
+            in_wp  = ($0 ~ /^\[workspace\.package\]/)
+            in_wdep = ($0 ~ /^\[workspace\.dependencies\]/)
+        }
+
+        # [workspace.package]: rewrite the bare version line.
+        in_wp && /^[[:space:]]*version[[:space:]]*=/ && !wp_done {
+            print "version = \"" nv "\""
+            wp_done = 1
+            next
+        }
+
+        # [workspace.dependencies]: rewrite version = "CUR" inside
+        # any internal arama-* entry on the same line.
+        in_wdep && /^arama-/ {
+            sub("version = \"" cur "\"", "version = \"" nv "\"")
+        }
+
+        { print }
+    ' "$CARGO_TOML" > "$tmp" && mv "$tmp" "$CARGO_TOML"
+
+    printf '%s -> %s (updated %s)\n' "$CUR" "$NEW_VERSION" "$CARGO_TOML"
 fi
 
 exit 0

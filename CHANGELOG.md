@@ -7,20 +7,67 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+### Planned
+
+- Relative-time rendering ("2 days ago") for the Cache page table.
+- ELOC splits for `app/src/core/update.rs` and the `arama-cache`
+  integration tests (RFC 013).
+
+---
+
+## [0.35.0]
+
 ### Changed
 
-- **RFC 011 high-contrast caveat sharpened.** The explanation "iced 0.14 has no built-in high-contrast theme" replaced with the precise mechanism confirmed by the snora team: snora's 18-role `Palette` collapses to iced's 6-field `theme::Palette`, and iced's own palette-expansion algorithm cannot reproduce the hand-tuned HC values for the 12 roles that don't survive (`surface` variants, `*_text` on-colors, `border`, `focus`, `text_secondary/muted`). The "future RFC" framing corrected: a full-palette bridge is out of scope for snora by design; the future work is an arama-side `Theme::custom` task. Updated in RFC 011, the theme-setting handoff, and `docs/src/users/settings.md`.
+- **Single-source workspace versioning + metadata inheritance** (RFC 012).
+  The version now lives only in `[workspace.package].version`; every
+  member inherits `version`, `authors`, `repository`, `license`,
+  `edition`, `rust-version`, `categories`, and `keywords` via
+  `{ workspace = true }`, keeping only its own `description` and `readme`.
+  Internal crates in `workspace.dependencies` carry an explicit `version`
+  alongside `path` so the full crate graph is publishable (required for
+  deps.rs and docs.rs). `version.sh` updates both locations atomically.
+- **Workspace `repository` corrected** from `.../orbok` to `.../arama`.
+- **`version.sh` simplified** to a jq-free script that updates both
+  `[workspace.package].version` and the internal `workspace.dependencies`
+  version fields in a single command.
+- **Release docs corrected** (`docs/src/dev/release.md`): release archives
+  now use a no-parent-directory layout (project files at the archive
+  root), and the version-bump step is the single `version.sh --update`
+  command.
+
+### Removed
+
+- **Orphan crate `arama-storage`** (`crates/engine/storage`). The
+  pre-`localcache` storage engine superseded by RFC 002 (v0.23.0). It had
+  been outside the build graph — absent from `members`,
+  `workspace.dependencies`, every dependency list, and `Cargo.lock`, with
+  no source references — and is now deleted.
+
+### Fixed
+
+- **`pt2safetensors` build break** against current dependency versions.
+  `pt2safetensors` 0.1.2 declares `safetensors` with `default-features = false`
+  but uses `serialize_to_file` (gated behind the `std` feature since
+  safetensors 0.5.0) and passes `candle_core::Tensor` to it — which requires
+  both crates to agree on the same safetensors version. The workspace now
+  carries a `[patch.crates-io]` override (`vendor/pt2safetensors`) that pins
+  safetensors to `0.7` with `features = ["std"]`, matching the version used
+  by `candle-core` 0.10. The patch is a temporary workaround pending a
+  `pt2safetensors` 0.1.3 release that fixes the dep declarations upstream.
+  See `rfcs/notes/dep-fix-pt2safetensors.md` for the full analysis.
+
+- **Incorrect `readme` paths** in the `arama`, `arama-ai`, and
+  `arama-ui-layout` manifests previously pointed at non-existent files;
+  every member now resolves `readme` to the root `README.md`.
+
+---
+
+## [0.34.0]
 
 ### Added
 
 - **Snora recipe: `Theme::custom` from design tokens** (`rfcs/notes/snora-recipe-theme-custom.md`). RFC-033 nine-section recipe documenting how to map a `Tokens` preset onto an iced `Theme::custom` so stock iced widgets track the active design preset. Covers the 6-role mapping, the expansion caveat, call-site patterns, and customization points. Intended as a contribution to the snora recipe collection; seeded from arama's implementation.
-
-### Planned
-
-- Relative-time rendering ("2 days ago") for the Cache page table.
-
-### Added
-
 - **Smoke tests for `arama-i18n`** (`locale_round_trip`, `translation_and_fallback`).
   Cover locale switching, the current→English→raw-key fallback chain, and the
   `Locale` code/display-name accessors. The crate has zero heavyweight dependencies
@@ -31,24 +78,21 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
   heavy with no proportionate benefit for a project whose testable logic lives
   outside the view layer.
 
-### Dependency updates applied after migration analysis
+### Changed
 
-API-level source analysis (diffing public symbols across registry
-sources) confirmed both updates are drop-in for arama's usage.
-Migration reports at `rfcs/notes/dep-migration-lucide-icons.md` and
-`rfcs/notes/dep-migration-candle.md`.
-
+- **RFC 011 high-contrast caveat sharpened.** The explanation "iced 0.14 has no built-in high-contrast theme" replaced with the precise mechanism confirmed by the snora team: snora's 18-role `Palette` collapses to iced's 6-field `theme::Palette`, and iced's own palette-expansion algorithm cannot reproduce the hand-tuned HC values for the 12 roles that don't survive (`surface` variants, `*_text` on-colors, `border`, `focus`, `text_secondary/muted`). The "future RFC" framing corrected: a full-palette bridge is out of scope for snora by design; the future work is an arama-side `Theme::custom` task. Updated in RFC 011, the theme-setting handoff, and `docs/src/users/settings.md`.
 - **`lucide-icons` 0.576.0 → 1.17.0.** The 20 removed icons are all
-  brand/social-media icons (Twitter, GitHub, Figma, etc.); none are
-  used in arama. The `iced` feature and all function signatures are
-  unchanged. Workspace constraint updated to `"1"`.
-
+  brand/social-media icons (Twitter, GitHub, Figma, etc.); none are used
+  in arama. The `iced` feature and all function signatures are unchanged.
+  Workspace constraint updated to `"1"`. (Migration report:
+  `rfcs/notes/dep-migration-lucide-icons.md`.)
 - **`candle-core` / `candle-nn` / `candle-transformers` 0.9.2 → 0.10.2.**
   Zero items removed from any of the three crates. Every struct, trait,
-  and function that arama-ai imports exists unchanged in 0.10.2. The
-  two additions (`TokenizerFromGguf` in core, `remove_mean` in nn) are
+  and function that arama-ai imports exists unchanged in 0.10.2. The two
+  additions (`TokenizerFromGguf` in core, `remove_mean` in nn) are
   unrelated to arama's CLIP/wav2vec2 pipeline. Constraints in
-  `arama-ai/Cargo.toml` updated to `"0.10"`.
+  `arama-ai/Cargo.toml` updated to `"0.10"`. (Migration report:
+  `rfcs/notes/dep-migration-candle.md`.)
 
 ---
 

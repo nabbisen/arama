@@ -1,7 +1,15 @@
 [package]
-name = "arama-cache"
-version = "0.34.0"
-edition = "2024"
+name        = "arama-cache"
+description = "Embedding and thumbnail cache facade over localcache for arama"
+readme      = "../../README.md"
+version.workspace      = true
+edition.workspace      = true
+rust-version.workspace = true
+authors.workspace      = true
+license.workspace      = true
+repository.workspace   = true
+categories.workspace   = true
+keywords.workspace     = true
 
 [dependencies]
 localcache = { workspace = true }

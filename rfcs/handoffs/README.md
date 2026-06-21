@@ -33,3 +33,4 @@ feature work, so it has no handoff.
 | 009 | [Replace custom DirTree with iced-swdir-tree](./009-iced-swdir-tree-handoff.md) | v0.30.0 |
 | 010 | [Adopt the Snora Design system](./010-snora-design-system-handoff.md) | v0.32.0 |
 | 011 | [Application theme setting](./011-theme-setting-handoff.md) | v0.33.0 |
+| 012 | [Workspace housekeeping](./012-workspace-housekeeping-handoff.md) | v0.35.0 |

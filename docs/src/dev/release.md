@@ -17,13 +17,17 @@ cargo test --workspace
 
 ### 2. Bump the version
 
-Use `version.sh` to update every member `Cargo.toml` atomically:
+The version is single-sourced in `[workspace.package].version`; every
+member inherits it via `version.workspace = true`, so a bump is a
+single one-line edit. Use the helper (no external tools required):
 
 ```sh
 ./version.sh --update X.Y.Z
 ```
 
-Preview the change first with `--dry-run` if needed.
+Preview the change first with `--dry-run` if needed. Editing the
+`[workspace.package].version` line in the root `Cargo.toml` by hand has
+the same effect.
 
 ### 3. Update CHANGELOG.md
 
@@ -41,24 +45,24 @@ For any RFCs that ship in this release:
 
 ### 5. Package the archive
 
+From the workspace root, archive the project so the files sit at the
+**root** of the tarball — no wrapping directory — so it unpacks
+straight into the extraction destination:
+
 ```sh
 cd <workspace-root>
-tar czf arama-vX.Y.Z.tar.gz \
-  --exclude='arama-<src-dir>/target' \
-  --transform='s|^arama-<src-dir>|arama-vX.Y.Z|' \
-  arama-<src-dir>
+tar --exclude='./target' -czf ../arama-vX.Y.Z.tar.gz .
 ```
 
-The `--transform` flag renames the inner directory from the source
-folder name to `arama-vX.Y.Z/` so the archive structure matches:
+The version number goes at the end of the archive name. The structure
+must be:
 
 ```
 arama-vX.Y.Z.tar.gz
-└── arama-vX.Y.Z/
-    ├── Cargo.toml
-    ├── app/
-    ├── crates/
-    └── ...
+├── Cargo.toml
+├── app/
+├── crates/
+└── ...
 ```
 
 ### 6. Verify the archive
@@ -67,14 +71,16 @@ arama-vX.Y.Z.tar.gz
 tar tzf arama-vX.Y.Z.tar.gz | head -5
 ```
 
-Confirm the first path is `arama-vX.Y.Z/`.
+Confirm the top-level entries are the project files themselves
+(`./Cargo.toml`, `./app/`, …) and **not** a wrapping `arama-vX.Y.Z/`
+directory.
 
 ## Checklist
 
 - [ ] All tests pass
-- [ ] Version bumped in all `Cargo.toml` files
+- [ ] Version bumped in `[workspace.package]` (members inherit it)
 - [ ] `CHANGELOG.md` updated
 - [ ] RFC files moved and status fields updated
 - [ ] `rfcs/README.md` updated
-- [ ] Archive created and inner path verified
+- [ ] Archive created with files at the root (no parent directory)
 - [ ] `NOTICE` updated if new third-party components were added

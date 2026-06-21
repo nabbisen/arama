@@ -1,7 +1,15 @@
 [package]
-name = "arama-ui-main"
-version = "0.34.0"
-edition = "2024"
+name        = "arama-ui-main"
+description = "Core views (gallery, setup wizard, cache page) for arama"
+readme      = "../../../README.md"
+version.workspace      = true
+edition.workspace      = true
+rust-version.workspace = true
+authors.workspace      = true
+license.workspace      = true
+repository.workspace   = true
+categories.workspace   = true
+keywords.workspace     = true
 
 [dependencies]
 arama-ai = { workspace = true }
