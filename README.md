@@ -1,7 +1,9 @@
 # arama
 
-[![License](https://img.shields.io/github/license/nabbisen/arama)](https://github.com/nabbisen/arama/blob/main/LICENSE)
-[![Changelog](https://img.shields.io/badge/changelog-CHANGELOG.md-blue)](./CHANGELOG.md)
+[![License](https://img.shields.io/github/license/nabbisen/arama)](LICENSE)
+[![crates.io](https://img.shields.io/crates/v/arama?label=rust)](https://crates.io/crates/arama)
+[![Rust Documentation](https://docs.rs/arama/badge.svg?version=latest)](https://docs.rs/arama)
+[![Dependency Status](https://deps.rs/crate/arama/latest/status.svg)](https://deps.rs/crate/arama)
 
 **Find similar images and videos — entirely on your machine.**
 
