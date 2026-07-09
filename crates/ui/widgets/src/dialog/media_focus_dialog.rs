@@ -34,7 +34,7 @@ impl MediaFocusDialog {
             history_index: 0,
             hovered_media_item_path_str: None,
             actual_size: false,
-            cache_lookup_strategy: cache_lookup_strategy,
+            cache_lookup_strategy,
             similarity_threshold,
             similar_media: vec![],
         }

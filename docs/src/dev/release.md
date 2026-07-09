@@ -11,9 +11,20 @@ features, patch bumps for fixes only.
 ### 1. Verify everything compiles and tests pass
 
 ```sh
+cargo fmt --check
 cargo check --workspace
 cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
+cargo audit
 ```
+
+This is the default CPU release gate. `cargo clippy --workspace
+--all-targets --all-features -- -D warnings` additionally enables the
+`cuda` feature and requires a CUDA toolkit with `nvcc`; run it only in a
+CUDA-equipped verification environment and record that separately.
+
+If `cargo audit` passes with ignored advisories, confirm each ignore in
+`.cargo/audit.toml` still has a current rationale and revisit condition.
 
 ### 2. Bump the version
 

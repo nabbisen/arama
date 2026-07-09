@@ -56,9 +56,8 @@ impl App {
     }
 
     pub(super) fn handle_cursor_move(&mut self, point: iced::Point) -> Task<Message> {
-        match self.context_menu.state {
-            ContextMenuState::None => self.context_menu.update_point(point),
-            _ => (),
+        if let ContextMenuState::None = self.context_menu.state {
+            self.context_menu.update_point(point)
         };
         Task::none()
     }

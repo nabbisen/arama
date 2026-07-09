@@ -82,10 +82,9 @@ impl Downloader {
                         self.states[id].download_state = DownloadState::Downloading(p)
                     }
                     DownloadProgress::Finished(downloader_config) => {
-                        match downloader_config {
-                            DownloaderConfig::Ffmepg => VideoEngine::unpack_archive().unwrap(),
-                            _ => (),
-                        };
+                        if let DownloaderConfig::Ffmepg = downloader_config {
+                            VideoEngine::unpack_archive().unwrap();
+                        }
 
                         self.states[id].download_state = DownloadState::Finished
                     }

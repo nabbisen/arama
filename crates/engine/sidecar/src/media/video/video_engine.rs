@@ -60,10 +60,11 @@ impl VideoEngine {
 
     pub fn ffmpeg() -> Option<Command> {
         match Self::ready() {
-            FfmpegStatus::ExistsInLocalBin => Some(Command::new(
-                Self::ffmpeg_path()
-                    .expect(&format!("failed to get {} in local bin", bin_name::FFMPEG)),
-            )),
+            FfmpegStatus::ExistsInLocalBin => {
+                Some(Command::new(Self::ffmpeg_path().unwrap_or_else(|_| {
+                    panic!("failed to get {} in local bin", bin_name::FFMPEG)
+                })))
+            }
             FfmpegStatus::ExistsInPath => Some(Command::new(bin_name::FFMPEG)),
             FfmpegStatus::NotExists => None,
         }
@@ -71,10 +72,11 @@ impl VideoEngine {
 
     pub fn ffprobe() -> Option<Command> {
         match Self::ready() {
-            FfmpegStatus::ExistsInLocalBin => Some(Command::new(
-                Self::ffprobe_path()
-                    .expect(&format!("failed to get {} in local bin", bin_name::FFPROBE)),
-            )),
+            FfmpegStatus::ExistsInLocalBin => {
+                Some(Command::new(Self::ffprobe_path().unwrap_or_else(|_| {
+                    panic!("failed to get {} in local bin", bin_name::FFPROBE)
+                })))
+            }
             FfmpegStatus::ExistsInPath => Some(Command::new(bin_name::FFPROBE)),
             FfmpegStatus::NotExists => None,
         }
@@ -120,7 +122,7 @@ impl VideoEngine {
 
     pub fn download_dest_path() -> anyhow::Result<PathBuf> {
         let download_url = VideoEngine::download_url()?;
-        let file_name = download_url.split('/').last().unwrap();
+        let file_name = download_url.split('/').next_back().unwrap();
         let parent_dir = VideoEngine::parent_dir()?;
         Ok(parent_dir.join(file_name))
     }

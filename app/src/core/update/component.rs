@@ -146,11 +146,8 @@ impl App {
             .update(message.clone())
             .map(Message::FooterMessage);
 
-        match message {
-            footer::message::Message::ThumbnailSizeChanged(value) => {
-                self.thumbnail_size_update(value)
-            }
-            _ => (),
+        if let footer::message::Message::ThumbnailSizeChanged(value) = message {
+            self.thumbnail_size_update(value)
         }
 
         task
@@ -188,21 +185,18 @@ impl App {
                 .update(message.clone())
                 .map(Message::SimilarPairsDialogMessage);
 
-            match message {
-                similar_pairs_dialog::message::Message::MediaItemDoubleClicked(path) => {
-                    let media_focus_dialog = media_focus_dialog::MediaFocusDialog::new(
-                        path,
-                        self.settings.cache_lookup_strategy,
-                        self.settings.similarity_threshold,
-                    );
-                    let dialog = Dialog::MediaFocusDialog(media_focus_dialog.clone());
-                    let default_task = media_focus_dialog.default_task();
+            if let similar_pairs_dialog::message::Message::MediaItemDoubleClicked(path) = message {
+                let media_focus_dialog = media_focus_dialog::MediaFocusDialog::new(
+                    path,
+                    self.settings.cache_lookup_strategy,
+                    self.settings.similarity_threshold,
+                );
+                let dialog = Dialog::MediaFocusDialog(media_focus_dialog.clone());
+                let default_task = media_focus_dialog.default_task();
 
-                    self.dialog = Some(dialog);
+                self.dialog = Some(dialog);
 
-                    return Task::batch([task, default_task.map(Message::MediaFocusDialogMessage)]);
-                }
-                _ => (),
+                return Task::batch([task, default_task.map(Message::MediaFocusDialogMessage)]);
             }
 
             return task;

@@ -171,12 +171,13 @@ impl VideoCacheWriter {
 
         // Steady-state skip: fresh entry, no new vectors, thumbnail
         // already recorded.
-        if is_fresh(&prep.status) && req.clip_vector.is_none() && req.wav2vec2_vector.is_none() {
-            if let Some(p) = &existing {
-                if prep.thumbnail.is_none() || p.thumbnail_path == prep.thumbnail {
-                    return Ok(());
-                }
-            }
+        if is_fresh(&prep.status)
+            && req.clip_vector.is_none()
+            && req.wav2vec2_vector.is_none()
+            && let Some(p) = &existing
+            && (prep.thumbnail.is_none() || p.thumbnail_path == prep.thumbnail)
+        {
+            return Ok(());
         }
 
         let mut payload = existing.unwrap_or_default();

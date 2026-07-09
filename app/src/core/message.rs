@@ -10,6 +10,7 @@ use iced::Point;
 
 use super::NavPage;
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone)]
 pub enum Message {
     NavTo(NavPage),

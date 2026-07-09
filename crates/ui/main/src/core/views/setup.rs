@@ -23,6 +23,7 @@ impl Setup {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> Result<Self> {
         let configs = vec![
             DownloaderConfig::AiModel(clip::model()),

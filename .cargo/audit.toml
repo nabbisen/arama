@@ -1,0 +1,11 @@
+[advisories]
+# quick-xml is pulled only through wayland-scanner 0.31.10, a proc-macro
+# code generator used by the Wayland stack under iced/rfd. The fixed
+# quick-xml line is >=0.41.0, but wayland-scanner 0.31.10 requires
+# quick-xml ^0.39 and is currently the latest compatible release.
+# Revisit when wayland-scanner publishes a version that accepts quick-xml
+# 0.41 or newer, or when the Linux Wayland dependency path changes.
+ignore = [
+    "RUSTSEC-2026-0194",
+    "RUSTSEC-2026-0195",
+]

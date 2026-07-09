@@ -116,7 +116,7 @@ fn load_rows() -> arama_cache::Result<Vec<DirRow>> {
     }
 
     let mut rows: Vec<DirRow> = merged.into_values().collect();
-    rows.sort_by(|a, b| b.latest_cached_at.cmp(&a.latest_cached_at));
+    rows.sort_by_key(|row| std::cmp::Reverse(row.latest_cached_at));
     Ok(rows)
 }
 

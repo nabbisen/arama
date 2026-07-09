@@ -8,12 +8,15 @@ use rayon::{
 
 // 前提: キャッシュ保存時に L2 正規化済
 // return: left::(path, thumbnail_path), right::(path, thumbnail_path), similarity
+pub type MediaRef = (String, Option<String>);
+pub type SimilarImagePair = (MediaRef, MediaRef, f32);
+
 pub async fn find_similar_pairs(
     // path, thumbnail_path, features
-    map: &Vec<(String, Option<String>, Vec<f32>)>,
+    map: &[(String, Option<String>, Vec<f32>)],
     threshold: f32,
     k_neighbors: usize, // 各画像について何件の近傍を探すか. 少し余裕を持った値（例：50〜100）に設定しておくのが安全
-) -> Vec<((String, Option<String>), (String, Option<String>), f32)> {
+) -> Vec<SimilarImagePair> {
     let n = map.len();
     if n == 0 {
         return vec![];
@@ -34,7 +37,7 @@ pub async fn find_similar_pairs(
 
     // 2. 検索とフィルタリング
     let ef_search = 100;
-    let mut ret: Vec<((String, Option<String>), (String, Option<String>), f32)> = (0..n)
+    let mut ret: Vec<SimilarImagePair> = (0..n)
         .into_par_iter()
         .flat_map(|i| {
             let (path_a, thumbnail_path_a, vec_a) = &map[i]; // 元のデータを参照

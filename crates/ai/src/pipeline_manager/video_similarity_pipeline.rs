@@ -101,7 +101,7 @@ impl VideoSimilarityPipeline {
             wav2vec2_vector: Some(features.audio_embeddings.clone()),
         };
 
-        let _ = writer.upsert(request)?;
+        writer.upsert(request)?;
 
         Ok(features)
     }

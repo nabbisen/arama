@@ -90,18 +90,18 @@ impl App {
         // a startup toast.
         let mut startup_toasts: Vec<Toast<Message>> = vec![];
         let mut toast_id_counter: u64 = 0;
-        if let (Ok(v1), Ok(v2)) = (cache_storage_path_v1(), cache_storage_path()) {
-            if let Err(err) = arama_cache::migrate_v1_if_present(&v1, &v2) {
-                let id = toast_id_counter;
-                toast_id_counter += 1;
-                startup_toasts.push(Toast::new(
-                    id,
-                    ToastIntent::Error,
-                    "Cache migration failed",
-                    format!("The previous cache could not be imported and will be rebuilt: {err}"),
-                    Message::ToastDismiss(id),
-                ));
-            }
+        if let (Ok(v1), Ok(v2)) = (cache_storage_path_v1(), cache_storage_path())
+            && let Err(err) = arama_cache::migrate_v1_if_present(&v1, &v2)
+        {
+            let id = toast_id_counter;
+            toast_id_counter += 1;
+            startup_toasts.push(Toast::new(
+                id,
+                ToastIntent::Error,
+                "Cache migration failed",
+                format!("The previous cache could not be imported and will be rebuilt: {err}"),
+                Message::ToastDismiss(id),
+            ));
         }
 
         let setup = match Setup::default() {

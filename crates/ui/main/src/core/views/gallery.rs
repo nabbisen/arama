@@ -31,11 +31,8 @@ impl Gallery {
     }
 
     pub fn embedding_cached(&mut self) -> bool {
-        let embedding_cached = self
-            .dir_path_thumbnail_path_map
+        self.dir_path_thumbnail_path_map
             .iter()
-            .any(|x| 1 < x.1.len());
-
-        embedding_cached
+            .any(|x| 1 < x.1.len())
     }
 }

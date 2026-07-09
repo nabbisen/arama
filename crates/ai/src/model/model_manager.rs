@@ -28,7 +28,7 @@ impl ModelManager {
                 let bytes = response.bytes().await?;
 
                 let config_json_path = self.model_container.config_json_path()?;
-                let _ = fs::write(&config_json_path, &bytes)?;
+                fs::write(&config_json_path, &bytes)?;
 
                 (model_safetensors_url, true)
             }
@@ -40,12 +40,12 @@ impl ModelManager {
 
         if is_model_safetensors {
             let model_safetensors_path = self.model_container.safetensors_path()?;
-            let _ = fs::write(&model_safetensors_path, &bytes)?;
+            fs::write(&model_safetensors_path, &bytes)?;
             return Ok(());
         }
 
         let pytorch_path = self.model_container.pytorch_path()?.clone();
-        let _ = fs::write(&pytorch_path, &bytes)?;
+        fs::write(&pytorch_path, &bytes)?;
 
         pt2safetensors::Pt2Safetensors::default()
             .removes_pt_at_conversion_success()

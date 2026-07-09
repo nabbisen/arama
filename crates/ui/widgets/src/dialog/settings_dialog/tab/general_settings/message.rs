@@ -2,6 +2,7 @@ use arama_env::ThemePreset;
 use arama_env::target_media_type::TargetMediaType;
 use arama_i18n::Locale;
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone)]
 pub enum Message {
     TargetMediaTypeChanged(TargetMediaType),

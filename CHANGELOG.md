@@ -7,6 +7,24 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+### Changed
+
+- **Release gate recovery.** Strict default-feature clippy is clean
+  (`cargo clippy --workspace --all-targets -- -D warnings`), and the
+  developer/release docs now distinguish the CPU release gate from
+  all-features CUDA verification. `cargo audit` now has an explicit
+  `.cargo/audit.toml` policy for temporary reviewed advisory exceptions.
+
+### Security
+
+- Updated locked transitive dependencies to resolve blocking RustSec
+  advisories: `crossbeam-epoch` 0.9.18 → 0.9.20 and `quinn-proto`
+  0.11.14 → 0.11.15.
+- Added a scoped temporary audit ignore for the two `quick-xml 0.39.4`
+  advisories that currently enter through `wayland-scanner 0.31.10`.
+  The fixed `quick-xml` line requires 0.41 or newer, while the current
+  Wayland scanner constraint remains `^0.39`.
+
 ### Planned
 
 - Relative-time rendering ("2 days ago") for the Cache page table.

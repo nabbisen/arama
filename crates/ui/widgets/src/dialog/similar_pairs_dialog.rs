@@ -77,14 +77,14 @@ async fn prepare_embeddings(dir_node: DirNode, similarity_threshold: f32) -> Vec
             })
         })
         .collect();
-    if 0 < image_paths.len() {
+    if !image_paths.is_empty() {
         let image_cache_reader = ImageCacheReader::as_session(ImageCacheConfig {
             cache_config: cache_config.clone(),
         })
         .expect("failed to get image cache writer");
 
         for path in &image_paths {
-            let feature = match image_cache_reader.lookup(&path).expect("failed to lookup") {
+            let feature = match image_cache_reader.lookup(path).expect("failed to lookup") {
                 LookupResult::Hit(x) => x
                     .features
                     .map(|f| (x.path, x.thumbnail_path, f.clip_vector)),
@@ -109,7 +109,7 @@ async fn prepare_embeddings(dir_node: DirNode, similarity_threshold: f32) -> Vec
             })
         })
         .collect();
-    if 0 < video_paths.len() {
+    if !video_paths.is_empty() {
         let video_cache_reader = VideoCacheReader::as_session(VideoCacheConfig {
             cache_config,
             ffmpeg_path: Some(VideoEngine::ffmpeg_path().expect("failed to get ffmpeg path")),
@@ -117,7 +117,7 @@ async fn prepare_embeddings(dir_node: DirNode, similarity_threshold: f32) -> Vec
         .expect("failed to get video cache writer");
 
         for path in &video_paths {
-            let feature = match video_cache_reader.lookup(&path).expect("failed to lookup") {
+            let feature = match video_cache_reader.lookup(path).expect("failed to lookup") {
                 LookupResult::Hit(x) => x
                     .features
                     .and_then(|f| f.clip_vector.map(|v| (x.path, x.thumbnail_path, v))),

@@ -63,19 +63,18 @@ fn similar_images(
     let cache_entries = cache_lookuped
         .expect("failed to lookup")
         .into_iter()
-        .filter(|x| x.is_ok())
-        .map(|x| x.unwrap())
+        .flatten()
         .collect::<Vec<_>>();
 
     // 比較元と比較対象を分離
-    let (target_item, candidates): (Vec<_>, Vec<_>) = cache_entries.into_iter().partition(|x| {
-        &x.path
-            == &path
-                .canonicalize()
-                .expect("failed to canonicalize")
-                .to_string_lossy()
-                .to_string()
-    });
+    let canonical_path = path
+        .canonicalize()
+        .expect("failed to canonicalize")
+        .to_string_lossy()
+        .to_string();
+    let (target_item, candidates): (Vec<_>, Vec<_>) = cache_entries
+        .into_iter()
+        .partition(|x| x.path == canonical_path);
 
     let target_clip_vector = if let Some(features) = &target_item[0].features {
         features.clip_vector.to_owned()
@@ -133,19 +132,18 @@ fn similar_videos(
     let cache_entries = cache_lookuped
         .expect("failed to lookup")
         .into_iter()
-        .filter(|x| x.is_ok())
-        .map(|x| x.unwrap())
+        .flatten()
         .collect::<Vec<_>>();
 
     // 比較元と比較対象を分離
-    let (target_item, candidates): (Vec<_>, Vec<_>) = cache_entries.into_iter().partition(|x| {
-        &x.path
-            == &path
-                .canonicalize()
-                .expect("failed to canonicalize")
-                .to_string_lossy()
-                .to_string()
-    });
+    let canonical_path = path
+        .canonicalize()
+        .expect("failed to canonicalize")
+        .to_string_lossy()
+        .to_string();
+    let (target_item, candidates): (Vec<_>, Vec<_>) = cache_entries
+        .into_iter()
+        .partition(|x| x.path == canonical_path);
 
     let target_features = if target_item[0].features.is_none()
         || target_item[0]
@@ -162,31 +160,25 @@ fn similar_videos(
     let mut ret = candidates
         .into_par_iter() // Rayonで並列化
         .map(|x| {
-            let similarity = if x.features.is_none()
-                || x.features
-                    .as_ref()
-                    .is_some_and(|x| x.clip_vector.is_none() || x.wav2vec2_vector.is_none())
-            {
-                0.0
-            } else {
-                let image_similarity = dot_product(
-                    &target_features.clip_vector.as_ref().unwrap(),
-                    &x.features.as_ref().unwrap().clip_vector.as_ref().unwrap(),
-                );
+            let similarity = match &x.features {
+                Some(features)
+                    if features.clip_vector.is_some() && features.wav2vec2_vector.is_some() =>
+                {
+                    let image_similarity = dot_product(
+                        target_features.clip_vector.as_ref().unwrap(),
+                        features.clip_vector.as_ref().unwrap(),
+                    );
 
-                let audio_similarity = dot_product(
-                    &target_features.wav2vec2_vector.as_ref().unwrap(),
-                    &x.features
-                        .as_ref()
-                        .unwrap()
-                        .wav2vec2_vector
-                        .as_ref()
-                        .unwrap(),
-                );
+                    let audio_similarity = dot_product(
+                        target_features.wav2vec2_vector.as_ref().unwrap(),
+                        features.wav2vec2_vector.as_ref().unwrap(),
+                    );
 
-                let video_similarity_config = VideoSimilarityConfig::default();
-                image_similarity * video_similarity_config.image_weight
-                    + audio_similarity * video_similarity_config.audio_weight
+                    let video_similarity_config = VideoSimilarityConfig::default();
+                    image_similarity * video_similarity_config.image_weight
+                        + audio_similarity * video_similarity_config.audio_weight
+                }
+                _ => 0.0,
             };
 
             SimilarMediaItem {

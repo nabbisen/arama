@@ -25,6 +25,27 @@ cargo test -p arama-cache
 cargo test -p arama-cache image_lookup_invalidated
 ```
 
+## Release gates
+
+The default CPU release gate is:
+
+```sh
+cargo fmt --check
+cargo check --workspace
+cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
+cargo audit
+```
+
+Do not report `cargo clippy --workspace --all-targets --all-features`
+as clean unless it was run in an environment with the CUDA toolkit
+available. The `cuda` feature enables Candle CUDA support through
+`cudarc`, whose build script requires `nvcc`.
+
+`cargo audit` uses `.cargo/audit.toml` for explicitly reviewed
+temporary advisory exceptions. Keep each ignored advisory documented
+with its dependency path and revisit condition.
+
 ## `arama-cache` integration tests
 
 `crates/cache/tests/integration_tests.rs` is the **API compatibility

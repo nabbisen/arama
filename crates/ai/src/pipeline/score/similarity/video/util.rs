@@ -13,7 +13,7 @@ pub fn uniform_timestamps(n: usize, zone_secs: f64) -> Vec<f64> {
 pub fn deduplicate_by_gap(sorted: Vec<f64>, min_gap: f64) -> Vec<f64> {
     let mut result: Vec<f64> = Vec::new();
     for t in sorted {
-        if result.last().map_or(true, |&last| t - last >= min_gap) {
+        if result.last().is_none_or(|&last| t - last >= min_gap) {
             result.push(t);
         }
     }

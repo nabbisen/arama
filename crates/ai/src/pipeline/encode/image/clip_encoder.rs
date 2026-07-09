@@ -17,7 +17,7 @@ use crate::{
 
 // CLIP の ImageNet 正規化定数
 const CLIP_MEAN: [f32; 3] = [0.48145466, 0.4578275, 0.40821073];
-const CLIP_STD: [f32; 3] = [0.26862954, 0.26130258, 0.27577711];
+const CLIP_STD: [f32; 3] = [0.26862954, 0.261_302_6, 0.275_777_1];
 
 pub struct ClipEncoder {
     // pub source: PathBuf,
@@ -153,16 +153,12 @@ pub fn load_image_as_tensor(path: &str, size: usize, device: &Device) -> anyhow:
         image::imageops::FilterType::Triangle,
     );
 
-    // CLIP標準の正規化パラメータ
-    let mean = [0.48145466, 0.4578275, 0.40821073];
-    let std = [0.26862954, 0.26130258, 0.27577711];
-
     let mut pixels = Vec::with_capacity(3 * size * size);
     for c in 0..3 {
         for y in 0..size {
             for x in 0..size {
                 let p = img.get_pixel(x as u32, y as u32);
-                let val = (p[c] as f32 / 255.0 - mean[c]) / std[c];
+                let val = (p[c] as f32 / 255.0 - CLIP_MEAN[c]) / CLIP_STD[c];
                 pixels.push(val);
             }
         }

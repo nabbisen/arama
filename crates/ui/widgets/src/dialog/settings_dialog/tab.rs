@@ -5,8 +5,9 @@ pub(super) mod ai_settings;
 pub(super) mod file_system_settings;
 pub(super) mod general_settings;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub enum Tab {
+    #[default]
     General,
     Ai,
     FileSystem,
@@ -25,11 +26,5 @@ impl Tab {
             Tab::FileSystem => t("settings.tab.filesystem"),
             Tab::About => t("settings.tab.about"),
         }
-    }
-}
-
-impl Default for Tab {
-    fn default() -> Self {
-        Tab::General
     }
 }

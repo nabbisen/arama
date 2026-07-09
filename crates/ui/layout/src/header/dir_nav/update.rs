@@ -8,7 +8,7 @@ use super::message::{Event, Internal, Message};
 impl DirNav {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::Event(_) => return Task::none(),
+            Message::Event(_) => Task::none(),
 
             Message::Internal(message) => {
                 match message {

@@ -1,4 +1,8 @@
-use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use arama_ai::{
     model::model_container::clip, pipeline::encode::image::embeddings::image_embedding,
@@ -230,7 +234,7 @@ impl App {
 /// Build a `DirNode` for `path` using the current media-type and depth
 /// settings. Extracted to remove duplication between `on_dir_changed` and
 /// `on_cache_page_request`.
-fn build_dir_node(path: &PathBuf, settings: &arama_env::Settings) -> DirNode {
+fn build_dir_node(path: &Path, settings: &arama_env::Settings) -> DirNode {
     let mut extension_allowlist: Vec<&str> = vec![];
     if settings.target_media_type.include_image {
         extension_allowlist.extend(IMAGE_EXTENSION_ALLOWLIST);
@@ -246,7 +250,7 @@ fn build_dir_node(path: &PathBuf, settings: &arama_env::Settings) -> DirNode {
     };
 
     Swdir::new()
-        .root_path(path.clone())
+        .root_path(path.to_path_buf())
         .filter(
             FilterRule::extension_allowlist(extension_allowlist.iter().copied())
                 .expect("failed to set allowlist"),

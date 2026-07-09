@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum CacheLookupStrategy {
     Everywhere,
     CurrentDirAndSubDirs,
+    #[default]
     CurrentDirOnly,
 }
 
@@ -13,12 +14,6 @@ impl CacheLookupStrategy {
         Self::CurrentDirAndSubDirs,
         Self::CurrentDirOnly,
     ];
-}
-
-impl Default for CacheLookupStrategy {
-    fn default() -> Self {
-        Self::CurrentDirOnly
-    }
 }
 
 impl std::fmt::Display for CacheLookupStrategy {

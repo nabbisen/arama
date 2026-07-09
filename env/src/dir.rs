@@ -35,7 +35,7 @@ pub fn cache_dir() -> Result<PathBuf> {
 
 pub fn validate_dir(path: &Path) -> Result<()> {
     if !path.exists() {
-        return create_dir_all(&path);
+        return create_dir_all(path);
     }
 
     if !path.is_dir() {

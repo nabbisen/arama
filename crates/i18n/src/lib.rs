@@ -105,10 +105,10 @@ pub fn t(key: &str) -> String {
     }
 
     // Fall back to English (handles partially-translated locales).
-    if !matches!(current_locale(), Locale::En) {
-        if let Some(s) = en::get(key) {
-            return s.to_owned();
-        }
+    if !matches!(current_locale(), Locale::En)
+        && let Some(s) = en::get(key)
+    {
+        return s.to_owned();
     }
 
     // Last resort: return the key itself.

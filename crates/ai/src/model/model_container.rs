@@ -48,7 +48,7 @@ impl ModelContainer {
     }
 
     pub fn validate_dir(&self) -> Result<()> {
-        Ok(validate_dir(&self.model_dir()?)?)
+        validate_dir(&self.model_dir()?)
     }
 
     pub fn ensure_safetensors(&self) -> Result<()> {

@@ -161,7 +161,7 @@ fn deduplicate_preserving_fixed(sorted: Vec<f64>, fixed: &[f64], min_gap: f64) -
         if is_fixed {
             // 固定アンカーは無条件で保持
             result.push(t);
-        } else if result.last().map_or(true, |&last| t - last >= min_gap) {
+        } else if result.last().is_none_or(|&last| t - last >= min_gap) {
             result.push(t);
         }
     }

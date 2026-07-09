@@ -205,7 +205,7 @@ pub fn ai_model_download_stream(
                 return;
             }
 
-            let _ = model_container
+            model_container
                 .ensure_safetensors()
                 .expect("failed to ensure safetensors");
 
@@ -240,7 +240,7 @@ pub fn ai_model_download_stream(
                 let url = reqwest::Url::parse(config_url).unwrap();
                 let filename = url
                     .path_segments()
-                    .and_then(|s| s.last())
+                    .and_then(|mut s| s.next_back())
                     .filter(|s| !s.is_empty())
                     .unwrap_or("model.bin");
 

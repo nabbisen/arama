@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use iced::Task;
 use iced::widget::Id;
@@ -46,9 +46,9 @@ impl Aside {
     /// Issues `Toggled(root)` immediately; each `Loaded` event advances
     /// the cascade one level; when the queue is empty `ExpandDone` fires,
     /// selecting the target row and snapping the scroll to it.
-    pub fn expand_to(&mut self, target: &PathBuf) -> Task<Message> {
+    pub fn expand_to(&mut self, target: &Path) -> Task<Message> {
         self.expand_queue.clear();
-        self.expand_target = Some(target.clone());
+        self.expand_target = Some(target.to_path_buf());
 
         let root = self.tree.root_path().to_path_buf();
 
@@ -104,7 +104,7 @@ impl Aside {
 
     /// Rebuild the tree (re-rooted at the filesystem root) and expand
     /// to `path`. Called when the user navigates via header or file-picker.
-    pub fn update_dir_tree(&mut self, path: &PathBuf) -> Task<Message> {
+    pub fn update_dir_tree(&mut self, path: &Path) -> Task<Message> {
         let root = filesystem_root();
         self.tree = DirectoryTree::new(root).with_filter(DirectoryFilter::FoldersOnly);
         self.expand_to(path)

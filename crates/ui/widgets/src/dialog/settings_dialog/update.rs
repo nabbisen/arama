@@ -40,23 +40,16 @@ impl SettingsDialog {
                     }
                 }
             }
-            Message::AiSettingsTabMessage(message) => {
-                let task = self
-                    .ai_settings
-                    .update(message)
-                    .map(Message::AiSettingsTabMessage);
-                task
-            }
-            Message::FileSystemSettingsTabMessage(message) => {
-                let task = self
-                    .file_system_settings
-                    .update(message)
-                    .map(Message::FileSystemSettingsTabMessage);
-                task
-            }
+            Message::AiSettingsTabMessage(message) => self
+                .ai_settings
+                .update(message)
+                .map(Message::AiSettingsTabMessage),
+            Message::FileSystemSettingsTabMessage(message) => self
+                .file_system_settings
+                .update(message)
+                .map(Message::FileSystemSettingsTabMessage),
             Message::AboutTabMessage(message) => {
-                let task = self.about.update(message).map(Message::AboutTabMessage);
-                task
+                self.about.update(message).map(Message::AboutTabMessage)
             }
         }
     }
