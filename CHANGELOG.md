@@ -7,6 +7,14 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+### Planned
+
+- Relative-time rendering ("2 days ago") for the Cache page table.
+
+---
+
+## [0.36.2]
+
 ### Changed
 
 - **Release gate recovery.** Strict default-feature clippy is clean
@@ -24,10 +32,6 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
   advisories that currently enter through `wayland-scanner 0.31.10`.
   The fixed `quick-xml` line requires 0.41 or newer, while the current
   Wayland scanner constraint remains `^0.39`.
-
-### Planned
-
-- Relative-time rendering ("2 days ago") for the Cache page table.
 
 ---
 

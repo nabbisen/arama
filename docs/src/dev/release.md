@@ -62,7 +62,12 @@ straight into the extraction destination:
 
 ```sh
 cd <workspace-root>
-tar --exclude='./target' -czf ../arama-vX.Y.Z.tar.gz .
+tar \
+  --exclude='./target' \
+  --exclude='./.git' \
+  --exclude='./.git-exclude' \
+  --exclude='./docs/book' \
+  -czf ../arama-vX.Y.Z.tar.gz .
 ```
 
 The version number goes at the end of the archive name. The structure
@@ -94,4 +99,6 @@ directory.
 - [ ] RFC files moved and status fields updated
 - [ ] `rfcs/README.md` updated
 - [ ] Archive created with files at the root (no parent directory)
+- [ ] Archive excludes `.git/`, `.git-exclude/`, `target/`, and generated
+      `docs/book/`
 - [ ] `NOTICE` updated if new third-party components were added
