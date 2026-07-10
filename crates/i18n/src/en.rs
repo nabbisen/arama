@@ -49,6 +49,18 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "cache.summary.directories" => "directories",
         "cache.summary.files" => "files",
         "cache.summary.total" => "total",
+        "cache.time.just_now" => "just now",
+        "cache.time.ago" => "ago",
+        "cache.time.minute" => "minute",
+        "cache.time.minutes" => "minutes",
+        "cache.time.hour" => "hour",
+        "cache.time.hours" => "hours",
+        "cache.time.day" => "day",
+        "cache.time.days" => "days",
+        "cache.time.month" => "month",
+        "cache.time.months" => "months",
+        "cache.time.year" => "year",
+        "cache.time.years" => "years",
 
         // Aside tree toggle
         "aside.toggle.open" => "Open folder tree",

@@ -9,6 +9,8 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Changed
 
+- **Cache page relative times.** The cached-at column now renders relative
+  labels such as "2 days ago" instead of absolute local timestamps.
 - **High-contrast theme completion.** `arama-theme` now builds the iced base
   theme from the active Snora token palette, so standard iced widgets receive
   the mapped high-contrast core colors instead of falling back to the built-in
@@ -37,10 +39,6 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 - Added regression tests for video cross-max similarity scoring and setup
   downloader progress/error state transitions.
-
-### Planned
-
-- Relative-time rendering ("2 days ago") for the Cache page table.
 
 ---
 

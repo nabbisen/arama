@@ -65,6 +65,18 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "cache.summary.directories" => "\u{30c7}\u{30a3}\u{30ec}\u{30af}\u{30c8}\u{30ea}", // ディレクトリ
         "cache.summary.files" => "\u{30d5}\u{30a1}\u{30a4}\u{30eb}", // ファイル
         "cache.summary.total" => "\u{5408}\u{8a08}",                 // 合計
+        "cache.time.just_now" => "\u{305f}\u{3063}\u{305f}\u{4eca}", // たった今
+        "cache.time.ago" => "\u{524d}",                              // 前
+        "cache.time.minute" => "\u{5206}",                           // 分
+        "cache.time.minutes" => "\u{5206}",                          // 分
+        "cache.time.hour" => "\u{6642}\u{9593}",                     // 時間
+        "cache.time.hours" => "\u{6642}\u{9593}",                    // 時間
+        "cache.time.day" => "\u{65e5}",                              // 日
+        "cache.time.days" => "\u{65e5}",                             // 日
+        "cache.time.month" => "\u{304b}\u{6708}",                    // か月
+        "cache.time.months" => "\u{304b}\u{6708}",                   // か月
+        "cache.time.year" => "\u{5e74}",                             // 年
+        "cache.time.years" => "\u{5e74}",                            // 年
 
         // Aside tree toggle
         "aside.toggle.open" => "フォルダーツリーを開く", // フォルダーツリーを開く

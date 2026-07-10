@@ -1,4 +1,4 @@
-use arama_i18n::t;
+use arama_i18n::{Locale, current_locale, t};
 use chrono::{Local, TimeZone};
 use iced::{
     Element,
@@ -106,7 +106,7 @@ impl CachePage {
             .spacing(6)
             .into()
         } else {
-            text(format_timestamp(r.latest_cached_at)).into()
+            text(format_relative_timestamp(r.latest_cached_at)).into()
         };
 
         let clear = button(icon_trash_2().size(14))
@@ -160,10 +160,97 @@ fn human_size(bytes: u64) -> String {
     }
 }
 
-/// Absolute local time, `YYYY-MM-DD HH:MM`.
-fn format_timestamp(unix_secs: i64) -> String {
-    match Local.timestamp_opt(unix_secs, 0).single() {
-        Some(dt) => dt.format("%Y-%m-%d %H:%M").to_string(),
-        None => "\u{2014}".to_owned(),
+/// Relative local time, such as `2 days ago`.
+fn format_relative_timestamp(unix_secs: i64) -> String {
+    format_relative_timestamp_at(unix_secs, Local::now().timestamp())
+}
+
+fn format_relative_timestamp_at(unix_secs: i64, now_unix_secs: i64) -> String {
+    if unix_secs <= 0 || Local.timestamp_opt(unix_secs, 0).single().is_none() {
+        return "\u{2014}".to_owned();
+    }
+
+    let elapsed_secs = now_unix_secs.saturating_sub(unix_secs);
+    if elapsed_secs < 60 {
+        return t("cache.time.just_now");
+    }
+
+    let (value, singular_key, plural_key) = if elapsed_secs < 60 * 60 {
+        (elapsed_secs / 60, "cache.time.minute", "cache.time.minutes")
+    } else if elapsed_secs < 60 * 60 * 24 {
+        (
+            elapsed_secs / (60 * 60),
+            "cache.time.hour",
+            "cache.time.hours",
+        )
+    } else if elapsed_secs < 60 * 60 * 24 * 30 {
+        (
+            elapsed_secs / (60 * 60 * 24),
+            "cache.time.day",
+            "cache.time.days",
+        )
+    } else if elapsed_secs < 60 * 60 * 24 * 365 {
+        (
+            elapsed_secs / (60 * 60 * 24 * 30),
+            "cache.time.month",
+            "cache.time.months",
+        )
+    } else {
+        (
+            elapsed_secs / (60 * 60 * 24 * 365),
+            "cache.time.year",
+            "cache.time.years",
+        )
+    };
+
+    let unit = if value == 1 {
+        t(singular_key)
+    } else {
+        t(plural_key)
+    };
+    let ago = t("cache.time.ago");
+
+    match current_locale() {
+        Locale::Ja => format!("{value}{unit}{ago}"),
+        Locale::En => format!("{value} {unit} {ago}"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use arama_i18n::{Locale, set_locale};
+
+    #[test]
+    fn relative_timestamp_formats_ranges_and_locales() {
+        set_locale(Locale::En);
+        let now = 1_700_000_000;
+
+        assert_eq!(format_relative_timestamp_at(0, now), "\u{2014}");
+        assert_eq!(format_relative_timestamp_at(now - 30, now), "just now");
+        assert_eq!(format_relative_timestamp_at(now - 60, now), "1 minute ago");
+        assert_eq!(
+            format_relative_timestamp_at(now - 2 * 60, now),
+            "2 minutes ago"
+        );
+        assert_eq!(
+            format_relative_timestamp_at(now - 60 * 60, now),
+            "1 hour ago"
+        );
+        assert_eq!(
+            format_relative_timestamp_at(now - 2 * 60 * 60, now),
+            "2 hours ago"
+        );
+        assert_eq!(
+            format_relative_timestamp_at(now - 2 * 60 * 60 * 24, now),
+            "2 days ago"
+        );
+
+        set_locale(Locale::Ja);
+        assert_eq!(
+            format_relative_timestamp_at(now - 2 * 60 * 60 * 24, now),
+            "2\u{65e5}\u{524d}"
+        );
+        set_locale(Locale::En);
     }
 }
