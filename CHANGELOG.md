@@ -22,6 +22,11 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
   disk-space inspection, model path resolution, and local ffmpeg command path
   failures as recoverable setup errors instead of panicking.
 
+### Tests
+
+- Added regression tests for video cross-max similarity scoring and setup
+  downloader progress/error state transitions.
+
 ### Planned
 
 - Relative-time rendering ("2 days ago") for the Cache page table.

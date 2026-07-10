@@ -93,3 +93,33 @@ pub fn cross_max_similarity(a: &[Vec<f32>], b: &[Vec<f32>], threshold: f32) -> f
 fn dot(a: &[f32], b: &[f32]) -> f32 {
     a.iter().zip(b.iter()).map(|(x, y)| x * y).sum()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::cross_max_similarity;
+
+    #[test]
+    fn cross_max_similarity_returns_zero_for_empty_inputs() {
+        assert_eq!(cross_max_similarity(&[], &[vec![1.0, 0.0]], 0.5), 0.0);
+        assert_eq!(cross_max_similarity(&[vec![1.0, 0.0]], &[], 0.5), 0.0);
+    }
+
+    #[test]
+    fn cross_max_similarity_applies_threshold_to_best_matches() {
+        let a = vec![vec![1.0, 0.0]];
+        let b = vec![vec![0.8, 0.6]];
+
+        assert_eq!(cross_max_similarity(&a, &b, 0.9), 0.0);
+        assert!((cross_max_similarity(&a, &b, 0.8) - 0.8).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn cross_max_similarity_averages_both_directions() {
+        let a = vec![vec![1.0, 0.0]];
+        let b = vec![vec![1.0, 0.0], vec![0.0, 1.0]];
+
+        let score = cross_max_similarity(&a, &b, 0.5);
+
+        assert!((score - (2.0 / 3.0)).abs() < f32::EPSILON);
+    }
+}

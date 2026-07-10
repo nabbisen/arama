@@ -111,3 +111,87 @@ impl Downloader {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use arama_ai::model::model_container::{ModelContainer, SourceUrl};
+
+    use super::{
+        Downloader,
+        config::DownloaderConfig,
+        message::Message,
+        state::{DownloadProgress, DownloadState, DownloaderState},
+    };
+
+    fn test_model_config() -> DownloaderConfig {
+        DownloaderConfig::AiModel(ModelContainer {
+            name: "test-model".to_owned(),
+            source_url: SourceUrl::ModelSafetensors("https://example.invalid/model".to_owned()),
+            expected_sha256: "unused",
+            config_expected_sha256: None,
+        })
+    }
+
+    fn downloader_with_states(states: Vec<DownloadState>) -> Downloader {
+        Downloader {
+            is_downloading: true,
+            states: states
+                .into_iter()
+                .map(|download_state| DownloaderState {
+                    config: test_model_config(),
+                    file_size: None,
+                    download_state,
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn ai_progress_error_records_error_and_stops_when_all_done() {
+        let mut downloader = downloader_with_states(vec![DownloadState::Downloading(42.0)]);
+
+        let _ = downloader.update(Message::AiModelProgressUpdated(
+            0,
+            DownloadProgress::Errored("checksum mismatch".to_owned()),
+        ));
+
+        assert_eq!(
+            downloader.states[0].download_state,
+            DownloadState::Errored("checksum mismatch".to_owned())
+        );
+        assert!(!downloader.is_downloading);
+    }
+
+    #[test]
+    fn ai_progress_keeps_downloading_until_every_state_is_done() {
+        let mut downloader =
+            downloader_with_states(vec![DownloadState::Downloading(0.0), DownloadState::Idle]);
+
+        let _ = downloader.update(Message::AiModelProgressUpdated(
+            0,
+            DownloadProgress::Finished(test_model_config()),
+        ));
+
+        assert_eq!(downloader.states[0].download_state, DownloadState::Finished);
+        assert!(downloader.is_downloading);
+    }
+
+    #[test]
+    fn general_progress_error_counts_as_done_with_not_required_states() {
+        let mut downloader = downloader_with_states(vec![
+            DownloadState::Downloading(12.0),
+            DownloadState::NotRequired,
+        ]);
+
+        let _ = downloader.update(Message::GeneralProgressUpdated(
+            0,
+            DownloadProgress::Errored("download failed".to_owned()),
+        ));
+
+        assert_eq!(
+            downloader.states[0].download_state,
+            DownloadState::Errored("download failed".to_owned())
+        );
+        assert!(!downloader.is_downloading);
+    }
+}
