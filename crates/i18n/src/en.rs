@@ -30,6 +30,7 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
 
         // Settings — File system tab
         "settings.fs.cache_delete" => "Cache delete",
+        "settings.fs.disk_unavailable" => "Disk space unavailable",
 
         // Settings — About tab
         "settings.about.repository" => "Repository:",

@@ -40,6 +40,9 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
 
         // Settings — File system tab
         "settings.fs.cache_delete" => "\u{30ad}\u{30e3}\u{30c3}\u{30b7}\u{30e5}\u{524a}\u{9664}", // キャッシュ削除
+        "settings.fs.disk_unavailable" => {
+            "\u{30c7}\u{30a3}\u{30b9}\u{30af}\u{5bb9}\u{91cf}\u{3092}\u{53d6}\u{5f97}\u{3067}\u{304d}\u{307e}\u{305b}\u{3093}"
+        } // ディスク容量を取得できません
 
         // Settings — About tab
         "settings.about.repository" => "\u{30ea}\u{30dd}\u{30b8}\u{30c8}\u{30ea}\u{ff1a}", // リポジトリ：

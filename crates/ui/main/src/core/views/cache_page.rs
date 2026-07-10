@@ -89,11 +89,10 @@ impl CachePage {
 }
 
 /// Load and merge per-directory summaries from both cache namespaces.
-fn load_rows() -> arama_cache::Result<Vec<DirRow>> {
+fn load_rows() -> Result<Vec<DirRow>, String> {
     use std::collections::BTreeMap;
 
-    let location =
-        DbLocation::Custom(cache_storage_path().expect("failed to get cache storage path"));
+    let location = DbLocation::Custom(cache_storage_path().map_err(|err| err.to_string())?);
     let config = CacheConfig {
         db_location: location,
         ..CacheConfig::default()
@@ -101,13 +100,17 @@ fn load_rows() -> arama_cache::Result<Vec<DirRow>> {
 
     let image = ImageCacheReader::as_session(arama_cache::ImageCacheConfig {
         cache_config: config.clone(),
-    })?
-    .summarize_by_dir()?;
+    })
+    .map_err(|err| err.to_string())?
+    .summarize_by_dir()
+    .map_err(|err| err.to_string())?;
     let video = VideoCacheReader::as_session(arama_cache::VideoCacheConfig {
         cache_config: config,
         ffmpeg_path: None,
-    })?
-    .summarize_by_dir()?;
+    })
+    .map_err(|err| err.to_string())?
+    .summarize_by_dir()
+    .map_err(|err| err.to_string())?;
 
     // Merge: sum counts and sizes; keep the newest timestamp.
     let mut merged: BTreeMap<String, DirRow> = BTreeMap::new();

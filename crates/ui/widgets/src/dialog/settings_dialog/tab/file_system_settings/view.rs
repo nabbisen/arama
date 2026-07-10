@@ -14,23 +14,27 @@ impl FileSystemSettings {
             ".".into()
         };
 
-        let disk_space = DiskSpace::new(&path)
-            .expect("failed to get file system info ")
-            .as_gb();
+        let fs_info = match DiskSpace::new(&path) {
+            Ok(disk_space) => {
+                let disk_space = disk_space.as_gb();
+                row![
+                    text(format!("{:.1} GB", disk_space.available)),
+                    text("/"),
+                    text(format!("{:.1} GB", disk_space.total)),
+                ]
+            }
+            Err(err) => row![text(format!(
+                "{}: {err}",
+                t("settings.fs.disk_unavailable")
+            ))],
+        };
 
-        let fs_info = row![
-            text(format!("{:.1} GB", disk_space.available)),
-            text("/"),
-            text(format!("{:.1} GB", disk_space.total)),
-        ];
-
-        let button = button(text(t("settings.fs.cache_delete"))).on_press_maybe(
-            if cache_dir().unwrap().exists() {
-                Some(Message::CacheDelete)
-            } else {
-                None
-            },
-        );
+        let cache_exists = cache_dir().is_ok_and(|path| path.exists());
+        let button = button(text(t("settings.fs.cache_delete"))).on_press_maybe(if cache_exists {
+            Some(Message::CacheDelete)
+        } else {
+            None
+        });
 
         column![fs_info, button].into()
     }

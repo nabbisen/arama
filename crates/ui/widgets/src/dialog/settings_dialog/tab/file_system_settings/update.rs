@@ -8,14 +8,14 @@ use super::{FileSystemSettings, message::Message};
 impl FileSystemSettings {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::CacheDelete => {
-                let path = cache_dir().unwrap();
-                match remove_dir_all(&path) {
-                    Ok(_) => (),
-                    // todo: error handling
-                    Err(err) => eprintln!("{}", err),
+            Message::CacheDelete => match cache_dir() {
+                Ok(path) => {
+                    if let Err(err) = remove_dir_all(&path) {
+                        eprintln!("failed to remove cache directory: {err}");
+                    }
                 }
-            }
+                Err(err) => eprintln!("failed to get cache directory: {err}"),
+            },
         }
         Task::none()
     }

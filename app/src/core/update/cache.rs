@@ -24,9 +24,12 @@ impl App {
         if let Some(dir_node) = node {
             let (task, handle) = Task::perform(
                 async move {
-                    let Ok(writer) = ImageCacheWriter::onetime(arama_cache::DbLocation::Custom(
-                        cache_storage_path().expect("failed to get cache storage path"),
-                    )) else {
+                    let Ok(cache_path) = cache_storage_path() else {
+                        return vec![];
+                    };
+                    let Ok(writer) =
+                        ImageCacheWriter::onetime(arama_cache::DbLocation::Custom(cache_path))
+                    else {
                         return vec![];
                     };
                     let requests: Vec<UpsertImageRequest> = dir_node
@@ -68,25 +71,47 @@ impl App {
         }
 
         if let Some(dir_node) = &self.dir_node {
-            let image_cache_reader = ImageCacheReader::onetime(DbLocation::Custom(
-                cache_storage_path().expect("failed to get storaget path"),
-            ))
-            .expect("failed to get video cache reader");
+            match cache_storage_path() {
+                Ok(cache_path) => {
+                    let image_cache_reader =
+                        ImageCacheReader::onetime(DbLocation::Custom(cache_path.clone()));
+                    let video_cache_reader =
+                        VideoCacheReader::onetime(DbLocation::Custom(cache_path));
 
-            let video_cache_reader = VideoCacheReader::onetime(DbLocation::Custom(
-                cache_storage_path().expect("failed to get storaget path"),
-            ))
-            .expect("failed to get video cache reader");
+                    match (image_cache_reader, video_cache_reader) {
+                        (Ok(image_cache_reader), Ok(video_cache_reader)) => {
+                            self.gallery.set_dir_path_thumbnail_path_map(
+                                dir_path_thumbnail_path_map(
+                                    dir_node,
+                                    &image_cache_reader,
+                                    &video_cache_reader,
+                                ),
+                            );
 
-            self.gallery
-                .set_dir_path_thumbnail_path_map(dir_path_thumbnail_path_map(
-                    dir_node,
-                    &image_cache_reader,
-                    &video_cache_reader,
-                ));
-
-            self.header
-                .set_embedding_cached(self.gallery.embedding_cached());
+                            self.header
+                                .set_embedding_cached(self.gallery.embedding_cached());
+                        }
+                        (Err(err), _) => {
+                            self.push_error_toast(
+                                "Cache reload failed",
+                                format!("failed to get image cache reader: {err}"),
+                            );
+                        }
+                        (_, Err(err)) => {
+                            self.push_error_toast(
+                                "Cache reload failed",
+                                format!("failed to get video cache reader: {err}"),
+                            );
+                        }
+                    }
+                }
+                Err(err) => {
+                    self.push_error_toast(
+                        "Cache reload failed",
+                        format!("failed to get cache storage path: {err}"),
+                    );
+                }
+            }
         }
 
         if clip::model().ready().unwrap_or(false) {
@@ -94,7 +119,7 @@ impl App {
                 async {
                     image_embedding(ret.into_iter().map(|x| x.0).collect())
                         .await
-                        .expect("failed to get embedding")
+                        .unwrap_or_else(|err| Some(format!("failed to get embedding: {err}")))
                 },
                 Message::EmbeddingCacheFinished,
             )
@@ -249,15 +274,16 @@ fn build_dir_node(path: &Path, settings: &arama_env::Settings) -> DirNode {
         Recurse::None
     };
 
-    Swdir::new()
-        .root_path(path.to_path_buf())
-        .filter(
-            FilterRule::extension_allowlist(extension_allowlist.iter().copied())
-                .expect("failed to set allowlist"),
-        )
-        .recurse(recurse)
-        .walk()
-        .into_tree()
+    let scanner = Swdir::new().root_path(path.to_path_buf()).recurse(recurse);
+    let scanner = match FilterRule::extension_allowlist(extension_allowlist.iter().copied()) {
+        Ok(filter) => scanner.filter(filter),
+        Err(err) => {
+            eprintln!("failed to set extension allowlist: {err}");
+            scanner
+        }
+    };
+
+    scanner.walk().into_tree()
 }
 
 /// Async per-directory clear across both cache namespaces.
@@ -297,27 +323,28 @@ fn dir_path_thumbnail_path_map(
                 .as_str(),
         ) {
             match video_cache_reader.lookup(path) {
-                Ok(LookupResult::Hit(x)) if x.thumbnail_path.is_some() => {
-                    PathBuf::from(x.thumbnail_path.unwrap())
-                }
+                Ok(LookupResult::Hit(x)) => x
+                    .thumbnail_path
+                    .map(PathBuf::from)
+                    .unwrap_or_else(|| path.to_path_buf()),
                 _ => path.to_path_buf(),
             }
         } else {
             match image_cache_reader.lookup(path) {
-                Ok(LookupResult::Hit(x)) if x.thumbnail_path.is_some() => {
-                    PathBuf::from(x.thumbnail_path.unwrap())
-                }
+                Ok(LookupResult::Hit(x)) => x
+                    .thumbnail_path
+                    .map(PathBuf::from)
+                    .unwrap_or_else(|| path.to_path_buf()),
                 _ => path.to_path_buf(),
             }
         };
 
-        map.insert(
-            path.canonicalize()
-                .expect("failed to canonicalize path")
-                .to_string_lossy()
-                .to_string(),
-            thumbnail_path.to_string_lossy().to_string(),
-        );
+        let key = path
+            .canonicalize()
+            .unwrap_or_else(|_| path.to_path_buf())
+            .to_string_lossy()
+            .to_string();
+        map.insert(key, thumbnail_path.to_string_lossy().to_string());
     }
 
     let mut ret = BTreeMap::default();

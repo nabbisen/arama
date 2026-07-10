@@ -31,6 +31,9 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Fixed
 
+- **Cache UI error resilience.** Cache page reloads, thumbnail map refreshes,
+  embedding completion, and File System settings disk/cache-directory checks
+  now handle local path and cache reader failures without panicking.
 - **Similarity dialog error resilience.** Focus-view and similar-pairs cache
   lookup failures now degrade to empty or partial result sets instead of
   panicking when cache paths, readers, ffmpeg paths, or individual lookups fail.
