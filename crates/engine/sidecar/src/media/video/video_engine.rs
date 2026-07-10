@@ -83,11 +83,7 @@ impl VideoEngine {
 
     pub fn ffmpeg() -> Option<Command> {
         match Self::ready() {
-            FfmpegStatus::ExistsInLocalBin => {
-                Some(Command::new(Self::ffmpeg_path().unwrap_or_else(|_| {
-                    panic!("failed to get {} in local bin", bin_name::FFMPEG)
-                })))
-            }
+            FfmpegStatus::ExistsInLocalBin => Self::ffmpeg_path().ok().map(Command::new),
             FfmpegStatus::ExistsInPath => Some(Command::new(bin_name::FFMPEG)),
             FfmpegStatus::NotExists => None,
         }
@@ -95,11 +91,7 @@ impl VideoEngine {
 
     pub fn ffprobe() -> Option<Command> {
         match Self::ready() {
-            FfmpegStatus::ExistsInLocalBin => {
-                Some(Command::new(Self::ffprobe_path().unwrap_or_else(|_| {
-                    panic!("failed to get {} in local bin", bin_name::FFPROBE)
-                })))
-            }
+            FfmpegStatus::ExistsInLocalBin => Self::ffprobe_path().ok().map(Command::new),
             FfmpegStatus::ExistsInPath => Some(Command::new(bin_name::FFPROBE)),
             FfmpegStatus::NotExists => None,
         }

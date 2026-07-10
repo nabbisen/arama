@@ -16,6 +16,12 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
   `yt-dlp/FFmpeg-Builds` release metadata; checksum failures surface as setup
   errors instead of silently accepting the file.
 
+### Fixed
+
+- **Setup/download error resilience.** First-run setup now surfaces local path,
+  disk-space inspection, model path resolution, and local ffmpeg command path
+  failures as recoverable setup errors instead of panicking.
+
 ### Planned
 
 - Relative-time rendering ("2 days ago") for the Cache page table.

@@ -201,9 +201,17 @@ pub fn ai_model_download_stream(
     iced::stream::channel(
         100,
         move |mut output: Sender<DownloadProgress>| async move {
-            let safetensors_path = model_container
-                .safetensors_path()
-                .expect("failed to get safetensors path");
+            let safetensors_path = match model_container.safetensors_path() {
+                Ok(path) => path,
+                Err(err) => {
+                    let _ = output
+                        .send(DownloadProgress::Errored(format!(
+                            "failed to resolve safetensors path: {err}"
+                        )))
+                        .await;
+                    return;
+                }
+            };
 
             if model_container.clone().ready().unwrap_or(false) {
                 let _ = output
@@ -218,18 +226,34 @@ pub fn ai_model_download_stream(
 
             // Resolve the primary download URL and save path.
             let (model_url, path_to_save) = match &model_container.source_url {
-                SourceUrl::ModelSafetensors(u) | SourceUrl::ModelSafetensorsConfigJson((u, _)) => (
-                    u.clone(),
-                    model_container
-                        .safetensors_path()
-                        .expect("failed to get safetensors path"),
-                ),
-                SourceUrl::PyTorch(u) => (
-                    u.clone(),
-                    model_container
-                        .pytorch_path()
-                        .expect("failed to get pytorch path"),
-                ),
+                SourceUrl::ModelSafetensors(u) | SourceUrl::ModelSafetensorsConfigJson((u, _)) => {
+                    let path = match model_container.safetensors_path() {
+                        Ok(path) => path,
+                        Err(err) => {
+                            let _ = output
+                                .send(DownloadProgress::Errored(format!(
+                                    "failed to resolve safetensors path: {err}"
+                                )))
+                                .await;
+                            return;
+                        }
+                    };
+                    (u.clone(), path)
+                }
+                SourceUrl::PyTorch(u) => {
+                    let path = match model_container.pytorch_path() {
+                        Ok(path) => path,
+                        Err(err) => {
+                            let _ = output
+                                .send(DownloadProgress::Errored(format!(
+                                    "failed to resolve pytorch path: {err}"
+                                )))
+                                .await;
+                            return;
+                        }
+                    };
+                    (u.clone(), path)
+                }
             };
 
             let response = match fetch(&model_url, false).await {

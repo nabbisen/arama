@@ -5,7 +5,7 @@ use iced::{
     Alignment::{self, Center},
     Element,
     Length::Fill,
-    widget::{button, column, container, row, text},
+    widget::{Text, button, column, container, row, text},
 };
 
 use super::{Setup, message::Message};
@@ -14,17 +14,17 @@ impl Setup {
     pub fn view(&self) -> Element<'_, Message> {
         let downloader = self.downloader.view().map(Message::DownloaderMessage);
 
-        let local_dir = local_dir().unwrap();
-        let disk_space = DiskSpace::new(&local_dir).expect("failed to get file system info");
-        let disk_space_ok = (MIN_SETUP_DISKSPACE_MB as f64) < disk_space.as_mb().available;
+        let disk_status = setup_disk_status();
 
         let download_button = button(text(t("setup.download")))
             .padding(10)
-            .on_press_maybe(if disk_space_ok && !self.downloader.is_downloading {
-                Some(Message::Download)
-            } else {
-                None
-            });
+            .on_press_maybe(
+                if disk_status.can_download && !self.downloader.is_downloading {
+                    Some(Message::Download)
+                } else {
+                    None
+                },
+            );
 
         let buttons = container(
             row![
@@ -43,8 +43,8 @@ impl Setup {
         );
 
         let mut content = column![downloader].align_x(Center).spacing(20);
-        if !disk_space_ok {
-            content = content.push(text(t("setup.no_space")));
+        if let Some(message) = disk_status.message {
+            content = content.push(message);
         }
         content = content.push(buttons);
 
@@ -53,5 +53,38 @@ impl Setup {
             .height(Fill)
             .center(Fill)
             .into()
+    }
+}
+
+struct SetupDiskStatus<'a> {
+    can_download: bool,
+    message: Option<Text<'a>>,
+}
+
+fn setup_disk_status<'a>() -> SetupDiskStatus<'a> {
+    let local_dir = match local_dir() {
+        Ok(local_dir) => local_dir,
+        Err(err) => {
+            return SetupDiskStatus {
+                can_download: false,
+                message: Some(text(format!("{}: {}", t("setup.status.error"), err))),
+            };
+        }
+    };
+
+    let disk_space = match DiskSpace::new(&local_dir) {
+        Ok(disk_space) => disk_space,
+        Err(err) => {
+            return SetupDiskStatus {
+                can_download: false,
+                message: Some(text(format!("{}: {}", t("setup.status.error"), err))),
+            };
+        }
+    };
+
+    let disk_space_ok = (MIN_SETUP_DISKSPACE_MB as f64) < disk_space.as_mb().available;
+    SetupDiskStatus {
+        can_download: disk_space_ok,
+        message: (!disk_space_ok).then(|| text(t("setup.no_space"))),
     }
 }

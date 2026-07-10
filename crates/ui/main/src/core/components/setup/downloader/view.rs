@@ -2,7 +2,7 @@ use arama_env::local_dir;
 use arama_i18n::t;
 use disk_space::DiskSpace;
 use iced::Length::Fill;
-use iced::widget::{column, container, progress_bar, row, text};
+use iced::widget::{Column, column, container, progress_bar, row, text};
 use iced::{Element, Length, alignment};
 
 use crate::components::setup::downloader::config::DownloaderConfig;
@@ -60,22 +60,7 @@ impl Downloader {
         ]
         .spacing(5);
 
-        let local_dir = local_dir().unwrap();
-        let disk_space = DiskSpace::new(&local_dir).expect("failed to get file system info");
-        let disk_space_as_gb = disk_space.as_gb();
-        let disk = column![
-            text(t("setup.download_into")),
-            text(local_dir.to_string_lossy().to_string()),
-            text(format!(
-                "({}: {:.1} {} / {:.1} {})",
-                t("setup.disk_space"),
-                disk_space_as_gb.available,
-                t("setup.disk_gb_avail"),
-                disk_space_as_gb.total,
-                t("setup.disk_gb_total"),
-            ))
-        ]
-        .spacing(5);
+        let disk = disk_info_view();
 
         container(
             container(
@@ -88,6 +73,46 @@ impl Downloader {
         .center_x(Fill)
         .into()
     }
+}
+
+fn disk_info_view<'a>() -> Column<'a, Message> {
+    let local_dir = match local_dir() {
+        Ok(local_dir) => local_dir,
+        Err(err) => {
+            return column![
+                text(t("setup.download_into")),
+                text(format!("{}: {}", t("setup.status.error"), err))
+            ]
+            .spacing(5);
+        }
+    };
+
+    let disk_space = match DiskSpace::new(&local_dir) {
+        Ok(disk_space) => disk_space,
+        Err(err) => {
+            return column![
+                text(t("setup.download_into")),
+                text(local_dir.to_string_lossy().to_string()),
+                text(format!("{}: {}", t("setup.status.error"), err))
+            ]
+            .spacing(5);
+        }
+    };
+
+    let disk_space_as_gb = disk_space.as_gb();
+    column![
+        text(t("setup.download_into")),
+        text(local_dir.to_string_lossy().to_string()),
+        text(format!(
+            "({}: {:.1} {} / {:.1} {})",
+            t("setup.disk_space"),
+            disk_space_as_gb.available,
+            t("setup.disk_gb_avail"),
+            disk_space_as_gb.total,
+            t("setup.disk_gb_total"),
+        ))
+    ]
+    .spacing(5)
 }
 
 fn state_name(config: &DownloaderConfig) -> String {

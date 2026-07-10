@@ -23,4 +23,5 @@ target
 # Custom
 model.safetensors
 settings.json
+docs/book/
 /.git-exclude/
