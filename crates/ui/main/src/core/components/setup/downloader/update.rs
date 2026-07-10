@@ -30,12 +30,26 @@ impl Downloader {
                             move |progress| Message::AiModelProgressUpdated(id, progress),
                         ),
                         DownloaderConfig::Ffmepg => {
-                            let url = VideoEngine::download_url().unwrap();
-                            let download_dest_path = VideoEngine::download_dest_path().unwrap();
+                            let artifact = match VideoEngine::download_artifact() {
+                                Ok(artifact) => artifact,
+                                Err(err) => {
+                                    state.download_state = DownloadState::Errored(err.to_string());
+                                    return Task::none();
+                                }
+                            };
+                            let download_dest_path = match VideoEngine::download_dest_path() {
+                                Ok(path) => path,
+                                Err(err) => {
+                                    state.download_state = DownloadState::Errored(err.to_string());
+                                    return Task::none();
+                                }
+                            };
                             Task::run(
                                 general_download_stream(
-                                    url,
+                                    artifact.url.to_owned(),
                                     download_dest_path,
+                                    artifact.expected_sha256.map(str::to_owned),
+                                    artifact.github_api_asset,
                                     state.config.clone(),
                                 ),
                                 move |progress| Message::GeneralProgressUpdated(id, progress),
@@ -82,8 +96,13 @@ impl Downloader {
                         self.states[id].download_state = DownloadState::Downloading(p)
                     }
                     DownloadProgress::Finished(downloader_config) => {
-                        if let DownloaderConfig::Ffmepg = downloader_config {
-                            VideoEngine::unpack_archive().unwrap();
+                        if let DownloaderConfig::Ffmepg = downloader_config
+                            && let Err(err) = VideoEngine::unpack_archive()
+                        {
+                            self.states[id].download_state = DownloadState::Errored(format!(
+                                "failed to unpack ffmpeg archive: {err}"
+                            ));
+                            return Task::none();
                         }
 
                         self.states[id].download_state = DownloadState::Finished

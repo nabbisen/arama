@@ -238,6 +238,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "sha2",
  "swdir",
  "tokio",
 ]
@@ -281,6 +282,7 @@ dependencies = [
  "anyhow",
  "arama-env",
  "reqwest",
+ "sha2",
  "tar",
  "tokio",
  "xz2",
@@ -329,6 +331,7 @@ dependencies = [
  "iced",
  "lucide-icons",
  "reqwest",
+ "sha2",
  "swdir",
  "tokio",
 ]

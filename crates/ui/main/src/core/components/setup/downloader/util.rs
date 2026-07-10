@@ -14,11 +14,15 @@
 //! on the UI.  Progress display remains smooth because updates come in at least
 //! as fast as the UI can display them.
 
-use std::path::{Path, PathBuf};
+use std::{
+    fmt::Write as _,
+    path::{Path, PathBuf},
+};
 
 use arama_ai::model::model_container::{ModelContainer, SourceUrl};
 use arama_env::validate_dir;
 use iced::futures::{SinkExt, StreamExt, channel::mpsc::Sender};
+use sha2::{Digest, Sha256};
 use tokio::fs::{self, File};
 use tokio::io::{AsyncWriteExt, BufWriter};
 
@@ -41,10 +45,12 @@ const WRITE_BUF_CAPACITY: usize = 256 * 1024;
 async fn stream_to_file(
     response: reqwest::Response,
     dest: &Path,
+    expected_sha256: Option<&str>,
     output: &mut Sender<DownloadProgress>,
 ) -> Result<(), String> {
     let total = response.content_length().unwrap_or(0) as f32;
     let mut downloaded = 0.0f32;
+    let mut hasher = Sha256::new();
 
     // Ensure the parent directory exists.
     let parent = dest
@@ -75,6 +81,7 @@ async fn stream_to_file(
             return Err(format!("write error: {e}"));
         }
 
+        hasher.update(&chunk);
         downloaded += chunk.len() as f32;
         let pct = if total > 0.0 {
             (downloaded / total) * 100.0
@@ -92,6 +99,17 @@ async fn stream_to_file(
     }
     drop(writer); // release file handle before rename
 
+    if let Some(expected_sha256) = expected_sha256 {
+        let digest = hasher.finalize();
+        let actual = sha256_hex(&digest);
+        if actual != expected_sha256 {
+            let _ = fs::remove_file(&part).await;
+            return Err(format!(
+                "checksum mismatch: expected SHA-256 {expected_sha256}, got {actual}"
+            ));
+        }
+    }
+
     if let Err(e) = fs::rename(&part, dest).await {
         let _ = fs::remove_file(&part).await;
         return Err(format!("rename error: {e}"));
@@ -101,8 +119,17 @@ async fn stream_to_file(
 }
 
 /// Fetch `url`, check for HTTP success, and return the response.
-async fn fetch(url: &str) -> Result<reqwest::Response, String> {
-    let response = reqwest::get(url)
+async fn fetch(url: &str, github_api_asset: bool) -> Result<reqwest::Response, String> {
+    let client = reqwest::Client::new();
+    let mut request = client.get(url);
+    if github_api_asset {
+        request = request
+            .header(reqwest::header::ACCEPT, "application/octet-stream")
+            .header(reqwest::header::USER_AGENT, "arama");
+    }
+
+    let response = request
+        .send()
         .await
         .map_err(|e| format!("network error: {e}"))?;
     if !response.status().is_success() {
@@ -123,6 +150,8 @@ async fn fetch(url: &str) -> Result<reqwest::Response, String> {
 pub fn general_download_stream(
     url: String,
     download_dest_path: PathBuf,
+    expected_sha256: Option<String>,
+    github_api_asset: bool,
     downloader_config: DownloaderConfig,
 ) -> impl StreamExt<Item = DownloadProgress> {
     iced::stream::channel(
@@ -135,7 +164,7 @@ pub fn general_download_stream(
                 return;
             }
 
-            let response = match fetch(&url).await {
+            let response = match fetch(&url, github_api_asset).await {
                 Ok(r) => r,
                 Err(e) => {
                     let _ = output.send(DownloadProgress::Errored(e)).await;
@@ -143,7 +172,14 @@ pub fn general_download_stream(
                 }
             };
 
-            if let Err(e) = stream_to_file(response, &download_dest_path, &mut output).await {
+            if let Err(e) = stream_to_file(
+                response,
+                &download_dest_path,
+                expected_sha256.as_deref(),
+                &mut output,
+            )
+            .await
+            {
                 let _ = output.send(DownloadProgress::Errored(e)).await;
                 return;
             }
@@ -169,11 +205,15 @@ pub fn ai_model_download_stream(
                 .safetensors_path()
                 .expect("failed to get safetensors path");
 
-            if safetensors_path.exists() {
+            if model_container.clone().ready().unwrap_or(false) {
                 let _ = output
                     .send(DownloadProgress::Errored("file already exists".to_string()))
                     .await;
                 return;
+            }
+
+            if safetensors_path.exists() {
+                cleanup_primary_artifact(&safetensors_path).await;
             }
 
             // Resolve the primary download URL and save path.
@@ -192,7 +232,7 @@ pub fn ai_model_download_stream(
                 ),
             };
 
-            let response = match fetch(&model_url).await {
+            let response = match fetch(&model_url, false).await {
                 Ok(r) => r,
                 Err(e) => {
                     let _ = output.send(DownloadProgress::Errored(e)).await;
@@ -200,26 +240,49 @@ pub fn ai_model_download_stream(
                 }
             };
 
-            if let Err(e) = stream_to_file(response, &path_to_save, &mut output).await {
+            if let Err(e) = stream_to_file(
+                response,
+                &path_to_save,
+                Some(model_container.expected_sha256),
+                &mut output,
+            )
+            .await
+            {
                 let _ = output.send(DownloadProgress::Errored(e)).await;
                 return;
             }
 
-            model_container
-                .ensure_safetensors()
-                .expect("failed to ensure safetensors");
+            if let Err(e) = model_container.ensure_safetensors() {
+                let _ = output
+                    .send(DownloadProgress::Errored(format!(
+                        "model conversion error: {e}"
+                    )))
+                    .await;
+                return;
+            }
 
             // Optional small config JSON (downloaded in full, no progress needed).
             if let SourceUrl::ModelSafetensorsConfigJson((_, config_url)) =
                 &model_container.source_url
             {
-                let parent = path_to_save
-                    .parent()
-                    .expect("model path has no parent directory");
+                let parent = match path_to_save.parent() {
+                    Some(parent) => parent,
+                    None => {
+                        cleanup_primary_artifact(&path_to_save).await;
+                        let _ = output
+                            .send(DownloadProgress::Errored(format!(
+                                "model path has no parent directory: {}",
+                                path_to_save.display()
+                            )))
+                            .await;
+                        return;
+                    }
+                };
 
-                let res = match fetch(config_url).await {
+                let res = match fetch(config_url, false).await {
                     Ok(r) => r,
                     Err(e) => {
+                        cleanup_primary_artifact(&path_to_save).await;
                         let _ = output.send(DownloadProgress::Errored(e)).await;
                         return;
                     }
@@ -228,6 +291,7 @@ pub fn ai_model_download_stream(
                 let bytes = match res.bytes().await {
                     Ok(b) => b,
                     Err(e) => {
+                        cleanup_primary_artifact(&path_to_save).await;
                         let _ = output
                             .send(DownloadProgress::Errored(format!(
                                 "config download error: {e}"
@@ -237,7 +301,32 @@ pub fn ai_model_download_stream(
                     }
                 };
 
-                let url = reqwest::Url::parse(config_url).unwrap();
+                if let Some(expected_sha256) = model_container.config_expected_sha256 {
+                    let digest = Sha256::digest(&bytes);
+                    let actual = sha256_hex(&digest);
+                    if actual != expected_sha256 {
+                        cleanup_primary_artifact(&path_to_save).await;
+                        let _ = output
+                            .send(DownloadProgress::Errored(format!(
+                                "config checksum mismatch: expected SHA-256 {expected_sha256}, got {actual}"
+                            )))
+                            .await;
+                        return;
+                    }
+                }
+
+                let url = match reqwest::Url::parse(config_url) {
+                    Ok(url) => url,
+                    Err(e) => {
+                        cleanup_primary_artifact(&path_to_save).await;
+                        let _ = output
+                            .send(DownloadProgress::Errored(format!(
+                                "config URL parse error: {e}"
+                            )))
+                            .await;
+                        return;
+                    }
+                };
                 let filename = url
                     .path_segments()
                     .and_then(|mut s| s.next_back())
@@ -246,6 +335,7 @@ pub fn ai_model_download_stream(
 
                 let config_path = parent.join(filename);
                 if let Err(e) = fs::write(&config_path, bytes).await {
+                    cleanup_primary_artifact(&path_to_save).await;
                     let _ = output
                         .send(DownloadProgress::Errored(format!("config save error: {e}")))
                         .await;
@@ -260,4 +350,32 @@ pub fn ai_model_download_stream(
                 .await;
         },
     )
+}
+
+async fn cleanup_primary_artifact(path: &Path) {
+    let _ = fs::remove_file(path).await;
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let mut hex = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        write!(&mut hex, "{byte:02x}").expect("writing to string cannot fail");
+    }
+    hex
+}
+
+#[cfg(test)]
+mod tests {
+    use sha2::{Digest, Sha256};
+
+    use super::sha256_hex;
+
+    #[test]
+    fn sha256_hex_formats_digest() {
+        let digest = Sha256::digest(b"arama");
+        assert_eq!(
+            sha256_hex(&digest),
+            "0d22554a4efcf5eb5aa3bef02fa51ce1a1c8ba77fe45d6d959148250c1211702"
+        );
+    }
 }

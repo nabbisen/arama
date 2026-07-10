@@ -2,26 +2,27 @@
 name        = "arama-sidecar"
 description = "ffmpeg sidecar binary management for arama"
 readme      = "../../../README.md"
-version.workspace      = true
-edition.workspace      = true
-rust-version.workspace = true
-authors.workspace      = true
-license.workspace      = true
-repository.workspace   = true
-categories.workspace   = true
-keywords.workspace     = true
+version.workspace       = true
+edition.workspace       = true
+rust-version.workspace  = true
+authors.workspace       = true
+license.workspace       = true
+repository.workspace    = true
+categories.workspace    = true
+keywords.workspace      = true
 
 [dependencies]
-arama-env = { workspace = true }
+arama-env                   = { workspace = true }
 
-anyhow = { workspace = true }
-reqwest = { workspace = true }
-tokio = { workspace = true }
+anyhow                      = { workspace = true }
+reqwest                     = { workspace = true }
+sha2                        = { workspace = true }
+tokio                       = { workspace = true }
 
 # ffmpeg archive extraction
 [target.'cfg(target_os = "linux")'.dependencies]
-tar = "0.4"
-xz2 = "0.1"
+tar                         = "0.4"
+xz2                         = "0.1"
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
-zip = { version = "4", features = ["deflate"], default-features = false }
+zip                         = { version = "4", features = ["deflate"], default-features = false }

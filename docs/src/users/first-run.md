@@ -16,6 +16,13 @@ The downloads happen in parallel. A progress bar is shown for each item.
 The total download is roughly 800 MB on a fresh installation; subsequent
 runs skip setup entirely.
 
+Downloaded model files are checked against pinned HuggingFace revisions
+and SHA-256 digests before arama accepts them. Linux and Windows ffmpeg
+downloads use pinned GitHub release asset IDs and are checked against the
+SHA-256 digest published with the `yt-dlp/FFmpeg-Builds` release metadata.
+If verification fails, the setup item stops with an error and the partial
+file is discarded.
+
 ## If a download fails
 
 - Check your internet connection and restart arama. The wizard resumes
@@ -23,6 +30,9 @@ runs skip setup entirely.
   re-fetched.
 - If the HuggingFace servers are temporarily unavailable, wait and
   retry. No rate-limiting or account is required.
+- If setup reports a checksum mismatch, retry later. This usually means the
+  download was corrupted before arama accepted it, or a pinned remote artifact
+  was replaced upstream.
 - On corporate networks, large binary downloads may be blocked. Contact
   your network administrator or download the files manually and place
   them in `.arama-local/`.

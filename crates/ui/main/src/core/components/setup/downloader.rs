@@ -23,10 +23,7 @@ impl Downloader {
             .map(|config| {
                 let (download_state, file_size) = match &config {
                     DownloaderConfig::AiModel(model_container) => {
-                        let safetensors_path = model_container
-                            .safetensors_path()
-                            .expect("failed to get safetensors path");
-                        if safetensors_path.exists() {
+                        if model_container.clone().ready().unwrap_or(false) {
                             (DownloadState::NotRequired, None)
                         } else {
                             let file_size = match reqwest::blocking::Client::new()
@@ -58,29 +55,44 @@ impl Downloader {
                         if VideoEngine::ready() != FfmpegStatus::NotExists {
                             (DownloadState::NotRequired, None)
                         } else {
-                            let file_size = match reqwest::blocking::Client::new()
-                                .head(VideoEngine::download_url().unwrap())
-                                .send()
-                            {
-                                Ok(x) => {
-                                    if let Some(content_length) = x.headers().get(CONTENT_LENGTH) {
-                                        if let Ok(x) = content_length
-                                            .to_str()
-                                            .unwrap_or_default()
-                                            .parse::<u64>()
-                                        {
-                                            Some(x / 1024 / 1024)
-                                        } else {
-                                            None
-                                        }
-                                    } else {
-                                        None
+                            match VideoEngine::download_artifact() {
+                                Ok(artifact) => {
+                                    let client = reqwest::blocking::Client::new();
+                                    let mut request = client.head(artifact.url);
+                                    if artifact.github_api_asset {
+                                        request = request
+                                            .header(
+                                                reqwest::header::ACCEPT,
+                                                "application/octet-stream",
+                                            )
+                                            .header(reqwest::header::USER_AGENT, "arama");
                                     }
-                                }
-                                Err(_) => None,
-                            };
 
-                            (DownloadState::default(), file_size)
+                                    let file_size = match request.send() {
+                                        Ok(x) => {
+                                            if let Some(content_length) =
+                                                x.headers().get(CONTENT_LENGTH)
+                                            {
+                                                if let Ok(x) = content_length
+                                                    .to_str()
+                                                    .unwrap_or_default()
+                                                    .parse::<u64>()
+                                                {
+                                                    Some(x / 1024 / 1024)
+                                                } else {
+                                                    None
+                                                }
+                                            } else {
+                                                None
+                                            }
+                                        }
+                                        Err(_) => None,
+                                    };
+
+                                    (DownloadState::default(), file_size)
+                                }
+                                Err(err) => (DownloadState::Errored(err.to_string()), None),
+                            }
                         }
                     }
                 };

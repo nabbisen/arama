@@ -2,51 +2,52 @@
 name        = "arama-ai"
 description = "Offline AI inference pipeline (CLIP + wav2vec2) for arama"
 readme      = "../../README.md"
-version.workspace      = true
-edition.workspace      = true
-rust-version.workspace = true
-authors.workspace      = true
-license.workspace      = true
-repository.workspace   = true
-categories.workspace   = true
-keywords.workspace     = true
+version.workspace       = true
+edition.workspace       = true
+rust-version.workspace  = true
+authors.workspace       = true
+license.workspace       = true
+repository.workspace    = true
+categories.workspace    = true
+keywords.workspace      = true
 
 [features]
-default = []
+default         = []
 
-cuda = [
+cuda            = [
     "candle-core/cuda",
     "candle-nn/cuda",
     "candle-transformers/cuda"
 ]
 
 [dependencies]
-arama-cache = { workspace = true }
-arama-env = { workspace = true }
-arama-sidecar = { workspace = true }
+arama-cache                 = { workspace = true }
+arama-env                   = { workspace = true }
+arama-sidecar               = { workspace = true }
 
 # ai model loader
-reqwest = { workspace = true }
-tokio = { workspace = true }
-pt2safetensors = { workspace = true }
+reqwest                     = { workspace = true }
+tokio                       = { workspace = true }
+pt2safetensors              = { workspace = true }
 
 # general
-anyhow = { workspace = true }
-hnsw_rs = { workspace = true }
-image = { workspace = true }
-naga = { workspace = true }
-rayon = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-swdir = { workspace = true }
+anyhow                      = { workspace = true }
+hnsw_rs                     = { workspace = true }
+image                       = { workspace = true }
+naga                        = { workspace = true }
+rayon                       = { workspace = true }
+serde                       = { workspace = true }
+serde_json                  = { workspace = true }
+sha2                        = { workspace = true }
+swdir                       = { workspace = true }
 
 # huggingface candle serise
 [target.'cfg(not(target_os = "macos"))'.dependencies]
-candle-core = "0.10"
-candle-nn = "0.10"
-candle-transformers = "0.10"
+candle-core                 = "0.10"
+candle-nn                   = "0.10"
+candle-transformers         = "0.10"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-candle-core = { version = "0.10", features = ["metal"] }
-candle-nn = { version = "0.10", features = ["metal"] }
-candle-transformers = { version = "0.10", features = ["metal"] }
+candle-core                 = { version = "0.10", features = ["metal"] }
+candle-nn                   = { version = "0.10", features = ["metal"] }
+candle-transformers         = { version = "0.10", features = ["metal"] }

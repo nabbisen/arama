@@ -62,9 +62,12 @@ localcache engine details are an implementation concern.
 
 ### `crates/engine/sidecar`
 
-Manages the ffmpeg sidecar binary: download URL selection (GitHub CDN
-via `yt-dlp/FFmpeg-Builds`), archive extraction, and spawning ffmpeg
-and ffprobe commands.
+Manages the ffmpeg sidecar binary: download artifact metadata, SHA-256
+verification where upstream publishes a digest, archive extraction, and
+spawning ffmpeg and ffprobe commands. Linux and Windows use pinned GitHub
+release asset IDs via `yt-dlp/FFmpeg-Builds`; macOS still uses the
+existing upstream download URLs, which do not currently provide pinned
+checksums in arama.
 
 ### `crates/ui/layout`
 

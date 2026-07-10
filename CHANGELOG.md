@@ -7,6 +7,15 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+### Security
+
+- **First-run artifact verification.** Hugging Face model downloads now use
+  pinned repository revisions and SHA-256 checks before downloaded weights are
+  accepted. Linux and Windows ffmpeg setup downloads use pinned GitHub release
+  asset IDs and verify the SHA-256 digest published in the
+  `yt-dlp/FFmpeg-Builds` release metadata; checksum failures surface as setup
+  errors instead of silently accepting the file.
+
 ### Planned
 
 - Relative-time rendering ("2 days ago") for the Cache page table.
