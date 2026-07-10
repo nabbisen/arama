@@ -102,7 +102,7 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "settings.general.theme.hc_light" => "High contrast light",
         "settings.general.theme.hc_dark" => "High contrast dark",
         "settings.general.theme.hc_note" => {
-            "High-contrast affects arama's own controls; some standard widgets use the base light/dark theme."
+            "High-contrast maps core colors into standard widgets; arama controls use the full high-contrast palette."
         }
 
         _ => return None,

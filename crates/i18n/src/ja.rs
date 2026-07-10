@@ -132,7 +132,7 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "settings.general.theme.hc_light" => "ハイコントラスト（明）",
         "settings.general.theme.hc_dark" => "ハイコントラスト（暗）",
         "settings.general.theme.hc_note" => {
-            "ハイコントラストは arama 独自のコントロールに適用されます。一部の標準ウィジェットは基本のライト/ダークテーマを使用します。"
+            "ハイコントラストは標準ウィジェットの基本色にも反映されます。arama 独自のコントロールには完全なハイコントラストパレットが適用されます。"
         }
 
         _ => return None,

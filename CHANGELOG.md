@@ -9,6 +9,10 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Changed
 
+- **High-contrast theme completion.** `arama-theme` now builds the iced base
+  theme from the active Snora token palette, so standard iced widgets receive
+  the mapped high-contrast core colors instead of falling back to the built-in
+  light/dark palettes.
 - **Architecture doc reconciliation.** Current developer docs now reference
   `snora` 0.25 and document the reviewed first-party `unsafe` SafeTensors
   memory-mapping boundary; production AI/setup comments were translated to

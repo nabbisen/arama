@@ -12,9 +12,10 @@
 //!   [`snora::design::Tokens`] from the current preset.
 //! * **B — Snora container tokens.** Reserved for future card surfaces;
 //!   driven by the same [`tokens`].
-//! * **C — Base iced theme.** [`iced_theme`] returns the matching iced
-//!   [`Theme`] for the application's `.theme()` callback, so the window
-//!   background and all stock iced widgets track the preset.
+//! * **C — Base iced theme.** [`iced_theme`] returns an iced [`Theme`]
+//!   derived from the active Snora token palette for the application's
+//!   `.theme()` callback, so the window background and all stock iced widgets
+//!   track the preset as closely as iced's six-role palette allows.
 //!
 //! ## Global state
 //!
@@ -26,8 +27,8 @@
 use std::sync::atomic::{AtomicU8, Ordering};
 
 use arama_env::ThemePreset;
-use iced::{Theme, widget::button};
-use snora::design::Tokens;
+use iced::{Theme, theme, widget::button};
+use snora::design::{Tokens, style::color::to_iced_color};
 
 // ---------------------------------------------------------------------------
 // Global preset state
@@ -61,7 +62,11 @@ pub fn current_theme() -> ThemePreset {
 /// `Tokens` is small and `Clone`; the per-button clone cost in `view()` is
 /// negligible.
 fn tokens() -> Tokens {
-    match current_theme() {
+    tokens_for_preset(current_theme())
+}
+
+fn tokens_for_preset(preset: ThemePreset) -> Tokens {
+    match preset {
         ThemePreset::Light => Tokens::light(),
         ThemePreset::Dark => Tokens::dark(),
         ThemePreset::HighContrastLight => Tokens::high_contrast_light(),
@@ -71,14 +76,36 @@ fn tokens() -> Tokens {
 
 /// The base iced [`Theme`] for the active preset (layer C).
 ///
-/// iced 0.14 has no built-in high-contrast theme, so the high-contrast
-/// presets map to the matching `Light` / `Dark` base. arama's own controls
-/// (buttons, and future cards) still get the full high-contrast tokens via
-/// layers A / B; only stock iced widgets fall back to the base theme.
+/// Snora exposes 18 semantic palette roles, while iced 0.14's custom theme
+/// palette accepts six core roles. This bridge maps the six roles that survive
+/// cleanly so stock iced widgets receive the active preset's high-contrast
+/// colors instead of falling back to the built-in light/dark palettes.
 pub fn iced_theme() -> Theme {
-    match current_theme() {
-        ThemePreset::Light | ThemePreset::HighContrastLight => Theme::Light,
-        ThemePreset::Dark | ThemePreset::HighContrastDark => Theme::Dark,
+    let preset = current_theme();
+    let tokens = tokens_for_preset(preset);
+
+    Theme::custom(theme_name(preset), iced_palette_from_tokens(&tokens))
+}
+
+fn iced_palette_from_tokens(tokens: &Tokens) -> theme::Palette {
+    let palette = &tokens.palette;
+
+    theme::Palette {
+        background: to_iced_color(palette.surface),
+        text: to_iced_color(palette.text_primary),
+        primary: to_iced_color(palette.accent),
+        success: to_iced_color(palette.success),
+        warning: to_iced_color(palette.warning),
+        danger: to_iced_color(palette.danger),
+    }
+}
+
+fn theme_name(preset: ThemePreset) -> &'static str {
+    match preset {
+        ThemePreset::Light => "arama-light",
+        ThemePreset::Dark => "arama-dark",
+        ThemePreset::HighContrastLight => "arama-high-contrast-light",
+        ThemePreset::HighContrastDark => "arama-high-contrast-dark",
     }
 }
 
@@ -105,4 +132,30 @@ pub fn secondary(_theme: &Theme, status: button::Status) -> button::Style {
 /// Danger button style — destructive actions such as "Stop".
 pub fn danger(_theme: &Theme, status: button::Status) -> button::Style {
     snora::design::style::button::danger(&tokens(), status)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn iced_theme_uses_snora_palette_for_each_preset() {
+        for preset in ThemePreset::all() {
+            set_theme(*preset);
+
+            let expected = iced_palette_from_tokens(&tokens_for_preset(*preset));
+            let actual = iced_theme().palette();
+
+            assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
+    fn high_contrast_presets_do_not_fall_back_to_builtin_palettes() {
+        set_theme(ThemePreset::HighContrastLight);
+        assert_ne!(iced_theme().palette(), theme::Palette::LIGHT);
+
+        set_theme(ThemePreset::HighContrastDark);
+        assert_ne!(iced_theme().palette(), theme::Palette::DARK);
+    }
 }
