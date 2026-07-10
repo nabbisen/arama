@@ -57,11 +57,21 @@ impl SimilarPairsDialog {
 async fn prepare_embeddings(dir_node: DirNode, similarity_threshold: f32) -> Vec<SimilarPair> {
     let paths = dir_node.flatten_paths();
 
-    let db_location =
-        DbLocation::Custom(cache_storage_path().expect("failed to get cache stogate path"));
+    let db_location = match cache_storage_path() {
+        Ok(path) => DbLocation::Custom(path),
+        Err(err) => {
+            eprintln!("failed to get cache storage path: {err}");
+            return vec![];
+        }
+    };
     let read_conns = 4;
-    let thumbnail_dir =
-        Some(cache_thumbnail_dir_path().expect("failed to get cache thumbnail dir path"));
+    let thumbnail_dir = match cache_thumbnail_dir_path() {
+        Ok(path) => Some(path),
+        Err(err) => {
+            eprintln!("failed to get cache thumbnail dir path: {err}");
+            return vec![];
+        }
+    };
     let cache_config = CacheConfig {
         db_location,
         read_conns,
@@ -80,22 +90,31 @@ async fn prepare_embeddings(dir_node: DirNode, similarity_threshold: f32) -> Vec
     if !image_paths.is_empty() {
         let image_cache_reader = ImageCacheReader::as_session(ImageCacheConfig {
             cache_config: cache_config.clone(),
-        })
-        .expect("failed to get image cache writer");
+        });
+        match image_cache_reader {
+            Ok(image_cache_reader) => {
+                for path in &image_paths {
+                    let lookup = match image_cache_reader.lookup(path) {
+                        Ok(lookup) => lookup,
+                        Err(err) => {
+                            eprintln!("failed to lookup image cache entry: {err}");
+                            continue;
+                        }
+                    };
+                    let feature = match lookup {
+                        LookupResult::Hit(x) => x
+                            .features
+                            .map(|f| (x.path, x.thumbnail_path, f.clip_vector)),
+                        _ => None,
+                    };
 
-        for path in &image_paths {
-            let feature = match image_cache_reader.lookup(path).expect("failed to lookup") {
-                LookupResult::Hit(x) => x
-                    .features
-                    .map(|f| (x.path, x.thumbnail_path, f.clip_vector)),
-                _ => {
-                    // todo: error handling
-                    None
+                    if let Some(feature) = feature {
+                        image_path_embeddings.push(feature);
+                    }
                 }
-            };
-
-            if let Some(feature) = feature {
-                image_path_embeddings.push(feature);
+            }
+            Err(err) => {
+                eprintln!("failed to get image cache reader: {err}");
             }
         }
     }
@@ -110,25 +129,43 @@ async fn prepare_embeddings(dir_node: DirNode, similarity_threshold: f32) -> Vec
         })
         .collect();
     if !video_paths.is_empty() {
-        let video_cache_reader = VideoCacheReader::as_session(VideoCacheConfig {
-            cache_config,
-            ffmpeg_path: Some(VideoEngine::ffmpeg_path().expect("failed to get ffmpeg path")),
-        })
-        .expect("failed to get video cache writer");
+        match VideoEngine::ffmpeg_path() {
+            Ok(ffmpeg_path) => {
+                let video_cache_reader = VideoCacheReader::as_session(VideoCacheConfig {
+                    cache_config,
+                    ffmpeg_path: Some(ffmpeg_path),
+                });
+                match video_cache_reader {
+                    Ok(video_cache_reader) => {
+                        for path in &video_paths {
+                            let lookup = match video_cache_reader.lookup(path) {
+                                Ok(lookup) => lookup,
+                                Err(err) => {
+                                    eprintln!("failed to lookup video cache entry: {err}");
+                                    continue;
+                                }
+                            };
+                            let feature = match lookup {
+                                LookupResult::Hit(x) => x.features.and_then(|f| {
+                                    f.clip_vector.map(|v| (x.path, x.thumbnail_path, v))
+                                }),
+                                _ => None,
+                            };
 
-        for path in &video_paths {
-            let feature = match video_cache_reader.lookup(path).expect("failed to lookup") {
-                LookupResult::Hit(x) => x
-                    .features
-                    .and_then(|f| f.clip_vector.map(|v| (x.path, x.thumbnail_path, v))),
-                _ => {
-                    // todo: error handling
-                    None
+                            if let Some(feature) = feature {
+                                video_path_embeddings.push(feature);
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        eprintln!("failed to get video cache reader: {err}");
+                    }
                 }
-            };
-
-            if let Some(feature) = feature {
-                video_path_embeddings.push(feature);
+            }
+            Err(err) => {
+                eprintln!("failed to get ffmpeg path: {err}");
+                // Video cache reads need ffmpeg path normalization; keep any
+                // image pairs already collected instead of failing the dialog.
             }
         }
     }

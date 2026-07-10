@@ -19,11 +19,21 @@ impl MediaFocusDialog {
         let threshold = self.similarity_threshold;
         let path = &self.history[self.history_index];
 
-        let db_location =
-            DbLocation::Custom(cache_storage_path().expect("failed to get cache stogate path"));
+        let db_location = match cache_storage_path() {
+            Ok(path) => DbLocation::Custom(path),
+            Err(err) => {
+                eprintln!("failed to get cache storage path: {err}");
+                return vec![];
+            }
+        };
         let read_conns = 4;
-        let thumbnail_dir =
-            Some(cache_thumbnail_dir_path().expect("failed to get cache thumbnail dir path"));
+        let thumbnail_dir = match cache_thumbnail_dir_path() {
+            Ok(path) => Some(path),
+            Err(err) => {
+                eprintln!("failed to get cache thumbnail dir path: {err}");
+                return vec![];
+            }
+        };
 
         let cache_config = CacheConfig {
             db_location,
@@ -49,8 +59,13 @@ fn similar_images(
     cache_lookup_strategy: CacheLookupStrategy,
     threshold: f32,
 ) -> Vec<SimilarMediaItem> {
-    let image_cache_reader = ImageCacheReader::as_session(ImageCacheConfig { cache_config })
-        .expect("failed to get image cache writer");
+    let image_cache_reader = match ImageCacheReader::as_session(ImageCacheConfig { cache_config }) {
+        Ok(reader) => reader,
+        Err(err) => {
+            eprintln!("failed to get image cache reader: {err}");
+            return vec![];
+        }
+    };
 
     let cache_lookuped = match cache_lookup_strategy {
         CacheLookupStrategy::Everywhere => image_cache_reader.all(),
@@ -60,41 +75,45 @@ fn similar_images(
         CacheLookupStrategy::CurrentDirOnly => image_cache_reader.all_in_dir(path),
     };
 
-    let cache_entries = cache_lookuped
-        .expect("failed to lookup")
-        .into_iter()
-        .flatten()
-        .collect::<Vec<_>>();
+    let cache_entries = match cache_lookuped {
+        Ok(entries) => entries.into_iter().flatten().collect::<Vec<_>>(),
+        Err(err) => {
+            eprintln!("failed to lookup image cache entries: {err}");
+            return vec![];
+        }
+    };
 
     // Split target and candidate entries.
-    let canonical_path = path
-        .canonicalize()
-        .expect("failed to canonicalize")
-        .to_string_lossy()
-        .to_string();
+    let canonical_path = match path.canonicalize() {
+        Ok(path) => path.to_string_lossy().to_string(),
+        Err(err) => {
+            eprintln!("failed to canonicalize image path: {err}");
+            return vec![];
+        }
+    };
     let (target_item, candidates): (Vec<_>, Vec<_>) = cache_entries
         .into_iter()
         .partition(|x| x.path == canonical_path);
 
-    let target_clip_vector = if let Some(features) = &target_item[0].features {
-        features.clip_vector.to_owned()
-    } else {
+    let Some(target_clip_vector) = target_item
+        .first()
+        .and_then(|target| target.features.as_ref())
+        .map(|features| features.clip_vector.to_owned())
+    else {
         return vec![];
     };
 
     // Compute similarities in parallel.
     let mut ret = candidates
         .into_par_iter()
-        .map(|x| {
-            let similarity = dot_product(
-                &target_clip_vector,
-                &x.features.expect("failed to get features").clip_vector,
-            );
-            SimilarMediaItem {
+        .filter_map(|x| {
+            let features = x.features?;
+            let similarity = dot_product(&target_clip_vector, &features.clip_vector);
+            Some(SimilarMediaItem {
                 path: x.path,
                 thumbnail_path: x.thumbnail_path,
                 similarity,
-            }
+            })
         })
         .filter(|x| threshold <= x.similarity)
         .collect::<Vec<_>>();
@@ -116,11 +135,23 @@ fn similar_videos(
     cache_lookup_strategy: CacheLookupStrategy,
     threshold: f32,
 ) -> Vec<SimilarMediaItem> {
-    let video_cache_reader = VideoCacheReader::as_session(VideoCacheConfig {
+    let ffmpeg_path = match VideoEngine::ffmpeg_path() {
+        Ok(path) => path,
+        Err(err) => {
+            eprintln!("failed to get ffmpeg path: {err}");
+            return vec![];
+        }
+    };
+    let video_cache_reader = match VideoCacheReader::as_session(VideoCacheConfig {
         cache_config,
-        ffmpeg_path: Some(VideoEngine::ffmpeg_path().expect("failed to get ffmpeg path")),
-    })
-    .expect("failed to get video cache writer");
+        ffmpeg_path: Some(ffmpeg_path),
+    }) {
+        Ok(reader) => reader,
+        Err(err) => {
+            eprintln!("failed to get video cache reader: {err}");
+            return vec![];
+        }
+    };
 
     let cache_lookuped = match cache_lookup_strategy {
         CacheLookupStrategy::Everywhere => video_cache_reader.all(),
@@ -130,31 +161,37 @@ fn similar_videos(
         CacheLookupStrategy::CurrentDirOnly => video_cache_reader.all_in_dir(path),
     };
 
-    let cache_entries = cache_lookuped
-        .expect("failed to lookup")
-        .into_iter()
-        .flatten()
-        .collect::<Vec<_>>();
+    let cache_entries = match cache_lookuped {
+        Ok(entries) => entries.into_iter().flatten().collect::<Vec<_>>(),
+        Err(err) => {
+            eprintln!("failed to lookup video cache entries: {err}");
+            return vec![];
+        }
+    };
 
     // Split target and candidate entries.
-    let canonical_path = path
-        .canonicalize()
-        .expect("failed to canonicalize")
-        .to_string_lossy()
-        .to_string();
+    let canonical_path = match path.canonicalize() {
+        Ok(path) => path.to_string_lossy().to_string(),
+        Err(err) => {
+            eprintln!("failed to canonicalize video path: {err}");
+            return vec![];
+        }
+    };
     let (target_item, candidates): (Vec<_>, Vec<_>) = cache_entries
         .into_iter()
         .partition(|x| x.path == canonical_path);
 
-    let target_features = if target_item[0].features.is_none()
-        || target_item[0]
-            .features
-            .as_ref()
-            .is_some_and(|x| x.clip_vector.is_none() || x.wav2vec2_vector.is_none())
-    {
+    let Some(target_features) = target_item
+        .first()
+        .and_then(|target| target.features.as_ref())
+    else {
         return vec![];
-    } else {
-        target_item[0].features.as_ref().unwrap()
+    };
+    let (Some(target_clip_vector), Some(target_wav2vec2_vector)) = (
+        target_features.clip_vector.as_ref(),
+        target_features.wav2vec2_vector.as_ref(),
+    ) else {
+        return vec![];
     };
 
     // Compute similarities in parallel.
@@ -162,18 +199,21 @@ fn similar_videos(
         .into_par_iter()
         .map(|x| {
             let similarity = match &x.features {
-                Some(features)
-                    if features.clip_vector.is_some() && features.wav2vec2_vector.is_some() =>
-                {
-                    let image_similarity = dot_product(
-                        target_features.clip_vector.as_ref().unwrap(),
-                        features.clip_vector.as_ref().unwrap(),
-                    );
+                Some(features) => {
+                    let (Some(clip_vector), Some(wav2vec2_vector)) = (
+                        features.clip_vector.as_ref(),
+                        features.wav2vec2_vector.as_ref(),
+                    ) else {
+                        return SimilarMediaItem {
+                            path: x.path,
+                            thumbnail_path: x.thumbnail_path,
+                            similarity: 0.0,
+                        };
+                    };
 
-                    let audio_similarity = dot_product(
-                        target_features.wav2vec2_vector.as_ref().unwrap(),
-                        features.wav2vec2_vector.as_ref().unwrap(),
-                    );
+                    let image_similarity = dot_product(target_clip_vector, clip_vector);
+
+                    let audio_similarity = dot_product(target_wav2vec2_vector, wav2vec2_vector);
 
                     let video_similarity_config = VideoSimilarityConfig::default();
                     image_similarity * video_similarity_config.image_weight

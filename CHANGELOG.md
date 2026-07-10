@@ -31,6 +31,9 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Fixed
 
+- **Similarity dialog error resilience.** Focus-view and similar-pairs cache
+  lookup failures now degrade to empty or partial result sets instead of
+  panicking when cache paths, readers, ffmpeg paths, or individual lookups fail.
 - **Setup/download error resilience.** First-run setup now surfaces local path,
   disk-space inspection, model path resolution, and local ffmpeg command path
   failures as recoverable setup errors instead of panicking.
