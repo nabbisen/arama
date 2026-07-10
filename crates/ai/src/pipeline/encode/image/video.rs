@@ -1,7 +1,7 @@
-//! OpenAI CLIP の Image Encoder を使った映像フレームの埋め込み
+//! Video frame embedding with the OpenAI CLIP image encoder.
 //!
-//! Text Encoder は使用しない。
-//! 出力: 512 次元 L2 正規化済みベクトル（ViT-B/32 の場合）
+//! The text encoder is not used.
+//! Output: 512-dimensional L2-normalized vectors for ViT-B/32.
 
 use anyhow::{Context, Result};
 use candle_core::{DType, Device, Tensor};
@@ -14,7 +14,7 @@ use crate::extractor::RawVideoFrame;
 
 const CLIP_MODEL_ID: &str = "openai/clip-vit-base-patch32";
 
-// CLIP の ImageNet 正規化定数
+// CLIP ImageNet normalization constants.
 const CLIP_MEAN: [f32; 3] = [0.48145466, 0.4578275, 0.40821073];
 const CLIP_STD: [f32; 3] = [0.26862954, 0.26130258, 0.27577711];
 
@@ -24,7 +24,7 @@ pub struct ClipEncoder {
 }
 
 impl ClipEncoder {
-    /// HuggingFace Hub から CLIP モデルをロードする
+    /// Loads the CLIP model from Hugging Face Hub.
     pub async fn load(device: Device) -> Result<Self> {
         info!("Loading CLIP model: {}", CLIP_MODEL_ID);
 
@@ -87,9 +87,9 @@ impl ClipEncoder {
         })
     }
 
-    // ── 映像フレームのエンコード ──────────────────────────────────────
+    // Video frame encoding.
 
-    /// 複数フレームをバッチエンコードして L2 正規化済みベクトル列を返す
+    /// Batch-encodes frames and returns L2-normalized vectors.
     pub fn encode_frames(&self, frames: &[RawVideoFrame]) -> Result<Vec<Vec<f32>>> {
         if frames.is_empty() {
             return Ok(vec![]);
@@ -100,13 +100,13 @@ impl ClipEncoder {
         self.tensor_to_vecs(normed)
     }
 
-    /// RGB24 HWC フレーム群を CLIP 入力テンソル [B, 3, H, W] に変換する
+    /// Converts RGB24 HWC frames to CLIP input tensor shape [B, 3, H, W].
     fn frames_to_tensor(&self, frames: &[RawVideoFrame]) -> Result<Tensor> {
         let size = frames[0].width as usize;
         let mut data: Vec<f32> = Vec::with_capacity(frames.len() * 3 * size * size);
 
         for frame in frames {
-            // HWC → CHW + CLIP 正規化
+            // HWC -> CHW plus CLIP normalization.
             for c in 0..3usize {
                 let mean = CLIP_MEAN[c];
                 let std = CLIP_STD[c];

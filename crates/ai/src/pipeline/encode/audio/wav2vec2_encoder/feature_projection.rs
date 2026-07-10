@@ -1,7 +1,7 @@
 use candle_core::{Module, Tensor};
 use candle_nn::{VarBuilder, layer_norm, linear};
 
-/// 特徴量を Transformer の隠れ層次元 (768) に投影
+/// Projects features to the Transformer hidden dimension (768).
 pub struct FeatureProjection {
     layer_norm: candle_nn::LayerNorm,
     projection: candle_nn::Linear,

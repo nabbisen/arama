@@ -1,4 +1,4 @@
-//! 映像・音声の特徴量保持と類似度計算
+//! Video/audio feature storage and similarity calculation.
 
 pub mod util;
 pub mod video_features;

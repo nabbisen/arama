@@ -24,7 +24,7 @@ impl FileEmbeddingMap {
         );
     }
 
-    // matmul 総当り計算 対象数が少ない時限定
+    // Brute-force matmul path for small candidate sets only.
     // pub fn similar_pairs(&self, threshold: f32) -> anyhow::Result<Vec<(PathBuf, PathBuf, f32)>> {
     //     crate::embedding::pipeline::infer::clip::clip_calculator::find_similar_pairs(
     //         &self.files,

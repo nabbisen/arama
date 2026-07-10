@@ -74,7 +74,7 @@ impl Downloader {
                     }
                 }
 
-                // すべて完了またはエラーで止まったかチェック
+                // Check whether every item has finished or stopped with an error.
                 let all_done = self.states.iter().all(|state| {
                     matches!(
                         state.download_state,
@@ -112,7 +112,7 @@ impl Downloader {
                     }
                 }
 
-                // すべて完了またはエラーで止まったかチェック
+                // Check whether every item has finished or stopped with an error.
                 let all_done = self.states.iter().all(|state| {
                     matches!(
                         state.download_state,

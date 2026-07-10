@@ -11,5 +11,5 @@ pub struct Wav2vec2Config {
     // pub num_attention_heads: usize,
     // pub intermediate_size: usize,
     // pub layer_norm_eps: f64,
-    // 必要に応じて他のフィールドも追加
+    // Add other fields as needed.
 }

@@ -2,9 +2,9 @@
 pub struct VideoFeatures {
     pub path: String,
 
-    /// CLIP 映像埋め込み: [N_frames × 512]（L2 正規化済み）
+    /// CLIP video embeddings: `[N_frames x 512]`, L2-normalized.
     pub video_embeddings: Vec<f32>,
-    /// Whisper 音声埋め込み: [N_segments × hidden_dim]（L2 正規化済み）
-    /// hidden_dim: tiny=384 / base=512 / small=768 / medium=1024
+    /// wav2vec2 audio embeddings: `[N_segments x hidden_dim]`, L2-normalized.
+    /// Typical hidden dimensions: tiny=384, base=512, small=768, medium=1024.
     pub audio_embeddings: Vec<f32>,
 }

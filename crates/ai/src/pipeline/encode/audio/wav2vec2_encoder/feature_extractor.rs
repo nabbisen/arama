@@ -3,7 +3,7 @@ use candle_nn::{Conv1dConfig, VarBuilder, conv1d_no_bias};
 
 use super::super::wav2vec2_config::Wav2vec2Config;
 
-/// 7層の畳み込みによる特徴抽出器
+/// Feature extractor with 7 convolution layers.
 pub struct FeatureExtractor {
     conv_layers: Vec<candle_nn::Conv1d>,
 }
@@ -20,9 +20,9 @@ impl FeatureExtractor {
                 ..Default::default()
             };
 
-            // config.conv_bias が false の場合、こちらを使用する
+            // Use this path when config.conv_bias is false.
             let conv = if !config.conv_bias {
-                // バイアスなしの畳み込み層をロード
+                // Load a convolution layer without bias.
                 conv1d_no_bias(
                     in_c,
                     config.conv_dim[i],
@@ -31,7 +31,7 @@ impl FeatureExtractor {
                     vb.pp(i).pp("conv"),
                 )?
             } else {
-                // バイアスあり（通常の Wav2vec2 では稀ですが config に従う場合）
+                // Load a biased convolution layer when required by the config.
                 candle_nn::conv1d(
                     in_c,
                     config.conv_dim[i],

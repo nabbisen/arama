@@ -4,7 +4,7 @@
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  arama (desktop app — iced 0.14 + snora 0.8)                 │
+│  arama (desktop app — iced 0.14 + snora 0.25)                │
 │                                                              │
 │  ┌──────────────────────┐  ┌─────────────────┐  ┌──────────────────────┐   │
 │  │  Explorer page       │  │  Cache page     │  │  Settings page       │   │
@@ -89,6 +89,10 @@ similar_images() / similar_videos()
 | `wav2vec2-base-960h` | 768-dim audio embeddings | HuggingFace `facebook/` |
 
 Both models run on CPU via [candle](https://github.com/huggingface/candle).
+Model weight files are memory-mapped through Candle's SafeTensors loader.
+Those call sites are first-party `unsafe` blocks because the upstream API is
+unsafe; arama treats the downloaded model files as trusted only after the
+first-run checksum verification described in the setup/download docs.
 
 ## Video sampling strategy
 

@@ -45,16 +45,16 @@ impl VideoSimilarityPipeline {
         })
     }
 
-    // ── 公開 API ──────────────────────────────────────────────────────
+    // Public API.
 
-    // /// 2 つの動画ファイルの類似度スコアを計算する
+    // /// Calculate a similarity score for two video files.
     // pub fn compare(&self, path_a: &Path, path_b: &Path) -> anyhow::Result<VideoSimilarityResult> {
     //     let feat_a = self.get_or_extract(path_a)?;
     //     let feat_b = self.get_or_extract(path_b)?;
     //     self.calculator.compare(&feat_a, &feat_b)
     // }
 
-    /// 動画の特徴量を事前にキャッシュに登録する
+    /// Preload video features into the cache.
     pub fn preload(&self, path: &Path) -> anyhow::Result<()> {
         self.get_or_extract(path)?;
         Ok(())
@@ -65,7 +65,7 @@ impl VideoSimilarityPipeline {
     //     Ok(())
     // }
 
-    // ── キャッシュ制御 ────────────────────────────────────────────────
+    // Cache control.
 
     fn get_or_extract(&self, path: &Path) -> anyhow::Result<VideoFeatures> {
         let reader =
@@ -106,21 +106,21 @@ impl VideoSimilarityPipeline {
         Ok(features)
     }
 
-    // ── 特徴量抽出 ────────────────────────────────────────────────────
+    // Feature extraction.
 
     fn extract_features(&self, path: &Path) -> anyhow::Result<VideoFeatures> {
-        // 1. 動画長を取得してサンプリングタイムスタンプを決定
-        //    冒頭ゾーンに 50% 以上のサンプルを集中させる
+        // 1. Read video duration and choose sampling timestamps.
+        //    More than half of the samples are concentrated in the head zone.
         let duration = self.extractor.get_duration(path)?;
         let timestamps = self.cfg.compute_sample_timestamps(duration);
 
-        // 2. 映像フレームを個別シーク取得 → CLIP でバッチエンコード
+        // 2. Seek video frames individually, then batch-encode them with CLIP.
         let frames = self.extractor.extract_video_frames(path, &timestamps)?;
         let video_raw_embeddings = self.clip_encoder.encode_frames(&frames)?;
         let video_embeddings = mean_embeddings(&video_raw_embeddings);
 
-        // 3. 音声セグメントを個別シーク取得 → Whisper でエンコード
-        //    映像と同じタイムスタンプを使うことで時間軸が対応する
+        // 3. Seek audio segments individually, then encode them with wav2vec2.
+        //    Using the same timestamps as video keeps the timelines aligned.
         let sr = self.audio_encoder.required_sample_rate();
         let segments = self.extractor.extract_audio_segments_direct(
             path,
@@ -162,7 +162,7 @@ fn mean_embeddings(frames: &Vec<Vec<f32>>) -> Vec<f32> {
     for val in &mut mean_vec {
         *val /= f_n;
     }
-    // ここで L2正規化 をしておくと、後のドット積がそのままコサイン類似度になります
+    // L2-normalize here so later dot products are cosine similarity.
     let norm = mean_vec.iter().map(|x| x * x).sum::<f32>().sqrt();
     if norm > 0.0 {
         for val in &mut mean_vec {

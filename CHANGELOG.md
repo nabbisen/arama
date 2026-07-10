@@ -7,6 +7,13 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+### Changed
+
+- **Architecture doc reconciliation.** Current developer docs now reference
+  `snora` 0.25 and document the reviewed first-party `unsafe` SafeTensors
+  memory-mapping boundary; production AI/setup comments were translated to
+  English while locale strings and historical records remain unchanged.
+
 ### Security
 
 - **First-run artifact verification.** Hugging Face model downloads now use

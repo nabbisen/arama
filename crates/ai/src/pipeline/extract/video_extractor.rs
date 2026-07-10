@@ -22,11 +22,11 @@ impl VideoExtractor {
         Self { cfg }
     }
 
-    // ── 動画長の取得 ───────────────────────────────────────────────────
+    // Video duration.
 
-    /// ffprobe で動画の長さを秒単位で取得する
+    /// Get video duration in seconds with ffprobe.
     ///
-    /// ffmpeg-sidecar に同梱された ffprobe を使用するため別途インストール不要。
+    /// Uses the ffprobe binary managed by arama, so no separate installation is required.
     pub fn get_duration(&self, path: &Path) -> anyhow::Result<f64> {
         let output = VideoEngine::ffprobe()
             .with_context(|| "failed to get ffprobe")?
@@ -50,13 +50,13 @@ impl VideoExtractor {
         Ok(duration)
     }
 
-    // ── 映像フレーム ───────────────────────────────────────────────────
+    // Video frames.
 
-    /// 指定タイムスタンプ群のフレームを個別シークで取得する
+    /// Extract frames at the requested timestamps using individual seeks.
     ///
-    /// 入力前 -ss による GOP 単位の高速シークのため、
-    /// 動画内のどの位置でもデコード量はほぼ一定（GOP 1 個分）。
-    /// 1 時間動画の中盤へのシークも冒頭へのシークも同コスト。
+    /// With input-side `-ss`, ffmpeg performs GOP-level fast seeks, so decode
+    /// cost is roughly constant regardless of whether the timestamp is near the
+    /// beginning or middle of a long video.
     pub fn extract_video_frames(
         &self,
         path: &Path,
@@ -101,8 +101,8 @@ impl VideoExtractor {
                 "rgb24",
                 "pipe:1",
             ])
-            .stdout(Stdio::piped()) // stdout をパイプで受け取る
-            .stderr(Stdio::null()) // stderr は捨てる . 受け取る場合は Stdio::inherit()
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
             .output()
             .context("ffmpeg failed")?;
 
@@ -127,13 +127,13 @@ impl VideoExtractor {
         }))
     }
 
-    // ── 音声セグメント ─────────────────────────────────────────────────
+    // Audio segments.
 
-    /// 各タイムスタンプへ直接シークして音声セグメントを取得する
+    /// Extract audio segments by seeking directly to each timestamp.
     ///
-    /// 必要な秒数だけデコードするため IO コストが小さい。
-    /// ffmpeg 起動は N 回だが 1 回あたりのデコード量が少なく
-    /// 全窓一括デコード方式より効率的。
+    /// This decodes only the needed seconds. It starts ffmpeg once per segment,
+    /// but each invocation decodes a small window, which is cheaper than
+    /// decoding every window in one large pass.
     pub fn extract_audio_segments_direct(
         &self,
         path: &Path,
@@ -163,19 +163,19 @@ impl VideoExtractor {
                 path.to_string_lossy().as_ref(),
                 "-t",
                 &duration.to_string(),
-                "-vn", // 映像トラック無視
+                "-vn", // Ignore the video track.
                 "-acodec",
-                "pcm_f32le", // f32LE PCM に直接変換
+                "pcm_f32le", // Convert directly to f32LE PCM.
                 "-ar",
                 &sample_rate.to_string(),
                 "-ac",
-                "1", // モノラル
+                "1", // Mono.
                 "-f",
                 "f32le",
                 "pipe:1",
             ])
-            .stdout(Stdio::piped()) // stdout をパイプで受け取る
-            .stderr(Stdio::null()) // stderr は捨てる . 受け取る場合は Stdio::inherit()
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
             .output()
             .context("ffmpeg failed")?;
 

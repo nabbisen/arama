@@ -1,4 +1,4 @@
-/// 映像フレームの生データ（RGB24 HWC）
+/// Raw video frame data in RGB24 HWC layout.
 pub struct RawVideoFrame {
     pub timestamp_secs: f64,
     pub width: u32,

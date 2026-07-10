@@ -1,4 +1,4 @@
-//! 類似度判定の設定とサンプリングタイムスタンプ生成
+//! Similarity scoring settings and sampling timestamp generation.
 
 use crate::{CLIP_IMAGE_SIZE, CROSS_MAX_SIMILARITY_THRESHOLD, VIDEO_IMAGE_WEIGHT};
 
@@ -7,37 +7,37 @@ mod tests;
 
 #[derive(Debug, Clone)]
 pub struct VideoSimilarityConfig {
-    // ── 冒頭ゾーン ──────────────────────────────────────────────────
+    // Head zone.
     pub head_fixed_anchors_secs: Vec<f64>,
 
-    /// 冒頭ゾーンの最大長（秒）
-    /// 実際の上限は min(head_zone_secs, duration * 0.5) で決まる
+    /// Maximum head-zone length in seconds.
+    /// The actual upper bound is `min(head_zone_secs, duration * 0.5)`.
     pub head_zone_secs: f64,
 
-    /// 冒頭ゾーン内のサンプル点数
-    /// 総サンプル数の約半分に設定することで冒頭を厚めにカバーする
+    /// Number of sample points inside the head zone.
+    /// This is set to roughly half of all samples to cover the opening more densely.
     pub head_sample_count: usize,
 
-    // ── 中間・末尾 ───────────────────────────────────────────────────
-    /// 動画全体に対するパーセンテージアンカー（0.0〜1.0）
+    // Middle and tail anchors.
+    /// Percentage anchors across the full video, from 0.0 to 1.0.
     pub percent_anchors: Vec<f64>,
 
-    /// 末尾固定アンカー（動画末尾からの秒数）
+    /// Fixed tail anchors in seconds before the end of the video.
     pub tail_anchors_secs: Vec<f64>,
 
-    // ── マージ ───────────────────────────────────────────────────────
-    /// 近接するサンプル点を統合する最小間隔（秒）
-    /// Whisper セグメント長の 2 倍程度が目安
+    // Merge policy.
+    /// Minimum gap in seconds used to merge nearby sample points.
+    /// Roughly twice the Whisper segment duration is a practical baseline.
     pub min_sample_gap_secs: f64,
 
-    // ── 音声・映像 ──────────────────────────────────────────────────
-    /// 1 音声セグメントの長さ（秒）
+    // Audio and image settings.
+    /// Length of one audio segment in seconds.
     pub audio_segment_duration_secs: f64,
 
-    /// CLIP 入力画像サイズ（ピクセル）
+    /// CLIP input image size in pixels.
     pub clip_image_size: usize,
 
-    // ── 類似度重み ───────────────────────────────────────────────────
+    // Similarity weights.
     pub image_weight: f32,
     pub audio_weight: f32,
 
@@ -49,18 +49,18 @@ impl Default for VideoSimilarityConfig {
         Self {
             head_fixed_anchors_secs: vec![3.0, 9.0, 15.0],
 
-            // 冒頭 135 秒に 5 点（約 27 秒間隔）
-            // → 総サンプル 14 点中 8 点 = 57% が冒頭
+            // Five points in the first 135 seconds, about 27 seconds apart.
+            // With the fixed anchors, 8 of 14 samples are in the opening.
             head_zone_secs: 135.0,
             head_sample_count: 5,
 
-            // 中間 3 点（動画の長さに比例してスケール）
+            // Three middle points, scaled by video duration.
             percent_anchors: vec![0.30, 0.50, 0.70],
 
-            // 末尾 3 点
+            // Three tail points.
             tail_anchors_secs: vec![30.0, 15.0, 5.0],
 
-            // 20 秒以内の近接点は後を除去
+            // Drop later points that are within 20 seconds of an earlier point.
             min_sample_gap_secs: 20.0,
 
             audio_segment_duration_secs: 20.0,
@@ -75,26 +75,26 @@ impl Default for VideoSimilarityConfig {
 }
 
 impl VideoSimilarityConfig {
-    /// 動画の長さを受け取り、サンプリングタイムスタンプ一覧を生成する
+    /// Generate sampling timestamps for a video duration.
     ///
-    /// 処理手順:
-    ///   1. 冒頭ゾーン内に head_sample_count 点を均等配置
-    ///   2. パーセンテージアンカーを絶対秒数に変換
-    ///   3. 末尾オフセットを絶対秒数に変換
-    ///   4. ソート → 範囲外除去 → min_sample_gap_secs でマージ
+    /// Steps:
+    ///   1. Place `head_sample_count` points evenly inside the head zone.
+    ///   2. Convert percentage anchors to absolute seconds.
+    ///   3. Convert tail offsets to absolute seconds.
+    ///   4. Sort, remove out-of-range points, and merge using `min_sample_gap_secs`.
     pub fn compute_sample_timestamps(&self, duration_secs: f64) -> Vec<f64> {
         let mut points: Vec<f64> = Vec::new();
 
-        // 1. 冒頭固定アンカー（必ず含める）
+        // 1. Fixed head anchors, always included when in range.
         for &t in &self.head_fixed_anchors_secs {
             if t < duration_secs {
                 points.push(t);
             }
         }
 
-        // 2. 冒頭ゾーン均等サンプリング（固定アンカーの後の区間）
+        // 2. Even sampling in the head zone after the fixed anchors.
         let head_zone = self.head_zone_secs.min(duration_secs * 0.5);
-        // 固定アンカーの最後の点以降から均等割り
+        // Divide the interval after the last fixed anchor evenly.
         let head_start = self.head_fixed_anchors_secs.last().copied().unwrap_or(0.0);
         if head_zone > head_start {
             let step = (head_zone - head_start) / (self.head_sample_count + 1) as f64;
@@ -103,12 +103,12 @@ impl VideoSimilarityConfig {
             }
         }
 
-        // 3. パーセンテージアンカー
+        // 3. Percentage anchors.
         for &pct in &self.percent_anchors {
             points.push(duration_secs * pct);
         }
 
-        // 4. 末尾固定アンカー
+        // 4. Fixed tail anchors.
         for &offset in &self.tail_anchors_secs {
             let t = duration_secs - offset;
             if t > 0.0 {
@@ -119,7 +119,7 @@ impl VideoSimilarityConfig {
         points.sort_by(|a, b| a.partial_cmp(b).unwrap());
         points.retain(|&t| t > 0.0 && t < duration_secs);
 
-        // 固定アンカーは min_gap の対象外にする
+        // Fixed anchors are exempt from the minimum-gap merge.
         deduplicate_preserving_fixed(
             points,
             &self.head_fixed_anchors_secs,
@@ -127,7 +127,7 @@ impl VideoSimilarityConfig {
         )
     }
 
-    /// サンプリング設定のサマリ文字列（ログ・デバッグ用）
+    /// Sampling settings summary for logs and debugging.
     pub fn sampling_summary(&self, duration_secs: f64) -> String {
         let ts = self.compute_sample_timestamps(duration_secs);
         let actual_head_zone = self.head_zone_secs.min(duration_secs * 0.5);
@@ -143,7 +143,7 @@ impl VideoSimilarityConfig {
         let labels: Vec<String> = ts.iter().map(|&t| format!("{:.0}s", t)).collect();
 
         format!(
-            "duration={:.0}s  total={} [head={}, mid={}, tail={}]  → [{}]",
+            "duration={:.0}s  total={} [head={}, mid={}, tail={}]  -> [{}]",
             duration_secs,
             ts.len(),
             head_count,
@@ -159,7 +159,7 @@ fn deduplicate_preserving_fixed(sorted: Vec<f64>, fixed: &[f64], min_gap: f64) -
     for t in sorted {
         let is_fixed = fixed.iter().any(|&f| (f - t).abs() < 1e-9);
         if is_fixed {
-            // 固定アンカーは無条件で保持
+            // Always keep fixed anchors.
             result.push(t);
         } else if result.last().is_none_or(|&last| t - last >= min_gap) {
             result.push(t);

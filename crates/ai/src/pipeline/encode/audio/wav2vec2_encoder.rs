@@ -1,7 +1,7 @@
 use candle_core::{DType, Device, Tensor};
 use candle_nn::VarBuilder;
 
-// --- モデルコンポーネントの定義 ---
+// --- Model component definitions ---
 mod feature_extractor;
 mod feature_projection;
 
@@ -16,13 +16,13 @@ use crate::{
     },
 };
 
-// --- メインのエンコーダ実装 ---
+// --- Main encoder implementation ---
 
 pub struct Wav2vec2Encoder {
     feature_extractor: FeatureExtractor,
     feature_projection: FeatureProjection,
-    // 本来はここに 12層の Transformer Block が入るが
-    // 骨格イメージに合わせ、上位の特徴抽出フローを記述
+    // A full wav2vec2 stack would place 12 Transformer blocks here.
+    // This skeleton keeps the high-level feature extraction flow explicit.
     device: Device,
     feature_dim: usize,
 }
@@ -32,7 +32,7 @@ impl Wav2vec2Encoder {
         let model = wav2vec2::model();
         let model_safetensors_path = model.safetensors_path()?;
 
-        // config.json の読み込み
+        // Load config.json.
         let config_str = std::fs::read_to_string(model.config_json_path()?)?;
         let config: Wav2vec2Config = serde_json::from_str(&config_str)?;
 
@@ -55,7 +55,7 @@ impl Wav2vec2Encoder {
     }
 
     fn encode_one(&self, seg: &AudioSegmentView) -> anyhow::Result<Vec<f32>> {
-        // [1, 1, 系列長] に変換
+        // Convert to [1, 1, sequence length].
         let tensor = Tensor::from_slice(seg.samples, (1, 1, seg.samples.len()), &self.device)?;
 
         // 1. Feature Extraction (CNN)
@@ -64,17 +64,18 @@ impl Wav2vec2Encoder {
         // 2. Projection (Linear) -> [1, T, 768]
         let projected = self.feature_projection.forward(&feats)?;
 
-        // 3. 本来は Transformer Encoder を通すが、ここではプーリングへ
-        // 時間軸 (dim 1) 方向に平均
+        // 3. A full model would pass this through the Transformer encoder;
+        // this skeleton pools instead.
+        // Average over the time axis (dim 1).
         let pooled = projected.mean(1)?.squeeze(0)?;
 
-        // 4. L2 正規化
+        // 4. L2 normalize.
         let vec = pooled.to_vec1::<f32>()?;
         Ok(l2_normalize(vec))
     }
 }
 
-// --- Trait 実装 ---
+// --- Trait implementation ---
 
 impl AudioEncoder for Wav2vec2Encoder {
     fn encode_segments(&self, segments: &[AudioSegmentView<'_>]) -> Vec<Vec<f32>> {

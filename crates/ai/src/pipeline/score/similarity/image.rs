@@ -6,8 +6,8 @@ use rayon::{
     slice::ParallelSliceMut,
 };
 
-// 前提: キャッシュ保存時に L2 正規化済
-// return: left::(path, thumbnail_path), right::(path, thumbnail_path), similarity
+// Assumption: vectors were L2-normalized when cached.
+// Return: left (path, thumbnail_path), right (path, thumbnail_path), similarity.
 pub type MediaRef = (String, Option<String>);
 pub type SimilarImagePair = (MediaRef, MediaRef, f32);
 
@@ -15,18 +15,18 @@ pub async fn find_similar_pairs(
     // path, thumbnail_path, features
     map: &[(String, Option<String>, Vec<f32>)],
     threshold: f32,
-    k_neighbors: usize, // 各画像について何件の近傍を探すか. 少し余裕を持った値（例：50〜100）に設定しておくのが安全
+    k_neighbors: usize, // Number of neighbors to search for each image; keep some margin, e.g. 50-100.
 ) -> Vec<SimilarImagePair> {
     let n = map.len();
     if n == 0 {
         return vec![];
     }
 
-    // 1. HNSWインデックスの構築
+    // 1. Build the HNSW index.
     let hnsw = Hnsw::<f32, DistL2>::new(16, n, 16, 200, DistL2);
 
-    // map 内の Vec<f32> への「参照」をそのまま HNSW に登録する
-    // これにより、数千〜数万件の大きなベクトルのコピーが完全にゼロになります
+    // Insert references to the map's Vec<f32> values directly into HNSW.
+    // This avoids copying large vectors even for thousands of images.
     let data_with_id: Vec<(&Vec<f32>, usize)> = map
         .iter()
         .enumerate()
@@ -35,25 +35,25 @@ pub async fn find_similar_pairs(
 
     hnsw.parallel_insert(&data_with_id);
 
-    // 2. 検索とフィルタリング
+    // 2. Search and filter.
     let ef_search = 100;
     let mut ret: Vec<SimilarImagePair> = (0..n)
         .into_par_iter()
         .flat_map(|i| {
-            let (path_a, thumbnail_path_a, vec_a) = &map[i]; // 元のデータを参照
+            let (path_a, thumbnail_path_a, vec_a) = &map[i];
             let neighbors = hnsw.search(vec_a, k_neighbors, ef_search);
 
             let mut pairs = Vec::new();
             for neighbor in neighbors {
                 let j = neighbor.d_id;
                 if i < j {
-                    let (path_b, thumbnail_path_b, vec_b) = &map[j]; // 相手も参照
+                    let (path_b, thumbnail_path_b, vec_b) = &map[j];
 
-                    // ドット積計算
+                    // Dot product.
                     let score: f32 = vec_a.iter().zip(vec_b).map(|(a, b)| a * b).sum();
 
                     if score >= threshold {
-                        // ここで初めて PathBuf をクローンして結果リストに入れる
+                        // Clone paths only when a pair is kept.
                         pairs.push((
                             (path_a.clone(), thumbnail_path_a.clone()),
                             (path_b.clone(), thumbnail_path_b.clone()),
@@ -66,7 +66,7 @@ pub async fn find_similar_pairs(
         })
         .collect();
 
-    // 3. ソート
+    // 3. Sort.
     ret.par_sort_unstable_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(Ordering::Equal));
 
     ret

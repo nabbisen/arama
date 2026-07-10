@@ -20,8 +20,8 @@ impl VideoSimilarityCalculator {
     //     a: &VideoFeatures,
     //     b: &VideoFeatures,
     // ) -> anyhow::Result<VideoSimilarityResult> {
-    //     // 映像・音声とも同じ cross-max ロジックで計算する
-    //     // → 冒頭カット・末尾カット・時間ズレに頑健
+    //     // Use the same cross-max logic for image and audio.
+    //     // This is robust to opening cuts, ending cuts, and timeline offsets.
     //     let image_sim = cross_max_similarity(
     //         &a.video_embeddings,
     //         &b.video_embeddings,
@@ -44,19 +44,19 @@ impl VideoSimilarityCalculator {
     // }
 }
 
-// ─── 類似度計算 ────────────────────────────────────────────────────────
+// Similarity calculation.
 
-/// 双方向 max-cosine 類似度
+/// Bidirectional max-cosine similarity.
 ///
-/// A の各ベクトルに最も近い B のベクトルを探してスコア化し、
-/// B→A 方向も同様に計算して平均を取る。
+/// Scores each vector in A against the closest vector in B, repeats the same
+/// calculation from B to A, then averages both directions.
 ///
-/// L2 正規化済みベクトルを前提とするため dot 積 = cosine 類似度。
+/// Inputs are expected to be L2-normalized, so dot product equals cosine
+/// similarity.
 ///
-/// この方式により:
-///   - 冒頭・末尾カットによるタイムスタンプのズレに対応できる
-///   - 無音・暗転の挿入があっても高スコアを維持できる
-///   - 完全に別内容の動画には全ペアのスコアが低くなり正しく低スコアになる
+/// This keeps scores stable when videos have opening/ending cuts, inserted
+/// silence or dark frames, while unrelated videos stay low because every pair
+/// has a low score.
 pub fn cross_max_similarity(a: &[Vec<f32>], b: &[Vec<f32>], threshold: f32) -> f32 {
     if a.is_empty() || b.is_empty() {
         return 0.0;
@@ -69,7 +69,7 @@ pub fn cross_max_similarity(a: &[Vec<f32>], b: &[Vec<f32>], threshold: f32) -> f
                 .iter()
                 .map(|eb| dot(ea, eb))
                 .fold(f32::NEG_INFINITY, f32::max);
-            // 閾値未満は 0.0 として扱う（マッチなし）
+            // Treat scores below the threshold as no match.
             if best >= threshold { best } else { 0.0 }
         })
         .collect();

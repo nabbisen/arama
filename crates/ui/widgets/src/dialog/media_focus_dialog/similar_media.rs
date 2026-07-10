@@ -66,7 +66,7 @@ fn similar_images(
         .flatten()
         .collect::<Vec<_>>();
 
-    // 比較元と比較対象を分離
+    // Split target and candidate entries.
     let canonical_path = path
         .canonicalize()
         .expect("failed to canonicalize")
@@ -82,9 +82,9 @@ fn similar_images(
         return vec![];
     };
 
-    // 類似度計算を並列で実行
+    // Compute similarities in parallel.
     let mut ret = candidates
-        .into_par_iter() // Rayonで並列化
+        .into_par_iter()
         .map(|x| {
             let similarity = dot_product(
                 &target_clip_vector,
@@ -99,7 +99,8 @@ fn similar_images(
         .filter(|x| threshold <= x.similarity)
         .collect::<Vec<_>>();
 
-    // 類似度の降順でソート（不安定ソートの方が高速）
+    // Sort by descending similarity. Unstable sort is faster and ordering of
+    // exact ties is irrelevant here.
     ret.sort_unstable_by(|a, b| {
         b.similarity
             .partial_cmp(&a.similarity)
@@ -135,7 +136,7 @@ fn similar_videos(
         .flatten()
         .collect::<Vec<_>>();
 
-    // 比較元と比較対象を分離
+    // Split target and candidate entries.
     let canonical_path = path
         .canonicalize()
         .expect("failed to canonicalize")
@@ -156,9 +157,9 @@ fn similar_videos(
         target_item[0].features.as_ref().unwrap()
     };
 
-    // 類似度計算を並列で実行
+    // Compute similarities in parallel.
     let mut ret = candidates
-        .into_par_iter() // Rayonで並列化
+        .into_par_iter()
         .map(|x| {
             let similarity = match &x.features {
                 Some(features)
@@ -190,7 +191,8 @@ fn similar_videos(
         .filter(|x| threshold <= x.similarity)
         .collect::<Vec<_>>();
 
-    // 類似度の降順でソート（不安定ソートの方が高速）
+    // Sort by descending similarity. Unstable sort is faster and ordering of
+    // exact ties is irrelevant here.
     ret.sort_unstable_by(|a, b| {
         b.similarity
             .partial_cmp(&a.similarity)
@@ -200,7 +202,8 @@ fn similar_videos(
     ret
 }
 
-/// 2つのベクトルの内積を計算（正規化済みならこれがコサイン類似度）
+/// Calculate the dot product of two vectors. For normalized vectors, this is
+/// cosine similarity.
 fn dot_product(a: &[f32], b: &[f32]) -> f32 {
     a.iter().zip(b).map(|(x, y)| x * y).sum()
 }

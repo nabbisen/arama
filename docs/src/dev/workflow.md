@@ -30,8 +30,8 @@ debug builds are significantly slower for SIMD-heavy candle kernels.
 ### Language
 
 All source code, comments, documentation, and RFC text must be in
-**English**. (Some older files contain Japanese comments; these are
-translated as they are touched.)
+**English**, except for user-facing locale strings and historical RFC records.
+Older production comments are translated as they are touched.
 
 ### File size
 

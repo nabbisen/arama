@@ -18,8 +18,8 @@ use clip_encoder::{ClipEncoder, load_image_as_tensor};
 pub fn clip_calculator() -> anyhow::Result<ClipEncoder> {
     let device = ModelManager::device();
 
-    // println!("1. モデルのロード");
-    // 事前に openai/clip-vit-base-patch32 などから config.json と model.safetensors を入手してください
+    // println!("1. Load the model");
+    // Obtain config.json and model.safetensors from openai/clip-vit-base-patch32 or equivalent first.
     let config = ClipConfig::vit_base_patch32();
     let clip_model_manager = ModelManager::new(clip::model())?;
     let vb = unsafe {
@@ -33,15 +33,15 @@ pub fn clip_calculator() -> anyhow::Result<ClipEncoder> {
     let model = ClipModel::new(vb, &config)?;
 
     // let source = source.to_path_buf();
-    // // println!("2. ソース画像をロードして前処理");
+    // // println!("2. Load and preprocess the source image");
     // let source_image: Tensor = load_image_as_tensor(
     //     source.to_string_lossy().as_ref(),
     //     config.image_size,
     //     &device,
     // )?;
 
-    // // println!("3. 特徴ベクトル（Embedding）の抽出");
-    // // [1, 3, 224, 224] -> [1, 512] (モデルにより次元は異なります)
+    // // println!("3. Extract the feature vector (embedding)");
+    // // [1, 3, 224, 224] -> [1, 512] (dimension depends on the model)
     // let source_tensor = model.get_image_features(&source_image)?;
 
     Ok(ClipEncoder {
@@ -62,26 +62,26 @@ pub fn clip(target: &Path, clip_calculator: &ClipEncoder) -> anyhow::Result<File
 
     let file_tensor = &clip_calculator.model.get_image_features(&target_image)?;
 
-    // --- 1. バッチ次元の除去 --------------------------------
-    // CLIPの出力は多くの場合 [1, D] または [B, D]
+    // --- 1. Remove the batch dimension -----------------------
+    // CLIP output is usually [1, D] or [B, D].
     let t = match file_tensor.dims() {
         // [D]
         [_d] => file_tensor.clone(),
 
-        // [1, D] or [B, D] → 先頭1件を取り出す
+        // [1, D] or [B, D] -> take the first item.
         [_b, _d] => file_tensor.i(0)?,
 
-        // まれに [1,1,D] などが来るモデル対策
+        // Handle rare model outputs such as [1, 1, D].
         _ => file_tensor.flatten_all()?,
     };
 
-    // --- 2. 1次元化して Vec<f32> へ
+    // --- 2. Flatten to Vec<f32>
     let mut v = t.flatten_all()?.to_vec1::<f32>()?;
 
-    // --- 3. L2正規化（必須） ----------------------------------
+    // --- 3. L2 normalize (required) --------------------------
     let norm = v.iter().map(|x| x * x).sum::<f32>().sqrt();
 
-    // 失敗推論対策（ゼロベクトル防止）
+    // Guard against failed inference producing a zero vector.
     if norm > 1e-12 {
         for x in &mut v {
             *x /= norm;
@@ -93,7 +93,7 @@ pub fn clip(target: &Path, clip_calculator: &ClipEncoder) -> anyhow::Result<File
         embedding: v,
     })
 
-    // // println!("4. 類似度（コサイン類似度）の計算");
+    // // println!("4. Calculate similarity (cosine similarity)");
     // let score = if calculator.source.as_path().eq(target) {
     //     1.0
     // } else {

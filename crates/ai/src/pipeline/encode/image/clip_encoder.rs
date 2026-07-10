@@ -15,7 +15,7 @@ use crate::{
 };
 // use naga::FastHashMap;
 
-// CLIP の ImageNet 正規化定数
+// CLIP ImageNet normalization constants.
 const CLIP_MEAN: [f32; 3] = [0.48145466, 0.4578275, 0.40821073];
 const CLIP_STD: [f32; 3] = [0.26862954, 0.261_302_6, 0.275_777_1];
 
@@ -100,7 +100,7 @@ impl ClipEncoder {
     //     })
     // }
 
-    /// 複数フレームをバッチエンコードして L2 正規化済みベクトル列を返す
+    /// Batch-encodes frames and returns L2-normalized vectors.
     pub fn encode_frames(&self, frames: &[RawVideoFrame]) -> anyhow::Result<Vec<Vec<f32>>> {
         if frames.is_empty() {
             return Ok(vec![]);
@@ -111,13 +111,13 @@ impl ClipEncoder {
         self.tensor_to_vecs(normed)
     }
 
-    /// RGB24 HWC フレーム群を CLIP 入力テンソル [B, 3, H, W] に変換する
+    /// Converts RGB24 HWC frames to CLIP input tensor shape [B, 3, H, W].
     fn frames_to_tensor(&self, frames: &[RawVideoFrame]) -> anyhow::Result<Tensor> {
         let size = frames[0].width as usize;
         let mut data: Vec<f32> = Vec::with_capacity(frames.len() * 3 * size * size);
 
         for frame in frames {
-            // HWC → CHW + CLIP 正規化
+            // HWC -> CHW plus CLIP normalization.
             for c in 0..3usize {
                 let mean = CLIP_MEAN[c];
                 let std = CLIP_STD[c];
@@ -144,7 +144,7 @@ impl ClipEncoder {
     }
 }
 
-/// 画像ファイルをリサイズ・正規化してTensorに変換
+/// Resizes and normalizes an image file, then converts it to a tensor.
 pub fn load_image_as_tensor(path: &str, size: usize, device: &Device) -> anyhow::Result<Tensor> {
     let img = image::open(path)?;
     let img = img.resize_exact(
@@ -168,12 +168,12 @@ pub fn load_image_as_tensor(path: &str, size: usize, device: &Device) -> anyhow:
     Ok(tensor)
 }
 
-// matmul 総当り計算 対象数が少ない時限定
+// Brute-force matmul path for small candidate sets only.
 // pub fn find_similar_pairs(
 //     map: &FastHashMap<PathBuf, Vec<f32>>,
 //     threshold: f32,
 // ) -> anyhow::Result<Vec<(PathBuf, PathBuf, f32)>> {
-//     // 1. パスとベクトルを分離して順序を固定
+//     // 1. Split paths and vectors to keep deterministic ordering.
 //     let (paths, vectors): (Vec<&PathBuf>, Vec<Vec<f32>>) =
 //         map.iter().map(|(k, v)| (k, v.clone())).unzip();
 
@@ -181,25 +181,25 @@ pub fn load_image_as_tensor(path: &str, size: usize, device: &Device) -> anyhow:
 //     if n == 0 {
 //         return Ok(vec![]);
 //     }
-//     let dim = vectors[0].len(); // CLIPなら 512 or 768
+//     let dim = vectors[0].len(); // 512 or 768 for CLIP.
 
-//     // 2. 2次元Tensorを作成 (N, Dim)
-//     // FlattenしてTensor化
+//     // 2. Build a 2D tensor (N, Dim).
+//     // Flatten into a tensor.
 //     let flattened: Vec<f32> = vectors.into_iter().flatten().collect();
-//     let tensor = Tensor::from_vec(flattened, (n, dim), &Device::Cpu)?; // 必要に応じてCudaへ
+//     let tensor = Tensor::from_vec(flattened, (n, dim), &Device::Cpu)?; // Move to CUDA if needed.
 
-//     // 3. 行列積を計算 (N, Dim) @ (Dim, N) -> (N, N)
-//     // 正規化済みなので、内積 = コサイン類似度
+//     // 3. Calculate matrix product (N, Dim) @ (Dim, N) -> (N, N).
+//     // Vectors are normalized, so dot product equals cosine similarity.
 //     let similarity_matrix = tensor.matmul(&tensor.t()?)?;
 
-//     // 4. 結果を解析 (ここが重くならないよう注意)
-//     // 行列全体を舐めるのではなく、必要な部分だけ抽出するのが理想ですが、
-//     // Rust側で処理するために一度Vecに落とす例です。
+//     // 4. Parse results carefully so this step does not dominate runtime.
+//     // Ideally this would extract only the needed part instead of scanning
+//     // the whole matrix; this example converts once to Vec for Rust-side processing.
 //     let scores: Vec<f32> = similarity_matrix.flatten_all()?.to_vec1()?;
 
 //     let mut ret = Vec::new();
 
-//     // 上三角行列だけチェック（重複と自分自身を除外）
+//     // Check only the upper triangle to exclude duplicates and self-pairs.
 //     for i in 0..n {
 //         for j in (i + 1)..n {
 //             let score = scores[i * n + j];
