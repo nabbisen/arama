@@ -6,25 +6,24 @@ through the RFC process before code changes begin.
 
 ## Current focus
 
-### Audit warning burn-down
+### Dependency modernization
 
-**Status.** Maintenance pass in progress.
+**Status.** RFC 020 proposed for review.
 
-**Why now.** `cargo audit` currently reports allowed warnings beyond the scoped
-`quick-xml` ignores. Advisory policy should stay narrow: patch-level fixes that
-are available now should be taken, while warnings blocked by upstream direct
-dependencies should be recorded with dependency owners instead of hidden behind
-broad ignores.
+**Why now.** The audit warning burn-down resolved the compatible patch-level
+warnings and recorded the remaining upstream/transitive owners. The next
+dependency work should be explicit modernization rather than ad hoc version
+bumps: direct AI/runtime dependencies can affect model loading, CUDA/Metal
+builds, archive extraction, and release-gate evidence.
 
-**Planned maintenance questions.**
+**Planned design questions.**
 
-- Which warnings can be resolved with compatible patch updates?
-- Which warnings are blocked by upstream crates that are already on their latest
-  compatible release?
-- Which warnings are transient lockfile residue rather than active workspace
-  dependency paths?
-- Which remaining advisory exceptions need release-gate policy changes versus
-  simple tracking notes?
+- Which direct dependency upgrades are small enough for one reviewed batch?
+- Which updates require Linux, macOS/Metal, Windows, or CUDA-specific evidence?
+- Which remaining audit warnings are blocked by upstream crates and should stay
+  tracked rather than forced through replacement work?
+- Should pre-release dependency lines be excluded unless they fix a blocking
+  advisory?
 
 ## Recently implemented, pending owner-managed lifecycle
 
@@ -55,14 +54,22 @@ pending owner action.
 **Status.** RFC 019 implementation reviewed; release/lifecycle transition
 pending owner action.
 
+### Audit warning burn-down
+
+**Status.** Maintenance pass reviewed; release/lifecycle transition pending
+owner action.
+
+**Why now.** Compatible patch-level RustSec warnings for `anyhow` and `memmap2`
+were resolved. Remaining allowed warnings are tracked in
+[`rfcs/notes/audit-warning-burn-down.md`](./rfcs/notes/audit-warning-burn-down.md).
+
 ## Later candidates
 
-### Dependency modernization
+### Remaining audit-warning owners
 
-Direct dependency minor/major updates remain design or implementation work when
-they change public behavior, build requirements, or compatibility risk. The
-audit warning burn-down note should feed future modernization candidates when an
-upstream crate exposes a compatible fix.
+`hnsw_rs`, `localcache`, Candle/transitive `paste`, `proc-macro-error2`, and
+the font/rendering stack should be revisited when upstream releases expose
+compatible fixes or when a replacement design is intentionally proposed.
 
 ### Release prep
 
