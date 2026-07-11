@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use super::DirRow;
+use super::CacheLoad;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -15,6 +15,8 @@ pub enum Event {
     CacheRequest(PathBuf),
     /// Ask the app to clear this directory's cached entries.
     ClearRequest(PathBuf),
+    /// Ask the app to prune cache storage toward this one-off byte target.
+    PruneRequest(u64),
     /// Ask the app to abort the active caching run.
     StopRequest,
 }
@@ -24,8 +26,10 @@ pub enum Event {
 pub enum Internal {
     FilterInput(String),
     DirInput(String),
+    PruneTargetInput(String),
     RefreshPressed,
     CachePressed,
+    PrunePressed,
     /// Result of the async table load.
-    RowsLoaded(Vec<DirRow>),
+    RowsLoaded(CacheLoad),
 }

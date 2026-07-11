@@ -137,9 +137,13 @@ pub fn danger(_theme: &Theme, status: button::Status) -> button::Style {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    static THEME_TEST_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn iced_theme_uses_snora_palette_for_each_preset() {
+        let _guard = THEME_TEST_LOCK.lock().unwrap();
         for preset in ThemePreset::all() {
             set_theme(*preset);
 
@@ -152,6 +156,7 @@ mod tests {
 
     #[test]
     fn high_contrast_presets_do_not_fall_back_to_builtin_palettes() {
+        let _guard = THEME_TEST_LOCK.lock().unwrap();
         set_theme(ThemePreset::HighContrastLight);
         assert_ne!(iced_theme().palette(), theme::Palette::LIGHT);
 

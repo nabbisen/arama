@@ -21,6 +21,8 @@ pub enum Message {
     CachePageMessage(cache_page::message::Message),
     /// Async per-row cache clear finished: removed count or error.
     CacheClearFinished(Result<usize, String>),
+    /// Async cache prune finished: report or error.
+    CachePruneFinished(Result<arama_cache::CachePruneReport, String>),
     ThumbnailCacheFinished(Vec<(PathBuf, Arc<arama_cache::Result<()>>)>),
     EmbeddingCacheFinished(Option<String>),
     SetupMessage(setup::message::Message),

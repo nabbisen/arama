@@ -6,8 +6,11 @@
 
 use std::path::PathBuf;
 
-use arama_cache::{CacheConfig, DbLocation, DirCacheSummary, ImageCacheReader, VideoCacheReader};
-use arama_env::cache_storage_path;
+use arama_cache::{
+    CacheConfig, CacheFootprint, CacheMaintenance, CachePruneReport, DbLocation, DirCacheSummary,
+    ImageCacheReader, VideoCacheReader,
+};
+use arama_env::{cache_storage_path, cache_thumbnail_dir_path};
 use iced::Task;
 
 pub mod message;
@@ -25,6 +28,13 @@ pub struct DirRow {
     pub latest_cached_at: i64,
 }
 
+/// Loaded Cache page data: table rows plus actual storage footprint.
+#[derive(Debug, Clone, Default)]
+pub struct CacheLoad {
+    pub rows: Vec<DirRow>,
+    pub footprint: Option<CacheFootprint>,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct CachePage {
     /// Merged per-directory rows, sorted newest-first.
@@ -33,10 +43,18 @@ pub struct CachePage {
     filter: String,
     /// Path input of the add-directory form.
     dir_input: String,
+    /// One-off prune target in MiB.
+    prune_target_input: String,
+    /// Actual cache footprint from the last page reload.
+    footprint: Option<CacheFootprint>,
+    /// Result of the most recent prune operation.
+    last_prune_report: Option<CachePruneReport>,
     /// Directory of the active caching run, when one is in flight.
     active_run: Option<PathBuf>,
     /// True while a table reload is in flight.
     busy: bool,
+    /// True while a manual prune operation is in flight.
+    prune_busy: bool,
     /// True once the page has loaded at least once; reload hooks in the
     /// app only fire after the first visit.
     loaded: bool,
@@ -50,10 +68,10 @@ impl CachePage {
             async {
                 load_rows().unwrap_or_else(|err| {
                     eprintln!("cache page load failed: {err}");
-                    vec![]
+                    CacheLoad::default()
                 })
             },
-            |rows| Message::Internal(Internal::RowsLoaded(rows)),
+            |load| Message::Internal(Internal::RowsLoaded(load)),
         )
     }
 
@@ -83,18 +101,32 @@ impl CachePage {
         self.active_run = None;
     }
 
+    pub fn prune_finished(&mut self, report: Option<CachePruneReport>) {
+        self.prune_busy = false;
+        self.last_prune_report = report;
+    }
+
     pub fn is_loaded(&self) -> bool {
         self.loaded
     }
 }
 
+pub(super) fn parse_mib_target(input: &str) -> Option<u64> {
+    let value: f64 = input.trim().parse().ok()?;
+    if !value.is_finite() || value <= 0.0 {
+        return None;
+    }
+    Some((value * 1024.0 * 1024.0).round() as u64)
+}
+
 /// Load and merge per-directory summaries from both cache namespaces.
-fn load_rows() -> Result<Vec<DirRow>, String> {
+fn load_rows() -> Result<CacheLoad, String> {
     use std::collections::BTreeMap;
 
     let location = DbLocation::Custom(cache_storage_path().map_err(|err| err.to_string())?);
+    let thumbnail_dir = cache_thumbnail_dir_path().map_err(|err| err.to_string())?;
     let config = CacheConfig {
-        db_location: location,
+        db_location: location.clone(),
         ..CacheConfig::default()
     };
 
@@ -120,7 +152,14 @@ fn load_rows() -> Result<Vec<DirRow>, String> {
 
     let mut rows: Vec<DirRow> = merged.into_values().collect();
     rows.sort_by_key(|row| std::cmp::Reverse(row.latest_cached_at));
-    Ok(rows)
+    let footprint = CacheMaintenance::onetime(location, Some(thumbnail_dir))
+        .map_err(|err| err.to_string())?
+        .footprint()
+        .map_err(|err| err.to_string())?;
+    Ok(CacheLoad {
+        rows,
+        footprint: Some(footprint),
+    })
 }
 
 fn merge_summary(map: &mut std::collections::BTreeMap<String, DirRow>, s: DirCacheSummary) {

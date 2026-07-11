@@ -2,14 +2,15 @@ use arama_i18n::{Locale, current_locale, t};
 use chrono::{Local, TimeZone};
 use iced::{
     Element,
-    Length::{Fill, FillPortion},
+    Length::{Fill, FillPortion, Fixed},
     widget::{button, column, container, row, scrollable, text, text_input},
 };
-use lucide_icons::iced::{icon_circle_stop, icon_refresh_cw, icon_trash_2};
+use lucide_icons::iced::{icon_circle_stop, icon_refresh_cw, icon_scissors, icon_trash_2};
 
 use super::{
     CachePage, DirRow,
     message::{Event, Internal, Message},
+    parse_mib_target,
 };
 
 impl CachePage {
@@ -28,6 +29,37 @@ impl CachePage {
             }),
         ]
         .spacing(10);
+
+        // ── Footprint and explicit prune controls ─────────────────────
+        let footprint = self
+            .footprint
+            .map(|f| human_size(f.total_bytes))
+            .unwrap_or_else(|| t("cache.footprint.unavailable"));
+        let prune_target_valid = parse_mib_target(&self.prune_target_input).is_some();
+        let prune_row = row![
+            text(format!("{}: {footprint}", t("cache.footprint"))),
+            text_input(&t("cache.prune.placeholder"), &self.prune_target_input)
+                .on_input(|s| Message::Internal(Internal::PruneTargetInput(s)))
+                .width(Fixed(120.0)),
+            text(t("cache.prune.unit_mib")).style(text::secondary),
+            button(row![icon_scissors().size(14), text(t("cache.prune.button"))].spacing(4))
+                .on_press_maybe(if run_active || self.prune_busy || !prune_target_valid {
+                    None
+                } else {
+                    Some(Message::Internal(Internal::PrunePressed))
+                }),
+        ]
+        .spacing(10);
+
+        let prune_result: Element<'_, Message> = self
+            .last_prune_report
+            .as_ref()
+            .map(|report| {
+                text(prune_report_text(report))
+                    .style(text::secondary)
+                    .into()
+            })
+            .unwrap_or_else(|| text("").into());
 
         // ── Filter row ────────────────────────────────────────────────
         let filter_row = row![
@@ -81,10 +113,17 @@ impl CachePage {
         ))
         .style(text::secondary);
 
-        column![add_form, filter_row, table, summary]
-            .spacing(15)
-            .padding(20)
-            .into()
+        column![
+            add_form,
+            prune_row,
+            prune_result,
+            filter_row,
+            table,
+            summary
+        ]
+        .spacing(15)
+        .padding(20)
+        .into()
     }
 
     fn table_row<'a>(&self, r: &'a DirRow, run_active: bool) -> Element<'a, Message> {
@@ -157,6 +196,30 @@ fn human_size(bytes: u64) -> String {
         format!("{} {}", bytes, UNITS[unit])
     } else {
         format!("{:.1} {}", value, UNITS[unit])
+    }
+}
+
+fn prune_report_text(report: &arama_cache::CachePruneReport) -> String {
+    if report.target_reached {
+        format!(
+            "{}: {} {} · {} {}",
+            t("cache.prune.done"),
+            report.removed_entries,
+            t("cache.prune.entries"),
+            t("cache.footprint"),
+            human_size(report.after.total_bytes),
+        )
+    } else {
+        format!(
+            "{}: {} {} · {} {} · {} {}",
+            t("cache.prune.partial"),
+            report.removed_entries,
+            t("cache.prune.entries"),
+            t("cache.footprint"),
+            human_size(report.after.total_bytes),
+            t("cache.prune.unreclaimable"),
+            human_size(report.unreclaimable_bytes),
+        )
     }
 }
 

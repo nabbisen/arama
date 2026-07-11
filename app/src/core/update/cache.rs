@@ -8,10 +8,13 @@ use arama_ai::{
     model::model_container::clip, pipeline::encode::image::embeddings::image_embedding,
 };
 use arama_cache::{
-    DbLocation, ImageCacheReader, ImageCacheWriter, LookupResult, UpsertImageRequest,
-    VideoCacheReader,
+    CacheMaintenance, CachePruneRequest, DbLocation, ImageCacheReader, ImageCacheWriter,
+    LookupResult, UpsertImageRequest, VideoCacheReader,
 };
-use arama_env::{IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path};
+use arama_env::{
+    IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path,
+    cache_thumbnail_dir_path,
+};
 use arama_ui_main::views::cache_page;
 use iced::{Task, wgpu::naga::FastHashMap};
 use swdir::{DirNode, FilterRule, Recurse, Swdir};
@@ -164,6 +167,9 @@ impl App {
                 cache_page::message::Event::ClearRequest(dir) => {
                     Task::batch([task, clear_dir_task(dir)])
                 }
+                cache_page::message::Event::PruneRequest(max_bytes) => {
+                    Task::batch([task, prune_task(max_bytes)])
+                }
                 cache_page::message::Event::StopRequest => {
                     if let Some(handle) = self.task_handle.take() {
                         handle.abort();
@@ -184,6 +190,41 @@ impl App {
             self.push_error_toast("Cache clear failed", err);
         }
         // Reload so partial deletions are shown truthfully.
+        self.cache_page.load_task().map(Message::CachePageMessage)
+    }
+
+    pub(super) fn handle_cache_prune_finished(
+        &mut self,
+        result: Result<arama_cache::CachePruneReport, String>,
+    ) -> Task<Message> {
+        match result {
+            Ok(report) => {
+                self.cache_page.prune_finished(Some(report));
+                if report.target_reached {
+                    self.push_success_toast(
+                        "Cache prune complete",
+                        format!(
+                            "Removed {} entries; cache footprint is now {}.",
+                            report.removed_entries,
+                            human_size(report.after.total_bytes)
+                        ),
+                    );
+                } else {
+                    self.push_warning_toast(
+                        "Cache prune partial",
+                        format!(
+                            "Removed {} entries; {} remains outside the reclaimable scope.",
+                            report.removed_entries,
+                            human_size(report.unreclaimable_bytes)
+                        ),
+                    );
+                }
+            }
+            Err(err) => {
+                self.cache_page.prune_finished(None);
+                self.push_error_toast("Cache prune failed", err);
+            }
+        }
         self.cache_page.load_task().map(Message::CachePageMessage)
     }
 
@@ -304,6 +345,36 @@ pub(super) fn clear_dir_task(dir: PathBuf) -> Task<Message> {
         },
         Message::CacheClearFinished,
     )
+}
+
+pub(super) fn prune_task(max_bytes: u64) -> Task<Message> {
+    Task::perform(
+        async move {
+            let location =
+                arama_cache::DbLocation::Custom(cache_storage_path().map_err(|e| e.to_string())?);
+            let thumbnail_dir = cache_thumbnail_dir_path().map_err(|e| e.to_string())?;
+            CacheMaintenance::onetime(location, Some(thumbnail_dir))
+                .map_err(|e| e.to_string())?
+                .prune(CachePruneRequest { max_bytes })
+                .map_err(|e| e.to_string())
+        },
+        Message::CachePruneFinished,
+    )
+}
+
+fn human_size(bytes: u64) -> String {
+    const UNITS: [&str; 5] = ["B", "KB", "MB", "GB", "TB"];
+    let mut value = bytes as f64;
+    let mut unit = 0;
+    while 1024.0 <= value && unit < UNITS.len() - 1 {
+        value /= 1024.0;
+        unit += 1;
+    }
+    if unit == 0 {
+        format!("{} {}", bytes, UNITS[unit])
+    } else {
+        format!("{:.1} {}", value, UNITS[unit])
+    }
 }
 
 fn dir_path_thumbnail_path_map(

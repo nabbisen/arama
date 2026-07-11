@@ -5,6 +5,7 @@ use iced::Task;
 use super::{
     CachePage,
     message::{Event, Internal, Message},
+    parse_mib_target,
 };
 
 impl CachePage {
@@ -20,6 +21,10 @@ impl CachePage {
                     self.dir_input = s;
                     Task::none()
                 }
+                Internal::PruneTargetInput(s) => {
+                    self.prune_target_input = s;
+                    Task::none()
+                }
                 Internal::RefreshPressed => self.load_task(),
                 Internal::CachePressed => {
                     let path = PathBuf::from(self.dir_input.trim());
@@ -31,8 +36,16 @@ impl CachePage {
                         Task::done(Message::Event(Event::CacheRequest(path)))
                     }
                 }
-                Internal::RowsLoaded(rows) => {
-                    self.rows = rows;
+                Internal::PrunePressed => match parse_mib_target(&self.prune_target_input) {
+                    Some(max_bytes) => {
+                        self.prune_busy = true;
+                        Task::done(Message::Event(Event::PruneRequest(max_bytes)))
+                    }
+                    None => Task::none(),
+                },
+                Internal::RowsLoaded(load) => {
+                    self.rows = load.rows;
+                    self.footprint = load.footprint;
                     self.busy = false;
                     self.loaded = true;
                     Task::none()

@@ -230,11 +230,28 @@ impl App {
 
     /// Push a transient error toast to the notification queue.
     fn push_error_toast(&mut self, title: impl Into<String>, body: impl Into<String>) {
+        self.push_toast(ToastIntent::Error, title, body);
+    }
+
+    fn push_success_toast(&mut self, title: impl Into<String>, body: impl Into<String>) {
+        self.push_toast(ToastIntent::Success, title, body);
+    }
+
+    fn push_warning_toast(&mut self, title: impl Into<String>, body: impl Into<String>) {
+        self.push_toast(ToastIntent::Warning, title, body);
+    }
+
+    fn push_toast(
+        &mut self,
+        intent: ToastIntent,
+        title: impl Into<String>,
+        body: impl Into<String>,
+    ) {
         let id = self.toast_id_counter;
         self.toast_id_counter += 1;
         self.toasts.push(Toast::new(
             id,
-            ToastIntent::Error,
+            intent,
             title,
             body,
             Message::ToastDismiss(id),

@@ -31,6 +31,10 @@ path = "tests/video.rs"
 name = "cross"
 path = "tests/cross.rs"
 
+[[test]]
+name = "maintenance"
+path = "tests/maintenance.rs"
+
 [dependencies]
 localcache = { workspace = true }
 

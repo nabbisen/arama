@@ -71,8 +71,10 @@ pub mod types;
 
 pub use core::engine::{CacheConfig, CacheError, DbLocation, Result};
 pub use core::image::{ImageCacheConfig, ImageCacheReader, ImageCacheWriter};
+pub use core::maintenance::CacheMaintenance;
 pub use core::video::{VideoCacheConfig, VideoCacheReader, VideoCacheWriter};
 pub use types::{
-    CacheRead, DirCacheSummary, ImageCacheEntry, ImageFeatures, LookupResult, UpsertImageRequest,
-    UpsertVideoRequest, VideoCacheEntry, VideoFeatures,
+    CacheFootprint, CachePruneReport, CachePruneRequest, CacheRead, DirCacheSummary,
+    ImageCacheEntry, ImageFeatures, LookupResult, UpsertImageRequest, UpsertVideoRequest,
+    VideoCacheEntry, VideoFeatures,
 };

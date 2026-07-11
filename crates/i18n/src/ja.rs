@@ -57,8 +57,19 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         } // パスでフィルター…
         "cache.column.directory" => "\u{30c7}\u{30a3}\u{30ec}\u{30af}\u{30c8}\u{30ea}", // ディレクトリ
         "cache.column.files" => "\u{30d5}\u{30a1}\u{30a4}\u{30eb}\u{6570}", // ファイル数
-        "cache.column.size" => "\u{30b5}\u{30a4}\u{30ba}",                  // サイズ
+        "cache.column.size" => "\u{30e1}\u{30c7}\u{30a3}\u{30a2}\u{30b5}\u{30a4}\u{30ba}", // メディアサイズ
         "cache.column.cached_at" => "\u{30ad}\u{30e3}\u{30c3}\u{30b7}\u{30e5}\u{65e5}\u{6642}", // キャッシュ日時
+        "cache.footprint" => "\u{30ad}\u{30e3}\u{30c3}\u{30b7}\u{30e5}\u{4f7f}\u{7528}\u{91cf}", // キャッシュ使用量
+        "cache.footprint.unavailable" => "\u{53d6}\u{5f97}\u{3067}\u{304d}\u{307e}\u{305b}\u{3093}", // 取得できません
+        "cache.prune.placeholder" => "\u{76ee}\u{6a19}", // 目標
+        "cache.prune.unit_mib" => "MiB",
+        "cache.prune.button" => "\u{524a}\u{6e1b}", // 削減
+        "cache.prune.done" => "\u{524a}\u{6e1b}\u{3057}\u{307e}\u{3057}\u{305f}", // 削減しました
+        "cache.prune.partial" => {
+            "\u{524a}\u{6e1b}\u{3057}\u{307e}\u{3057}\u{305f}\u{304c}\u{76ee}\u{6a19}\u{306b}\u{9054}\u{3057}\u{307e}\u{305b}\u{3093}"
+        } // 削減しましたが目標に達しません
+        "cache.prune.entries" => "\u{4ef6}",        // 件
+        "cache.prune.unreclaimable" => "\u{56de}\u{53ce}\u{5bfe}\u{8c61}\u{5916}", // 回収対象外
         "cache.row.caching" => "\u{23f3} \u{30ad}\u{30e3}\u{30c3}\u{30b7}\u{30e5}\u{4e2d}\u{2026}", // ⏳ キャッシュ中…
         "cache.row.stop" => "\u{505c}\u{6b62}", // 停止
         "cache.empty" => {
@@ -67,7 +78,7 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "cache.no_match" => "\u{4e00}\u{81f4}\u{306a}\u{3057}\u{3002}", // 一致なし。
         "cache.summary.directories" => "\u{30c7}\u{30a3}\u{30ec}\u{30af}\u{30c8}\u{30ea}", // ディレクトリ
         "cache.summary.files" => "\u{30d5}\u{30a1}\u{30a4}\u{30eb}", // ファイル
-        "cache.summary.total" => "\u{5408}\u{8a08}",                 // 合計
+        "cache.summary.total" => "\u{30e1}\u{30c7}\u{30a3}\u{30a2}\u{5408}\u{8a08}", // メディア合計
         "cache.time.just_now" => "\u{305f}\u{3063}\u{305f}\u{4eca}", // たった今
         "cache.time.ago" => "\u{524d}",                              // 前
         "cache.time.minute" => "\u{5206}",                           // 分

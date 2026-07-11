@@ -18,6 +18,7 @@ impl App {
             Message::EmbeddingCacheFinished(err) => self.handle_embedding_cache_finished(err),
             Message::CachePageMessage(message) => self.handle_cache_page_message(message),
             Message::CacheClearFinished(result) => self.handle_cache_clear_finished(result),
+            Message::CachePruneFinished(result) => self.handle_cache_prune_finished(result),
 
             // --- component delegation ---
             Message::SetupMessage(message) => self.handle_setup_message(message),

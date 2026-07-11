@@ -17,12 +17,33 @@ One row per directory that has cached files:
 |---|---|
 | Directory | Absolute path of the directory containing the cached files |
 | Files | Number of cached files directly in that directory (images + videos) |
-| Size | Sum of the cached files' sizes |
+| Media size | Sum of the indexed source files' sizes |
 | Cached at | When the newest entry in that directory was cached (local time) |
 | 🗑 | Clear this directory's cache |
 
 Rows sort newest-first. The summary line below the table always shows
 totals over **all** rows, regardless of the filter.
+
+## Cache footprint and pruning
+
+The Cache page also shows the actual cache footprint: the v2 SQLite
+database, SQLite sidecar files, and generated thumbnails under
+`.arama-cache/thumbnail/`. This is different from the table's media
+size column, which describes source files rather than disk space used by
+arama's cache.
+
+Enter a one-off target in MiB and press **Prune** to remove reclaimable
+cache data toward that target. Pruning removes orphan thumbnails first,
+then removes oldest cached entries across image and video namespaces.
+The source media files are never deleted.
+
+SQLite may keep free pages inside `cache-v2.sqlite` after rows are
+removed, so a prune target can be unreachable without database
+compaction. In that case arama reports a partial prune and shows the
+remaining unreclaimable footprint instead of treating it as a failure.
+
+Pruning is explicit only: arama does not automatically prune on page
+load, after indexing, or because free disk space is low.
 
 ## Filtering
 
@@ -57,7 +78,7 @@ While the run is active:
 - The add and clear buttons are disabled (one run at a time).
 
 When the run finishes, the table reloads and the row shows final
-counts, size, and timestamp.
+counts, media size, and timestamp.
 
 Caching an already-cached directory is allowed and fast: unchanged
 files are detected by metadata and skipped.

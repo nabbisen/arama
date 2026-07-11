@@ -9,6 +9,11 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Changed
 
+- **Cache capacity controls.** The Cache page now distinguishes source
+  media size from actual cache footprint and adds explicit manual
+  pruning toward a one-off MiB target. The prune pass removes orphan
+  thumbnails first, then oldest recorded cache entries, and reports when
+  SQLite database bytes keep a target unreachable without compaction.
 - **Cache lifecycle.** The retired v1 cache migration path has been
   removed. arama now ignores legacy v1 cache databases and rebuilds
   current v2 cache entries lazily; the migration-only `rusqlite`

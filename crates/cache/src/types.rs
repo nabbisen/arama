@@ -40,6 +40,34 @@ pub struct DirCacheSummary {
     pub latest_cached_at: i64,
 }
 
+/// Actual bytes consumed by arama cache storage (RFC 016).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct CacheFootprint {
+    pub database_bytes: u64,
+    pub database_sidecar_bytes: u64,
+    pub thumbnail_bytes: u64,
+    pub total_bytes: u64,
+}
+
+/// Manual prune request for cache storage (RFC 016).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CachePruneRequest {
+    /// Target cache footprint in bytes.
+    pub max_bytes: u64,
+}
+
+/// Result of a manual prune pass (RFC 016).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct CachePruneReport {
+    pub before: CacheFootprint,
+    pub after: CacheFootprint,
+    pub target_reached: bool,
+    pub unreclaimable_bytes: u64,
+    pub removed_entries: usize,
+    pub removed_recorded_thumbnail_bytes: u64,
+    pub removed_orphan_thumbnail_bytes: u64,
+}
+
 // ---------------------------------------------------------------------------
 // Images
 // ---------------------------------------------------------------------------
