@@ -16,6 +16,17 @@ After the lockfile update, `cargo audit` still exits successfully and reports
 five allowed warnings. These warnings are tracked below instead of being added
 as broad new ignores.
 
+## Dependency Modernization Follow-up
+
+RFC 020's implementation updated first-party Candle dependencies from 0.10 to
+0.11 and the non-Linux sidecar `zip` dependency from 4.6.1 to 8.6.0. `zip`
+8.6.0 declares Rust 1.88, which stays below arama's Rust 1.90 workspace floor.
+
+The same five audit warnings remain after that modernization. `pt2safetensors`
+0.1.3 still owns a transitive `candle-core` 0.10.2 path for PyTorch to
+SafeTensors conversion, so Candle-related lockfile duplication is not fully
+removed by the first-party Candle update.
+
 ## Remaining Warnings
 
 ### `bincode` 1.3.3
@@ -48,7 +59,8 @@ change.
 
 Observed through multiple transitive owners, including:
 
-- `candle-core`/`gemm`
+- first-party `candle-core` 0.11 through `gemm`
+- `pt2safetensors` 0.1.3 through transitive `candle-core` 0.10 and `gemm`
 - `tokenizers` through `macro_rules_attribute`
 - `image`/`ravif` through `rav1e`
 - the iced image/rendering dependency stack

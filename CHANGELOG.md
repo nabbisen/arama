@@ -9,6 +9,10 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Changed
 
+- **Dependency modernization.** The first-party Candle AI stack now uses
+  `candle-core`, `candle-nn`, and `candle-transformers` 0.11, and the
+  non-Linux ffmpeg sidecar ZIP extractor now targets `zip` 8.6.0. `zip` 8.6.0
+  requires Rust 1.88, below arama's Rust 1.90 workspace floor.
 - **Cache capacity controls.** The Cache page now distinguishes source
   media size from actual cache footprint and adds explicit manual
   pruning toward a one-off MiB target. The prune pass removes orphan

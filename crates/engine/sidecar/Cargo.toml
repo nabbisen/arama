@@ -25,4 +25,4 @@ tar                         = "0.4"
 xz2                         = "0.1"
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
-zip                         = { version = "4", features = ["deflate"], default-features = false }
+zip                         = { version = "8", features = ["deflate"], default-features = false }
