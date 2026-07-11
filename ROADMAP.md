@@ -6,6 +6,28 @@ through the RFC process before code changes begin.
 
 ## Current focus
 
+### Visible recoverable error UX
+
+**Status.** RFC 017 proposed for review.
+
+**Why now.** Recent cache, setup, and similarity resilience work removed
+several panic paths, but some recoverable failures still degrade to empty,
+default, or stderr-only states. The project now needs a consistent
+user-visible policy before more implementation work spreads ad hoc handling
+patterns.
+
+**Planned design questions.**
+
+- Which recoverable failures should be inline page errors, toasts, fatal startup
+  errors, or developer diagnostics?
+- How should settings load/save failures behave without losing the current
+  in-memory session state?
+- How should Cache page reload failures avoid presenting a false empty cache?
+- Which errors should remain stderr-only because the fallback is truthful and
+  safe?
+
+## Recently implemented, pending owner-managed lifecycle
+
 ### Cache lifecycle
 
 **Status.** RFC 015 implementation reviewed; release/lifecycle transition
@@ -15,30 +37,17 @@ pending owner action.
 `localcache` in v0.23.0. RFC 015 retires the temporary v1 migration path and
 keeps cache-size/disk-pressure management split into a separate design.
 
-**Current follow-up.** RFC 016 — Cache capacity and disk-pressure management.
-
-**Planned design questions.**
-
-- How should arama measure actual cache footprint?
-- What user-visible controls should exist for cache limits and pruning?
-- Should pruning be explicit/manual first, or automatic after indexing runs?
-- What eviction order should be used when entries must be removed?
-- How should low-disk-space warnings differ from cache-size limits?
+**Follow-up status.** RFC 016 implementation reviewed; release/lifecycle
+transition pending owner action.
 
 ## Later candidates
 
-### Visible recoverable error UX
+### Startup fatal-boundary resilience
 
-Recent cache and similarity resilience work removed several panic paths, but
-some failures still degrade to empty or partial UI states. A future RFC should
-define which recoverable failures deserve inline errors, toasts, retry buttons,
-or silent fallback.
-
-### Startup and settings persistence resilience
-
-Remaining app-level initialization and settings-save panic paths should be
-classified into fatal startup errors versus recoverable UI errors before code
-changes begin.
+After RFC 017 handles recoverable settings visibility, remaining startup work
+should focus on failures that prevent a usable application shell from starting
+at all, and on which of those should return an `iced::Result` error versus a
+fallback shell.
 
 ### AI and video pipeline resilience
 

@@ -11,6 +11,7 @@ permanent; implemented and archived RFCs are never deleted.
 |----|-------|----------|
 | 015 | [Cache lifecycle: retire v1 migration and define cache-capacity direction](./proposed/015-cache-lifecycle.md) | High |
 | 016 | [Cache capacity and disk-pressure management](./proposed/016-cache-capacity.md) | High |
+| 017 | [Visible recoverable error UX](./proposed/017-visible-recoverable-error-ux.md) | High |
 
 ## Implemented
 
