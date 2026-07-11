@@ -15,6 +15,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 018 | [AI/video pipeline resilience](./proposed/018-ai-video-pipeline-resilience.md) | High |
 | 019 | [Startup fatal-boundary resilience](./proposed/019-startup-fatal-boundary-resilience.md) | High |
 | 020 | [Dependency modernization: Candle and sidecar archive stack](./proposed/020-dependency-modernization.md) | Medium |
+| 021 | [CLIP SafeTensors source strategy](./proposed/021-clip-safetensors-source-strategy.md) | Medium |
 
 ## Implemented
 

@@ -6,24 +6,26 @@ through the RFC process before code changes begin.
 
 ## Current focus
 
-### Dependency modernization
+### CLIP SafeTensors source strategy
 
-**Status.** RFC 020 proposed for review.
+**Status.** RFC 021 proposed for review.
 
-**Why now.** The audit warning burn-down resolved the compatible patch-level
-warnings and recorded the remaining upstream/transitive owners. The next
-dependency work should be explicit modernization rather than ad hoc version
-bumps: direct AI/runtime dependencies can affect model loading, CUDA/Metal
-builds, archive extraction, and release-gate evidence.
+**Why now.** RFC 020 moved first-party Candle use to 0.11, but
+`pt2safetensors` still keeps a transitive Candle 0.10 line in the lockfile
+because the pinned OpenAI CLIP source is a PyTorch `.bin` artifact. Removing
+that duplicate AI stack is no longer a dependency bump; it requires a trust and
+artifact-source decision.
 
 **Planned design questions.**
 
-- Which direct dependency upgrades are small enough for one reviewed batch?
-- Which updates require Linux, macOS/Metal, Windows, or CUDA-specific evidence?
-- Which remaining audit warnings are blocked by upstream crates and should stay
-  tracked rather than forced through replacement work?
-- Should pre-release dependency lines be excluded unless they fix a blocking
-  advisory?
+- Should arama keep runtime PyTorch-to-SafeTensors conversion for CLIP, or move
+  to a pinned SafeTensors source?
+- If arama moves to SafeTensors, which upstream or mirrored artifact is
+  acceptable under the first-run supply-chain policy?
+- What checksum, provenance, and embedding-regression evidence is required
+  before removing `pt2safetensors`?
+- What rollback path should exist if a replacement CLIP artifact changes image
+  embeddings?
 
 ## Recently implemented, pending owner-managed lifecycle
 
@@ -62,6 +64,15 @@ owner action.
 **Why now.** Compatible patch-level RustSec warnings for `anyhow` and `memmap2`
 were resolved. Remaining allowed warnings are tracked in
 [`rfcs/notes/audit-warning-burn-down.md`](./rfcs/notes/audit-warning-burn-down.md).
+
+### Dependency modernization
+
+**Status.** RFC 020 implementation reviewed; release/lifecycle transition
+pending owner action.
+
+**Why now.** First-party Candle dependencies moved to 0.11 and non-Linux
+sidecar ZIP extraction moved to stable `zip` 8.6.0. `pt2safetensors` remains
+as the only Candle 0.10 owner.
 
 ## Later candidates
 
