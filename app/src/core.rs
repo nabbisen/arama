@@ -1,11 +1,11 @@
 use std::path::PathBuf;
 
-use app_json_settings::ConfigManager;
+use app_json_settings::{ConfigError, ConfigManager};
 use arama_env::{
     IMAGE_EXTENSION_ALLOWLIST, Settings, VIDEO_EXTENSION_ALLOWLIST, local_dir,
     target_media_type::TargetMediaType, validate_dir,
 };
-use arama_i18n::set_locale;
+use arama_i18n::{set_locale, t};
 use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
 use arama_ui_main::views::{
     cache_page::CachePage,
@@ -108,7 +108,19 @@ impl App {
         {
             Ok(x) => x,
             Err(err) => {
-                eprintln!("failed to load settings: {:?}", err);
+                let id = toast_id_counter;
+                toast_id_counter += 1;
+                startup_toasts.push(Toast::new(
+                    id,
+                    ToastIntent::Warning,
+                    t("settings.load_error.title"),
+                    format!(
+                        "{}: {}",
+                        t("settings.load_error.body"),
+                        settings_error_message(&err)
+                    ),
+                    Message::ToastDismiss(id),
+                ));
                 Settings::default()
             }
         };
@@ -191,20 +203,23 @@ impl App {
         )
     }
 
-    fn save_settings(&self) {
-        ConfigManager::new()
-            .at_current_dir()
-            .save(&Settings {
-                root_dir_path: self.settings.root_dir_path.to_owned(),
-                target_media_type: self.settings.target_media_type.to_owned(),
-                sub_dir_depth_limit: self.settings.sub_dir_depth_limit,
-                thumbnail_size: self.settings.thumbnail_size,
-                cache_lookup_strategy: self.settings.cache_lookup_strategy,
-                similarity_threshold: self.settings.similarity_threshold,
-                locale: self.settings.locale,
-                theme: self.settings.theme,
-            })
-            .expect("failed to save config");
+    fn save_settings(&mut self) -> bool {
+        match ConfigManager::new().at_current_dir().save(&Settings {
+            root_dir_path: self.settings.root_dir_path.to_owned(),
+            target_media_type: self.settings.target_media_type.to_owned(),
+            sub_dir_depth_limit: self.settings.sub_dir_depth_limit,
+            thumbnail_size: self.settings.thumbnail_size,
+            cache_lookup_strategy: self.settings.cache_lookup_strategy,
+            similarity_threshold: self.settings.similarity_threshold,
+            locale: self.settings.locale,
+            theme: self.settings.theme,
+        }) {
+            Ok(()) => true,
+            Err(err) => {
+                self.push_error_toast(t("settings.save_error.title"), settings_error_message(&err));
+                false
+            }
+        }
     }
 
     fn processing_on(&mut self) {
@@ -270,6 +285,14 @@ fn app_theme(_state: &App) -> iced::Theme {
 fn setup_validate() {
     let local_dir = local_dir().expect("failed to get local dir");
     let _ = validate_dir(&local_dir);
+}
+
+fn settings_error_message(err: &ConfigError) -> String {
+    match err {
+        ConfigError::Io(err) => format!("I/O error: {err}"),
+        ConfigError::Serialize(err) => format!("JSON serialization error: {err}"),
+        ConfigError::Deserialize(err) => format!("JSON deserialization error: {err}"),
+    }
 }
 
 fn dir_node(root_dir_path: &str, target_media_type: &TargetMediaType) -> DirNode {

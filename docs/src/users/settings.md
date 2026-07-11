@@ -17,6 +17,11 @@ has four tabs.
 Changes to media type or subdirectory depth take effect immediately:
 the currently selected directory is re-indexed with the new parameters.
 
+If arama cannot load saved settings at startup, it shows a warning and
+uses default settings for that session. If a later settings save fails,
+the current in-memory setting still takes effect immediately, but arama
+shows an error because the change may not persist after restart.
+
 ## AI
 
 Shows the status of the two AI models and the ffmpeg binary:

@@ -43,14 +43,81 @@ impl CachePage {
                     }
                     None => Task::none(),
                 },
-                Internal::RowsLoaded(load) => {
+                Internal::RowsLoaded(Ok(load)) => {
                     self.rows = load.rows;
                     self.footprint = load.footprint;
+                    self.load_error = None;
+                    self.busy = false;
+                    self.loaded = true;
+                    Task::none()
+                }
+                Internal::RowsLoaded(Err(err)) => {
+                    self.load_error = Some(err.message);
                     self.busy = false;
                     self.loaded = true;
                     Task::none()
                 }
             },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::views::cache_page::{CacheLoad, CacheLoadError, DirRow};
+
+    #[test]
+    fn rows_loaded_success_clears_prior_error() {
+        let mut page = CachePage {
+            load_error: Some("old error".to_owned()),
+            busy: true,
+            ..CachePage::default()
+        };
+
+        let load = CacheLoad {
+            rows: vec![DirRow {
+                dir_path: "/tmp/images".to_owned(),
+                file_count: 2,
+                total_size: 128,
+                latest_cached_at: 42,
+            }],
+            footprint: None,
+        };
+
+        let _ = page.update(Message::Internal(Internal::RowsLoaded(Ok(load))));
+
+        assert!(page.load_error.is_none());
+        assert!(!page.busy);
+        assert!(page.loaded);
+        assert_eq!(page.rows.len(), 1);
+    }
+
+    #[test]
+    fn rows_loaded_failure_preserves_stale_rows_and_sets_error() {
+        let stale = DirRow {
+            dir_path: "/tmp/stale".to_owned(),
+            file_count: 1,
+            total_size: 64,
+            latest_cached_at: 7,
+        };
+        let mut page = CachePage {
+            rows: vec![stale.clone()],
+            busy: true,
+            loaded: true,
+            ..CachePage::default()
+        };
+
+        let _ = page.update(Message::Internal(Internal::RowsLoaded(Err(
+            CacheLoadError {
+                message: "cache unavailable".to_owned(),
+            },
+        ))));
+
+        assert_eq!(page.load_error.as_deref(), Some("cache unavailable"));
+        assert!(!page.busy);
+        assert!(page.loaded);
+        assert_eq!(page.rows.len(), 1);
+        assert_eq!(page.rows[0].dir_path, stale.dir_path);
     }
 }

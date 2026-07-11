@@ -35,6 +35,11 @@ pub struct CacheLoad {
     pub footprint: Option<CacheFootprint>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CacheLoadError {
+    pub message: String,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct CachePage {
     /// Merged per-directory rows, sorted newest-first.
@@ -47,6 +52,8 @@ pub struct CachePage {
     prune_target_input: String,
     /// Actual cache footprint from the last page reload.
     footprint: Option<CacheFootprint>,
+    /// Most recent table/footprint reload failure.
+    load_error: Option<String>,
     /// Result of the most recent prune operation.
     last_prune_report: Option<CachePruneReport>,
     /// Directory of the active caching run, when one is in flight.
@@ -65,12 +72,7 @@ impl CachePage {
     pub fn load_task(&mut self) -> Task<Message> {
         self.busy = true;
         Task::perform(
-            async {
-                load_rows().unwrap_or_else(|err| {
-                    eprintln!("cache page load failed: {err}");
-                    CacheLoad::default()
-                })
-            },
+            async { load_rows().map_err(|message| CacheLoadError { message }) },
             |load| Message::Internal(Internal::RowsLoaded(load)),
         )
     }

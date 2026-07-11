@@ -13,6 +13,9 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "settings.general.sub_dir_depth" => "Sub dir depth",
         "settings.general.similarity" => "Similarity",
         "settings.general.language" => "Language",
+        "settings.load_error.title" => "Settings load failed",
+        "settings.load_error.body" => "Using default settings for this session",
+        "settings.save_error.title" => "Settings save failed",
 
         // Settings — AI tab
         "settings.ai.clip_missing" => {
@@ -45,6 +48,8 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "cache.column.cached_at" => "Cached at",
         "cache.footprint" => "Cache footprint",
         "cache.footprint.unavailable" => "unavailable",
+        "cache.load_error" => "Cache page reload failed",
+        "cache.load_error.stale" => "Cache page reload failed; showing stale data",
         "cache.prune.placeholder" => "Target",
         "cache.prune.unit_mib" => "MiB",
         "cache.prune.button" => "Prune",

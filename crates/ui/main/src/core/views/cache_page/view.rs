@@ -61,6 +61,19 @@ impl CachePage {
             })
             .unwrap_or_else(|| text("").into());
 
+        let load_error: Element<'_, Message> = self
+            .load_error
+            .as_ref()
+            .map(|message| {
+                let prefix = if self.rows.is_empty() {
+                    t("cache.load_error")
+                } else {
+                    t("cache.load_error.stale")
+                };
+                text(format!("{prefix}: {message}")).into()
+            })
+            .unwrap_or_else(|| text("").into());
+
         // ── Filter row ────────────────────────────────────────────────
         let filter_row = row![
             text_input(&t("cache.filter.placeholder"), &self.filter)
@@ -117,6 +130,7 @@ impl CachePage {
             add_form,
             prune_row,
             prune_result,
+            load_error,
             filter_row,
             table,
             summary

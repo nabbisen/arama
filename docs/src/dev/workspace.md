@@ -101,6 +101,16 @@ Self-contained reusable widgets:
 Japanese translation tables live in `en.rs` and `ja.rs` as static
 `match` expressions. All UI crates depend on this crate.
 
+### Recoverable error display policy
+
+RFC 017 classifies recoverable user-visible failures into four tiers:
+fatal startup errors, blocking view errors, recoverable action errors,
+and developer diagnostics. Blocking view errors, such as Cache page
+reload failures, should render inline near the stale or unavailable
+data. Recoverable user actions, such as settings save failures, should
+use app toasts. Static invariant failures may stay stderr-only when the
+fallback remains truthful and safe.
+
 ### `crates/theme`
 
 `arama-theme` adopts the Snora Design system (RFC 010). It holds the

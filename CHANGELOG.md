@@ -40,6 +40,10 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Fixed
 
+- **Visible recoverable error UX.** Settings load failures now warn and fall
+  back to default in-session settings, settings save failures surface as error
+  toasts instead of panicking, and Cache page reload failures render inline
+  without replacing stale rows with a false empty state.
 - **Cache UI error resilience.** Cache page reloads, thumbnail map refreshes,
   embedding completion, and File System settings disk/cache-directory checks
   now handle local path and cache reader failures without panicking.

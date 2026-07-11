@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use super::CacheLoad;
+use super::{CacheLoad, CacheLoadError};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -31,5 +31,5 @@ pub enum Internal {
     CachePressed,
     PrunePressed,
     /// Result of the async table load.
-    RowsLoaded(CacheLoad),
+    RowsLoaded(Result<CacheLoad, CacheLoadError>),
 }

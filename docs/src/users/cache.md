@@ -51,6 +51,10 @@ Type into the filter box to narrow the table to rows whose path
 contains the typed text (case-insensitive). The **↻** button reloads
 the table from the cache database.
 
+If the reload fails, the Cache page shows an inline error instead of
+pretending the cache is empty. When previous rows are available, they
+remain visible and are marked as stale until a reload succeeds.
+
 ## Clearing one directory
 
 Press the **🗑** button on a row to remove every cached entry for that

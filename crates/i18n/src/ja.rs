@@ -17,6 +17,15 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         } // サブディレクトリ深さ
         "settings.general.similarity" => "\u{985e}\u{4f3c}\u{5ea6}", // 類似度
         "settings.general.language" => "\u{8a00}\u{8a9e}",      // 言語
+        "settings.load_error.title" => {
+            "\u{8a2d}\u{5b9a}\u{306e}\u{8aad}\u{307f}\u{8fbc}\u{307f}\u{306b}\u{5931}\u{6557}\u{3057}\u{307e}\u{3057}\u{305f}"
+        } // 設定の読み込みに失敗しました
+        "settings.load_error.body" => {
+            "\u{3053}\u{306e}\u{30bb}\u{30c3}\u{30b7}\u{30e7}\u{30f3}\u{3067}\u{306f}\u{65e2}\u{5b9a}\u{306e}\u{8a2d}\u{5b9a}\u{3092}\u{4f7f}\u{7528}\u{3057}\u{307e}\u{3059}"
+        } // このセッションでは既定の設定を使用します
+        "settings.save_error.title" => {
+            "\u{8a2d}\u{5b9a}\u{306e}\u{4fdd}\u{5b58}\u{306b}\u{5931}\u{6557}\u{3057}\u{307e}\u{3057}\u{305f}"
+        } // 設定の保存に失敗しました
 
         // Settings — AI tab
         "settings.ai.clip_missing" => {
@@ -61,6 +70,12 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "cache.column.cached_at" => "\u{30ad}\u{30e3}\u{30c3}\u{30b7}\u{30e5}\u{65e5}\u{6642}", // キャッシュ日時
         "cache.footprint" => "\u{30ad}\u{30e3}\u{30c3}\u{30b7}\u{30e5}\u{4f7f}\u{7528}\u{91cf}", // キャッシュ使用量
         "cache.footprint.unavailable" => "\u{53d6}\u{5f97}\u{3067}\u{304d}\u{307e}\u{305b}\u{3093}", // 取得できません
+        "cache.load_error" => {
+            "\u{30ad}\u{30e3}\u{30c3}\u{30b7}\u{30e5}\u{30da}\u{30fc}\u{30b8}\u{306e}\u{518d}\u{8aad}\u{307f}\u{8fbc}\u{307f}\u{306b}\u{5931}\u{6557}\u{3057}\u{307e}\u{3057}\u{305f}"
+        } // キャッシュページの再読み込みに失敗しました
+        "cache.load_error.stale" => {
+            "\u{30ad}\u{30e3}\u{30c3}\u{30b7}\u{30e5}\u{30da}\u{30fc}\u{30b8}\u{306e}\u{518d}\u{8aad}\u{307f}\u{8fbc}\u{307f}\u{306b}\u{5931}\u{6557}\u{3057}\u{307e}\u{3057}\u{305f}\u{3002}\u{53e4}\u{3044}\u{30c7}\u{30fc}\u{30bf}\u{3092}\u{8868}\u{793a}\u{3057}\u{3066}\u{3044}\u{307e}\u{3059}"
+        } // キャッシュページの再読み込みに失敗しました。古いデータを表示しています
         "cache.prune.placeholder" => "\u{76ee}\u{6a19}", // 目標
         "cache.prune.unit_mib" => "MiB",
         "cache.prune.button" => "\u{524a}\u{6e1b}", // 削減
