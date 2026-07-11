@@ -6,22 +6,26 @@ through the RFC process before code changes begin.
 
 ## Current focus
 
-### AI and video pipeline resilience
+### Startup fatal-boundary resilience
 
-**Status.** RFC 018 proposed for review.
+**Status.** RFC 019 proposed for review.
 
-**Why now.** Video indexing is the most failure-prone AI workflow: ffmpeg,
-ffprobe, frame extraction, audio extraction, model inference, and cache writes
-can fail independently. The project needs an explicit policy for whether to
-skip one file, use one successful modality, warn the user, or abort the whole
-run.
+**Why now.** RFC 017 made recoverable runtime and page-load failures visible,
+and RFC 018 made AI/video indexing failures explicit. The remaining resilience
+boundary is application startup: arama should distinguish failures that prevent
+opening a usable shell from failures that can recover into a truthful degraded
+startup state with visible feedback.
 
 **Planned design questions.**
 
-- Which failures are fatal setup errors versus per-file recoverable failures?
-- When should a video with only frame or only audio embeddings remain usable?
-- How should cache write failures be reported without aborting unrelated files?
-- What concise user-visible warning should summarize partial indexing results?
+- Which startup failures should return an `iced::Result` instead of opening the
+  shell?
+- Which local setup, settings, gallery, or root-directory failures can recover
+  with a startup toast?
+- Should invalid configured root directories keep the path visible while using
+  an empty Explorer state, or reset the session root to `"."`?
+- Which startup `expect()` paths are true developer invariants versus ordinary
+  recoverable filesystem failures?
 
 ## Recently implemented, pending owner-managed lifecycle
 
@@ -42,14 +46,12 @@ transition pending owner action.
 **Status.** RFC 017 implementation reviewed; release/lifecycle transition
 pending owner action.
 
+### AI and video pipeline resilience
+
+**Status.** RFC 018 implementation reviewed; release/lifecycle transition
+pending owner action.
+
 ## Later candidates
-
-### Startup fatal-boundary resilience
-
-After RFC 017 handles recoverable settings visibility, remaining startup work
-should focus on failures that prevent a usable application shell from starting
-at all, and on which of those should return an `iced::Result` error versus a
-fallback shell.
 
 ### Audit exception burn-down
 
