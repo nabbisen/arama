@@ -6,26 +6,36 @@ through the RFC process before code changes begin.
 
 ## Current focus
 
-### Image similarity search dependency strategy
+### Cache serialization dependency strategy
 
-**Status.** RFC 022 proposed for review.
+**Status.** RFC 023 proposed for review.
 
-**Why now.** The remaining `bincode` 1.3 audit warning is owned by `hnsw_rs`,
-and `hnsw_rs` is used only by the image similar-pairs search path. This is the
-smallest remaining warning-owner surface that can be designed without replacing
-the cache engine, UI stack, or model artifact source.
+**Why now.** After RFC 022, the only remaining `bincode` warning is
+`bincode` 2.0.1 through `localcache`, which is arama's cache engine. This is no
+longer a localized dependency swap: it touches persistent cache payload format,
+compatibility, migration, and cache facade behavior.
 
 **Planned design questions.**
 
-- Should image similar-pairs use exact bounded pairwise search, a maintained
-  ANN crate, or retain `hnsw_rs` for now?
-- What result-cap and ordering contract prevents exact search from flooding the
-  dialog?
-- What fixture tests prove threshold filtering, duplicate avoidance, and stable
-  ordering?
-- What performance evidence is enough before removing `hnsw_rs`?
+- Can arama remove the `bincode` warning by using a `localcache` codec path
+  whose dependency graph does not include `bincode`?
+- Should the implementation wait for an upstream `localcache` release, carry a
+  temporary workspace patch, or replace the cache engine?
+- What migration and compatibility evidence is required before changing cache
+  payload encoding?
+- What cache integration tests prove image/video payloads, thumbnails,
+  invalidation, summaries, pruning, and read-pool behavior still hold?
 
 ## Recently implemented, pending owner-managed lifecycle
+
+### Image similarity search dependency strategy
+
+**Status.** RFC 022 implementation reviewed; release/lifecycle transition
+pending owner action.
+
+**Why now.** `hnsw_rs` was replaced with exact bounded pairwise image search,
+removing the `bincode` 1.3 warning while preserving a deterministic top-50
+similar-pairs contract.
 
 ### Cache lifecycle
 
@@ -86,9 +96,9 @@ The decision is recorded in
 
 ### Remaining audit-warning owners
 
-`localcache`, Candle/transitive `paste`, `proc-macro-error2`, and the
-font/rendering stack should be revisited when upstream releases expose
-compatible fixes or when a replacement design is intentionally proposed.
+Candle/transitive `paste` and the font/rendering stack should be revisited when
+upstream releases expose compatible fixes or when a replacement design is
+intentionally proposed.
 
 ### Release prep
 
