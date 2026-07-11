@@ -32,7 +32,6 @@ pt2safetensors              = { workspace = true }
 
 # general
 anyhow                      = { workspace = true }
-hnsw_rs                     = { workspace = true }
 image                       = { workspace = true }
 naga                        = { workspace = true }
 rayon                       = { workspace = true }

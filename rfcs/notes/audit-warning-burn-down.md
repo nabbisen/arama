@@ -16,6 +16,23 @@ After the lockfile update, `cargo audit` still exits successfully and reports
 five allowed warnings. These warnings are tracked below instead of being added
 as broad new ignores.
 
+After the RFC 022 image similarity implementation, the active audit surface is
+down to three allowed warnings: `bincode` 2.0.1 through `localcache`, `paste`
+1.0.15 through multiple transitive owners, and `ttf-parser` 0.25.1 through the
+font/rendering stack.
+
+## Image Similarity Search Follow-up
+
+RFC 022 replaced the localized `hnsw_rs` image similar-pairs candidate
+generator with exact bounded pairwise search. This removed the `hnsw_rs` path
+and the transitive `bincode` 1.3.3 audit warning. The image similar-pairs
+dialog now asks for the top 50 image pairs globally instead of passing `50` as
+an HNSW neighbor count.
+
+The same lockfile refresh removed the previously stale `proc-macro-error2`
+entry that had no active all-target workspace dependency path during the
+maintenance pass.
+
 ## Dependency Modernization Follow-up
 
 RFC 020's implementation updated first-party Candle dependencies from 0.10 to
@@ -37,19 +54,6 @@ checksum, and embedding-regression evidence, `pt2safetensors` remains an
 intentional dependency and the transitive Candle 0.10 path remains tracked.
 
 ## Remaining Warnings
-
-### `bincode` 1.3.3
-
-Observed path:
-
-```text
-bincode 1.3.3 <- hnsw_rs 0.3.4 <- arama-ai
-```
-
-`hnsw_rs` 0.3.4 is the latest published crate version at the time of this
-maintenance pass. Burning down this warning requires an upstream `hnsw_rs`
-release or a replacement/design change for the approximate-nearest-neighbor
-dependency.
 
 ### `bincode` 2.0.1
 
@@ -76,13 +80,6 @@ Observed through multiple transitive owners, including:
 
 This is not owned by a single direct dependency. Treat it as a dependency
 modernization signal and revisit when direct dependency updates are planned.
-
-### `proc-macro-error2` 2.0.1
-
-`Cargo.lock` still contains `proc-macro-error2`, but no active path was found
-with the normal all-target workspace tree check during this pass. Keep this on
-the next audit pass and re-check whether a future lockfile refresh removes it
-or reveals the active owner.
 
 ### `ttf-parser` 0.25.1
 

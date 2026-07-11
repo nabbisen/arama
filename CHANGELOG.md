@@ -9,6 +9,10 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Changed
 
+- **Image similarity search dependency strategy.** Image similar-pairs search
+  now uses exact bounded pairwise scoring and returns the top 50 image pairs
+  globally, removing the unmaintained `hnsw_rs` dependency and its transitive
+  `bincode` 1.3 audit warning.
 - **Dependency modernization.** The first-party Candle AI stack now uses
   `candle-core`, `candle-nn`, and `candle-transformers` 0.11, and the
   non-Linux ffmpeg sidecar ZIP extractor now targets `zip` 8.6.0. `zip` 8.6.0

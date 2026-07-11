@@ -29,6 +29,8 @@ use types::SimilarPair;
 
 use crate::dialog::similar_pairs_dialog::types::SimilarPairItem;
 
+const MAX_IMAGE_SIMILAR_PAIRS: usize = 50;
+
 #[derive(Clone, Debug)]
 pub struct SimilarPairsDialog {
     dir_node: DirNode,
@@ -188,9 +190,11 @@ async fn prepare_embeddings(dir_node: DirNode, similarity_threshold: f32) -> Vec
         }
     }
 
-    // todo ui sliders for these param(s): threshold (also k_neighbors ?)
-    let mut similar_pairs =
-        find_similar_pairs(&image_path_embeddings, similarity_threshold, 50).await;
+    let mut similar_pairs = find_similar_pairs(
+        &image_path_embeddings,
+        similarity_threshold,
+        MAX_IMAGE_SIMILAR_PAIRS,
+    );
     let video_pairs = find_similar_video_pairs(&video_path_embeddings, similarity_threshold);
     similar_pairs.extend(video_pairs);
     similar_pairs
