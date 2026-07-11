@@ -8,27 +8,22 @@ through the RFC process before code changes begin.
 
 ### Cache lifecycle
 
-**Status.** Proposed RFC pending review.
+**Status.** RFC 015 implementation reviewed; release/lifecycle transition
+pending owner action.
 
 **Why now.** RFC 002 moved arama from the old `file-feature-cache` engine to
-`localcache` in v0.23.0. The temporary v1 migration shim was intentionally kept
-for one release cycle, and the implementation still says it is scheduled for
-removal. arama is now past that compatibility window, so the cache lifecycle
-policy should be reviewed deliberately instead of letting historical migration
-code remain indefinitely.
+`localcache` in v0.23.0. RFC 015 retires the temporary v1 migration path and
+keeps cache-size/disk-pressure management split into a separate design.
+
+**Current follow-up.** RFC 016 — Cache capacity and disk-pressure management.
 
 **Planned design questions.**
 
-- Should the v1 cache migration shim be removed now?
-- Should the old `rusqlite` dependency leave `arama-cache` as part of the same
-  change?
-- How should users recover if they still have only a v1 cache database?
-- Should cache-size or disk-pressure management be designed in the same RFC, or
-  split into a follow-up RFC?
-- What tests and release notes are required for safe removal?
-
-**Candidate RFC.** RFC 015 — Cache lifecycle: retire v1 migration and define
-cache-capacity direction.
+- How should arama measure actual cache footprint?
+- What user-visible controls should exist for cache limits and pruning?
+- Should pruning be explicit/manual first, or automatic after indexing runs?
+- What eviction order should be used when entries must be removed?
+- How should low-disk-space warnings differ from cache-size limits?
 
 ## Later candidates
 

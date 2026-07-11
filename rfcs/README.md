@@ -10,6 +10,7 @@ permanent; implemented and archived RFCs are never deleted.
 | ID | Title | Priority |
 |----|-------|----------|
 | 015 | [Cache lifecycle: retire v1 migration and define cache-capacity direction](./proposed/015-cache-lifecycle.md) | High |
+| 016 | [Cache capacity and disk-pressure management](./proposed/016-cache-capacity.md) | High |
 
 ## Implemented
 
