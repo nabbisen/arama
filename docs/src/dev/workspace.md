@@ -111,6 +111,13 @@ data. Recoverable user actions, such as settings save failures, should
 use app toasts. Static invariant failures may stay stderr-only when the
 fallback remains truthful and safe.
 
+RFC 018 applies that policy to AI/video indexing. Fatal setup remains an
+error toast when no requested media work can proceed. Per-file video
+decode/extraction failures and cache write failures are accumulated into
+an indexing report so the app can warn once and continue unrelated
+files. Video frame and audio modalities are independently valid; partial
+entries compare only over shared valid modalities.
+
 ### `crates/theme`
 
 `arama-theme` adopts the Snora Design system (RFC 010). It holds the

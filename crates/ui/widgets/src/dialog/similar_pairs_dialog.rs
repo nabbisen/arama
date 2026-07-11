@@ -1,6 +1,12 @@
 use std::path::PathBuf;
 
-use arama_ai::pipeline::score::similarity::image::find_similar_pairs;
+use arama_ai::{
+    config::video_similarity_config::VideoSimilarityConfig,
+    pipeline::score::similarity::{
+        image::{SimilarImagePair, find_similar_pairs},
+        video::video_similarity_calculator::score_mean_vectors,
+    },
+};
 use arama_cache::{
     CacheConfig, DbLocation, ImageCacheConfig, ImageCacheReader, LookupResult, VideoCacheConfig,
     VideoCacheReader,
@@ -11,6 +17,7 @@ use arama_env::{
 };
 use arama_sidecar::media::video::video_engine::VideoEngine;
 use iced::Task;
+use rayon::prelude::*;
 use swdir::DirNode;
 
 pub mod message;
@@ -28,6 +35,14 @@ pub struct SimilarPairsDialog {
     pairs: Option<Vec<SimilarPair>>,
     hovered_media_item_path_str: Option<String>,
     similarity_threshold: f32,
+}
+
+#[derive(Clone)]
+struct VideoEmbedding {
+    path: String,
+    thumbnail_path: Option<String>,
+    clip_vector: Option<Vec<f32>>,
+    audio_vector: Option<Vec<f32>>,
 }
 
 impl SimilarPairsDialog {
@@ -119,7 +134,7 @@ async fn prepare_embeddings(dir_node: DirNode, similarity_threshold: f32) -> Vec
         }
     }
 
-    let mut video_path_embeddings: Vec<(String, Option<String>, Vec<f32>)> = vec![];
+    let mut video_path_embeddings: Vec<VideoEmbedding> = vec![];
     let video_paths: Vec<&PathBuf> = paths
         .iter()
         .filter(|x| {
@@ -146,8 +161,11 @@ async fn prepare_embeddings(dir_node: DirNode, similarity_threshold: f32) -> Vec
                                 }
                             };
                             let feature = match lookup {
-                                LookupResult::Hit(x) => x.features.and_then(|f| {
-                                    f.clip_vector.map(|v| (x.path, x.thumbnail_path, v))
+                                LookupResult::Hit(x) => x.features.map(|f| VideoEmbedding {
+                                    path: x.path,
+                                    thumbnail_path: x.thumbnail_path,
+                                    clip_vector: f.clip_vector,
+                                    audio_vector: f.wav2vec2_vector,
                                 }),
                                 _ => None,
                             };
@@ -173,7 +191,7 @@ async fn prepare_embeddings(dir_node: DirNode, similarity_threshold: f32) -> Vec
     // todo ui sliders for these param(s): threshold (also k_neighbors ?)
     let mut similar_pairs =
         find_similar_pairs(&image_path_embeddings, similarity_threshold, 50).await;
-    let video_pairs = find_similar_pairs(&video_path_embeddings, similarity_threshold, 50).await;
+    let video_pairs = find_similar_video_pairs(&video_path_embeddings, similarity_threshold);
     similar_pairs.extend(video_pairs);
     similar_pairs
         .into_iter()
@@ -193,4 +211,38 @@ async fn prepare_embeddings(dir_node: DirNode, similarity_threshold: f32) -> Vec
             },
         )
         .collect()
+}
+
+fn find_similar_video_pairs(map: &[VideoEmbedding], threshold: f32) -> Vec<SimilarImagePair> {
+    let config = VideoSimilarityConfig::default();
+    let mut pairs = (0..map.len())
+        .into_par_iter()
+        .flat_map(|i| {
+            let left = &map[i];
+            let mut pairs = Vec::new();
+            for right in map.iter().skip(i + 1) {
+                let Some(score) = score_mean_vectors(
+                    left.clip_vector.as_deref(),
+                    left.audio_vector.as_deref(),
+                    right.clip_vector.as_deref(),
+                    right.audio_vector.as_deref(),
+                    config.image_weight,
+                    config.audio_weight,
+                ) else {
+                    continue;
+                };
+                if threshold <= score {
+                    pairs.push((
+                        (left.path.clone(), left.thumbnail_path.clone()),
+                        (right.path.clone(), right.thumbnail_path.clone()),
+                        score,
+                    ));
+                }
+            }
+            pairs
+        })
+        .collect::<Vec<_>>();
+
+    pairs.par_sort_unstable_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+    pairs
 }

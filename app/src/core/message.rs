@@ -24,7 +24,9 @@ pub enum Message {
     /// Async cache prune finished: report or error.
     CachePruneFinished(Result<arama_cache::CachePruneReport, String>),
     ThumbnailCacheFinished(Vec<(PathBuf, Arc<arama_cache::Result<()>>)>),
-    EmbeddingCacheFinished(Option<String>),
+    EmbeddingCacheFinished(
+        Result<arama_ai::pipeline::encode::image::embeddings::EmbeddingRunReport, String>,
+    ),
     SetupMessage(setup::message::Message),
     GalleryMessage(gallery::message::Message),
     HeaderMessage(header::message::Message),

@@ -1,6 +1,9 @@
 use std::path::Path;
 
-use arama_ai::config::video_similarity_config::VideoSimilarityConfig;
+use arama_ai::{
+    config::video_similarity_config::VideoSimilarityConfig,
+    pipeline::score::similarity::video::video_similarity_calculator::score_mean_vectors,
+};
 use arama_sidecar::media::video::video_engine::VideoEngine;
 use rayon::prelude::*;
 
@@ -187,46 +190,29 @@ fn similar_videos(
     else {
         return vec![];
     };
-    let (Some(target_clip_vector), Some(target_wav2vec2_vector)) = (
-        target_features.clip_vector.as_ref(),
-        target_features.wav2vec2_vector.as_ref(),
-    ) else {
-        return vec![];
-    };
+    let video_similarity_config = VideoSimilarityConfig::default();
 
     // Compute similarities in parallel.
     let mut ret = candidates
         .into_par_iter()
-        .map(|x| {
+        .filter_map(|x| {
             let similarity = match &x.features {
-                Some(features) => {
-                    let (Some(clip_vector), Some(wav2vec2_vector)) = (
-                        features.clip_vector.as_ref(),
-                        features.wav2vec2_vector.as_ref(),
-                    ) else {
-                        return SimilarMediaItem {
-                            path: x.path,
-                            thumbnail_path: x.thumbnail_path,
-                            similarity: 0.0,
-                        };
-                    };
-
-                    let image_similarity = dot_product(target_clip_vector, clip_vector);
-
-                    let audio_similarity = dot_product(target_wav2vec2_vector, wav2vec2_vector);
-
-                    let video_similarity_config = VideoSimilarityConfig::default();
-                    image_similarity * video_similarity_config.image_weight
-                        + audio_similarity * video_similarity_config.audio_weight
-                }
-                _ => 0.0,
+                Some(features) => score_mean_vectors(
+                    target_features.clip_vector.as_deref(),
+                    target_features.wav2vec2_vector.as_deref(),
+                    features.clip_vector.as_deref(),
+                    features.wav2vec2_vector.as_deref(),
+                    video_similarity_config.image_weight,
+                    video_similarity_config.audio_weight,
+                )?,
+                _ => return None,
             };
 
-            SimilarMediaItem {
+            Some(SimilarMediaItem {
                 path: x.path,
                 thumbnail_path: x.thumbnail_path,
                 similarity,
-            }
+            })
         })
         .filter(|x| threshold <= x.similarity)
         .collect::<Vec<_>>();
@@ -242,8 +228,6 @@ fn similar_videos(
     ret
 }
 
-/// Calculate the dot product of two vectors. For normalized vectors, this is
-/// cosine similarity.
 fn dot_product(a: &[f32], b: &[f32]) -> f32 {
     a.iter().zip(b).map(|(x, y)| x * y).sum()
 }

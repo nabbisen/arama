@@ -9,7 +9,9 @@ use crate::{
             image::clip_encoder::ClipEncoder,
         },
         extract::video_extractor::{VideoExtractor, audio_segment::AudioSegmentView},
-        score::similarity::video::video_features::VideoFeatures,
+        score::similarity::video::{
+            video_features::VideoFeatures, video_similarity_calculator::has_signal,
+        },
     },
 };
 use arama_cache::{LookupResult, UpsertVideoRequest, VideoCacheReader, VideoCacheWriter};
@@ -19,30 +21,47 @@ use arama_sidecar::media::video::video_engine::VideoEngine;
 pub struct VideoSimilarityPipeline {
     cfg: VideoSimilarityConfig,
     extractor: VideoExtractor,
-    clip_encoder: ClipEncoder,
-    audio_encoder: Box<dyn AudioEncoder>,
+    clip_encoder: Option<ClipEncoder>,
+    clip_setup_error: Option<String>,
+    audio_encoder: Option<Box<dyn AudioEncoder>>,
+    audio_setup_error: Option<String>,
     // cache: FeatureCache,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum VideoPreloadOutcome {
+    Processed,
+    Skipped(String),
+    CacheWriteFailed(String),
+}
+
 impl VideoSimilarityPipeline {
-    pub fn new(cfg: VideoSimilarityConfig) -> anyhow::Result<Self> {
+    pub fn new(cfg: VideoSimilarityConfig) -> Self {
         let device = ModelManager::device();
 
-        let clip_encoder = ClipEncoder::load(device.clone())?;
-        let audio_encoder = Wav2vec2Encoder::load(device)?;
+        let (clip_encoder, clip_setup_error) = match ClipEncoder::load(device.clone()) {
+            Ok(encoder) => (Some(encoder), None),
+            Err(err) => (None, Some(err.to_string())),
+        };
+        let (audio_encoder, audio_setup_error) = match Wav2vec2Encoder::load(device) {
+            Ok(encoder) => (Some(Box::new(encoder) as Box<dyn AudioEncoder>), None),
+            Err(err) => (None, Some(err.to_string())),
+        };
         let extractor = VideoExtractor::new(cfg.clone());
 
         // let cache = FeatureCache::open(db_path, &cfg)?;
         // cache.purge_stale_configs()?;
         // info!("{}", cache.stats()?);
 
-        Ok(Self {
+        Self {
             cfg,
             extractor,
             clip_encoder,
-            audio_encoder: Box::new(audio_encoder),
+            clip_setup_error,
+            audio_encoder,
+            audio_setup_error,
             // cache,
-        })
+        }
     }
 
     // Public API.
@@ -55,9 +74,12 @@ impl VideoSimilarityPipeline {
     // }
 
     /// Preload video features into the cache.
-    pub fn preload(&self, path: &Path) -> anyhow::Result<()> {
-        self.get_or_extract(path)?;
-        Ok(())
+    pub fn preload(&self, path: &Path) -> VideoPreloadOutcome {
+        self.get_or_extract(path)
+    }
+
+    pub fn has_any_modality(&self) -> bool {
+        self.clip_encoder.is_some() || self.audio_encoder.is_some()
     }
 
     // pub fn cache_stats(&self) -> Result<()> {
@@ -67,77 +89,117 @@ impl VideoSimilarityPipeline {
 
     // Cache control.
 
-    fn get_or_extract(&self, path: &Path) -> anyhow::Result<VideoFeatures> {
+    fn get_or_extract(&self, path: &Path) -> VideoPreloadOutcome {
+        let cache_path = match cache_storage_path() {
+            Ok(path) => path,
+            Err(err) => return VideoPreloadOutcome::Skipped(err.to_string()),
+        };
         let reader =
-            VideoCacheReader::onetime(arama_cache::DbLocation::Custom(cache_storage_path()?))?;
-        match reader.lookup(path)? {
-            LookupResult::Hit(x) if x.features.is_some() => {
+            match VideoCacheReader::onetime(arama_cache::DbLocation::Custom(cache_path.clone())) {
+                Ok(reader) => reader,
+                Err(err) => return VideoPreloadOutcome::Skipped(err.to_string()),
+            };
+        match reader.lookup(path) {
+            Ok(LookupResult::Hit(x)) if usable_cached_features(&x.features) => {
                 // info!("[CACHE HIT]  {:?}", path.file_name().unwrap_or_default());
-                let features = x.features.unwrap();
-                return Ok(VideoFeatures {
-                    path: path.to_string_lossy().to_string(),
-                    video_embeddings: features.clip_vector.unwrap_or(vec![]),
-                    audio_embeddings: features.wav2vec2_vector.unwrap_or(vec![]),
-                });
+                return VideoPreloadOutcome::Processed;
             }
+            Err(err) => return VideoPreloadOutcome::Skipped(err.to_string()),
             _ => (),
         };
 
-        let features = self.extract_features(path)?;
-
-        let writer = VideoCacheWriter::onetime(
-            arama_cache::DbLocation::Custom(cache_storage_path()?),
-            Some(cache_thumbnail_dir_path()?),
-            Some(
-                VideoEngine::ffmpeg()
-                    .expect("failed to get ffmpeg command")
-                    .get_program()
-                    .into(),
-            ),
-        )?;
-        let request = UpsertVideoRequest {
-            path: path.to_path_buf(),
-            clip_vector: Some(features.video_embeddings.clone()),
-            wav2vec2_vector: Some(features.audio_embeddings.clone()),
+        let features = match self.extract_features(path) {
+            Ok(features) => features,
+            Err(err) => return VideoPreloadOutcome::Skipped(err),
         };
 
-        writer.upsert(request)?;
+        let ffmpeg_path = VideoEngine::ffmpeg().map(|command| command.get_program().into());
+        let thumbnail_dir = cache_thumbnail_dir_path().ok();
+        let writer = VideoCacheWriter::onetime(
+            arama_cache::DbLocation::Custom(cache_path),
+            thumbnail_dir,
+            ffmpeg_path,
+        );
+        let writer = match writer {
+            Ok(writer) => writer,
+            Err(err) => return VideoPreloadOutcome::CacheWriteFailed(err.to_string()),
+        };
+        let request = UpsertVideoRequest {
+            path: path.to_path_buf(),
+            clip_vector: valid_feature_vector(features.video_embeddings.clone()),
+            wav2vec2_vector: valid_feature_vector(features.audio_embeddings.clone()),
+        };
 
-        Ok(features)
+        if let Err(err) = writer.upsert(request) {
+            return VideoPreloadOutcome::CacheWriteFailed(err.to_string());
+        }
+
+        VideoPreloadOutcome::Processed
     }
 
     // Feature extraction.
 
-    fn extract_features(&self, path: &Path) -> anyhow::Result<VideoFeatures> {
+    fn extract_features(&self, path: &Path) -> Result<VideoFeatures, String> {
         // 1. Read video duration and choose sampling timestamps.
         //    More than half of the samples are concentrated in the head zone.
-        let duration = self.extractor.get_duration(path)?;
+        let duration = self
+            .extractor
+            .get_duration(path)
+            .map_err(|err| format!("failed to read video duration: {err}"))?;
         let timestamps = self.cfg.compute_sample_timestamps(duration);
 
         // 2. Seek video frames individually, then batch-encode them with CLIP.
-        let frames = self.extractor.extract_video_frames(path, &timestamps)?;
-        let video_raw_embeddings = self.clip_encoder.encode_frames(&frames)?;
-        let video_embeddings = mean_embeddings(&video_raw_embeddings);
+        let (video_embeddings, frame_failures) = match &self.clip_encoder {
+            Some(encoder) => {
+                let frames = self
+                    .extractor
+                    .extract_video_frames_report(path, &timestamps);
+                let failures = frames.failures;
+                if frames.frames.is_empty() {
+                    (vec![], failures)
+                } else {
+                    let embeddings = encoder
+                        .encode_frames(&frames.frames)
+                        .map(|embeddings| mean_embeddings(&embeddings))
+                        .unwrap_or_default();
+                    (embeddings, failures)
+                }
+            }
+            None => (vec![], 0),
+        };
 
         // 3. Seek audio segments individually, then encode them with wav2vec2.
         //    Using the same timestamps as video keeps the timelines aligned.
-        let sr = self.audio_encoder.required_sample_rate();
-        let segments = self.extractor.extract_audio_segments_direct(
-            path,
-            &timestamps,
-            self.cfg.audio_segment_duration_secs,
-            sr,
-        )?;
-        let views: Vec<AudioSegmentView> = segments
-            .iter()
-            .map(|s| AudioSegmentView {
-                start_secs: s.start_secs,
-                sample_rate: s.sample_rate,
-                samples: &s.samples,
-            })
-            .collect();
-        let audio_raw_embeddings = self.audio_encoder.encode_segments(&views);
-        let audio_embeddings = mean_embeddings(&audio_raw_embeddings);
+        let (audio_embeddings, audio_failures) = match &self.audio_encoder {
+            Some(encoder) => {
+                let sr = encoder.required_sample_rate();
+                let segments = self.extractor.extract_audio_segments_direct_report(
+                    path,
+                    &timestamps,
+                    self.cfg.audio_segment_duration_secs,
+                    sr,
+                );
+                let failures = segments.failures;
+                let views: Vec<AudioSegmentView> = segments
+                    .segments
+                    .iter()
+                    .map(|s| AudioSegmentView {
+                        start_secs: s.start_secs,
+                        sample_rate: s.sample_rate,
+                        samples: &s.samples,
+                    })
+                    .collect();
+                let audio_raw_embeddings = encoder.encode_segments(&views);
+                (mean_embeddings(&audio_raw_embeddings), failures)
+            }
+            None => (vec![], 0),
+        };
+
+        if valid_feature_vector(video_embeddings.clone()).is_none()
+            && valid_feature_vector(audio_embeddings.clone()).is_none()
+        {
+            return Err(self.unavailable_modalities_message(frame_failures, audio_failures));
+        }
 
         Ok(VideoFeatures {
             path: path.to_string_lossy().to_string(),
@@ -145,9 +207,47 @@ impl VideoSimilarityPipeline {
             audio_embeddings,
         })
     }
+
+    fn unavailable_modalities_message(
+        &self,
+        frame_failures: usize,
+        audio_failures: usize,
+    ) -> String {
+        let mut reasons = Vec::new();
+        if let Some(err) = &self.clip_setup_error {
+            reasons.push(format!("frame modality unavailable: {err}"));
+        } else if frame_failures > 0 {
+            reasons.push(format!(
+                "frame extraction failed at {frame_failures} sample points"
+            ));
+        }
+        if let Some(err) = &self.audio_setup_error {
+            reasons.push(format!("audio modality unavailable: {err}"));
+        } else if audio_failures > 0 {
+            reasons.push(format!(
+                "audio extraction failed at {audio_failures} sample points"
+            ));
+        }
+        if reasons.is_empty() {
+            "no usable video or audio embeddings extracted".to_owned()
+        } else {
+            reasons.join("; ")
+        }
+    }
 }
 
-fn mean_embeddings(frames: &Vec<Vec<f32>>) -> Vec<f32> {
+fn usable_cached_features(features: &Option<arama_cache::VideoFeatures>) -> bool {
+    features.as_ref().is_some_and(|features| {
+        features.clip_vector.as_deref().is_some_and(has_signal)
+            || features.wav2vec2_vector.as_deref().is_some_and(has_signal)
+    })
+}
+
+fn valid_feature_vector(vector: Vec<f32>) -> Option<Vec<f32>> {
+    has_signal(&vector).then_some(vector)
+}
+
+fn mean_embeddings(frames: &[Vec<f32>]) -> Vec<f32> {
     if frames.is_empty() {
         return vec![];
     }

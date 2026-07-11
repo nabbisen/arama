@@ -17,6 +17,16 @@ pub struct VideoExtractor {
     cfg: VideoSimilarityConfig,
 }
 
+pub struct VideoFrameExtraction {
+    pub frames: Vec<RawVideoFrame>,
+    pub failures: usize,
+}
+
+pub struct AudioSegmentExtraction {
+    pub segments: Vec<RawAudioSegment>,
+    pub failures: usize,
+}
+
 impl VideoExtractor {
     pub fn new(cfg: VideoSimilarityConfig) -> Self {
         Self { cfg }
@@ -57,23 +67,24 @@ impl VideoExtractor {
     /// With input-side `-ss`, ffmpeg performs GOP-level fast seeks, so decode
     /// cost is roughly constant regardless of whether the timestamp is near the
     /// beginning or middle of a long video.
-    pub fn extract_video_frames(
+    pub fn extract_video_frames_report(
         &self,
         path: &Path,
         timestamps: &[f64],
-    ) -> anyhow::Result<Vec<RawVideoFrame>> {
+    ) -> VideoFrameExtraction {
         let size = self.cfg.clip_image_size;
         let mut frames = Vec::with_capacity(timestamps.len());
+        let mut failures = 0;
 
         for &ts in timestamps {
             match self.seek_single_frame(path, ts, size) {
                 Ok(Some(f)) => frames.push(f),
-                Ok(None) => eprintln!("arama: no frame at t={:.1}s in {:?}", ts, path),
-                Err(e) => eprintln!("arama: frame extract error at t={:.1}s: {}", ts, e),
+                Ok(None) => failures += 1,
+                Err(_) => failures += 1,
             }
         }
 
-        Ok(frames)
+        VideoFrameExtraction { frames, failures }
     }
 
     fn seek_single_frame(
@@ -134,17 +145,23 @@ impl VideoExtractor {
     /// This decodes only the needed seconds. It starts ffmpeg once per segment,
     /// but each invocation decodes a small window, which is cheaper than
     /// decoding every window in one large pass.
-    pub fn extract_audio_segments_direct(
+    pub fn extract_audio_segments_direct_report(
         &self,
         path: &Path,
         start_times: &[f64],
         duration_secs: f64,
         sample_rate: u32,
-    ) -> anyhow::Result<Vec<RawAudioSegment>> {
-        start_times
-            .iter()
-            .map(|&start| self.extract_one_audio_segment(path, start, duration_secs, sample_rate))
-            .collect()
+    ) -> AudioSegmentExtraction {
+        let mut segments = Vec::with_capacity(start_times.len());
+        let mut failures = 0;
+        for &start in start_times {
+            match self.extract_one_audio_segment(path, start, duration_secs, sample_rate) {
+                Ok(segment) if !segment.samples.is_empty() => segments.push(segment),
+                Ok(_) => failures += 1,
+                Err(_) => failures += 1,
+            }
+        }
+        AudioSegmentExtraction { segments, failures }
     }
 
     fn extract_one_audio_segment(

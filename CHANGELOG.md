@@ -40,6 +40,11 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Fixed
 
+- **AI/video pipeline resilience.** Video indexing now treats frame/audio setup
+  and extraction failures per modality, continues unrelated files after
+  per-file failures, reports partial indexing with warning toasts, removes the
+  video cache writer ffmpeg `expect()`, and applies an explicit partial-video
+  similarity matrix for image-only/audio-only cache entries.
 - **Visible recoverable error UX.** Settings load failures now warn and fall
   back to default in-session settings, settings save failures surface as error
   toasts instead of panicking, and Cache page reload failures render inline

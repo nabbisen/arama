@@ -44,6 +44,12 @@ each of which runs CLIP and wav2vec2 inference. A 5-minute video may
 take 30–120 seconds to index on a CPU-only machine. If you don't need
 video similarity, disable **Include video** in Settings → General.
 
+If one video cannot be decoded, sampled, or cached, arama reports an
+indexing warning and continues with the remaining files. When only the
+frame or audio modality succeeds for a video, arama can still use that
+single modality for video similarity instead of discarding the whole
+entry.
+
 **The gallery is sluggish with many files.**
 
 Try increasing the thumbnail size slider slightly or reducing the

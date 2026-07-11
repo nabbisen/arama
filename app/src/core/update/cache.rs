@@ -5,7 +5,8 @@ use std::{
 };
 
 use arama_ai::{
-    model::model_container::clip, pipeline::encode::image::embeddings::image_embedding,
+    model::model_container::clip,
+    pipeline::encode::image::embeddings::{EmbeddingRunReport, image_embedding},
 };
 use arama_cache::{
     CacheMaintenance, CachePruneRequest, DbLocation, ImageCacheReader, ImageCacheWriter,
@@ -122,7 +123,7 @@ impl App {
                 async {
                     image_embedding(ret.into_iter().map(|x| x.0).collect())
                         .await
-                        .unwrap_or_else(|err| Some(format!("failed to get embedding: {err}")))
+                        .map_err(|err| format!("failed to get embedding: {err}"))
                 },
                 Message::EmbeddingCacheFinished,
             )
@@ -136,9 +137,18 @@ impl App {
         }
     }
 
-    pub(super) fn handle_embedding_cache_finished(&mut self, err: Option<String>) -> Task<Message> {
-        if let Some(err) = err {
-            self.push_error_toast("Embedding error", err);
+    pub(super) fn handle_embedding_cache_finished(
+        &mut self,
+        result: Result<EmbeddingRunReport, String>,
+    ) -> Task<Message> {
+        match result {
+            Ok(report) if report.has_warnings() => {
+                self.push_warning_toast("Indexed with warnings", embedding_report_summary(&report));
+            }
+            Ok(_) => (),
+            Err(err) => {
+                self.push_error_toast("Embedding error", err);
+            }
         }
 
         self.task_handle = None;
@@ -374,6 +384,24 @@ fn human_size(bytes: u64) -> String {
         format!("{} {}", bytes, UNITS[unit])
     } else {
         format!("{:.1} {}", value, UNITS[unit])
+    }
+}
+
+fn embedding_report_summary(report: &EmbeddingRunReport) -> String {
+    let mut parts = Vec::new();
+    if !report.skipped.is_empty() {
+        parts.push(format!("{} files skipped", report.skipped.len()));
+    }
+    if !report.cache_write_failures.is_empty() {
+        parts.push(format!(
+            "{} cache writes failed",
+            report.cache_write_failures.len()
+        ));
+    }
+    if parts.is_empty() {
+        format!("{} files indexed", report.processed)
+    } else {
+        parts.join(", ")
     }
 }
 

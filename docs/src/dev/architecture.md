@@ -111,6 +111,18 @@ The final video similarity score is:
 score = 0.60 * clip_similarity + 0.40 * wav2vec2_similarity
 ```
 
+RFC 018 makes partial video entries explicit. When both entries have
+both modalities, arama uses the weighted score above. When both entries
+share only one valid modality, arama compares that modality directly:
+image-only with image-only or image+audio uses image similarity, and
+audio-only with audio-only or image+audio uses audio similarity.
+Image-only and audio-only entries do not compare with each other.
+
+Video indexing failures are handled per file and per modality where
+possible. A failed frame path can still leave audio usable, a failed
+audio path can still leave frames usable, and one skipped video should
+not abort unrelated image or video indexing work.
+
 ## Cache design
 
 Two SQLite namespaces in one file (`.arama-cache/cache-v2.sqlite`):
