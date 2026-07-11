@@ -10,17 +10,15 @@ const SPACING: u16 = 10;
 
 /// Gallery state: holds the directory-to-thumbnails mapping and the
 /// filename filter string.
+#[derive(Default)]
 pub struct Gallery {
     dir_path_thumbnail_path_map: BTreeMap<PathBuf, FastHashMap<String, String>>,
     filter: String,
 }
 
 impl Gallery {
-    pub fn new() -> anyhow::Result<Self> {
-        Ok(Self {
-            dir_path_thumbnail_path_map: BTreeMap::default(),
-            filter: String::new(),
-        })
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn set_dir_path_thumbnail_path_map(

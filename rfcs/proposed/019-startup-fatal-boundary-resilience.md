@@ -111,7 +111,8 @@ fn setup_validation_notice() -> Option<StartupNotice>;
 Equivalent shapes are acceptable. The helper should:
 
 - attempt to resolve `local_dir()`;
-- attempt to `validate_dir(&local_dir)` when the path exists;
+- attempt to `validate_dir(&local_dir)` after resolving the path, so missing
+  directory creation failures and invalid existing paths are both surfaced;
 - report failures as startup notices;
 - avoid aborting `App::new()` unless a later design proves there is no usable
   shell without the local directory.
@@ -233,11 +234,11 @@ Implemented when shipped.
   - `cargo test --workspace`
   - `cargo clippy --workspace --all-targets -- -D warnings`
 
-## Open questions
+## Decisions
 
-1. Should `main()` simply return `iced::Result`, or should it print a custom
-   one-line error before returning a non-zero exit?
-2. Should startup notices share RFC 017's toast titles/copy style, or should
-   startup have its own concise titles?
-3. Should invalid configured root directories keep the header text as the
-   invalid path, or immediately reset the session root to `"."`?
+1. `main()` returns `iced::Result` directly, using Rust's standard `Result`
+   process behavior for fatal shell startup failures.
+2. Startup notices use the existing RFC 017 toast surface with startup-specific
+   concise titles.
+3. Invalid configured root directories keep the configured path visible, avoid
+   cache startup, show a warning, and let the user pick another directory.

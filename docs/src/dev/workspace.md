@@ -118,6 +118,13 @@ an indexing report so the app can warn once and continue unrelated
 files. Video frame and audio modalities are independently valid; partial
 entries compare only over shared valid modalities.
 
+RFC 019 applies the same boundary discipline to startup. Failures that prevent
+iced from opening a shell are returned as the top-level `iced::Result`.
+Failures that still permit a truthful shell, such as local setup preflight
+failure or an invalid saved root directory, recover with startup toasts and
+fallback state. Developer invariants may keep `expect()` only when the fallback
+would not be meaningful.
+
 ### `crates/theme`
 
 `arama-theme` adopts the Snora Design system (RFC 010). It holds the

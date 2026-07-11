@@ -40,6 +40,11 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Fixed
 
+- **Startup fatal-boundary resilience.** The binary now returns top-level
+  `iced::Result` startup failures instead of discarding them, startup local
+  setup validation failures become visible toasts, the infallible gallery
+  constructor no longer uses an `expect()`, and invalid saved root directories
+  open a usable shell without starting the cache pipeline.
 - **AI/video pipeline resilience.** Video indexing now treats frame/audio setup
   and extraction failures per modality, continues unrelated files after
   per-file failures, reports partial indexing with warning toasts, removes the

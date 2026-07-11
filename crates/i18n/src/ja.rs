@@ -176,6 +176,18 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
             "ハイコントラストは標準ウィジェットの基本色にも反映されます。arama 独自のコントロールには完全なハイコントラストパレットが適用されます。"
         }
 
+        // Startup
+        "startup.local_setup_error.title" => "起動時のセットアップ確認に失敗しました",
+        "startup.local_setup_error.body" => {
+            "ローカルセットアップディレクトリを準備できませんでした"
+        }
+        "startup.root_dir_unavailable.title" => "起動時のフォルダーを開けません",
+        "startup.root_dir_unavailable.body" => {
+            "保存されたフォルダーを開けません。別のフォルダーを選択するとインデックス作成を開始できます"
+        }
+        "startup.root_scan_warning.title" => "フォルダーのスキャンが一部失敗しました",
+        "startup.root_scan_warning.body" => "起動時に一部のフォルダーを読み取れませんでした",
+
         _ => return None,
     })
 }

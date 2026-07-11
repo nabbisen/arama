@@ -1,3 +1,3 @@
-fn main() {
-    let _ = arama::start();
+fn main() -> iced::Result {
+    arama::start()
 }

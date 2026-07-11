@@ -132,6 +132,16 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
             "High-contrast maps core colors into standard widgets; arama controls use the full high-contrast palette."
         }
 
+        // Startup
+        "startup.local_setup_error.title" => "Startup setup check failed",
+        "startup.local_setup_error.body" => "arama could not prepare its local setup directory",
+        "startup.root_dir_unavailable.title" => "Startup folder unavailable",
+        "startup.root_dir_unavailable.body" => {
+            "The saved folder cannot be opened. Choose another folder to start indexing"
+        }
+        "startup.root_scan_warning.title" => "Folder scan incomplete",
+        "startup.root_scan_warning.body" => "Some folders could not be read during startup",
+
         _ => return None,
     })
 }

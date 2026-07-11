@@ -86,6 +86,20 @@ the same video will typically still match.
 
 ## Troubleshooting
 
+**arama opens but does not start indexing my saved folder.**
+
+If the folder saved in settings no longer exists or cannot be opened, arama
+keeps that path visible, shows a startup warning, and opens the shell without
+starting the cache pipeline. Choose another folder from the header to resume
+indexing.
+
+**arama warns about local setup on startup.**
+
+arama prepares `.arama-local/` next to the executable for setup artifacts such
+as models and ffmpeg. If that directory cannot be created or used, arama opens
+with a warning so you can fix permissions or move the executable to a writable
+location.
+
 **The app crashes on launch with a database error.**
 
 The most common cause is a missing `.arama-cache/` directory. This

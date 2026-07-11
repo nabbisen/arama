@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use app_json_settings::{ConfigError, ConfigManager};
 use arama_env::{
@@ -23,7 +23,7 @@ mod update;
 mod view;
 
 use message::Message;
-use swdir::{DirNode, FilterRule, Swdir};
+use swdir::{DirNode, FilterRule, Recurse, Swdir, WalkError};
 
 /// Top-level navigation pages rendered in the body slot.
 #[derive(Debug, Clone, PartialEq)]
@@ -80,24 +80,20 @@ impl App {
     }
 
     fn new() -> (Self, Task<Message>) {
-        let processing = true;
-
-        setup_validate();
-
         let mut startup_toasts: Vec<Toast<Message>> = vec![];
         let mut toast_id_counter: u64 = 0;
+        let mut startup_notices: Vec<StartupNotice> = vec![];
+
+        if let Some(notice) = setup_validation_notice() {
+            startup_notices.push(notice);
+        }
 
         let setup = match Setup::default() {
             Ok(s) => s,
             Err(err) => {
-                let id = toast_id_counter;
-                toast_id_counter += 1;
-                startup_toasts.push(Toast::new(
-                    id,
-                    ToastIntent::Error,
+                startup_notices.push(StartupNotice::error(
                     "Setup initialization failed",
                     format!("The setup wizard could not be initialized: {err}"),
-                    Message::ToastDismiss(id),
                 ));
                 Setup::fallback()
             }
@@ -108,18 +104,13 @@ impl App {
         {
             Ok(x) => x,
             Err(err) => {
-                let id = toast_id_counter;
-                toast_id_counter += 1;
-                startup_toasts.push(Toast::new(
-                    id,
-                    ToastIntent::Warning,
+                startup_notices.push(StartupNotice::warning(
                     t("settings.load_error.title"),
                     format!(
                         "{}: {}",
                         t("settings.load_error.body"),
                         settings_error_message(&err)
                     ),
-                    Message::ToastDismiss(id),
                 ));
                 Settings::default()
             }
@@ -141,7 +132,12 @@ impl App {
         let theme = settings.theme;
         arama_theme::set_theme(theme);
 
-        let dir_node = dir_node(&root_dir_path, &target_media_type);
+        let startup_root =
+            startup_dir_node(&root_dir_path, &target_media_type, sub_dir_depth_limit);
+        startup_notices.extend(startup_root.notices);
+        let start_cache_on_startup =
+            (setup.finished || setup::util::ready()) && startup_root.dir_node.is_some();
+        let processing = start_cache_on_startup;
 
         let settings = Settings {
             root_dir_path,
@@ -156,7 +152,11 @@ impl App {
 
         let header = Header::new(&settings.root_dir_path);
         let aside = Aside::new(processing);
-        let dir_node_count = dir_node.count();
+        let dir_node_count = startup_root
+            .dir_node
+            .as_ref()
+            .map(DirNode::count)
+            .unwrap_or_default();
         let footer = Footer::new(thumbnail_size, dir_node_count.files, dir_node_count.dirs);
         let dialog = None;
         let settings_page = dialog::settings_dialog::SettingsDialog::new(
@@ -167,15 +167,17 @@ impl App {
             settings.theme,
         );
 
-        let gallery = Gallery::new().expect("failed to init gallery");
+        let gallery = Gallery::new();
 
         let context_menu_point = Point::default();
         let context_menu = ContextMenu::new(context_menu_point, thumbnail_size);
 
-        let task = if !setup.finished && !setup::util::ready() {
-            Task::none()
-        } else {
+        push_startup_notices(&mut startup_toasts, &mut toast_id_counter, startup_notices);
+
+        let task = if start_cache_on_startup {
             Task::done(Message::CacheRequire(None))
+        } else {
+            Task::none()
         };
 
         (
@@ -190,7 +192,7 @@ impl App {
                 toasts: startup_toasts,
                 toast_id_counter,
                 settings,
-                dir_node: Some(dir_node),
+                dir_node: startup_root.dir_node,
                 image_cell_path: None,
                 processing,
                 task_handle: None,
@@ -282,9 +284,74 @@ fn app_theme(_state: &App) -> iced::Theme {
     arama_theme::iced_theme()
 }
 
-fn setup_validate() {
-    let local_dir = local_dir().expect("failed to get local dir");
-    let _ = validate_dir(&local_dir);
+struct StartupNotice {
+    intent: ToastIntent,
+    title: String,
+    body: String,
+}
+
+impl StartupNotice {
+    fn error(title: impl Into<String>, body: impl Into<String>) -> Self {
+        Self {
+            intent: ToastIntent::Error,
+            title: title.into(),
+            body: body.into(),
+        }
+    }
+
+    fn warning(title: impl Into<String>, body: impl Into<String>) -> Self {
+        Self {
+            intent: ToastIntent::Warning,
+            title: title.into(),
+            body: body.into(),
+        }
+    }
+}
+
+struct StartupRoot {
+    dir_node: Option<DirNode>,
+    notices: Vec<StartupNotice>,
+}
+
+fn push_startup_notices(
+    startup_toasts: &mut Vec<Toast<Message>>,
+    toast_id_counter: &mut u64,
+    notices: Vec<StartupNotice>,
+) {
+    for notice in notices {
+        let id = *toast_id_counter;
+        *toast_id_counter += 1;
+        startup_toasts.push(Toast::new(
+            id,
+            notice.intent,
+            notice.title,
+            notice.body,
+            Message::ToastDismiss(id),
+        ));
+    }
+}
+
+fn setup_validation_notice() -> Option<StartupNotice> {
+    let local_dir = match local_dir() {
+        Ok(path) => path,
+        Err(err) => {
+            return Some(StartupNotice::error(
+                t("startup.local_setup_error.title"),
+                format!("{}: {err}", t("startup.local_setup_error.body")),
+            ));
+        }
+    };
+
+    validate_dir(&local_dir).err().map(|err| {
+        StartupNotice::warning(
+            t("startup.local_setup_error.title"),
+            format!(
+                "{}: {} ({err})",
+                t("startup.local_setup_error.body"),
+                local_dir.display()
+            ),
+        )
+    })
 }
 
 fn settings_error_message(err: &ConfigError) -> String {
@@ -295,7 +362,51 @@ fn settings_error_message(err: &ConfigError) -> String {
     }
 }
 
-fn dir_node(root_dir_path: &str, target_media_type: &TargetMediaType) -> DirNode {
+fn startup_dir_node(
+    root_dir_path: &str,
+    target_media_type: &TargetMediaType,
+    sub_dir_depth_limit: u8,
+) -> StartupRoot {
+    let root = Path::new(root_dir_path);
+    if !root.is_dir() {
+        return StartupRoot {
+            dir_node: None,
+            notices: vec![StartupNotice::warning(
+                t("startup.root_dir_unavailable.title"),
+                format!(
+                    "{}: {}",
+                    t("startup.root_dir_unavailable.body"),
+                    root.display()
+                ),
+            )],
+        };
+    }
+
+    let report = dir_node(root, target_media_type, sub_dir_depth_limit);
+    let notices = if report.errors.is_empty() {
+        vec![]
+    } else {
+        vec![StartupNotice::warning(
+            t("startup.root_scan_warning.title"),
+            format!(
+                "{}: {}",
+                t("startup.root_scan_warning.body"),
+                walk_errors_summary(&report.errors)
+            ),
+        )]
+    };
+
+    StartupRoot {
+        dir_node: Some(report.tree),
+        notices,
+    }
+}
+
+fn dir_node(
+    root_dir_path: &Path,
+    target_media_type: &TargetMediaType,
+    sub_dir_depth_limit: u8,
+) -> swdir::WalkReport {
     let mut extension_allowlist: Vec<&str> = vec![];
     if target_media_type.include_image {
         extension_allowlist.extend(IMAGE_EXTENSION_ALLOWLIST);
@@ -306,15 +417,84 @@ fn dir_node(root_dir_path: &str, target_media_type: &TargetMediaType) -> DirNode
 
     // If the allowlist fails (e.g. an extension string is malformed), walk
     // without filtering rather than panicking.
-    let filter = FilterRule::extension_allowlist(extension_allowlist.iter().copied())
-        .unwrap_or_else(|err| {
-            eprintln!("extension allowlist error (walking without filter): {err}");
-            FilterRule::skip_hidden()
-        });
+    let recurse = if 0 < sub_dir_depth_limit {
+        Recurse::Depth(sub_dir_depth_limit as usize)
+    } else {
+        Recurse::None
+    };
 
-    Swdir::new()
-        .root_path(root_dir_path)
-        .filter(filter)
-        .walk()
-        .into_tree()
+    let scanner = Swdir::new().root_path(root_dir_path).recurse(recurse);
+    let scanner = match FilterRule::extension_allowlist(extension_allowlist.iter().copied()) {
+        Ok(filter) => scanner.filter(filter),
+        Err(err) => {
+            eprintln!("extension allowlist error (walking without filter): {err}");
+            scanner
+        }
+    };
+
+    scanner.walk()
+}
+
+fn walk_errors_summary(errors: &[WalkError]) -> String {
+    let first = errors.first().map(ToString::to_string).unwrap_or_default();
+    if errors.len() == 1 {
+        first
+    } else {
+        format!("{first}; {} total scan errors", errors.len())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn missing_test_path() -> PathBuf {
+        std::env::temp_dir().join(format!("arama-missing-startup-root-{}", std::process::id()))
+    }
+
+    #[test]
+    fn missing_startup_root_is_recoverable_without_cache_node() {
+        let path = missing_test_path();
+        assert!(!path.exists());
+
+        let root = startup_dir_node(
+            &path.to_string_lossy(),
+            &TargetMediaType {
+                include_image: true,
+                include_video: true,
+            },
+            0,
+        );
+
+        assert!(root.dir_node.is_none());
+        assert_eq!(root.notices.len(), 1);
+    }
+
+    #[test]
+    fn walk_error_summary_omits_error_count_for_single_error() {
+        let error = WalkError::Io {
+            path: PathBuf::from("/not-readable"),
+            source: std::io::Error::new(std::io::ErrorKind::PermissionDenied, "denied"),
+        };
+        let summary = walk_errors_summary(&[error]);
+
+        assert!(summary.contains("not-readable"));
+        assert!(!summary.contains("total scan errors"));
+    }
+
+    #[test]
+    fn walk_error_summary_includes_error_count_for_multiple_errors() {
+        let first = WalkError::Io {
+            path: PathBuf::from("/not-readable"),
+            source: std::io::Error::new(std::io::ErrorKind::PermissionDenied, "denied"),
+        };
+        let second = WalkError::Io {
+            path: PathBuf::from("/also-not-readable"),
+            source: std::io::Error::new(std::io::ErrorKind::PermissionDenied, "denied"),
+        };
+        let summary = walk_errors_summary(&[first, second]);
+
+        assert!(summary.contains("not-readable"));
+        assert!(summary.contains("2 total scan errors"));
+    }
 }
