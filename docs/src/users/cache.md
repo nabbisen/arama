@@ -4,6 +4,11 @@ Click the **🗃** icon in the side nav to open the Cache page. It gives
 per-directory visibility and control over the embedding/thumbnail
 cache.
 
+Current arama versions use the v2 `localcache` database at
+`.arama-cache/cache-v2.sqlite`. Legacy v1 cache databases are ignored
+rather than imported; cached thumbnails and embeddings are rebuildable
+when directories are indexed again.
+
 ## The table
 
 One row per directory that has cached files:

@@ -66,18 +66,11 @@
 //! # }
 //! ```
 //!
-//! ## Migrating from the v1 cache
-//!
-//! Applications upgrading from the `file-feature-cache`-backed v1
-//! database run [`migrate_v1_if_present`] once at startup; it is a no-op
-//! when there is nothing to migrate.
-
 mod core;
 pub mod types;
 
 pub use core::engine::{CacheConfig, CacheError, DbLocation, Result};
 pub use core::image::{ImageCacheConfig, ImageCacheReader, ImageCacheWriter};
-pub use core::migrate::{MigrationReport, migrate_v1_if_present};
 pub use core::video::{VideoCacheConfig, VideoCacheReader, VideoCacheWriter};
 pub use types::{
     CacheRead, DirCacheSummary, ImageCacheEntry, ImageFeatures, LookupResult, UpsertImageRequest,

@@ -38,8 +38,6 @@ anyhow = { workspace = true }
 blake3 = { workspace = true }
 image = { workspace = true }
 rayon = { workspace = true }
-# Used only by the one-time v1 cache migration importer (core/migrate.rs).
-rusqlite = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 

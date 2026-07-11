@@ -73,6 +73,7 @@ directory.
 ## Updating
 
 Extract the new archive to a fresh directory and run `cargo build`. The
-`.arama-cache/` directory from a previous version can be reused — the
-application runs a one-time migration from the v1 cache format on first
-launch and records the result in `CHANGELOG.md`.
+`.arama-cache/` directory from a current v2-cache version can be reused.
+Old v1 cache databases are no longer imported; thumbnails and embeddings
+are rebuildable, so the application creates current cache entries lazily
+as directories are indexed.

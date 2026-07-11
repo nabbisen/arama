@@ -59,10 +59,6 @@ pub enum CacheError {
         #[source]
         source: std::io::Error,
     },
-
-    /// One-time migration from the v1 cache database failed.
-    #[error("v1 cache migration failed: {0}")]
-    Migration(String),
 }
 
 impl CacheError {

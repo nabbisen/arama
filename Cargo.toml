@@ -71,10 +71,6 @@ pt2safetensors      = "0.1.3"
 # cache
 localcache          = "0.20"
 blake3              = "1"
-# rusqlite is used only by the one-time v1 cache migration importer
-# (crates/cache/src/core/migrate.rs); pinned to the same major as
-# localcache's internal rusqlite to avoid a libsqlite3-sys links conflict.
-rusqlite            = { version = "0.40", default-features = false, features = ["bundled"] }
 
 # tests
 tempfile            = "3"

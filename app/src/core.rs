@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use app_json_settings::ConfigManager;
 use arama_env::{
-    IMAGE_EXTENSION_ALLOWLIST, Settings, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path,
-    cache_storage_path_v1, local_dir, target_media_type::TargetMediaType, validate_dir,
+    IMAGE_EXTENSION_ALLOWLIST, Settings, VIDEO_EXTENSION_ALLOWLIST, local_dir,
+    target_media_type::TargetMediaType, validate_dir,
 };
 use arama_i18n::set_locale;
 use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
@@ -84,25 +84,8 @@ impl App {
 
         setup_validate();
 
-        // One-time migration of the v1 cache database, if present.
-        // A failure is not fatal — the cache is rebuilt lazily — but the
-        // person should know recomputation is coming, so it surfaces as
-        // a startup toast.
         let mut startup_toasts: Vec<Toast<Message>> = vec![];
         let mut toast_id_counter: u64 = 0;
-        if let (Ok(v1), Ok(v2)) = (cache_storage_path_v1(), cache_storage_path())
-            && let Err(err) = arama_cache::migrate_v1_if_present(&v1, &v2)
-        {
-            let id = toast_id_counter;
-            toast_id_counter += 1;
-            startup_toasts.push(Toast::new(
-                id,
-                ToastIntent::Error,
-                "Cache migration failed",
-                format!("The previous cache could not be imported and will be rebuilt: {err}"),
-                Message::ToastDismiss(id),
-            ));
-        }
 
         let setup = match Setup::default() {
             Ok(s) => s,

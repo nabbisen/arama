@@ -55,7 +55,6 @@ Offline AI inference. Contains:
 The `arama-cache` facade over `localcache`. Exposes:
 - `ImageCacheWriter` / `ImageCacheReader`
 - `VideoCacheWriter` / `VideoCacheReader`
-- `migrate_v1_if_present` — one-time migration from the legacy cache
 
 All consumers use the public API in `crates/cache/src/lib.rs`; the
 localcache engine details are an implementation concern.

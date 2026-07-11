@@ -9,6 +9,10 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Changed
 
+- **Cache lifecycle.** The retired v1 cache migration path has been
+  removed. arama now ignores legacy v1 cache databases and rebuilds
+  current v2 cache entries lazily; the migration-only `rusqlite`
+  dependency and v1 environment helpers were removed with the shim.
 - **Cache page relative times.** The cached-at column now renders relative
   labels such as "2 days ago" instead of absolute local timestamps.
 - **High-contrast theme completion.** `arama-theme` now builds the iced base
