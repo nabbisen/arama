@@ -27,6 +27,15 @@ The same five audit warnings remain after that modernization. `pt2safetensors`
 SafeTensors conversion, so Candle-related lockfile duplication is not fully
 removed by the first-party Candle update.
 
+## CLIP Source Strategy Follow-up
+
+RFC 021 selected "retain runtime conversion" as the implementation outcome.
+The currently pinned OpenAI CLIP revision publishes `pytorch_model.bin` and no
+`model.safetensors` file in the inspected Hugging Face tree. Until arama has a
+trustworthy pinned SafeTensors source or owner-managed mirror with provenance,
+checksum, and embedding-regression evidence, `pt2safetensors` remains an
+intentional dependency and the transitive Candle 0.10 path remains tracked.
+
 ## Remaining Warnings
 
 ### `bincode` 1.3.3

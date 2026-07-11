@@ -57,6 +57,7 @@ and are not numbered, but are kept here as permanent project records.
 | [snora-recipe-theme-custom](./notes/snora-recipe-theme-custom.md) | RFC-033 recipe: `Theme::custom` from Snora Design tokens (contribution to snora) |
 | [dep-fix-pt2safetensors](./notes/dep-fix-pt2safetensors.md) | `pt2safetensors` 0.1.2 build break against candle-core 0.10 + safetensors ≥ 0.5; root cause, workspace patch, and upstream fix instructions |
 | [audit-warning-burn-down](./notes/audit-warning-burn-down.md) | RustSec warning burn-down: patched actionable lockfile warnings and recorded remaining transitive owners |
+| [clip-safetensors-source-decision](./notes/clip-safetensors-source-decision.md) | RFC 021 implementation decision: retain CLIP runtime conversion until a trustworthy pinned SafeTensors source exists |
 
 
 ## Handoffs

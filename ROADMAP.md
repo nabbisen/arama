@@ -8,7 +8,7 @@ through the RFC process before code changes begin.
 
 ### CLIP SafeTensors source strategy
 
-**Status.** RFC 021 proposed for review.
+**Status.** RFC 021 implementation proposed for review.
 
 **Why now.** RFC 020 moved first-party Candle use to 0.11, but
 `pt2safetensors` still keeps a transitive Candle 0.10 line in the lockfile
@@ -16,16 +16,14 @@ because the pinned OpenAI CLIP source is a PyTorch `.bin` artifact. Removing
 that duplicate AI stack is no longer a dependency bump; it requires a trust and
 artifact-source decision.
 
-**Planned design questions.**
+**Implementation decision.**
 
-- Should arama keep runtime PyTorch-to-SafeTensors conversion for CLIP, or move
-  to a pinned SafeTensors source?
-- If arama moves to SafeTensors, which upstream or mirrored artifact is
-  acceptable under the first-run supply-chain policy?
-- What checksum, provenance, and embedding-regression evidence is required
-  before removing `pt2safetensors`?
-- What rollback path should exist if a replacement CLIP artifact changes image
-  embeddings?
+- Selected outcome: retain runtime PyTorch-to-SafeTensors conversion for now.
+- Preserve exact source evidence for the pinned OpenAI CLIP revision.
+- Keep `pt2safetensors` as an intentional dependency until a trustworthy
+  pinned SafeTensors source or owner-managed mirror exists.
+- Revisit removal only with provenance, checksum, and embedding-regression
+  evidence.
 
 ## Recently implemented, pending owner-managed lifecycle
 
