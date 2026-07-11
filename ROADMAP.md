@@ -6,24 +6,24 @@ through the RFC process before code changes begin.
 
 ## Current focus
 
-### CLIP SafeTensors source strategy
+### Image similarity search dependency strategy
 
-**Status.** RFC 021 implementation proposed for review.
+**Status.** RFC 022 proposed for review.
 
-**Why now.** RFC 020 moved first-party Candle use to 0.11, but
-`pt2safetensors` still keeps a transitive Candle 0.10 line in the lockfile
-because the pinned OpenAI CLIP source is a PyTorch `.bin` artifact. Removing
-that duplicate AI stack is no longer a dependency bump; it requires a trust and
-artifact-source decision.
+**Why now.** The remaining `bincode` 1.3 audit warning is owned by `hnsw_rs`,
+and `hnsw_rs` is used only by the image similar-pairs search path. This is the
+smallest remaining warning-owner surface that can be designed without replacing
+the cache engine, UI stack, or model artifact source.
 
-**Implementation decision.**
+**Planned design questions.**
 
-- Selected outcome: retain runtime PyTorch-to-SafeTensors conversion for now.
-- Preserve exact source evidence for the pinned OpenAI CLIP revision.
-- Keep `pt2safetensors` as an intentional dependency until a trustworthy
-  pinned SafeTensors source or owner-managed mirror exists.
-- Revisit removal only with provenance, checksum, and embedding-regression
-  evidence.
+- Should image similar-pairs use exact bounded pairwise search, a maintained
+  ANN crate, or retain `hnsw_rs` for now?
+- What result-cap and ordering contract prevents exact search from flooding the
+  dialog?
+- What fixture tests prove threshold filtering, duplicate avoidance, and stable
+  ordering?
+- What performance evidence is enough before removing `hnsw_rs`?
 
 ## Recently implemented, pending owner-managed lifecycle
 
@@ -72,12 +72,22 @@ pending owner action.
 sidecar ZIP extraction moved to stable `zip` 8.6.0. `pt2safetensors` remains
 as the only Candle 0.10 owner.
 
+### CLIP SafeTensors source strategy
+
+**Status.** RFC 021 implementation reviewed; release/lifecycle transition
+pending owner action.
+
+**Why now.** Runtime PyTorch-to-SafeTensors conversion is intentionally retained
+until a trustworthy pinned SafeTensors source or owner-managed mirror exists.
+The decision is recorded in
+[`rfcs/notes/clip-safetensors-source-decision.md`](./rfcs/notes/clip-safetensors-source-decision.md).
+
 ## Later candidates
 
 ### Remaining audit-warning owners
 
-`hnsw_rs`, `localcache`, Candle/transitive `paste`, `proc-macro-error2`, and
-the font/rendering stack should be revisited when upstream releases expose
+`localcache`, Candle/transitive `paste`, `proc-macro-error2`, and the
+font/rendering stack should be revisited when upstream releases expose
 compatible fixes or when a replacement design is intentionally proposed.
 
 ### Release prep
