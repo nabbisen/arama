@@ -6,25 +6,22 @@ through the RFC process before code changes begin.
 
 ## Current focus
 
-### Visible recoverable error UX
+### AI and video pipeline resilience
 
-**Status.** RFC 017 proposed for review.
+**Status.** RFC 018 proposed for review.
 
-**Why now.** Recent cache, setup, and similarity resilience work removed
-several panic paths, but some recoverable failures still degrade to empty,
-default, or stderr-only states. The project now needs a consistent
-user-visible policy before more implementation work spreads ad hoc handling
-patterns.
+**Why now.** Video indexing is the most failure-prone AI workflow: ffmpeg,
+ffprobe, frame extraction, audio extraction, model inference, and cache writes
+can fail independently. The project needs an explicit policy for whether to
+skip one file, use one successful modality, warn the user, or abort the whole
+run.
 
 **Planned design questions.**
 
-- Which recoverable failures should be inline page errors, toasts, fatal startup
-  errors, or developer diagnostics?
-- How should settings load/save failures behave without losing the current
-  in-memory session state?
-- How should Cache page reload failures avoid presenting a false empty cache?
-- Which errors should remain stderr-only because the fallback is truthful and
-  safe?
+- Which failures are fatal setup errors versus per-file recoverable failures?
+- When should a video with only frame or only audio embeddings remain usable?
+- How should cache write failures be reported without aborting unrelated files?
+- What concise user-visible warning should summarize partial indexing results?
 
 ## Recently implemented, pending owner-managed lifecycle
 
@@ -40,6 +37,11 @@ keeps cache-size/disk-pressure management split into a separate design.
 **Follow-up status.** RFC 016 implementation reviewed; release/lifecycle
 transition pending owner action.
 
+### Visible recoverable error UX
+
+**Status.** RFC 017 implementation reviewed; release/lifecycle transition
+pending owner action.
+
 ## Later candidates
 
 ### Startup fatal-boundary resilience
@@ -48,12 +50,6 @@ After RFC 017 handles recoverable settings visibility, remaining startup work
 should focus on failures that prevent a usable application shell from starting
 at all, and on which of those should return an `iced::Result` error versus a
 fallback shell.
-
-### AI and video pipeline resilience
-
-The video similarity pipeline still has failure modes that should be handled
-with a deliberate policy: skip one item, mark one item failed, retry work, or
-abort the whole pipeline.
 
 ### Audit exception burn-down
 
