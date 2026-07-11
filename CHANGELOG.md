@@ -31,6 +31,10 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Security
 
+- **Audit warning burn-down.** Updated locked transitive dependencies to resolve
+  current RustSec warnings for `anyhow` 1.0.102 -> 1.0.103 and `memmap2`
+  0.9.10 -> 0.9.11. The remaining allowed warnings are tracked as transitive
+  dependency-owner issues rather than new broad audit ignores.
 - **First-run artifact verification.** Hugging Face model downloads now use
   pinned repository revisions and SHA-256 checks before downloaded weights are
   accepted. Linux and Windows ffmpeg setup downloads use pinned GitHub release

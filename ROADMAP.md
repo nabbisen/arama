@@ -6,26 +6,25 @@ through the RFC process before code changes begin.
 
 ## Current focus
 
-### Startup fatal-boundary resilience
+### Audit warning burn-down
 
-**Status.** RFC 019 proposed for review.
+**Status.** Maintenance pass in progress.
 
-**Why now.** RFC 017 made recoverable runtime and page-load failures visible,
-and RFC 018 made AI/video indexing failures explicit. The remaining resilience
-boundary is application startup: arama should distinguish failures that prevent
-opening a usable shell from failures that can recover into a truthful degraded
-startup state with visible feedback.
+**Why now.** `cargo audit` currently reports allowed warnings beyond the scoped
+`quick-xml` ignores. Advisory policy should stay narrow: patch-level fixes that
+are available now should be taken, while warnings blocked by upstream direct
+dependencies should be recorded with dependency owners instead of hidden behind
+broad ignores.
 
-**Planned design questions.**
+**Planned maintenance questions.**
 
-- Which startup failures should return an `iced::Result` instead of opening the
-  shell?
-- Which local setup, settings, gallery, or root-directory failures can recover
-  with a startup toast?
-- Should invalid configured root directories keep the path visible while using
-  an empty Explorer state, or reset the session root to `"."`?
-- Which startup `expect()` paths are true developer invariants versus ordinary
-  recoverable filesystem failures?
+- Which warnings can be resolved with compatible patch updates?
+- Which warnings are blocked by upstream crates that are already on their latest
+  compatible release?
+- Which warnings are transient lockfile residue rather than active workspace
+  dependency paths?
+- Which remaining advisory exceptions need release-gate policy changes versus
+  simple tracking notes?
 
 ## Recently implemented, pending owner-managed lifecycle
 
@@ -51,12 +50,19 @@ pending owner action.
 **Status.** RFC 018 implementation reviewed; release/lifecycle transition
 pending owner action.
 
+### Startup fatal-boundary resilience
+
+**Status.** RFC 019 implementation reviewed; release/lifecycle transition
+pending owner action.
+
 ## Later candidates
 
-### Audit exception burn-down
+### Dependency modernization
 
-Temporary audit exceptions should be revisited periodically. This is maintenance
-work unless the policy changes or a blocking advisory appears.
+Direct dependency minor/major updates remain design or implementation work when
+they change public behavior, build requirements, or compatibility risk. The
+audit warning burn-down note should feed future modernization candidates when an
+upstream crate exposes a compatible fix.
 
 ### Release prep
 

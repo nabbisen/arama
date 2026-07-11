@@ -1,0 +1,78 @@
+# Audit Warning Burn-down
+
+This note records the July 2026 maintenance pass over `cargo audit` warnings.
+It is not an RFC because no product behavior, architecture policy, or public
+contract changed.
+
+## Outcome
+
+The pass resolved the warnings that had compatible patch releases available in
+the current dependency graph:
+
+- `anyhow` 1.0.102 -> 1.0.103
+- `memmap2` 0.9.10 -> 0.9.11
+
+After the lockfile update, `cargo audit` still exits successfully and reports
+five allowed warnings. These warnings are tracked below instead of being added
+as broad new ignores.
+
+## Remaining Warnings
+
+### `bincode` 1.3.3
+
+Observed path:
+
+```text
+bincode 1.3.3 <- hnsw_rs 0.3.4 <- arama-ai
+```
+
+`hnsw_rs` 0.3.4 is the latest published crate version at the time of this
+maintenance pass. Burning down this warning requires an upstream `hnsw_rs`
+release or a replacement/design change for the approximate-nearest-neighbor
+dependency.
+
+### `bincode` 2.0.1
+
+Observed path:
+
+```text
+bincode 2.0.1 <- localcache 0.20.0 <- arama-cache
+```
+
+`localcache` 0.20.0 is the latest published crate version at the time of this
+maintenance pass. Burning down this warning requires an upstream `localcache`
+release that moves off the unmaintained `bincode` line, or a cache-engine design
+change.
+
+### `paste` 1.0.15
+
+Observed through multiple transitive owners, including:
+
+- `candle-core`/`gemm`
+- `tokenizers` through `macro_rules_attribute`
+- `image`/`ravif` through `rav1e`
+- the iced image/rendering dependency stack
+
+This is not owned by a single direct dependency. Treat it as a dependency
+modernization signal and revisit when direct dependency updates are planned.
+
+### `proc-macro-error2` 2.0.1
+
+`Cargo.lock` still contains `proc-macro-error2`, but no active path was found
+with the normal all-target workspace tree check during this pass. Keep this on
+the next audit pass and re-check whether a future lockfile refresh removes it
+or reveals the active owner.
+
+### `ttf-parser` 0.25.1
+
+Observed through the font/rendering stack, including `fontdb`, `cosmic-text`,
+`iced_wgpu`, `owned_ttf_parser`, `ab_glyph`, `usvg`, and `resvg` paths.
+`ttf-parser` 0.25.1 is the latest published crate version at the time of this
+maintenance pass, so there is no compatible patch update to apply yet.
+
+## Existing Explicit Ignore
+
+`.cargo/audit.toml` still has only the scoped `quick-xml` ignores added during
+release-gate recovery. Those advisories enter through `wayland-scanner 0.31.10`;
+the fixed `quick-xml` line requires a newer range than the current Wayland
+scanner constraint accepts.
