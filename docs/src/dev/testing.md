@@ -73,23 +73,91 @@ Tests cover:
 the timestamp computation logic (`compute_sample_timestamps`). These
 are small and fast; they do not require model files.
 
-## Testing with the UI
+## Release smoke with the UI
 
-There are no automated UI tests. Manual verification steps for a
-release build:
+There are no automated UI tests. For releases that include UI, setup,
+cache, first-run, or recoverable-error changes, the owner should run a
+short manual smoke pass after the automated gates and before versioning
+or archive work.
 
-1. Fresh install: setup wizard downloads models and ffmpeg without error.
-2. Select a directory with images → gallery populates; spinning
-   indicators stop when indexing finishes.
-3. Click a gallery image → focus view shows similar images sorted by
-   score.
-4. Switch directories mid-index → previous indexing stops, new one
-   starts.
-5. Settings → General: toggle media types → re-indexing triggers.
-6. Settings → File system → Cache delete → confirm cache dir is
-   removed.
-7. Settings → AI: if models present, shows "ready"; if absent, shows
-   Load/Get buttons.
+Keep this pass release-smoke sized. It is a confidence check for critical
+workflows, not an exhaustive exploratory QA script.
+
+### Preconditions
+
+- Use a release build when checking responsiveness or AI inference speed:
+  `cargo run -p arama --release`.
+- Use a small fixture directory with at least a few images and, when video
+  behavior is in scope, one short video.
+- The normal smoke pass may use the owner's existing `.arama-local/` and
+  `.arama-cache/` state.
+- Clean first-run checks require a temporary profile or intentionally moved
+  local state. Do not delete the owner's real cache/settings unless that is
+  the explicit test.
+- Model and ffmpeg download checks require network access and available
+  upstream artifacts. In offline/headless environments, record them as not
+  run rather than blocking automated gate evidence.
+
+### First-run and setup
+
+- Existing configured state: app opens without the setup wizard and the
+  footer/model status reflects ready local artifacts.
+- Clean first-run state, environment-dependent: setup wizard presents required
+  model/ffmpeg actions, downloads complete, checksum failures or local path
+  failures surface as visible setup errors instead of crashes.
+- Settings -> AI: existing models show ready state; absent models show the
+  expected load/get actions.
+
+### Gallery and indexing
+
+- Select a fixture directory. Gallery rows populate and processing indicators
+  stop after indexing finishes.
+- Switch directories while indexing. The previous run stops and the new
+  directory starts indexing without stale progress indicators.
+- Open a gallery item. The focus view opens and similar media are ordered by
+  score when enough cache data exists.
+
+### Similarity dialogs
+
+- Open similar pairs from the header. The dialog renders image/video pairs
+  when cache data exists.
+- With sparse or partial cache data, the dialog remains usable and degrades to
+  partial or empty results instead of crashing.
+
+### Cache page
+
+- Open Cache. Directory summaries load, and source media size is distinct from
+  cache footprint.
+- Run a small manual prune target. The result reports deleted entries or the
+  remaining unreclaimable footprint clearly.
+- Trigger a cache reload after normal navigation. Stale rows remain visible
+  while recoverable reload errors are shown inline.
+- Settings -> File System -> Cache delete: confirm the cache directory is
+  removed or a visible error is shown.
+
+### Settings and theme
+
+- Settings -> General: toggle media types and confirm re-indexing follows the
+  selected media policy.
+- Change light, dark, and high-contrast theme presets. Standard iced widgets
+  remain readable, with no obvious low-contrast controls.
+- Save settings, restart, and confirm the selected settings reload. If saving
+  fails in the test environment, the app should show an error toast instead of
+  crashing.
+
+### Exit and restart
+
+- Quit and restart with a valid saved root. The shell opens on that directory.
+- Invalid saved root, environment-dependent: point settings at a missing
+  directory and restart. The app should open a usable shell with visible
+  startup feedback instead of aborting.
+
+### Future automation candidates
+
+Do not add a desktop UI automation harness just for this checklist. If a later
+RFC adds smoke automation, good first candidates are startup/exit in an
+already-configured profile, settings load/save round trips, and cache page data
+reloads through existing logic seams.
 
 ## Avoiding regressions
 

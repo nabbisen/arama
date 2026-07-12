@@ -26,6 +26,12 @@ CUDA-equipped verification environment and record that separately.
 If `cargo audit` passes with ignored advisories, confirm each ignore in
 `.cargo/audit.toml` still has a current rationale and revisit condition.
 
+For releases that include UI, setup, cache, first-run, or recoverable-error
+changes, also consider the manual release smoke checklist in
+[`testing.md`](./testing.md#release-smoke-with-the-ui). This is an
+owner-managed confidence check, not a replacement for the automated gate and
+not a release action by itself.
+
 ### 2. Bump the version
 
 The version is single-sourced in `[workspace.package].version`; every
@@ -94,6 +100,7 @@ directory.
 ## Checklist
 
 - [ ] All tests pass
+- [ ] Manual UI smoke considered for UI/setup/cache/first-run changes
 - [ ] Version bumped in `[workspace.package]` (members inherit it)
 - [ ] `CHANGELOG.md` updated
 - [ ] RFC files moved and status fields updated

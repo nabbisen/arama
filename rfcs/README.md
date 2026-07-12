@@ -9,7 +9,7 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| 025 | [Release smoke checklist](./proposed/025-release-smoke-checklist.md) | Medium |
+| — | (none currently) | — |
 
 ## Implemented
 
@@ -40,6 +40,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 022 | [Image similarity search dependency strategy](./done/022-image-similarity-search-dependency.md) | Unreleased |
 | 023 | [Cache serialization dependency strategy](./done/023-cache-serialization-dependency.md) | Unreleased |
 | 024 | [Image codec dependency minimization](./done/024-image-codec-dependency-minimization.md) | Unreleased |
+| 025 | [Release smoke checklist](./done/025-release-smoke-checklist.md) | Unreleased |
 
 ## Archive
 

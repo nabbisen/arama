@@ -1,6 +1,6 @@
 # RFC 025 - Release smoke checklist
 
-**Status.** Proposed
+**Status.** Implemented (Unreleased)
 **Tracks.** Release-readiness follow-up: define a repeatable manual GUI smoke
 checklist for owner-managed release preparation without performing release
 actions.
@@ -114,7 +114,7 @@ UI automation can be brittle and environment-dependent.
 
 ### `docs/src/dev/testing.md`
 
-Replace the current seven-step "Testing with the UI" section with the
+Replace the previous seven-step "Testing with the UI" section with the
 release-smoke structure above.
 
 ### `docs/src/dev/release.md`
@@ -125,13 +125,11 @@ behavior changes.
 
 ### `ROADMAP.md`
 
-Move RFC 025 from current focus to recently implemented once reviewed and
-implemented.
+Record RFC 025 as implemented once the documentation update lands.
 
 ### `rfcs/README.md`
 
-Add RFC 025 to Proposed while under review, then move it to Implemented once
-the documentation update lands.
+List RFC 025 under Implemented once the documentation update lands.
 
 ## Non-goals
 
@@ -180,3 +178,10 @@ Optional if the implementation only changes Markdown:
 ```sh
 cargo fmt --check
 ```
+
+## Implementation notes
+
+The implementation replaced the old seven-step UI checklist with a release
+smoke checklist in `docs/src/dev/testing.md`, and added a release-process
+pointer in `docs/src/dev/release.md`. No release action, version bump, archive,
+tag, publish, UI automation harness, or product behavior change is included.
