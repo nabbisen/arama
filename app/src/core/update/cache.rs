@@ -249,7 +249,8 @@ impl App {
         // was triggered (header submit, file-picker, or aside tree click).
         self.header.set_path(&path.to_string_lossy());
 
-        // todo dir_node should be got from dir_tree
+        // The aside tree is folder-only UI state; cache/gallery indexing needs
+        // a separate media-extension-aware scan.
         let dir_node = build_dir_node(&path, &self.settings);
 
         let dir_node_count = dir_node.count();

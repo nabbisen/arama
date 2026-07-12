@@ -1,6 +1,6 @@
 # RFC 026 - Explorer tree maintenance and scan ownership
 
-**Status.** Proposed
+**Status.** Implemented (Unreleased)
 **Tracks.** Small explorer-tree maintenance pass after the release-smoke
 checklist work: keep the `iced-swdir-tree` patch dependency current and clarify
 the ownership boundary between the aside directory tree and arama's media cache
@@ -27,7 +27,7 @@ arama's accepted image/video extensions and produce the `DirNode` used by cache
 and gallery processing. Reusing the aside tree directly would either lose media
 entries or force the explorer widget to own cache/indexing concerns.
 
-This RFC proposes a narrow maintenance pass:
+This RFC records a narrow maintenance pass:
 
 1. Update the lockfile to the latest compatible `iced-swdir-tree` 0.9 patch
    release after review.
@@ -164,3 +164,11 @@ cargo test -p arama-ui-layout
 cargo test -p arama --lib
 git diff --check
 ```
+
+## Implementation notes
+
+The implementation updated only the targeted lockfile entry for
+`iced-swdir-tree` 0.9.1 -> 0.9.3 and replaced the stale cache TODO with a short
+ownership note. The workspace manifest remains on `version = "0.9"`. No
+explorer UX, cache/gallery scan behavior, release action, tag, publish, or
+version bump is included.

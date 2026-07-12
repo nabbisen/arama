@@ -9,7 +9,7 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| 026 | [Explorer tree maintenance and scan ownership](./proposed/026-explorer-tree-maintenance.md) | Medium |
+| — | (none currently) | — |
 
 ## Implemented
 
@@ -41,6 +41,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 023 | [Cache serialization dependency strategy](./done/023-cache-serialization-dependency.md) | Unreleased |
 | 024 | [Image codec dependency minimization](./done/024-image-codec-dependency-minimization.md) | Unreleased |
 | 025 | [Release smoke checklist](./done/025-release-smoke-checklist.md) | Unreleased |
+| 026 | [Explorer tree maintenance and scan ownership](./done/026-explorer-tree-maintenance.md) | Unreleased |
 
 ## Archive
 
