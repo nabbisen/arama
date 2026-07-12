@@ -12,6 +12,41 @@ use arama_cache::{
 
 use helpers::{MINIMAL_JPEG, TempFile, image_writer_with_db, tmp_db, upsert_image};
 
+#[derive(Clone, Copy)]
+struct TestImageFormat {
+    name: &'static str,
+    suffix: &'static str,
+    format: image::ImageFormat,
+}
+
+const ACCEPTED_IMAGE_FORMATS: &[TestImageFormat] = &[
+    TestImageFormat {
+        name: "PNG",
+        suffix: ".png",
+        format: image::ImageFormat::Png,
+    },
+    TestImageFormat {
+        name: "JPEG",
+        suffix: ".jpg",
+        format: image::ImageFormat::Jpeg,
+    },
+    TestImageFormat {
+        name: "WebP",
+        suffix: ".webp",
+        format: image::ImageFormat::WebP,
+    },
+    TestImageFormat {
+        name: "GIF",
+        suffix: ".gif",
+        format: image::ImageFormat::Gif,
+    },
+    TestImageFormat {
+        name: "BMP",
+        suffix: ".bmp",
+        format: image::ImageFormat::Bmp,
+    },
+];
+
 // ---------------------------------------------------------------------------
 // upsert / lookup
 // ---------------------------------------------------------------------------
@@ -119,6 +154,53 @@ fn image_thumbnail_generated_to_thumbnail_dir() {
     }
 }
 
+#[test]
+fn image_thumbnail_generation_supports_accepted_formats() {
+    for format in ACCEPTED_IMAGE_FORMATS {
+        let source_dir = tempfile::TempDir::new().unwrap();
+        let thumb_dir = tempfile::TempDir::new().unwrap();
+        let db = tmp_db();
+        let file = write_test_image(source_dir.path(), format);
+        let writer = ImageCacheWriter::as_session(ImageCacheConfig {
+            cache_config: CacheConfig {
+                db_location: DbLocation::Custom(db.path().to_path_buf()),
+                read_conns: 1,
+                thumbnail_dir: Some(thumb_dir.path().to_path_buf()),
+            },
+        })
+        .unwrap();
+
+        writer
+            .upsert(UpsertImageRequest {
+                path: file.clone(),
+                clip_vector: None,
+            })
+            .unwrap_or_else(|err| panic!("{} thumbnail generation failed: {err}", format.name));
+
+        match writer.lookup(&file).unwrap() {
+            LookupResult::Hit(entry) => {
+                let thumb = entry
+                    .thumbnail_path
+                    .unwrap_or_else(|| panic!("{} thumbnail missing", format.name));
+                assert!(
+                    Path::new(&thumb).exists(),
+                    "{} thumbnail file should exist: {thumb}",
+                    format.name
+                );
+                assert!(
+                    thumb.ends_with(".jpg"),
+                    "{} generated thumbnail should be JPEG: {thumb}",
+                    format.name
+                );
+                image::open(&thumb).unwrap_or_else(|err| {
+                    panic!("{} generated JPEG did not decode: {err}", format.name)
+                });
+            }
+            other => panic!("expected {} Hit, got {:?}", format.name, other),
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // upsert_all / lookup_all
 // ---------------------------------------------------------------------------
@@ -205,4 +287,19 @@ fn image_lookup_all_returns_miss_for_unregistered_files() {
             .iter()
             .all(|(_, r)| matches!(r.as_ref().unwrap(), LookupResult::Miss))
     );
+}
+
+fn write_test_image(dir: &Path, format: &TestImageFormat) -> std::path::PathBuf {
+    let path = dir.join(format!("fixture{}", format.suffix));
+    let image = image::RgbImage::from_fn(4, 4, |x, y| {
+        image::Rgb([
+            (x * 47 + y * 11) as u8,
+            (x * 19 + y * 29) as u8,
+            (x * 7 + y * 53) as u8,
+        ])
+    });
+    image
+        .save_with_format(&path, format.format)
+        .unwrap_or_else(|err| panic!("{} fixture encode failed: {err}", format.name));
+    path
 }

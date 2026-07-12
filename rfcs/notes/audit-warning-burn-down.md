@@ -21,6 +21,11 @@ down to three allowed warnings: `bincode` 2.0.1 through `localcache`, `paste`
 1.0.15 through multiple transitive owners, and `ttf-parser` 0.25.1 through the
 font/rendering stack.
 
+After the RFC 024 image codec minimization implementation, the active image
+dependency graph no longer reaches `ravif` or `rav1e`. `cargo audit` still
+reports the same three allowed warning crates because `paste` remains reachable
+through Candle/gemm, tokenizers, and Apple-target rendering paths.
+
 ## Image Similarity Search Follow-up
 
 RFC 022 replaced the localized `hnsw_rs` image similar-pairs candidate
@@ -66,6 +71,18 @@ trustworthy pinned SafeTensors source or owner-managed mirror with provenance,
 checksum, and embedding-regression evidence, `pt2safetensors` remains an
 intentional dependency and the transitive Candle 0.10 path remains tracked.
 
+## Image Codec Dependency Follow-up
+
+RFC 024 switched `iced` from its codec-enabling `image` feature to
+`image-without-codecs` and configured the workspace `image` dependency with
+explicit codec features for arama's current accepted image formats: PNG, JPEG,
+WebP, GIF, and BMP. The product image extension allowlist is unchanged.
+
+`cargo tree -i ravif@0.13.0` and `cargo tree -i rav1e@0.8.1` now report no
+active reverse dependency path. This removes the AVIF/ravif/rav1e owner path
+from the `paste` warning, while leaving the remaining Candle/gemm, tokenizers,
+and target-qualified rendering owners tracked below.
+
 ## Remaining Warnings
 
 ### `bincode` 2.0.1
@@ -88,8 +105,7 @@ Observed through multiple transitive owners, including:
 - first-party `candle-core` 0.11 through `gemm`
 - `pt2safetensors` 0.1.3 through transitive `candle-core` 0.10 and `gemm`
 - `tokenizers` through `macro_rules_attribute`
-- `image`/`ravif` through `rav1e`
-- the iced image/rendering dependency stack
+- Apple-target rendering stack through `metal`, `wgpu-hal`, `wgpu`, and `iced`
 
 This is not owned by a single direct dependency. Treat it as a dependency
 modernization signal and revisit when direct dependency updates are planned.

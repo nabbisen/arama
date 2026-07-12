@@ -8,7 +8,7 @@ through the RFC process before code changes begin.
 
 ### Image codec dependency minimization
 
-**Status.** RFC 024 proposed for review.
+**Status.** RFC 024 implementation proposed for review.
 
 **Why now.** The remaining `paste` warning has several broad owners, but one
 path enters through `image`'s default AVIF stack (`ravif` / `rav1e`) even

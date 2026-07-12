@@ -168,6 +168,84 @@ pub fn load_image_as_tensor(path: &str, size: usize, device: &Device) -> anyhow:
     Ok(tensor)
 }
 
+#[cfg(test)]
+mod tests {
+    use std::path::{Path, PathBuf};
+
+    use super::*;
+
+    #[derive(Clone, Copy)]
+    struct TestImageFormat {
+        name: &'static str,
+        suffix: &'static str,
+        format: image::ImageFormat,
+    }
+
+    const ACCEPTED_IMAGE_FORMATS: &[TestImageFormat] = &[
+        TestImageFormat {
+            name: "PNG",
+            suffix: ".png",
+            format: image::ImageFormat::Png,
+        },
+        TestImageFormat {
+            name: "JPEG",
+            suffix: ".jpg",
+            format: image::ImageFormat::Jpeg,
+        },
+        TestImageFormat {
+            name: "WebP",
+            suffix: ".webp",
+            format: image::ImageFormat::WebP,
+        },
+        TestImageFormat {
+            name: "GIF",
+            suffix: ".gif",
+            format: image::ImageFormat::Gif,
+        },
+        TestImageFormat {
+            name: "BMP",
+            suffix: ".bmp",
+            format: image::ImageFormat::Bmp,
+        },
+    ];
+
+    #[test]
+    fn load_image_as_tensor_supports_accepted_formats() {
+        for format in ACCEPTED_IMAGE_FORMATS {
+            let source_dir = tempfile::TempDir::new().unwrap();
+            let file = write_test_image(source_dir.path(), format);
+            let tensor = load_image_as_tensor(
+                file.to_str().expect("test path should be UTF-8"),
+                8,
+                &Device::Cpu,
+            )
+            .unwrap_or_else(|err| panic!("{} CLIP tensor load failed: {err}", format.name));
+
+            assert_eq!(
+                tensor.dims(),
+                &[1, 3, 8, 8],
+                "{} CLIP tensor shape changed",
+                format.name
+            );
+        }
+    }
+
+    fn write_test_image(dir: &Path, format: &TestImageFormat) -> PathBuf {
+        let path = dir.join(format!("fixture{}", format.suffix));
+        let image = image::RgbImage::from_fn(4, 4, |x, y| {
+            image::Rgb([
+                (x * 31 + y * 17) as u8,
+                (x * 13 + y * 47) as u8,
+                (x * 19 + y * 23) as u8,
+            ])
+        });
+        image
+            .save_with_format(&path, format.format)
+            .unwrap_or_else(|err| panic!("{} fixture write failed: {err}", format.name));
+        path
+    }
+}
+
 // Brute-force matmul path for small candidate sets only.
 // pub fn find_similar_pairs(
 //     map: &FastHashMap<PathBuf, Vec<f32>>,

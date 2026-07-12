@@ -20,3 +20,17 @@ pub fn cache_thumbnail_dir_path() -> Result<PathBuf> {
     let path = cache_dir.join(CACHE_THUMBNAIL_DIR);
     Ok(path.to_path_buf())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::IMAGE_EXTENSION_ALLOWLIST;
+
+    #[test]
+    fn image_allowlist_matches_enabled_codecs() {
+        assert_eq!(
+            *IMAGE_EXTENSION_ALLOWLIST,
+            ["png", "jpg", "jpeg", "webp", "gif", "bmp"]
+        );
+        assert!(!IMAGE_EXTENSION_ALLOWLIST.contains(&"avif"));
+    }
+}

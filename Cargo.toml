@@ -35,7 +35,7 @@ arama-ui-main       = { version = "0", path = "crates/ui/main" }
 arama-ui-widgets    = { version = "0", path = "crates/ui/widgets" }
 
 # UI
-iced                = { version = "0.14", features = ["image", "tokio"] }
+iced                = { version = "0.14", features = ["image-without-codecs", "tokio"] }
 snora               = { version = "0.25", default-features = false, features = ["widgets", "design"] }
 
 app-json-settings   = "2"
@@ -50,7 +50,7 @@ webbrowser          = "1"
 # general
 anyhow              = "1"
 chrono              = { version = "0.4", default-features = false, features = ["clock"] }
-image               = "0.25"
+image               = { version = "0.25", default-features = false, features = ["bmp", "gif", "jpeg", "png", "rayon", "webp"] }
 libc                = "0.2"
 rayon               = "1"
 serde               = { version = "1", features = ["derive"] }

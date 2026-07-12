@@ -39,6 +39,11 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Security
 
+- **Image codec dependency minimization.** The workspace now disables default
+  `image` codecs and uses `iced`'s `image-without-codecs` feature while
+  explicitly enabling only the accepted PNG, JPEG, WebP, GIF, and BMP formats.
+  This removes the active AVIF/ravif/rav1e dependency path from arama's image
+  stack without changing the image extension allowlist.
 - **Cache serialization dependency strategy.** RFC 023 keeps the current
   `localcache` 0.20 / bincode-backed cache payload path unchanged because no
   published or local bincode-free `localcache` dependency route is available
