@@ -33,6 +33,19 @@ The same lockfile refresh removed the previously stale `proc-macro-error2`
 entry that had no active all-target workspace dependency path during the
 maintenance pass.
 
+## Cache Serialization Dependency Follow-up
+
+RFC 023 selected retention for the implementation outcome. `localcache` 0.20.0
+is still the latest published crate version observed in this pass, and both the
+published crate metadata and the local upstream checkout keep `bincode` as an
+unconditional dependency. Although `localcache` exposes `Codec::Json`, enabling
+JSON in 0.20.0 would not remove the `bincode` audit warning by itself.
+
+No cache payload codec, cache namespace, payload version, workspace patch, or
+cache-engine replacement is included. Burning down the remaining `bincode` 2.0.1
+warning still requires an upstream `localcache` release that can compile a
+bincode-free cache path, or a separately reviewed cache-engine replacement.
+
 ## Dependency Modernization Follow-up
 
 RFC 020's implementation updated first-party Candle dependencies from 0.10 to

@@ -39,6 +39,11 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Security
 
+- **Cache serialization dependency strategy.** RFC 023 keeps the current
+  `localcache` 0.20 / bincode-backed cache payload path unchanged because no
+  published or local bincode-free `localcache` dependency route is available
+  yet. No cache payload migration, JSON switch, workspace patch, or cache-engine
+  replacement is included.
 - **Audit warning burn-down.** Updated locked transitive dependencies to resolve
   current RustSec warnings for `anyhow` 1.0.102 -> 1.0.103 and `memmap2`
   0.9.10 -> 0.9.11. The remaining allowed warnings are tracked as transitive

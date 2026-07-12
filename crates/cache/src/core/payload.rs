@@ -3,7 +3,9 @@
 //! These replace the v1 extension tables (`thumbnails`, `image_features`,
 //! `video_features`): one typed payload per file, serialized by
 //! `localcache`'s bincode codec (wire-format stability is guaranteed by
-//! localcache RFC 0008).
+//! localcache RFC 0008). RFC 023 keeps this path unchanged until a
+//! bincode-free `localcache` route can be reviewed without risking existing
+//! cache databases.
 //!
 //! **Layout changes are breaking.** Adding, removing, or reordering fields
 //! changes the bincode layout; any such change must be accompanied by a

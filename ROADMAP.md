@@ -8,7 +8,7 @@ through the RFC process before code changes begin.
 
 ### Cache serialization dependency strategy
 
-**Status.** RFC 023 proposed for review.
+**Status.** RFC 023 implementation decision proposed for review.
 
 **Why now.** After RFC 022, the only remaining `bincode` warning is
 `bincode` 2.0.1 through `localcache`, which is arama's cache engine. This is no
