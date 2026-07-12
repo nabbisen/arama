@@ -6,27 +6,37 @@ through the RFC process before code changes begin.
 
 ## Current focus
 
-### Cache serialization dependency strategy
+### Image codec dependency minimization
 
-**Status.** RFC 023 implementation decision proposed for review.
+**Status.** RFC 024 proposed for review.
 
-**Why now.** After RFC 022, the only remaining `bincode` warning is
-`bincode` 2.0.1 through `localcache`, which is arama's cache engine. This is no
-longer a localized dependency swap: it touches persistent cache payload format,
-compatibility, migration, and cache facade behavior.
+**Why now.** The remaining `paste` warning has several broad owners, but one
+path enters through `image`'s default AVIF stack (`ravif` / `rav1e`) even
+though arama's current image allowlist is limited to PNG, JPEG, WebP, GIF, and
+BMP. Pruning unused image codecs is a narrow dependency-surface reduction with
+clear product boundaries.
 
 **Planned design questions.**
 
-- Can arama remove the `bincode` warning by using a `localcache` codec path
-  whose dependency graph does not include `bincode`?
-- Should the implementation wait for an upstream `localcache` release, carry a
-  temporary workspace patch, or replace the cache engine?
-- What migration and compatibility evidence is required before changing cache
-  payload encoding?
-- What cache integration tests prove image/video payloads, thumbnails,
-  invalidation, summaries, pruning, and read-pool behavior still hold?
+- Can `iced` switch from `image` to `image-without-codecs` while arama enables
+  only the image formats it accepts?
+- Which image crate features are required for the current allowlist and
+  generated JPEG thumbnails?
+- What decode/thumbnail/cache tests prove PNG, JPEG, WebP, GIF, and BMP still
+  work after disabling default formats?
+- Which dependency graph owners are removed, and which `paste`/font warnings
+  intentionally remain?
 
 ## Recently implemented, pending owner-managed lifecycle
+
+### Cache serialization dependency strategy
+
+**Status.** RFC 023 implementation reviewed; release/lifecycle transition
+pending owner action.
+
+**Why now.** The current `localcache` 0.20 bincode-backed cache payload path was
+retained because no published or local bincode-free `localcache` dependency
+route is available yet.
 
 ### Image similarity search dependency strategy
 
@@ -96,9 +106,9 @@ The decision is recorded in
 
 ### Remaining audit-warning owners
 
-Candle/transitive `paste` and the font/rendering stack should be revisited when
-upstream releases expose compatible fixes or when a replacement design is
-intentionally proposed.
+The remaining `bincode`, Candle/transitive `paste`, and font/rendering stack
+warnings should be revisited when upstream releases expose compatible fixes or
+when a replacement design is intentionally proposed.
 
 ### Release prep
 
