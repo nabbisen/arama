@@ -9,7 +9,7 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| — | (none currently) | — |
+| 025 | [Release smoke checklist](./proposed/025-release-smoke-checklist.md) | Medium |
 
 ## Implemented
 

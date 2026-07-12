@@ -6,9 +6,26 @@ through the RFC process before code changes begin.
 
 ## Current focus
 
-No active implementation theme is selected. The most recent reviewed work is
-recorded below as implemented but unreleased; release timing remains
-owner-managed.
+### Release smoke checklist
+
+**Status.** RFC 025 proposed for review.
+
+**Why now.** The unreleased batch is technically clean against observed
+automated gates, but the release-readiness review called out manual GUI smoke
+as a reasonable owner-managed check before a release point. The current testing
+doc has a short UI checklist, but it predates the recent setup, cache,
+first-run, theme, and recoverable-error work.
+
+**Planned design questions.**
+
+- Which manual GUI workflows are release-critical enough to check before an
+  owner-selected release point?
+- Which checks require local model/ffmpeg setup, and which can run without
+  network or clean first-run state?
+- Where should the checklist live so it helps release preparation without
+  implying that release actions are automated or delegated?
+- Can any low-risk smoke checks be scripted later without building a brittle UI
+  automation harness?
 
 ## Recently implemented, unreleased
 
