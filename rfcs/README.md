@@ -9,7 +9,7 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| — | (none currently) | — |
+| 027 | [Audit warning ledger refresh](./proposed/027-audit-warning-ledger-refresh.md) | Medium |
 
 ## Implemented
 
