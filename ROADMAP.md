@@ -6,9 +6,20 @@ through the RFC process before code changes begin.
 
 ## Current focus
 
-No active implementation theme is selected. The most recent reviewed work is
-recorded below as implemented but unreleased; release timing remains
-owner-managed.
+### Explorer tree maintenance
+
+**Status.** RFC 026 proposed.
+
+**Why now.** The explorer aside tree is backed by `iced-swdir-tree`, and the
+workspace currently locks `iced-swdir-tree` 0.9.1 while 0.9.3 is available as a
+compatible patch release. The app also has a lingering cache-update TODO that
+implies the media `DirNode` scan should come from the aside directory tree,
+even though the aside tree is folder-only UI state and cannot replace the
+media-extension-aware cache scan without changing ownership boundaries.
+
+This theme is intentionally small: verify and apply the safe patch update if
+review accepts it, then clarify the app-side scan ownership so future work does
+not conflate explorer UI state with cache/media indexing state.
 
 ## Recently implemented, unreleased
 

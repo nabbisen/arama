@@ -9,7 +9,7 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| — | (none currently) | — |
+| 026 | [Explorer tree maintenance and scan ownership](./proposed/026-explorer-tree-maintenance.md) | Medium |
 
 ## Implemented
 
