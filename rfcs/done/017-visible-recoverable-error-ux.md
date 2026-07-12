@@ -1,6 +1,6 @@
 # RFC 017 — Visible recoverable error UX
 
-**Status.** Proposed
+**Status.** Implemented (Unreleased)
 **Tracks.** Roadmap follow-up: define a consistent policy for recoverable
 application and UI load failures that should be visible to users instead of
 silently falling back to defaults or stderr-only diagnostics.
@@ -180,8 +180,7 @@ Record the behavior change under `[Unreleased]`.
 
 ### `rfcs/README.md`
 
-Add RFC 017 to the Proposed table while under review, then move it to
-Implemented when shipped.
+List RFC 017 in the Implemented table once shipped.
 
 ## Non-goals
 

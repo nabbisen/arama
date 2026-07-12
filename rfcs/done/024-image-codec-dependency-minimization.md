@@ -1,6 +1,6 @@
 # RFC 024 - Image codec dependency minimization
 
-**Status.** Proposed
+**Status.** Implemented (Unreleased)
 **Tracks.** Remaining audit-warning owner follow-up: reduce unused image codec
 dependency surface, including one `paste` owner path through the AVIF stack,
 without changing arama's accepted image formats.

@@ -1,6 +1,6 @@
 # RFC 016 — Cache capacity and disk-pressure management
 
-**Status.** Proposed
+**Status.** Implemented (Unreleased)
 **Tracks.** RFC 002 follow-up and RFC 015 split-path follow-up: define how
 arama measures cache storage, exposes cache-size controls, and prunes cache
 entries under an explicit user-visible policy.
@@ -197,8 +197,7 @@ Record cache footprint/pruning under `[Unreleased]`.
 
 ### `rfcs/README.md`
 
-Add RFC 016 to the Proposed table while under review, then move it to
-Implemented when shipped.
+List RFC 016 in the Implemented table once shipped.
 
 ## Non-goals
 

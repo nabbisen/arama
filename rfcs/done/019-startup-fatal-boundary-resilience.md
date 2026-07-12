@@ -1,6 +1,6 @@
 # RFC 019 — Startup fatal-boundary resilience
 
-**Status.** Proposed
+**Status.** Implemented (Unreleased)
 **Tracks.** Roadmap follow-up: define which startup failures should abort the
 application versus recover into a usable shell with visible feedback.
 **Touches.** `app/src/main.rs`, `app/src/lib.rs`, `app/src/core.rs`,
@@ -192,8 +192,7 @@ Record the behavior change under `[Unreleased]` during implementation.
 
 ### `rfcs/README.md`
 
-Add RFC 019 to the Proposed table while under review, then move it to
-Implemented when shipped.
+List RFC 019 in the Implemented table once shipped.
 
 ## Non-goals
 

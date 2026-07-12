@@ -1,6 +1,6 @@
 # RFC 020 - Dependency modernization: Candle and sidecar archive stack
 
-**Status.** Proposed
+**Status.** Implemented (Unreleased)
 **Tracks.** Roadmap follow-up after the audit warning burn-down: modernize
 direct dependencies deliberately, with platform-specific gate evidence where
 dependency behavior can affect AI inference or ffmpeg sidecar setup.

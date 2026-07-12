@@ -6,42 +6,32 @@ through the RFC process before code changes begin.
 
 ## Current focus
 
-### Image codec dependency minimization
+No active implementation theme is selected. The most recent reviewed work is
+recorded below as implemented but unreleased; release timing remains
+owner-managed.
 
-**Status.** RFC 024 implementation proposed for review.
-
-**Why now.** The remaining `paste` warning has several broad owners, but one
-path enters through `image`'s default AVIF stack (`ravif` / `rav1e`) even
-though arama's current image allowlist is limited to PNG, JPEG, WebP, GIF, and
-BMP. Pruning unused image codecs is a narrow dependency-surface reduction with
-clear product boundaries.
-
-**Planned design questions.**
-
-- Can `iced` switch from `image` to `image-without-codecs` while arama enables
-  only the image formats it accepts?
-- Which image crate features are required for the current allowlist and
-  generated JPEG thumbnails?
-- What decode/thumbnail/cache tests prove PNG, JPEG, WebP, GIF, and BMP still
-  work after disabling default formats?
-- Which dependency graph owners are removed, and which `paste`/font warnings
-  intentionally remain?
-
-## Recently implemented, pending owner-managed lifecycle
+## Recently implemented, unreleased
 
 ### Cache serialization dependency strategy
 
-**Status.** RFC 023 implementation reviewed; release/lifecycle transition
-pending owner action.
+**Status.** RFC 023 implemented; unreleased.
 
 **Why now.** The current `localcache` 0.20 bincode-backed cache payload path was
 retained because no published or local bincode-free `localcache` dependency
 route is available yet.
 
+### Image codec dependency minimization
+
+**Status.** RFC 024 implemented; unreleased.
+
+**Why now.** The workspace now disables unused default image codecs and keeps
+only arama's accepted PNG, JPEG, WebP, GIF, and BMP decode path active. This
+removes the AVIF/ravif/rav1e owner path from the active dependency graph while
+leaving the remaining `paste` owners tracked.
+
 ### Image similarity search dependency strategy
 
-**Status.** RFC 022 implementation reviewed; release/lifecycle transition
-pending owner action.
+**Status.** RFC 022 implemented; unreleased.
 
 **Why now.** `hnsw_rs` was replaced with exact bounded pairwise image search,
 removing the `bincode` 1.3 warning while preserving a deterministic top-50
@@ -49,35 +39,29 @@ similar-pairs contract.
 
 ### Cache lifecycle
 
-**Status.** RFC 015 implementation reviewed; release/lifecycle transition
-pending owner action.
+**Status.** RFC 015 implemented; unreleased.
 
 **Why now.** RFC 002 moved arama from the old `file-feature-cache` engine to
 `localcache` in v0.23.0. RFC 015 retires the temporary v1 migration path and
 keeps cache-size/disk-pressure management split into a separate design.
 
-**Follow-up status.** RFC 016 implementation reviewed; release/lifecycle
-transition pending owner action.
+**Follow-up status.** RFC 016 implemented; unreleased.
 
 ### Visible recoverable error UX
 
-**Status.** RFC 017 implementation reviewed; release/lifecycle transition
-pending owner action.
+**Status.** RFC 017 implemented; unreleased.
 
 ### AI and video pipeline resilience
 
-**Status.** RFC 018 implementation reviewed; release/lifecycle transition
-pending owner action.
+**Status.** RFC 018 implemented; unreleased.
 
 ### Startup fatal-boundary resilience
 
-**Status.** RFC 019 implementation reviewed; release/lifecycle transition
-pending owner action.
+**Status.** RFC 019 implemented; unreleased.
 
 ### Audit warning burn-down
 
-**Status.** Maintenance pass reviewed; release/lifecycle transition pending
-owner action.
+**Status.** Maintenance pass implemented; unreleased.
 
 **Why now.** Compatible patch-level RustSec warnings for `anyhow` and `memmap2`
 were resolved. Remaining allowed warnings are tracked in
@@ -85,8 +69,7 @@ were resolved. Remaining allowed warnings are tracked in
 
 ### Dependency modernization
 
-**Status.** RFC 020 implementation reviewed; release/lifecycle transition
-pending owner action.
+**Status.** RFC 020 implemented; unreleased.
 
 **Why now.** First-party Candle dependencies moved to 0.11 and non-Linux
 sidecar ZIP extraction moved to stable `zip` 8.6.0. `pt2safetensors` remains
@@ -94,8 +77,7 @@ as the only Candle 0.10 owner.
 
 ### CLIP SafeTensors source strategy
 
-**Status.** RFC 021 implementation reviewed; release/lifecycle transition
-pending owner action.
+**Status.** RFC 021 implemented; unreleased.
 
 **Why now.** Runtime PyTorch-to-SafeTensors conversion is intentionally retained
 until a trustworthy pinned SafeTensors source or owner-managed mirror exists.

@@ -1,6 +1,6 @@
 # RFC 015 — Cache lifecycle: retire v1 migration and define cache-capacity direction
 
-**Status.** Proposed
+**Status.** Implemented (Unreleased)
 **Tracks.** RFC 002 follow-up: remove the temporary v1 cache migration shim
 after the compatibility window, and decide whether disk-pressure/cache-size
 management belongs in this RFC or a later one.
@@ -156,8 +156,7 @@ Record the migration removal and any dependency cleanup under `[Unreleased]`.
 
 ### `rfcs/README.md`
 
-Add RFC 015 to the Proposed table while under review, then move it to
-Implemented when shipped.
+List RFC 015 in the Implemented table once shipped.
 
 ## Non-goals
 

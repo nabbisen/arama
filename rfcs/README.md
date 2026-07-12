@@ -9,16 +9,7 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| 015 | [Cache lifecycle: retire v1 migration and define cache-capacity direction](./proposed/015-cache-lifecycle.md) | High |
-| 016 | [Cache capacity and disk-pressure management](./proposed/016-cache-capacity.md) | High |
-| 017 | [Visible recoverable error UX](./proposed/017-visible-recoverable-error-ux.md) | High |
-| 018 | [AI/video pipeline resilience](./proposed/018-ai-video-pipeline-resilience.md) | High |
-| 019 | [Startup fatal-boundary resilience](./proposed/019-startup-fatal-boundary-resilience.md) | High |
-| 020 | [Dependency modernization: Candle and sidecar archive stack](./proposed/020-dependency-modernization.md) | Medium |
-| 021 | [CLIP SafeTensors source strategy](./proposed/021-clip-safetensors-source-strategy.md) | Medium |
-| 022 | [Image similarity search dependency strategy](./proposed/022-image-similarity-search-dependency.md) | Medium |
-| 023 | [Cache serialization dependency strategy](./proposed/023-cache-serialization-dependency.md) | Medium |
-| 024 | [Image codec dependency minimization](./proposed/024-image-codec-dependency-minimization.md) | Medium |
+| — | (none currently) | — |
 
 ## Implemented
 
@@ -39,6 +30,16 @@ permanent; implemented and archived RFCs are never deleted.
 | 012 | [Workspace housekeeping (manifest inheritance, orphan removal, changelog & doc reconciliation)](./done/012-workspace-housekeeping.md) | v0.35.0 |
 | 013 | [ELOC splits: update.rs and cache integration tests](./done/013-eloc-splits.md) | v0.36.0 |
 | 014 | [Explorer aside tree toggle](./done/014-aside-tree-toggle.md) | v0.36.1 |
+| 015 | [Cache lifecycle: retire v1 migration and define cache-capacity direction](./done/015-cache-lifecycle.md) | Unreleased |
+| 016 | [Cache capacity and disk-pressure management](./done/016-cache-capacity.md) | Unreleased |
+| 017 | [Visible recoverable error UX](./done/017-visible-recoverable-error-ux.md) | Unreleased |
+| 018 | [AI/video pipeline resilience](./done/018-ai-video-pipeline-resilience.md) | Unreleased |
+| 019 | [Startup fatal-boundary resilience](./done/019-startup-fatal-boundary-resilience.md) | Unreleased |
+| 020 | [Dependency modernization: Candle and sidecar archive stack](./done/020-dependency-modernization.md) | Unreleased |
+| 021 | [CLIP SafeTensors source strategy](./done/021-clip-safetensors-source-strategy.md) | Unreleased |
+| 022 | [Image similarity search dependency strategy](./done/022-image-similarity-search-dependency.md) | Unreleased |
+| 023 | [Cache serialization dependency strategy](./done/023-cache-serialization-dependency.md) | Unreleased |
+| 024 | [Image codec dependency minimization](./done/024-image-codec-dependency-minimization.md) | Unreleased |
 
 ## Archive
 
