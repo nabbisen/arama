@@ -12,9 +12,9 @@ the current dependency graph:
 - `anyhow` 1.0.102 -> 1.0.103
 - `memmap2` 0.9.10 -> 0.9.11
 
-After the lockfile update, `cargo audit` still exits successfully and reports
-five allowed warnings. These warnings are tracked below instead of being added
-as broad new ignores.
+After the initial lockfile update, `cargo audit` still exited successfully with
+allowed warnings. These warnings are tracked below instead of being added as
+broad new ignores.
 
 After the RFC 022 image similarity implementation, the active audit surface is
 down to three allowed warnings: `bincode` 2.0.1 through `localcache`, `paste`
@@ -25,6 +25,12 @@ After the RFC 024 image codec minimization implementation, the active image
 dependency graph no longer reaches `ravif` or `rav1e`. `cargo audit` still
 reports the same three allowed warning crates because `paste` remains reachable
 through Candle/gemm, tokenizers, and Apple-target rendering paths.
+
+After the RFC 027 audit-ledger refresh, the active audit surface is four
+allowed warnings: `bincode` 2.0.1 through `localcache`, `paste` 1.0.15 through
+multiple transitive owners, `rustybuzz` 0.20.1 through the SVG/font rendering
+stack, and `ttf-parser` 0.25.1 through the font/rendering stack. `cargo audit`
+exits successfully with these warnings under the current policy.
 
 ## Image Similarity Search Follow-up
 
@@ -57,10 +63,10 @@ RFC 020's implementation updated first-party Candle dependencies from 0.10 to
 0.11 and the non-Linux sidecar `zip` dependency from 4.6.1 to 8.6.0. `zip`
 8.6.0 declares Rust 1.88, which stays below arama's Rust 1.90 workspace floor.
 
-The same five audit warnings remain after that modernization. `pt2safetensors`
-0.1.3 still owns a transitive `candle-core` 0.10.2 path for PyTorch to
-SafeTensors conversion, so Candle-related lockfile duplication is not fully
-removed by the first-party Candle update.
+That modernization did not remove the remaining audit warnings.
+`pt2safetensors` 0.1.3 still owns a transitive `candle-core` 0.10.2 path for
+PyTorch to SafeTensors conversion, so Candle-related lockfile duplication is
+not fully removed by the first-party Candle update.
 
 ## CLIP Source Strategy Follow-up
 
@@ -83,6 +89,13 @@ active reverse dependency path. This removes the AVIF/ravif/rav1e owner path
 from the `paste` warning, while leaving the remaining Candle/gemm, tokenizers,
 and target-qualified rendering owners tracked below.
 
+## Audit Ledger Refresh Follow-up
+
+RFC 027 reconciled this note with the current `cargo audit` output. The refresh
+does not change dependencies, add audit ignores, or introduce
+`cargo audit --deny warnings`; it only records the current owner paths and
+clarifies that allowed warnings still require rationale and revisit conditions.
+
 ## Remaining Warnings
 
 ### `bincode` 2.0.1
@@ -94,9 +107,10 @@ bincode 2.0.1 <- localcache 0.20.0 <- arama-cache
 ```
 
 `localcache` 0.20.0 is the latest published crate version at the time of this
-maintenance pass. Burning down this warning requires an upstream `localcache`
-release that moves off the unmaintained `bincode` line, or a cache-engine design
-change.
+ledger refresh. `bincode` 3.0.0 exists, but arama reaches `bincode` through
+`localcache`, not a direct workspace dependency. Burning down this warning
+requires an upstream `localcache` release that moves off the unmaintained
+`bincode` line, or a cache-engine design change.
 
 ### `paste` 1.0.15
 
@@ -110,12 +124,25 @@ Observed through multiple transitive owners, including:
 This is not owned by a single direct dependency. Treat it as a dependency
 modernization signal and revisit when direct dependency updates are planned.
 
+### `rustybuzz` 0.20.1
+
+Observed through the SVG/font rendering path:
+
+```text
+rustybuzz 0.20.1 <- usvg 0.45.1 <- resvg 0.45.1 <- iced_tiny_skia / iced_wgpu <- iced
+```
+
+This is target- and renderer-adjacent dependency risk rather than an arama
+source-code dependency. Revisit when the iced rendering stack, `resvg`, or
+`usvg` expose a compatible path away from the unmaintained `rustybuzz` line, or
+when arama changes renderer/SVG support.
+
 ### `ttf-parser` 0.25.1
 
 Observed through the font/rendering stack, including `fontdb`, `cosmic-text`,
-`iced_wgpu`, `owned_ttf_parser`, `ab_glyph`, `usvg`, and `resvg` paths.
-`ttf-parser` 0.25.1 is the latest published crate version at the time of this
-maintenance pass, so there is no compatible patch update to apply yet.
+`iced_wgpu`, `owned_ttf_parser`, `ab_glyph`, `usvg`, `resvg`, and `rustybuzz`
+paths. `ttf-parser` 0.25.1 is the latest published crate version at the time of
+this ledger refresh, so there is no compatible patch update to apply yet.
 
 ## Existing Explicit Ignore
 

@@ -9,7 +9,7 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| 027 | [Audit warning ledger refresh](./proposed/027-audit-warning-ledger-refresh.md) | Medium |
+| — | (none currently) | — |
 
 ## Implemented
 
@@ -42,6 +42,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 024 | [Image codec dependency minimization](./done/024-image-codec-dependency-minimization.md) | Unreleased |
 | 025 | [Release smoke checklist](./done/025-release-smoke-checklist.md) | Unreleased |
 | 026 | [Explorer tree maintenance and scan ownership](./done/026-explorer-tree-maintenance.md) | Unreleased |
+| 027 | [Audit warning ledger refresh](./done/027-audit-warning-ledger-refresh.md) | Unreleased |
 
 ## Archive
 

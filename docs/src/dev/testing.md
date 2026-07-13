@@ -43,8 +43,10 @@ available. The `cuda` feature enables Candle CUDA support through
 `cudarc`, whose build script requires `nvcc`.
 
 `cargo audit` uses `.cargo/audit.toml` for explicitly reviewed
-temporary advisory exceptions. Keep each ignored advisory documented
-with its dependency path and revisit condition.
+temporary advisory exceptions, and may also print allowed warnings such
+as unmaintained-crate warnings under the current policy. Keep each
+ignored advisory and each allowed warning documented with its dependency
+path, rationale, and revisit condition.
 
 ## `arama-cache` integration tests
 

@@ -1,6 +1,6 @@
 # RFC 027 - Audit warning ledger refresh
 
-**Status.** Proposed
+**Status.** Implemented (Unreleased)
 **Tracks.** Release-gate hygiene follow-up: reconcile the audit-warning ledger
 and release-gate wording with the current `cargo audit` output.
 **Touches.** `rfcs/notes/audit-warning-burn-down.md`,
@@ -9,8 +9,8 @@ and release-gate wording with the current `cargo audit` output.
 
 ## Summary
 
-The current `cargo audit` gate passes, but the recorded warning ledger is stale
-against the latest observed output.
+At proposal time, the `cargo audit` gate passed, but the recorded warning
+ledger was stale against the latest observed output.
 
 On 2026-07-13, `cargo audit` reported no blocking vulnerabilities and four
 allowed warnings:
@@ -22,12 +22,12 @@ rustybuzz 0.20.1 RUSTSEC-2026-0206  unmaintained
 ttf-parser 0.25.1 RUSTSEC-2026-0192 unmaintained
 ```
 
-The existing audit note already tracks `bincode`, `paste`, and `ttf-parser`,
-but it does not yet track the newer `rustybuzz` warning. It also has
-proposal-era/count drift: one paragraph says five allowed warnings from an
-earlier pass, then later paragraphs describe three.
+The existing audit note already tracked `bincode`, `paste`, and `ttf-parser`,
+but it did not yet track the newer `rustybuzz` warning. It also had
+proposal-era/count drift: one paragraph said five allowed warnings from an
+earlier pass, then later paragraphs described three.
 
-This RFC proposes a documentation-only reconciliation:
+This RFC records a documentation-only reconciliation:
 
 1. Update the audit-warning ledger to state the current four allowed warnings.
 2. Add `rustybuzz` ownership details through the `usvg`/`resvg`/iced rendering
@@ -162,3 +162,12 @@ git diff --check
 
 Implementation should rerun the same evidence commands and call out any changed
 advisory or registry state.
+
+## Implementation notes
+
+The implementation refreshed `rfcs/notes/audit-warning-burn-down.md` to record
+the current four allowed warnings and added a `rustybuzz` owner section. It also
+updated release/testing documentation to distinguish explicit ignored advisories
+from allowed warnings with recorded dependency paths, rationale, and revisit
+conditions. No dependency, source-code, `.cargo/audit.toml`, release, version,
+tag, publish, or push change is included.

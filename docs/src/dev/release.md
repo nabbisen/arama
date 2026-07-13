@@ -23,8 +23,9 @@ This is the default CPU release gate. `cargo clippy --workspace
 `cuda` feature and requires a CUDA toolkit with `nvcc`; run it only in a
 CUDA-equipped verification environment and record that separately.
 
-If `cargo audit` passes with ignored advisories, confirm each ignore in
-`.cargo/audit.toml` still has a current rationale and revisit condition.
+If `cargo audit` passes with ignored advisories or allowed warnings,
+confirm each `.cargo/audit.toml` ignore and each tracked warning still
+has a current dependency path, rationale, and revisit condition.
 
 For releases that include UI, setup, cache, first-run, or recoverable-error
 changes, also consider the manual release smoke checklist in

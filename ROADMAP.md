@@ -6,23 +6,20 @@ through the RFC process before code changes begin.
 
 ## Current focus
 
-### Audit warning ledger refresh
-
-**Status.** RFC 027 proposed.
-
-**Why now.** The current `cargo audit` gate passes, but its allowed-warning
-output no longer matches the recorded audit-warning ledger exactly. The latest
-observed audit surface is four allowed warnings: `bincode`, `paste`,
-`rustybuzz`, and `ttf-parser`. The existing note tracks `ttf-parser` but not
-the newer `rustybuzz` warning, and the release docs mostly describe explicit
-`.cargo/audit.toml` ignores rather than the broader "allowed warning with
-recorded owner/rationale" state.
-
-This theme is documentation and release-gate hygiene only: reconcile the audit
-ledger with observed output, clarify the release-gate wording, and avoid adding
-new ignores or dependency changes without a separate design.
+No active implementation theme is selected. The most recent reviewed work is
+recorded below as implemented but unreleased; release timing remains
+owner-managed.
 
 ## Recently implemented, unreleased
+
+### Audit warning ledger refresh
+
+**Status.** RFC 027 implemented; unreleased.
+
+**Why now.** The audit-warning ledger now matches the current `cargo audit`
+allowed-warning surface: `bincode`, `paste`, `rustybuzz`, and `ttf-parser`.
+Release-gate docs distinguish explicit `.cargo/audit.toml` ignores from
+allowed warnings with recorded owner paths and revisit conditions.
 
 ### Explorer tree maintenance
 
