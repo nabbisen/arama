@@ -1,2 +1,1 @@
 pub const MIN_SETUP_DISKSPACE_MB: u16 = 3096;
-// todo: pub const MIN_CACHE_UPDATE_DISKSPACE_MB: f64 = 512.0;

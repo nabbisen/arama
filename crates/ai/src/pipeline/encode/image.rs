@@ -23,7 +23,8 @@ pub fn clip_calculator() -> anyhow::Result<ClipEncoder> {
     let config = ClipConfig::vit_base_patch32();
     let clip_model_manager = ModelManager::new(clip::model())?;
     let vb = unsafe {
-        // todo: requires safetensors from openai/clip-vit-base-patch32
+        // SafeTensors source policy is tracked by RFC 021; the model manager
+        // owns the locally prepared artifact path.
         VarBuilder::from_mmaped_safetensors(
             &[clip_model_manager.safetensors_path()?],
             DType::F32,

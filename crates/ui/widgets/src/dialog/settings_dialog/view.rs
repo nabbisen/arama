@@ -25,7 +25,6 @@ impl SettingsDialog {
             Tab::About => self.about.view().map(Message::AboutTabMessage),
         };
 
-        // todo
         column![tab_menus, container(tab).width(600).height(400)]
             .spacing(10)
             .into()

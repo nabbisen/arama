@@ -6,21 +6,19 @@ through the RFC process before code changes begin.
 
 ## Current focus
 
-### Source TODO hygiene
-
-**Status.** RFC 028 proposed.
-
-**Why now.** After the release-readiness and audit-ledger passes, the remaining
-source-level `todo` comments are mostly stale markers or context-free notes
-that no longer give maintainers a concrete next action. One gallery
-subscription file is also orphaned: it is present on disk but not declared by
-the gallery module, and contains a commented legacy embedding worker.
-
-This theme is intentionally non-behavioral. It should remove or replace stale
-TODO comments with current rationale, delete orphaned dead source, and leave
-real design decisions to their existing RFCs or future proposals.
+No active implementation theme is selected. The most recent reviewed work is
+recorded below as implemented but unreleased; release timing remains
+owner-managed.
 
 ## Recently implemented, unreleased
+
+### Source TODO hygiene
+
+**Status.** RFC 028 implemented; unreleased.
+
+**Why now.** Stale source TODO comments were removed or replaced with current
+design-boundary rationale, and the undeclared gallery subscription legacy source
+was deleted without changing runtime behavior.
 
 ### Audit warning ledger refresh
 

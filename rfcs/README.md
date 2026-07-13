@@ -9,7 +9,7 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| 028 | [Source TODO hygiene and orphan cleanup](./proposed/028-source-todo-hygiene.md) | Low |
+| — | (none currently) | — |
 
 ## Implemented
 
@@ -43,6 +43,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 025 | [Release smoke checklist](./done/025-release-smoke-checklist.md) | Unreleased |
 | 026 | [Explorer tree maintenance and scan ownership](./done/026-explorer-tree-maintenance.md) | Unreleased |
 | 027 | [Audit warning ledger refresh](./done/027-audit-warning-ledger-refresh.md) | Unreleased |
+| 028 | [Source TODO hygiene and orphan cleanup](./done/028-source-todo-hygiene.md) | Unreleased |
 
 ## Archive
 

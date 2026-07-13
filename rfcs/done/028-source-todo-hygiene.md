@@ -1,6 +1,6 @@
 # RFC 028 - Source TODO hygiene and orphan cleanup
 
-**Status.** Proposed
+**Status.** Implemented (Unreleased)
 **Tracks.** Maintenance follow-up: remove stale source TODOs and orphaned
 legacy source that no longer describe actionable implementation work.
 **Touches.** `env/src/file_system.rs`, `crates/ai/src/lib.rs`,
@@ -29,7 +29,7 @@ The gallery subscription file is not declared by `crates/ui/main/src/core/views/
 It contains a dormant, commented-out legacy worker path and imports used only
 by that commented code. The live app subscription is in `app/src/core/subscription.rs`.
 
-This RFC proposes a narrow hygiene pass:
+This RFC records a narrow hygiene pass:
 
 1. Remove context-free or stale TODO comments.
 2. Replace meaningful-but-deferred TODOs with current rationale and RFC
@@ -144,3 +144,12 @@ cargo check --workspace --all-targets
 mdbook build docs
 git diff --check
 ```
+
+## Implementation notes
+
+The implementation removed the context-free settings-dialog TODO, deleted the
+orphaned gallery subscription source, and replaced the remaining stale TODO
+markers with current design-boundary comments. It did not change module
+visibility, AI/video scoring defaults, model loading behavior, cache
+disk-pressure behavior, gallery/indexing behavior, dependencies, audit policy,
+release state, version, tag, publish, or push state.

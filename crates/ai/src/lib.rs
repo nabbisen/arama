@@ -16,7 +16,8 @@
 //!   orchestrates frame sampling, audio segmentation, and score weighting
 //!   for video files.
 
-// todo: parameters for inference quality - where to define actually ?
+// Video similarity defaults are private here and exposed through
+// `VideoSimilarityConfig`; runtime configurability needs a separate RFC.
 const CLIP_IMAGE_SIZE: usize = 224;
 const CROSS_MAX_SIMILARITY_THRESHOLD: f32 = 0.25;
 const VIDEO_IMAGE_WEIGHT: f32 = 0.60;
