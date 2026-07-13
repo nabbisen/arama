@@ -9,7 +9,7 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| — | (none currently) | — |
+| 028 | [Source TODO hygiene and orphan cleanup](./proposed/028-source-todo-hygiene.md) | Low |
 
 ## Implemented
 
