@@ -9,7 +9,7 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| — | (none currently) | — |
+| 030 | [Distribution and version contract reconciliation](./proposed/030-distribution-and-version-contracts.md) | High |
 
 ## Implemented
 

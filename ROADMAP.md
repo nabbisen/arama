@@ -6,9 +6,15 @@ through the RFC process before code changes begin.
 
 ## Current focus
 
-No active implementation theme is selected. The most recent reviewed work is
-recorded below as implemented but unreleased; release timing remains
-owner-managed.
+### Distribution and version contract reconciliation
+
+**Status.** RFC 030 proposed.
+
+**Why now.** The architecture preparation review found conflicting source
+extraction instructions, undocumented executable release assets, and stale
+`version.sh` behavior claims. RFC 030 defines those contracts before another
+release is prepared, while leaving the macOS ffmpeg supply-chain decision to a
+separate security RFC.
 
 ## Recently implemented, unreleased
 
