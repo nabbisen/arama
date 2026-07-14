@@ -9,7 +9,7 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| — | (none currently) | — |
+| 029 | [Release smoke evidence template](./proposed/029-release-smoke-evidence-template.md) | Medium |
 
 ## Implemented
 
