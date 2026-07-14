@@ -6,17 +6,20 @@ through the RFC process before code changes begin.
 
 ## Current focus
 
-### Release smoke evidence template
-
-**Status.** RFC 029 proposed.
-
-**Why now.** RFC 025 added owner-managed release-smoke checklist coverage, and
-the follow-up strategy review accepted keeping GUI smoke manual in the near
-term. The next maintenance improvement is to make that evidence reusable across
-releases with stable case IDs and a lightweight owner evidence template, without
-adding brittle desktop UI automation or performing release actions.
+No active implementation theme is selected. The most recent reviewed work is
+recorded below as implemented but unreleased; release timing remains
+owner-managed.
 
 ## Recently implemented, unreleased
+
+### Release smoke evidence template
+
+**Status.** RFC 029 implemented; unreleased.
+
+**Why now.** The RFC 025 checklist now has stable smoke IDs and a reusable
+owner evidence template for recording pass, fail, not-run, and
+environment-dependent results without adding desktop UI automation or
+performing release actions.
 
 ### Source TODO hygiene
 

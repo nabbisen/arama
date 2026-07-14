@@ -31,7 +31,10 @@ For releases that include UI, setup, cache, first-run, or recoverable-error
 changes, also consider the manual release smoke checklist in
 [`testing.md`](./testing.md#release-smoke-with-the-ui). This is an
 owner-managed confidence check, not a replacement for the automated gate and
-not a release action by itself.
+not a release action by itself. Record an owner-run pass with the reusable
+[release smoke evidence template](./release-smoke-evidence-template.md), using
+`not run` or `environment-dependent` where the release environment cannot
+exercise a check.
 
 ### 2. Bump the version
 
@@ -101,7 +104,8 @@ directory.
 ## Checklist
 
 - [ ] All tests pass
-- [ ] Manual UI smoke considered for UI/setup/cache/first-run changes
+- [ ] Manual UI smoke considered for UI/setup/cache/first-run changes; owner
+      evidence recorded when run
 - [ ] Version bumped in `[workspace.package]` (members inherit it)
 - [ ] `CHANGELOG.md` updated
 - [ ] RFC files moved and status fields updated

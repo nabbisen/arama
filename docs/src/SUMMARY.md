@@ -22,4 +22,5 @@
 - [Development Workflow](./dev/workflow.md)
 - [RFC Process](./dev/rfc-process.md)
 - [Testing](./dev/testing.md)
+  - [Release Smoke Evidence Template](./dev/release-smoke-evidence-template.md)
 - [Release Process](./dev/release.md)

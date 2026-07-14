@@ -1,10 +1,12 @@
 # RFC 029 - Release smoke evidence template
 
-**Status.** Proposed
+**Status.** Implemented (Unreleased)
 **Tracks.** Maintenance follow-up: make owner-managed release-smoke evidence
 repeatable and comparable across releases.
-**Touches.** `docs/src/dev/testing.md`, `docs/src/dev/release.md`,
-`ROADMAP.md`, `rfcs/README.md`.
+**Touches.** `docs/src/dev/testing.md`,
+`docs/src/dev/release-smoke-evidence-template.md`,
+`docs/src/dev/release.md`, `docs/src/SUMMARY.md`, `ROADMAP.md`,
+`rfcs/README.md`.
 
 ## Summary
 
@@ -148,3 +150,11 @@ Required for implementation review:
 mdbook build docs
 git diff --check
 ```
+
+## Implementation notes
+
+The implementation assigned stable IDs to all 17 RFC 025 smoke checks, added a
+reusable owner evidence template with the four accepted result values, and
+linked the template from the testing guide, release process, and mdBook
+navigation. It did not add automation, dependencies, product behavior, or
+release mechanics.

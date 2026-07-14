@@ -102,57 +102,67 @@ workflows, not an exhaustive exploratory QA script.
 
 ### First-run and setup
 
-- Existing configured state: app opens without the setup wizard and the
-  footer/model status reflects ready local artifacts.
-- Clean first-run state, environment-dependent: setup wizard presents required
-  model/ffmpeg actions, downloads complete, checksum failures or local path
-  failures surface as visible setup errors instead of crashes.
-- Settings -> AI: existing models show ready state; absent models show the
-  expected load/get actions.
+- **`SMOKE-SETUP-READY`** — Existing configured state: app opens without the
+  setup wizard and the footer/model status reflects ready local artifacts.
+- **`SMOKE-SETUP-FIRST-RUN`** — Clean first-run state,
+  environment-dependent: setup wizard presents required model/ffmpeg actions,
+  downloads complete, checksum failures or local path failures surface as
+  visible setup errors instead of crashes.
+- **`SMOKE-SETUP-AI-SETTINGS`** — Settings -> AI: existing models show ready
+  state; absent models show the expected load/get actions.
 
 ### Gallery and indexing
 
-- Select a fixture directory. Gallery rows populate and processing indicators
-  stop after indexing finishes.
-- Switch directories while indexing. The previous run stops and the new
-  directory starts indexing without stale progress indicators.
-- Open a gallery item. The focus view opens and similar media are ordered by
-  score when enough cache data exists.
+- **`SMOKE-GALLERY-INDEX`** — Select a fixture directory. Gallery rows populate
+  and processing indicators stop after indexing finishes.
+- **`SMOKE-GALLERY-SWITCH`** — Switch directories while indexing. The previous
+  run stops and the new directory starts indexing without stale progress
+  indicators.
+- **`SMOKE-GALLERY-FOCUS`** — Open a gallery item. The focus view opens and
+  similar media are ordered by score when enough cache data exists.
 
 ### Similarity dialogs
 
-- Open similar pairs from the header. The dialog renders image/video pairs
-  when cache data exists.
-- With sparse or partial cache data, the dialog remains usable and degrades to
-  partial or empty results instead of crashing.
+- **`SMOKE-SIMILARITY-PAIRS`** — Open similar pairs from the header. The dialog
+  renders image/video pairs when cache data exists.
+- **`SMOKE-SIMILARITY-SPARSE`** — With sparse or partial cache data, the dialog
+  remains usable and degrades to partial or empty results instead of crashing.
 
 ### Cache page
 
-- Open Cache. Directory summaries load, and source media size is distinct from
-  cache footprint.
-- Run a small manual prune target. The result reports deleted entries or the
-  remaining unreclaimable footprint clearly.
-- Trigger a cache reload after normal navigation. Stale rows remain visible
-  while recoverable reload errors are shown inline.
-- Settings -> File System -> Cache delete: confirm the cache directory is
-  removed or a visible error is shown.
+- **`SMOKE-CACHE-SUMMARY`** — Open Cache. Directory summaries load, and source
+  media size is distinct from cache footprint.
+- **`SMOKE-CACHE-PRUNE`** — Run a small manual prune target. The result reports
+  deleted entries or the remaining unreclaimable footprint clearly.
+- **`SMOKE-CACHE-RELOAD`** — Trigger a cache reload after normal navigation.
+  Stale rows remain visible while recoverable reload errors are shown inline.
+- **`SMOKE-CACHE-DELETE`** — Settings -> File System -> Cache delete: confirm
+  the cache directory is removed or a visible error is shown.
 
 ### Settings and theme
 
-- Settings -> General: toggle media types and confirm re-indexing follows the
-  selected media policy.
-- Change light, dark, and high-contrast theme presets. Standard iced widgets
-  remain readable, with no obvious low-contrast controls.
-- Save settings, restart, and confirm the selected settings reload. If saving
-  fails in the test environment, the app should show an error toast instead of
-  crashing.
+- **`SMOKE-SETTINGS-MEDIA`** — Settings -> General: toggle media types and
+  confirm re-indexing follows the selected media policy.
+- **`SMOKE-SETTINGS-THEME`** — Change light, dark, and high-contrast theme
+  presets. Standard iced widgets remain readable, with no obvious low-contrast
+  controls.
+- **`SMOKE-SETTINGS-PERSIST`** — Save settings, restart, and confirm the
+  selected settings reload. If saving fails in the test environment, the app
+  should show an error toast instead of crashing.
 
 ### Exit and restart
 
-- Quit and restart with a valid saved root. The shell opens on that directory.
-- Invalid saved root, environment-dependent: point settings at a missing
-  directory and restart. The app should open a usable shell with visible
-  startup feedback instead of aborting.
+- **`SMOKE-RESTART-VALID-ROOT`** — Quit and restart with a valid saved root.
+  The shell opens on that directory.
+- **`SMOKE-RESTART-INVALID-ROOT`** — Invalid saved root,
+  environment-dependent: point settings at a missing directory and restart.
+  The app should open a usable shell with visible startup feedback instead of
+  aborting.
+
+Record an owner-run pass with the
+[release smoke evidence template](./release-smoke-evidence-template.md). The
+template is reusable confidence evidence; completing it is not an automated
+gate or a release action.
 
 ### Future automation candidates
 

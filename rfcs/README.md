@@ -9,7 +9,7 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| 029 | [Release smoke evidence template](./proposed/029-release-smoke-evidence-template.md) | Medium |
+| — | (none currently) | — |
 
 ## Implemented
 
@@ -44,6 +44,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 026 | [Explorer tree maintenance and scan ownership](./done/026-explorer-tree-maintenance.md) | Unreleased |
 | 027 | [Audit warning ledger refresh](./done/027-audit-warning-ledger-refresh.md) | Unreleased |
 | 028 | [Source TODO hygiene and orphan cleanup](./done/028-source-todo-hygiene.md) | Unreleased |
+| 029 | [Release smoke evidence template](./done/029-release-smoke-evidence-template.md) | Unreleased |
 
 ## Archive
 
