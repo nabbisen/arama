@@ -63,5 +63,5 @@ Reusable as a regression pass:
       arama-env -p arama-theme`) and their unit tests pass
       (`cargo test -p arama-i18n -p arama-env`).
 - [ ] Each member resolves `readme` to the root `README.md`.
-- [ ] `tar tzf arama-v0.35.0.tar.gz | head` shows project files at the
+- [ ] `tar tzf arama-0.35.0.tar.gz | head` shows project files at the
       root, not a wrapping directory.

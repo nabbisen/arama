@@ -1,6 +1,6 @@
 # RFC 004 — Cache control page
 
-**Status.** Implemented (v0.25.0)
+**Status.** Implemented (0.25.0)
 **Tracks.** A third side-nav page giving users per-directory
 visibility and control over the embedding/thumbnail cache: a
 filterable summary table, per-row clearing, and on-demand caching

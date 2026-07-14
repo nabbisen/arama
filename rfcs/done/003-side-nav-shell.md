@@ -1,6 +1,6 @@
 # RFC 003 — Side-nav shell redesign
 
-**Status.** Implemented (v0.24.0)
+**Status.** Implemented (0.24.0)
 **Tracks.** Top-level navigation structure. Replaces the
 header-mounted settings button and the collapsible aside rail with
 a snora side-nav shell that hosts two named pages.

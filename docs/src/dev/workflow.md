@@ -80,16 +80,20 @@ pull request.
 
 ## Workspace version bumps
 
-`version.sh` updates the `version` field in every member `Cargo.toml`
-atomically:
+All workspace packages inherit `[workspace.package].version`. `version.sh`
+updates that single field atomically in the root `Cargo.toml`:
 
 ```sh
-./version.sh --list              # show current versions
-./version.sh --update 0.25.0     # bump all crates
+./version.sh --list              # show the workspace version
+./version.sh --update 0.25.0     # bump the inherited package version
 ./version.sh --update 0.25.0 --dry-run  # preview only
 ```
 
-The script also `git add`s the modified manifests and `Cargo.lock`.
+Internal workspace dependency requirements are intentionally outside the
+helper. Adding or removing a crate therefore does not require a script change.
+The helper also does not edit member manifests, `Cargo.lock`, the changelog, or
+the Git index. After a real release bump, refresh and review `Cargo.lock`
+explicitly as described in the [release process](./release.md).
 
 ## Adding a new crate
 

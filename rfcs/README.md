@@ -9,27 +9,27 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| 030 | [Distribution and version contract reconciliation](./proposed/030-distribution-and-version-contracts.md) | High |
+| — | (none currently) | — |
 
 ## Implemented
 
 | ID | Title | Shipped in |
 |----|-------|------------|
 | 000 | [RFC lifecycle policy](./done/000-rfc-lifecycle-policy.md) | adopted with this directory |
-| 001 | [Migrate the UI layer to the snora framework (v0.8)](./done/001-migrate-ui-to-snora.md) | v0.22.0 |
-| 002 | [Replace the in-house cache engine with localcache](./done/002-replace-cache-engine-with-localcache.md) | v0.23.0 |
-| 003 | [Side-nav shell redesign](./done/003-side-nav-shell.md) | v0.24.0 |
-| 004 | [Cache control page](./done/004-cache-control-page.md) | v0.25.0 |
-| 005 | [Configurable similarity threshold + ffmpeg re-download](./done/005-threshold-and-ffmpeg-redownload.md) | v0.26.0 |
-| 006 | [Multilingual GUI — i18n foundation](./done/006-i18n-foundation.md) | v0.27.0 |
-| 007 | [i18n Phase 2 sweep](./done/007-i18n-phase2.md) | v0.28.0 |
-| 008 | [Gallery filter, AI debug cleanup, error handling](./done/008-gallery-filter-cleanup.md) | v0.29.0 |
-| 009 | [Replace custom DirTree with iced-swdir-tree](./done/009-iced-swdir-tree.md) | v0.30.0 |
-| 010 | [Adopt the Snora Design system (token-driven button styling)](./done/010-snora-design-system.md) | v0.32.0 |
-| 011 | [Application theme setting (light / dark / high-contrast)](./done/011-theme-setting.md) | v0.33.0 |
-| 012 | [Workspace housekeeping (manifest inheritance, orphan removal, changelog & doc reconciliation)](./done/012-workspace-housekeeping.md) | v0.35.0 |
-| 013 | [ELOC splits: update.rs and cache integration tests](./done/013-eloc-splits.md) | v0.36.0 |
-| 014 | [Explorer aside tree toggle](./done/014-aside-tree-toggle.md) | v0.36.1 |
+| 001 | [Migrate the UI layer to the snora framework (v0.8)](./done/001-migrate-ui-to-snora.md) | 0.22.0 |
+| 002 | [Replace the in-house cache engine with localcache](./done/002-replace-cache-engine-with-localcache.md) | 0.23.0 |
+| 003 | [Side-nav shell redesign](./done/003-side-nav-shell.md) | 0.24.0 |
+| 004 | [Cache control page](./done/004-cache-control-page.md) | 0.25.0 |
+| 005 | [Configurable similarity threshold + ffmpeg re-download](./done/005-threshold-and-ffmpeg-redownload.md) | 0.26.0 |
+| 006 | [Multilingual GUI — i18n foundation](./done/006-i18n-foundation.md) | 0.27.0 |
+| 007 | [i18n Phase 2 sweep](./done/007-i18n-phase2.md) | 0.28.0 |
+| 008 | [Gallery filter, AI debug cleanup, error handling](./done/008-gallery-filter-cleanup.md) | 0.29.0 |
+| 009 | [Replace custom DirTree with iced-swdir-tree](./done/009-iced-swdir-tree.md) | 0.30.0 |
+| 010 | [Adopt the Snora Design system (token-driven button styling)](./done/010-snora-design-system.md) | 0.32.0 |
+| 011 | [Application theme setting (light / dark / high-contrast)](./done/011-theme-setting.md) | 0.33.0 |
+| 012 | [Workspace housekeeping (manifest inheritance, orphan removal, changelog & doc reconciliation)](./done/012-workspace-housekeeping.md) | 0.35.0 |
+| 013 | [ELOC splits: update.rs and cache integration tests](./done/013-eloc-splits.md) | 0.36.0 |
+| 014 | [Explorer aside tree toggle](./done/014-aside-tree-toggle.md) | 0.36.1 |
 | 015 | [Cache lifecycle: retire v1 migration and define cache-capacity direction](./done/015-cache-lifecycle.md) | Unreleased |
 | 016 | [Cache capacity and disk-pressure management](./done/016-cache-capacity.md) | Unreleased |
 | 017 | [Visible recoverable error UX](./done/017-visible-recoverable-error-ux.md) | Unreleased |
@@ -45,6 +45,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 027 | [Audit warning ledger refresh](./done/027-audit-warning-ledger-refresh.md) | Unreleased |
 | 028 | [Source TODO hygiene and orphan cleanup](./done/028-source-todo-hygiene.md) | Unreleased |
 | 029 | [Release smoke evidence template](./done/029-release-smoke-evidence-template.md) | Unreleased |
+| 030 | [Distribution and version contract reconciliation](./done/030-distribution-and-version-contracts.md) | Unreleased |
 
 ## Archive
 

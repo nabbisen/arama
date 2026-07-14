@@ -91,7 +91,7 @@ release actions:
 
 - version bump;
 - changelog finalization;
-- RFC `Implemented (vX.Y.Z)` stamping;
+- RFC `Implemented (X.Y.Z)` stamping;
 - archive creation;
 - tag, publish, or push.
 

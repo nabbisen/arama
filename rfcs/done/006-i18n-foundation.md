@@ -1,6 +1,6 @@
 # RFC 006 — Multilingual GUI (i18n foundation)
 
-**Status.** Implemented (v0.27.0)
+**Status.** Implemented (0.27.0)
 **Tracks.** The project requirement "The GUI must support multiple
 languages (i18n)", and the pending note in RFC 001 ("i18n work —
 separate RFC"). A dependency-free translation infrastructure, English

@@ -1,6 +1,6 @@
 # RFC 008 — Gallery filename filter, AI debug cleanup, error handling
 
-**Status.** Implemented (v0.29.0)
+**Status.** Implemented (0.29.0)
 **Tracks.** Three independent improvements shipped as one release:
 (a) a filename search filter for the gallery;
 (b) removal of debug `println!` calls from the AI pipeline crates;

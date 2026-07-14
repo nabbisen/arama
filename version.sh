@@ -1,23 +1,10 @@
 #!/bin/sh
 #
-# version.sh — show or set the single workspace version for arama.
+# version.sh — show or set arama's single workspace package version.
 #
-# The version lives in two places in the root Cargo.toml — both are
-# updated atomically by --update:
-#
-#   1. [workspace.package]  version = "X.Y.Z"
-#      (inherited by every member via version.workspace = true)
-#
-#   2. [workspace.dependencies]  arama-* = { version = "X.Y.Z", path = "…" }
-#      (required alongside `path` so crates can be published; deps.rs
-#      and docs.rs also need it to resolve the dependency graph)
-#
-# No external tools are required (no jq, no cargo metadata).
-#
-# Examples:
-#   ./version.sh --list
-#   ./version.sh --update 1.2.3
-#   ./version.sh --update 1.2.3 --dry-run
+# Every member inherits [workspace.package].version. Internal dependency
+# requirements are intentionally outside this helper, so adding or removing a
+# workspace crate never requires changing the script.
 
 CARGO_TOML=./Cargo.toml
 
@@ -31,9 +18,9 @@ Options:
   -d, --dry-run             Show what would change, but do not modify files.
   -h, --help                Show this help and exit.
 
-Updates two locations in ${CARGO_TOML}:
-  - [workspace.package] version field (inherited by all members)
-  - [workspace.dependencies] version fields for internal arama-* crates
+Updates [workspace.package].version in ${CARGO_TOML}. Member packages inherit
+that value. The command does not modify workspace dependencies, Cargo.lock,
+member manifests, the changelog, or the Git index.
 
 Examples:
   ${0##*/} --list
@@ -71,7 +58,6 @@ if [ ! -f "$CARGO_TOML" ]; then
     exit 1
 fi
 
-# Read the version value from inside the [workspace.package] table.
 current_version() {
     awk '
         /^\[/ { in_wp = ($0 ~ /^\[workspace\.package\]/) }
@@ -84,8 +70,13 @@ current_version() {
 
 CUR=$(current_version)
 
+if [ -z "$CUR" ]; then
+    printf 'Error: could not find version in [workspace.package].\n' >&2
+    exit 1
+fi
+
 if [ "$LIST_MODE" -eq 1 ]; then
-    printf 'Workspace version: %s\n' "${CUR:-<not found>}"
+    printf 'Workspace version: %s\n' "$CUR"
     [ "$UPDATE_MODE" -eq 0 ] && exit 0
 fi
 
@@ -94,39 +85,32 @@ if [ "$UPDATE_MODE" -eq 1 ]; then
         printf 'Error: No new version supplied.\n' >&2
         exit 1
     fi
-    if [ -z "$CUR" ]; then
-        printf 'Error: could not find version in [workspace.package].\n' >&2
-        exit 1
-    fi
 
     if [ "$DRY_RUN" -eq 1 ]; then
-        printf '%s -> %s (would modify %s)\n' "$CUR" "$NEW_VERSION" "$CARGO_TOML"
+        printf 'Workspace version: %s -> %s\n' "$CUR" "$NEW_VERSION"
+        printf 'Would modify %s only.\n' "$CARGO_TOML"
         exit 0
     fi
 
-    tmp=$(mktemp) || exit 1
-    awk -v cur="$CUR" -v nv="$NEW_VERSION" '
-        # Track which top-level table we are in.
-        /^\[/ {
-            in_wp  = ($0 ~ /^\[workspace\.package\]/)
-            in_wdep = ($0 ~ /^\[workspace\.dependencies\]/)
-        }
+    # Keep the replacement beside Cargo.toml for a same-filesystem rename.
+    # Copy its metadata first so the new inode retains the manifest mode.
+    tmp=$(mktemp "${CARGO_TOML}.tmp.XXXXXX") || exit 1
+    trap 'rm -f "$tmp"' 0 1 2 15
+    cp -p "$CARGO_TOML" "$tmp" || exit 1
 
-        # [workspace.package]: rewrite the bare version line.
-        in_wp && /^[[:space:]]*version[[:space:]]*=/ && !wp_done {
+    awk -v nv="$NEW_VERSION" '
+        /^\[/ { in_wp = ($0 ~ /^\[workspace\.package\]/) }
+        in_wp && /^[[:space:]]*version[[:space:]]*=/ && !done {
             print "version = \"" nv "\""
-            wp_done = 1
+            done = 1
             next
         }
-
-        # [workspace.dependencies]: rewrite version = "CUR" inside
-        # any internal arama-* entry on the same line.
-        in_wdep && /^arama-/ {
-            sub("version = \"" cur "\"", "version = \"" nv "\"")
-        }
-
         { print }
-    ' "$CARGO_TOML" > "$tmp" && mv "$tmp" "$CARGO_TOML"
+        END { if (!done) exit 1 }
+    ' "$CARGO_TOML" > "$tmp" || exit 1
+
+    mv "$tmp" "$CARGO_TOML" || exit 1
+    trap - 0 1 2 15
 
     printf '%s -> %s (updated %s)\n' "$CUR" "$NEW_VERSION" "$CARGO_TOML"
 fi

@@ -173,7 +173,7 @@ For Implemented RFCs, the Status field carries the version or
 release tag in which the work shipped:
 
 ```markdown
-**Status.** Implemented (v1.4.0)
+**Status.** Implemented (1.4.0)
 ```
 
 For Superseded RFCs, the field names the replacement:
@@ -332,8 +332,8 @@ A typical structure:
 ## Implemented
 | ID | Title | Shipped in |
 |----|-------|------------|
-| 010 | [Revoke tokens](./done/010-revoke-tokens.md) | v1.4.0 |
-| 015 | [Deprecate API](./done/015-deprecate-old-api.md) | v1.5.0 |
+| 010 | [Revoke tokens](./done/010-revoke-tokens.md) | 1.4.0 |
+| 015 | [Deprecate API](./done/015-deprecate-old-api.md) | 1.5.0 |
 
 ## Archive
 | ID | Title | Reason |

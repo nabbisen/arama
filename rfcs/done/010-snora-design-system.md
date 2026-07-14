@@ -1,6 +1,6 @@
 # RFC 010 — Adopt the Snora Design system (token-driven button styling)
 
-**Status.** Implemented (v0.32.0)
+**Status.** Implemented (0.32.0)
 **Tracks.** Updating snora 0.18.1 → 0.25.0 and adopting its newly-shipped
 design system (the `design` feature) to gain WCAG AA-verified,
 token-driven button styling in arama.

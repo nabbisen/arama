@@ -1,6 +1,6 @@
 # RFC 013 — ELOC splits: `app/src/core/update.rs` and `crates/cache/tests/integration_tests.rs`
 
-**Status.** Implemented (v0.36.0)
+**Status.** Implemented (0.36.0)
 **Tracks.** Two files that exceed the 500 ELOC threshold identified during
 the v0.35.0 baseline review and deferred from RFC 012.
 **Touches.** `app/src/core/update.rs` (608 lines, 543 ELOC) and

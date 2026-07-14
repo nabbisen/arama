@@ -1,6 +1,6 @@
 # RFC 009 — Replace custom DirTree with iced-swdir-tree
 
-**Status.** Implemented (v0.30.0)
+**Status.** Implemented (0.30.0)
 **Tracks.** Replacing the 455-line custom `DirTree` widget in
 `crates/ui/widgets/src/dir_tree/` with the `iced-swdir-tree` crate
 (v0.9.0, same author, zero new transitive dependencies).

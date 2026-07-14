@@ -1,6 +1,6 @@
 # RFC 005 — Configurable similarity threshold + ffmpeg re-download
 
-**Status.** Implemented (v0.26.0)
+**Status.** Implemented (0.26.0)
 **Tracks.** Two companion improvements to `Settings`:
 (a) the similarity threshold used by the focus view and similarity
 pairs finder is currently hardcoded at 0.86 and is explicitly marked

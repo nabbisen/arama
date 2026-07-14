@@ -50,13 +50,18 @@ a discrete GPU is not required.
 ### Build and run
 
 ```sh
-# Extract the source archive
-tar xzf arama-vX.Y.Z.tar.gz
-cd arama-vX.Y.Z
+# Extract the root-layout source archive into its own directory
+mkdir arama-X.Y.Z
+tar xzf arama-X.Y.Z.tar.gz -C arama-X.Y.Z
+cd arama-X.Y.Z
 
 # Build and launch (release mode recommended for AI inference speed)
 cargo run -p arama --release
 ```
+
+Platform executable assets and `cargo install arama` are also available. See
+the [installation guide](./docs/src/users/installation.md) for the supported
+asset matrix and the differences between distribution routes.
 
 The first launch opens a setup wizard that downloads:
 - `openai/clip-vit-base-patch32` — CLIP model for image similarity

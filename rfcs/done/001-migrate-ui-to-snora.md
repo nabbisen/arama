@@ -1,6 +1,6 @@
 # RFC 001 — Migrate the UI layer to the snora framework (v0.8)
 
-**Status.** Implemented (v0.22.0)
+**Status.** Implemented (0.22.0)
 **Tracks.** Replacement of arama's hand-rolled iced application
 skeleton (layout composition, dialog overlay, context menu,
 backdrop handling) with the `snora` crate, v0.8.x.

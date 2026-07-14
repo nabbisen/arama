@@ -1,6 +1,6 @@
 # RFC 012 — Workspace housekeeping: manifest inheritance, orphan removal, changelog & doc reconciliation
 
-**Status.** Implemented (v0.35.0)
+**Status.** Implemented (0.35.0)
 **Tracks.** A maintenance release (v0.35.0) bundling six independent,
 behaviour-neutral cleanups:
 (a) single-source versioning and workspace metadata inheritance across
@@ -60,7 +60,7 @@ The v0.34.0 review found:
   point at non-existent files (`app/README.md`, `crates/README.md`,
   `crates/ui/layout/README.md`).
 - **Stale release doc.** `docs/src/dev/release.md` instructs the
-  packager to wrap the archive in an `arama-vX.Y.Z/` parent directory
+  packager to wrap the archive in an `arama-X.Y.Z/` parent directory
   and to bump via `version.sh` — both now contradict project policy
   (archives must have **no** parent directory; version becomes
   single-source).
@@ -189,12 +189,12 @@ the one line. See Open questions for the retire-entirely alternative.
   description with the one-line `[workspace.package].version` edit (and
   the simplified `version.sh`).
 - **Step 5 (package):** replace the `--transform` recipe that injects an
-  `arama-vX.Y.Z/` parent with a no-parent-directory recipe so files
+  `arama-X.Y.Z/` parent with a no-parent-directory recipe so files
   unpack straight into the destination, e.g.
 
   ```sh
   cd <workspace-root>
-  tar --exclude='./target' -czf ../arama-vX.Y.Z.tar.gz .
+  tar --exclude='./target' -czf ../arama-X.Y.Z.tar.gz .
   ```
 
 - **Step 6 (verify):** confirm the archive's top-level entries are the
@@ -232,7 +232,7 @@ The items are independent and can land as separate commits or one PR:
 5. `version.sh`: simplify (or retire).
 6. `docs/src/dev/release.md`: correct steps 2/5/6 + checklist.
 7. `rfcs/`: move this RFC `proposed/ → done/`, set
-   `Implemented (v0.35.0)`, update `rfcs/README.md`.
+   `Implemented (0.35.0)`, update `rfcs/README.md`.
 
 ## Acceptance / QA checklist
 
@@ -276,6 +276,9 @@ implementation:
   groups (the published block had two `### Added` subsections and a
   bespoke dependency-update heading).
 - After implementation it was found that `workspace.dependencies` entries for internal crates also require an explicit `version` field (alongside `path`) to satisfy `cargo publish`, and by extension deps.rs and docs.rs. All nine internal entries were updated to `{ version = "0.35.0", path = "…" }`; `version.sh` was extended to update both locations atomically on a bump.
+- RFC 030 later restored broad `version = "0"` internal requirements and made
+  `version.sh` update only `[workspace.package].version`, so workspace growth
+  does not require maintaining crate names or counts in the helper.
 - No `.rs` files were touched; `cargo fmt` was a no-op. Validation:
   `cargo metadata --no-deps` resolves all ten members at `0.35.0` with
   `arama-storage` gone; representative leaf crates compile and their

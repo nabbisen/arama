@@ -1,6 +1,6 @@
 # RFC 007 — i18n Phase 2 sweep
 
-**Status.** Implemented (v0.28.0)
+**Status.** Implemented (0.28.0)
 **Tracks.** The Phase 2 string sweep deferred in RFC 006: gallery,
 focus dialog, similar-pairs dialog, setup wizard, and the header
 folder-picker button.

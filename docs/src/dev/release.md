@@ -2,9 +2,14 @@
 
 ## Versioning
 
-All workspace members share a single version number (e.g. `0.24.0`).
-The version follows loose semantic versioning: minor bumps for new
-features, patch bumps for fixes only.
+All workspace packages share a single version number (e.g. `0.36.2`). Members
+inherit `[workspace.package].version`. Internal path dependencies use the broad
+pre-1.0 requirement `version = "0"` needed for registry packaging; release
+version bumps do not rewrite those dependency entries.
+
+The version follows loose semantic versioning: minor bumps for new features,
+patch bumps for fixes only. Project versions and Git tags use `X.Y.Z` without a
+`v` prefix.
 
 ## Steps
 
@@ -38,17 +43,28 @@ exercise a check.
 
 ### 2. Bump the version
 
-The version is single-sourced in `[workspace.package].version`; every
-member inherits it via `version.workspace = true`, so a bump is a
-single one-line edit. Use the helper (no external tools required):
+Use the dependency-free helper to update `[workspace.package].version`:
 
 ```sh
+./version.sh --list
+./version.sh --update X.Y.Z --dry-run
 ./version.sh --update X.Y.Z
 ```
 
-Preview the change first with `--dry-run` if needed. Editing the
-`[workspace.package].version` line in the root `Cargo.toml` by hand has
-the same effect.
+The helper does not edit workspace dependencies, `Cargo.lock`, member
+manifests, the changelog, or the Git index. Adding or removing a workspace
+crate does not require changing the helper. Refresh the committed lockfile
+through Cargo, review the manifest and lockfile diff for only expected local
+package-version changes, and then verify with the refreshed lock:
+
+```sh
+cargo check --workspace
+git diff -- Cargo.toml Cargo.lock
+cargo metadata --no-deps --locked
+cargo check --workspace --locked
+```
+
+Stop if the lockfile contains unrelated dependency churn.
 
 ### 3. Update CHANGELOG.md
 
@@ -60,7 +76,7 @@ the same effect.
 
 For any RFCs that ship in this release:
 - Move `rfcs/proposed/NNN-slug.md` → `rfcs/done/`.
-- Update the `**Status.**` field to `Implemented (vX.Y.Z)`.
+- Update the `**Status.**` field to `Implemented (X.Y.Z)`.
 - Add implementation notes if the as-built design deviated.
 - Update `rfcs/README.md`.
 
@@ -77,14 +93,14 @@ tar \
   --exclude='./.git' \
   --exclude='./.git-exclude' \
   --exclude='./docs/book' \
-  -czf ../arama-vX.Y.Z.tar.gz .
+  -czf ../arama-X.Y.Z.tar.gz .
 ```
 
 The version number goes at the end of the archive name. The structure
 must be:
 
 ```
-arama-vX.Y.Z.tar.gz
+arama-X.Y.Z.tar.gz
 ├── Cargo.toml
 ├── app/
 ├── crates/
@@ -94,23 +110,77 @@ arama-vX.Y.Z.tar.gz
 ### 6. Verify the archive
 
 ```sh
-tar tzf arama-vX.Y.Z.tar.gz | head -5
+tar tzf arama-X.Y.Z.tar.gz | head -5
 ```
 
 Confirm the top-level entries are the project files themselves
-(`./Cargo.toml`, `./app/`, …) and **not** a wrapping `arama-vX.Y.Z/`
+(`./Cargo.toml`, `./app/`, …) and **not** a wrapping `arama-X.Y.Z/`
 directory.
+
+## Distribution contracts
+
+The three release channels have deliberately different contracts:
+
+| Channel | Naming | Layout or resolution | Produced by |
+|---|---|---|---|
+| Source archive | `arama-X.Y.Z.tar.gz` | Project files at archive root; no wrapper | Owner source-release step |
+| Executable asset | `arama@<variant>-<tag>.<ext>` | One same-named wrapping directory containing the binary | GitHub release executable workflow |
+| crates.io | `arama` plus internal `arama-*` packages | Published registry dependency graph | Owner-staged publication |
+
+The executable workflow currently produces Linux x86_64 CPU/CUDA, Apple
+Silicon macOS, and Windows x86_64 CPU/CUDA assets. Its wrapping directory is
+not an exception to the source archive rule; it is a separate artifact type.
+
+When the executable workflow matrix or naming changes, update the user
+installation guide and this contract in the same reviewed change.
+
+## crates.io lockstep procedure
+
+Package dry-runs and any authorized publication follow this dependency order:
+
+1. `arama-cache`
+2. `arama-i18n`
+3. `arama-env`
+4. `arama-sidecar`
+5. `arama-theme`
+6. `arama-ai`
+7. `arama-ui-widgets`
+8. `arama-ui-layout`
+9. `arama-ui-main`
+10. `arama`
+
+Every internal dependency must be available on crates.io before dry-running or
+publishing its dependent at a new version. Registry propagation means a future
+graph may need to proceed in stages: dry-run/publish the available dependency
+level, wait until crates.io resolves it, then continue. Publish `arama` last.
+
+Commands such as the following are evidence-only until the owner explicitly
+authorizes publication:
+
+```sh
+cargo publish --dry-run -p arama-cache
+cargo publish --dry-run -p arama-i18n
+# Continue in the order above as registry prerequisites become available.
+```
+
+Before each actual publish, inspect the normalized package manifest and record
+package, registry-availability, install, and publication evidence in the
+release review package.
 
 ## Checklist
 
 - [ ] All tests pass
 - [ ] Manual UI smoke considered for UI/setup/cache/first-run changes; owner
       evidence recorded when run
-- [ ] Version bumped in `[workspace.package]` (members inherit it)
+- [ ] Workspace package version updated; internal dependency requirements unchanged
+- [ ] `Cargo.lock` refreshed and reviewed without unrelated dependency churn
+- [ ] Post-bump locked metadata/check gate passed
 - [ ] `CHANGELOG.md` updated
 - [ ] RFC files moved and status fields updated
 - [ ] `rfcs/README.md` updated
 - [ ] Archive created with files at the root (no parent directory)
 - [ ] Archive excludes `.git/`, `.git-exclude/`, `target/`, and generated
       `docs/book/`
+- [ ] Source, executable, and crates.io artifact contracts checked separately
+- [ ] crates.io dry-run/publication follows dependency order with `arama` last
 - [ ] `NOTICE` updated if new third-party components were added

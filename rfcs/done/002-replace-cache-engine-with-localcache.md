@@ -1,6 +1,6 @@
 # RFC 002 — Replace the in-house cache engine with localcache
 
-**Status.** Implemented (v0.23.0)
+**Status.** Implemented (0.23.0)
 **Tracks.** Retirement of the in-repo `file-feature-cache`
 engine in favour of the published `localcache` crate, v0.20.x.
 The `arama-cache` facade crate is kept; only its engine layer

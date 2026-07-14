@@ -1,6 +1,6 @@
 # RFC 011 — Application theme setting (light / dark / high-contrast)
 
-**Status.** Implemented (v0.33.0)
+**Status.** Implemented (0.33.0)
 **Tracks.** A user-selectable application theme that leverages all four
 Snora Design presets (`light`, `dark`, `high_contrast_light`,
 `high_contrast_dark`), building on the design-system adoption in RFC 010.

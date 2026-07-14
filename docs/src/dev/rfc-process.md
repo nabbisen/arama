@@ -54,7 +54,7 @@ Withdrawn or superseded RFCs move to `rfcs/archive/`.
 1. Implement the changes in the same branch or as a focused PR.
 2. When the work ships:
    - Move the file from `rfcs/proposed/` to `rfcs/done/`.
-   - Update the `**Status.**` field to `Implemented (vX.Y.Z)`.
+   - Update the `**Status.**` field to `Implemented (X.Y.Z)`.
    - If implementation deviated from the design, add an
      `## Implementation notes` section recording the differences.
    - Update `rfcs/README.md` — move the entry from Proposed to

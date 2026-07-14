@@ -1,6 +1,6 @@
 # RFC 014 — Explorer aside tree toggle
 
-**Status.** Implemented (v0.36.1)
+**Status.** Implemented (0.36.1)
 **Tracks.** v0.36.1 UX fix — replace the always-visible, scrollbar-heavy
 aside panel with a toggle-to-open/auto-close directory tree pane.
 **Touches.** `app/src/core.rs` (App struct), `app/src/core/message.rs`,

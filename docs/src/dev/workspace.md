@@ -3,7 +3,7 @@
 The Cargo workspace root is `Cargo.toml`. Member crates:
 
 ```
-arama-0.vX.Y.Z/
+arama-X.Y.Z/
 ├── app/                      # Binary crate — main entry point
 ├── crates/
 │   ├── ai/                   # AI inference pipeline
