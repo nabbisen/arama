@@ -6,9 +6,15 @@ through the RFC process before code changes begin.
 
 ## Current focus
 
-No active implementation theme is selected. The most recent reviewed work is
-recorded below as implemented but unreleased; release timing remains
-owner-managed.
+### macOS ffmpeg trust boundary
+
+**Status.** RFC 031 proposed.
+
+**Why now.** macOS is the remaining executable-download exception: arama uses
+moving third-party ffmpeg URLs without expected digests, then executes the
+downloaded binary against user media. RFC 031 proposes a user-managed
+`ffmpeg`/`ffprobe` pair on macOS while retaining verified automatic downloads
+on Linux and Windows.
 
 ## Recently implemented, unreleased
 
