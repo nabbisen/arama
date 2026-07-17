@@ -19,7 +19,10 @@ impl Setup {
         let download_button = button(text(t("setup.download")))
             .padding(10)
             .on_press_maybe(
-                if disk_status.can_download && !self.downloader.is_downloading {
+                if disk_status.can_download
+                    && self.downloader.can_start_downloads()
+                    && !self.downloader.is_downloading
+                {
                     Some(Message::Download)
                 } else {
                     None

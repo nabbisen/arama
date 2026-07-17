@@ -8,9 +8,10 @@ with Cargo, or build a source release archive.
 
 | Requirement | Notes |
 |---|---|
-| **Internet connection** | Required once for AI models and the ffmpeg download at first launch |
-| **~500 MB disk space** | Models (~400 MB), ffmpeg binary, and thumbnail cache |
-| **Writable executable directory** | arama stores settings, models, ffmpeg, and cache data alongside its executable |
+| **Internet connection** | Required once for AI models; Linux/Windows also fetch a verified ffmpeg build |
+| **ffmpeg on macOS** | Install a user-managed `ffmpeg`/`ffprobe` pair before using video features |
+| **~800 MB disk space** | Both AI models, optional managed ffmpeg on Linux/Windows, and initial cache headroom |
+| **Writable executable directory** | arama stores settings, models, managed Linux/Windows ffmpeg, and cache data alongside its executable |
 
 The Cargo-install and source-build routes also require a stable Rust toolchain
 from [rustup.rs](https://rustup.rs/). The workspace uses Rust 2024 edition and
@@ -94,6 +95,26 @@ The source route supports the project's broader source-build platform set:
 | macOS | x86_64, aarch64 (Apple Silicon) | Supported |
 | Windows | x86_64 | Supported |
 
+## macOS video prerequisite
+
+Arama does not download or install executable ffmpeg files on macOS. Install a
+paired `ffmpeg` and `ffprobe` toolchain yourself. Homebrew is the recommended
+route on both Apple Silicon and Intel macOS:
+
+```sh
+brew install ffmpeg
+```
+
+Arama accepts a compatible pair found together on the inherited `PATH`. It
+also checks Homebrew's native default prefix (`/opt/homebrew/bin` on Apple
+Silicon, `/usr/local/bin` on Intel) because apps launched from Finder may not
+inherit the interactive shell's complete `PATH`.
+
+Arama validates that both commands start successfully and report the same
+release/build token. It never runs Homebrew, changes quarantine attributes,
+applies ad-hoc signatures, or asks for elevated privileges. Image-only use is
+available without ffmpeg.
+
 ## Data locations
 
 All runtime data lives next to the executable selected by the installation
@@ -101,14 +122,20 @@ route:
 
 | Path | Contents |
 |---|---|
-| `.arama-local/` | AI models and ffmpeg binary |
-| `.arama-local/bin/` | ffmpeg executable |
+| `.arama-local/` | AI models and, on Linux/Windows, managed ffmpeg files |
+| `.arama-local/bin/` | Verified managed ffmpeg pair on Linux/Windows; not trusted for discovery on macOS |
 | `.arama-cache/` | SQLite embedding cache and thumbnails |
 | `.arama-cache/cache-v2.sqlite` | Embedding and thumbnail metadata |
 | `.arama-cache/thumbnail/` | Generated 224×224 JPEG thumbnails |
 
 The application settings file (`settings.json`, managed by
 `app-json-settings`) is also written relative to the executable directory.
+
+Older arama versions may have left macOS ffmpeg files in
+`.arama-local/bin/`. Current versions deliberately ignore those legacy files
+because their downloaded identity was not pinned. Arama does not delete them;
+after installing a user-managed pair, you may remove the legacy files
+manually if you no longer need them.
 
 ## Updating
 

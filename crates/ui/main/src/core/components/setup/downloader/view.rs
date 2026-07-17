@@ -2,7 +2,7 @@ use arama_env::local_dir;
 use arama_i18n::t;
 use disk_space::DiskSpace;
 use iced::Length::Fill;
-use iced::widget::{Column, column, container, progress_bar, row, text};
+use iced::widget::{Column, button, column, container, progress_bar, row, text};
 use iced::{Element, Length, alignment};
 
 use crate::components::setup::downloader::config::DownloaderConfig;
@@ -14,14 +14,19 @@ impl Downloader {
         let download_requires = self
             .states
             .iter()
-            .filter(|x| x.download_state != DownloadState::NotRequired)
+            .enumerate()
+            .filter(|(_, state)| state.download_state != DownloadState::NotRequired)
             .fold(
                 column![text(t("setup.not_ready"))]
                     .max_width(400)
                     .spacing(10),
-                |col, state| {
+                |col, (id, state)| {
                     let (status, progress) = match &state.download_state {
                         DownloadState::Idle => (t("setup.status.missing"), 0.0),
+                        DownloadState::Checking => (t("setup.status.checking"), 0.0),
+                        DownloadState::WorkerDraining => {
+                            (t("setup.status.ffmpeg_worker_draining"), 0.0)
+                        }
                         DownloadState::Downloading(p) => {
                             (format!("{} {:.1}%", t("setup.status.downloading"), *p), *p)
                         }
@@ -30,6 +35,9 @@ impl Downloader {
                             (format!("{}: {}", t("setup.status.error"), e), 0.0)
                         }
                         DownloadState::NotRequired => unreachable!(),
+                        DownloadState::ExternalRequired => {
+                            (t("setup.status.external_required"), 0.0)
+                        }
                     };
 
                     let size_str = if let Some(x) = state.file_size {
@@ -39,13 +47,20 @@ impl Downloader {
                     };
                     let name = format!("{} ({} MB)", state_name(&state.config), size_str,);
 
-                    col.push(
-                        column![
-                            text(format!("{} : {}", name, status)).size(14),
-                            container(progress_bar(0.0..=100.0, progress)).height(12),
-                        ]
-                        .spacing(5),
-                    )
+                    let mut item = column![
+                        text(format!("{} : {}", name, status)).size(14),
+                        container(progress_bar(0.0..=100.0, progress)).height(12),
+                    ]
+                    .spacing(5);
+                    if state.download_state == DownloadState::ExternalRequired {
+                        item = item
+                            .push(text(t("setup.ffmpeg.external_help")).size(14))
+                            .push(
+                                button(text(t("setup.ffmpeg.recheck")))
+                                    .on_press(Message::RecheckFfmpeg(id)),
+                            );
+                    }
+                    col.push(item)
                 },
             );
 

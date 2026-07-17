@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use arama_env::cache_lookup_strategy::CacheLookupStrategy;
+use arama_sidecar::media::video::video_engine::FfmpegToolchain;
 use iced::Task;
 
 pub mod message;
@@ -21,6 +22,7 @@ pub struct MediaFocusDialog {
     cache_lookup_strategy: CacheLookupStrategy,
     similarity_threshold: f32,
     similar_media: Vec<SimilarMediaItem>,
+    ffmpeg_toolchain: Option<FfmpegToolchain>,
 }
 
 impl MediaFocusDialog {
@@ -28,6 +30,7 @@ impl MediaFocusDialog {
         path: T,
         cache_lookup_strategy: CacheLookupStrategy,
         similarity_threshold: f32,
+        ffmpeg_toolchain: Option<FfmpegToolchain>,
     ) -> Self {
         Self {
             history: vec![path.into()],
@@ -37,6 +40,7 @@ impl MediaFocusDialog {
             cache_lookup_strategy,
             similarity_threshold,
             similar_media: vec![],
+            ffmpeg_toolchain,
         }
     }
 

@@ -2,104 +2,51 @@ pub mod config;
 pub mod message;
 pub mod state;
 mod update;
-mod util;
 mod view;
 
-use arama_sidecar::media::video::video_engine::{FfmpegStatus, VideoEngine};
+use arama_sidecar::media::video::video_engine::FfmpegDistribution;
 use config::DownloaderConfig;
-use reqwest::header::CONTENT_LENGTH;
 use state::{DownloadState, DownloaderState};
 
 #[derive(Debug, Clone)]
 pub struct Downloader {
     pub is_downloading: bool,
     states: Vec<DownloaderState>,
+    distribution: FfmpegDistribution,
 }
 
 impl Downloader {
     pub fn new(configs: Vec<DownloaderConfig>) -> Self {
+        Self::new_with_distribution(configs, FfmpegDistribution::current())
+    }
+
+    pub(crate) fn new_with_distribution(
+        configs: Vec<DownloaderConfig>,
+        distribution: FfmpegDistribution,
+    ) -> Self {
         let states = configs
             .into_iter()
             .map(|config| {
-                let (download_state, file_size) = match &config {
+                let download_state = match &config {
                     DownloaderConfig::AiModel(model_container) => {
                         if model_container.clone().ready().unwrap_or(false) {
-                            (DownloadState::NotRequired, None)
+                            DownloadState::NotRequired
                         } else {
-                            let file_size = match reqwest::blocking::Client::new()
-                                .head(model_container.source_url.download_url())
-                                .send()
-                            {
-                                Ok(x) => {
-                                    if let Some(content_length) = x.headers().get(CONTENT_LENGTH) {
-                                        if let Ok(x) = content_length
-                                            .to_str()
-                                            .unwrap_or_default()
-                                            .parse::<u64>()
-                                        {
-                                            Some(x / 1024 / 1024)
-                                        } else {
-                                            None
-                                        }
-                                    } else {
-                                        None
-                                    }
-                                }
-                                Err(_) => None,
-                            };
-
-                            (DownloadState::default(), file_size)
+                            DownloadState::default()
                         }
                     }
                     DownloaderConfig::Ffmepg => {
-                        if VideoEngine::ready() != FfmpegStatus::NotExists {
-                            (DownloadState::NotRequired, None)
+                        if distribution == FfmpegDistribution::External {
+                            DownloadState::ExternalRequired
                         } else {
-                            match VideoEngine::download_artifact() {
-                                Ok(artifact) => {
-                                    let client = reqwest::blocking::Client::new();
-                                    let mut request = client.head(artifact.url);
-                                    if artifact.github_api_asset {
-                                        request = request
-                                            .header(
-                                                reqwest::header::ACCEPT,
-                                                "application/octet-stream",
-                                            )
-                                            .header(reqwest::header::USER_AGENT, "arama");
-                                    }
-
-                                    let file_size = match request.send() {
-                                        Ok(x) => {
-                                            if let Some(content_length) =
-                                                x.headers().get(CONTENT_LENGTH)
-                                            {
-                                                if let Ok(x) = content_length
-                                                    .to_str()
-                                                    .unwrap_or_default()
-                                                    .parse::<u64>()
-                                                {
-                                                    Some(x / 1024 / 1024)
-                                                } else {
-                                                    None
-                                                }
-                                            } else {
-                                                None
-                                            }
-                                        }
-                                        Err(_) => None,
-                                    };
-
-                                    (DownloadState::default(), file_size)
-                                }
-                                Err(err) => (DownloadState::Errored(err.to_string()), None),
-                            }
+                            DownloadState::Checking
                         }
                     }
                 };
 
                 DownloaderState {
                     config,
-                    file_size,
+                    file_size: None,
                     download_state,
                 }
             })
@@ -108,6 +55,92 @@ impl Downloader {
         Self {
             is_downloading: false,
             states,
+            distribution,
+        }
+    }
+
+    pub fn initial_task(&self) -> iced::Task<message::Message> {
+        iced::Task::done(message::Message::CheckResources)
+    }
+
+    pub fn requirements_ready(&self) -> bool {
+        let ready = |state: &DownloaderState| {
+            matches!(
+                state.download_state,
+                DownloadState::Finished | DownloadState::NotRequired
+            )
+        };
+
+        let named_model_ready = |name: &str| {
+            self.states.iter().any(|state| {
+                matches!(&state.config, DownloaderConfig::AiModel(model) if model.name() == name)
+                    && ready(state)
+            })
+        };
+        crate::views::setup::util::resources_ready(named_model_ready(
+            arama_ai::model::model_container::clip::model().name(),
+        ))
+    }
+
+    pub fn can_start_downloads(&self) -> bool {
+        !self
+            .states
+            .iter()
+            .any(|state| state.download_state == DownloadState::Checking)
+    }
+
+    pub fn set_external_ffmpeg_ready(&mut self, ready: bool) {
+        if let Some(state) = self
+            .states
+            .iter_mut()
+            .find(|state| matches!(state.config, DownloaderConfig::Ffmepg))
+        {
+            state.file_size = None;
+            state.download_state = if ready {
+                DownloadState::NotRequired
+            } else {
+                DownloadState::ExternalRequired
+            };
+        }
+    }
+
+    pub fn set_external_ffmpeg_checking(&mut self) {
+        if let Some(state) = self
+            .states
+            .iter_mut()
+            .find(|state| matches!(state.config, DownloaderConfig::Ffmepg))
+        {
+            state.download_state = DownloadState::Checking;
+        }
+    }
+
+    pub fn set_external_ffmpeg_draining(&mut self) {
+        if let Some(state) = self
+            .states
+            .iter_mut()
+            .find(|state| matches!(state.config, DownloaderConfig::Ffmepg))
+        {
+            state.download_state = DownloadState::WorkerDraining;
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn from_states_for_test(
+        distribution: FfmpegDistribution,
+        states: Vec<(DownloaderConfig, DownloadState)>,
+        is_downloading: bool,
+    ) -> Self {
+        Self {
+            is_downloading,
+            states: states
+                .into_iter()
+                .map(|(config, download_state)| DownloaderState {
+                    config,
+                    file_size: None,
+                    download_state,
+                })
+                .collect(),
+            distribution,
         }
     }
 }
@@ -115,6 +148,7 @@ impl Downloader {
 #[cfg(test)]
 mod tests {
     use arama_ai::model::model_container::{ModelContainer, SourceUrl};
+    use arama_sidecar::media::video::video_engine::FfmpegDistribution;
 
     use super::{
         Downloader,
@@ -124,12 +158,17 @@ mod tests {
     };
 
     fn test_model_config() -> DownloaderConfig {
-        DownloaderConfig::AiModel(ModelContainer {
-            name: "test-model".to_owned(),
-            source_url: SourceUrl::ModelSafetensors("https://example.invalid/model".to_owned()),
-            expected_sha256: "unused",
-            config_expected_sha256: None,
-        })
+        DownloaderConfig::AiModel(
+            ModelContainer::new(
+                "test-model",
+                SourceUrl::ModelSafetensors("https://example.invalid/model".to_owned()),
+                "0000000000000000000000000000000000000000000000000000000000000000",
+                None,
+                1024,
+                None,
+            )
+            .expect("valid test model"),
+        )
     }
 
     fn downloader_with_states(states: Vec<DownloadState>) -> Downloader {
@@ -143,6 +182,7 @@ mod tests {
                     download_state,
                 })
                 .collect(),
+            distribution: FfmpegDistribution::Managed,
         }
     }
 
@@ -193,5 +233,36 @@ mod tests {
             DownloadState::Errored("download failed".to_owned())
         );
         assert!(!downloader.is_downloading);
+    }
+
+    #[test]
+    fn external_direct_install_message_transitions_to_discovery() {
+        let mut downloader = Downloader::from_states_for_test(
+            FfmpegDistribution::External,
+            vec![(DownloaderConfig::Ffmepg, DownloadState::Idle)],
+            false,
+        );
+
+        let _ = downloader.update(Message::StartDownloads);
+
+        assert_eq!(downloader.states[0].download_state, DownloadState::Checking);
+    }
+
+    #[test]
+    fn setup_readiness_is_clip_only_on_managed_platforms_too() {
+        let clip = DownloaderConfig::AiModel(arama_ai::model::model_container::clip::model());
+        let wav2vec2 =
+            DownloaderConfig::AiModel(arama_ai::model::model_container::wav2vec2::model());
+        let downloader = Downloader::from_states_for_test(
+            FfmpegDistribution::Managed,
+            vec![
+                (clip, DownloadState::NotRequired),
+                (wav2vec2, DownloadState::Idle),
+                (DownloaderConfig::Ffmepg, DownloadState::Idle),
+            ],
+            false,
+        );
+
+        assert!(downloader.requirements_ready());
     }
 }

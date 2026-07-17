@@ -2,10 +2,12 @@ use arama_i18n::Locale;
 use serde::{Deserialize, Serialize};
 
 pub mod cache_lookup_strategy;
+pub mod ffmpeg_location;
 pub mod target_media_type;
 
 use crate::{DEFAULT_THUMBNAIL_SIZE, MIN_IMAGE_SIMILARITY};
 use cache_lookup_strategy::CacheLookupStrategy;
+use ffmpeg_location::FfmpegLocationPreference;
 use target_media_type::TargetMediaType;
 
 /// User-selectable application theme preset. Maps to the four Snora Design
@@ -51,6 +53,8 @@ pub struct Settings {
     pub locale: Locale,
     #[serde(default)]
     pub theme: ThemePreset,
+    #[serde(default)]
+    pub ffmpeg_location: FfmpegLocationPreference,
 }
 
 fn default_similarity_threshold() -> f32 {
@@ -68,6 +72,7 @@ impl Default for Settings {
             similarity_threshold: default_similarity_threshold(),
             locale: Locale::default(),
             theme: ThemePreset::default(),
+            ffmpeg_location: FfmpegLocationPreference::default(),
         }
     }
 }

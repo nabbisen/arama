@@ -4,7 +4,7 @@ use arama_ai::{
     config::video_similarity_config::VideoSimilarityConfig,
     pipeline::score::similarity::video::video_similarity_calculator::score_mean_vectors,
 };
-use arama_sidecar::media::video::video_engine::VideoEngine;
+use arama_sidecar::media::video::video_engine::FfmpegToolchain;
 use rayon::prelude::*;
 
 use arama_cache::{
@@ -49,7 +49,13 @@ impl MediaFocusDialog {
         });
 
         if is_video {
-            similar_videos(path, cache_config, self.cache_lookup_strategy, threshold)
+            similar_videos(
+                path,
+                cache_config,
+                self.cache_lookup_strategy,
+                threshold,
+                self.ffmpeg_toolchain.as_ref(),
+            )
         } else {
             similar_images(path, cache_config, self.cache_lookup_strategy, threshold)
         }
@@ -137,11 +143,12 @@ fn similar_videos(
     cache_config: CacheConfig,
     cache_lookup_strategy: CacheLookupStrategy,
     threshold: f32,
+    toolchain: Option<&FfmpegToolchain>,
 ) -> Vec<SimilarMediaItem> {
-    let ffmpeg_path = match VideoEngine::ffmpeg_path() {
-        Ok(path) => path,
-        Err(err) => {
-            eprintln!("failed to get ffmpeg path: {err}");
+    let ffmpeg_path = match toolchain {
+        Some(toolchain) => toolchain.ffmpeg_path().to_path_buf(),
+        None => {
+            eprintln!("failed to discover a compatible ffmpeg/ffprobe pair");
             return vec![];
         }
     };

@@ -24,12 +24,50 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "settings.ai.clip_ready" => "AI model is ready.",
         "settings.ai.clip_load" => "Load",
         "settings.ai.clip_loading" => "loading...",
+        "settings.ai.wav2vec2_missing" => {
+            "Optional audio-analysis model (Wav2Vec2) is not installed."
+        }
+        "settings.ai.wav2vec2_ready" => "Optional Wav2Vec2 model is ready.",
+        "settings.ai.wav2vec2_get" => "Download Wav2Vec2",
+        "settings.ai.wav2vec2_downloading" => "Downloading Wav2Vec2\u{2026}",
+        "settings.ai.wav2vec2_error" => "Wav2Vec2 download failed",
+        "settings.ai.wav2vec2_retry" => "Retry Wav2Vec2 download",
         "settings.ai.ffmpeg_missing" => {
             "ffmpeg for video analysis is not found.\nShould get executable. Network will be used"
         }
         "settings.ai.ffmpeg_ready" => "ffmpeg is ready.",
         "settings.ai.ffmpeg_get" => "Get",
         "settings.ai.ffmpeg_fetching" => "Downloading ffmpeg\u{2026}",
+        "settings.ai.ffmpeg_checking" => "Checking for a valid ffmpeg and ffprobe pair\u{2026}",
+        "settings.ai.ffmpeg_draining" => {
+            "A previous FFmpeg check is still stopping. The latest check will start automatically."
+        }
+        "settings.ai.ffmpeg_external" => {
+            "A matching ffmpeg and ffprobe pair is required for video analysis. Install it outside arama (recommended: brew install ffmpeg), then re-check."
+        }
+        "settings.ai.ffmpeg_recheck" => "Re-check",
+        "settings.ai.ffmpeg_select" => "Select ffmpeg folder",
+        "settings.ai.ffmpeg_clear" => "Use automatic discovery",
+        "settings.ai.ffmpeg_mode_auto" => "Discovery mode: automatic",
+        "settings.ai.ffmpeg_mode_selected" => "Selected folder",
+        "settings.ai.ffmpeg_candidate_rejected" => "Selected folder was not accepted",
+        "settings.ai.ffmpeg_candidate_checking" => "Checking selected folder",
+        "settings.ai.ffmpeg_invalid_pair" => {
+            "The folder must contain a matching ffmpeg and ffprobe executable pair."
+        }
+        "settings.ai.ffmpeg_probe_timed_out" => {
+            "The executable version check timed out. Check the selected binaries and try again."
+        }
+        "settings.ai.ffmpeg_search_limited" => {
+            "The bounded FFmpeg search could not finish. Reduce the search scope or try again."
+        }
+        "settings.ai.ffmpeg_legacy_excluded" => {
+            "This folder is arama's old managed FFmpeg location. Install or move the pair outside arama, then select that folder."
+        }
+        "settings.ai.ffmpeg_invalid_path" => "Select a valid absolute folder path.",
+        "settings.ai.ffmpeg_filesystem_unavailable" => {
+            "arama could not verify this folder's filesystem identity or access. Check permissions and try again."
+        }
 
         // Settings — File system tab
         "settings.fs.cache_delete" => "Cache delete",
@@ -94,6 +132,11 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "setup.item.ffmpeg" => "Video manipulator (ffmpeg)",
         "setup.item.size_unknown" => "(unknown)",
         "setup.status.missing" => "Missing",
+        "setup.status.checking" => "Checking\u{2026}",
+        "setup.status.ffmpeg_worker_draining" => {
+            "Waiting for the previous FFmpeg check to stop\u{2026}"
+        }
+        "setup.status.external_required" => "External installation required",
         "setup.status.downloading" => "Downloading...",
         "setup.status.ready" => "Ready",
         "setup.status.error" => "Error",
@@ -103,6 +146,10 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "setup.disk_space" => "Disk space",
         "setup.disk_gb_avail" => "GB available",
         "setup.disk_gb_total" => "GB total",
+        "setup.ffmpeg.external_help" => {
+            "Install a matching ffmpeg and ffprobe pair outside arama (recommended: brew install ffmpeg), then re-check. Image-only use can continue without it."
+        }
+        "setup.ffmpeg.recheck" => "Re-check",
 
         // Focus dialog
         "focus.strategy" => "Cache lookup strategy",

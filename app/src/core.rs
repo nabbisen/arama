@@ -6,12 +6,11 @@ use arama_env::{
     target_media_type::TargetMediaType, validate_dir,
 };
 use arama_i18n::{set_locale, t};
-use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
-use arama_ui_main::views::{
-    cache_page::CachePage,
-    gallery::Gallery,
-    setup::{self, Setup},
+use arama_sidecar::media::video::video_engine::{
+    FfmpegToolchain, discovery::FfmpegDiscoveryRuntime,
 };
+use arama_ui_layout::{aside::Aside, footer::Footer, header::Header};
+use arama_ui_main::views::{cache_page::CachePage, gallery::Gallery, setup::Setup};
 use arama_ui_widgets::{context_menu::ContextMenu, dialog};
 use iced::{Point, Task};
 use snora::{Toast, ToastIntent};
@@ -44,6 +43,8 @@ pub struct App {
     toasts: Vec<Toast<Message>>,
     toast_id_counter: u64,
     settings: Settings,
+    ffmpeg_runtime: FfmpegDiscoveryRuntime,
+    ffmpeg_authority: update::ffmpeg::state::FfmpegAuthority<FfmpegToolchain>,
     dir_node: Option<DirNode>,
     image_cell_path: Option<PathBuf>,
     processing: bool,
@@ -70,6 +71,14 @@ enum Dialog {
     SimilarPairsDialog(dialog::similar_pairs_dialog::SimilarPairsDialog),
 }
 
+fn setup_complete(finished: bool, ready: bool) -> bool {
+    finished || ready
+}
+
+fn setup_became_complete(was_complete: bool, finished: bool, ready: bool) -> bool {
+    !was_complete && setup_complete(finished, ready)
+}
+
 impl App {
     pub fn start() -> iced::Result {
         iced::application(App::new, App::update, App::view)
@@ -88,16 +97,6 @@ impl App {
             startup_notices.push(notice);
         }
 
-        let setup = match Setup::default() {
-            Ok(s) => s,
-            Err(err) => {
-                startup_notices.push(StartupNotice::error(
-                    "Setup initialization failed",
-                    format!("The setup wizard could not be initialized: {err}"),
-                ));
-                Setup::fallback()
-            }
-        };
         let settings = match ConfigManager::<Settings>::new()
             .at_current_dir()
             .load_or_default()
@@ -115,6 +114,17 @@ impl App {
                 Settings::default()
             }
         };
+        let ffmpeg_runtime = FfmpegDiscoveryRuntime::default();
+        let setup = match Setup::default() {
+            Ok(s) => s,
+            Err(err) => {
+                startup_notices.push(StartupNotice::error(
+                    "Setup initialization failed",
+                    format!("The setup wizard could not be initialized: {err}"),
+                ));
+                Setup::fallback()
+            }
+        };
 
         let root_dir_path = if settings.root_dir_path.is_empty() {
             "."
@@ -130,13 +140,14 @@ impl App {
         let locale = settings.locale;
         set_locale(locale);
         let theme = settings.theme;
+        let ffmpeg_location = settings.ffmpeg_location;
         arama_theme::set_theme(theme);
 
         let startup_root =
             startup_dir_node(&root_dir_path, &target_media_type, sub_dir_depth_limit);
         startup_notices.extend(startup_root.notices);
         let start_cache_on_startup =
-            (setup.finished || setup::util::ready()) && startup_root.dir_node.is_some();
+            setup_complete(setup.finished, setup.ready()) && startup_root.dir_node.is_some();
         let processing = start_cache_on_startup;
 
         let settings = Settings {
@@ -148,6 +159,7 @@ impl App {
             similarity_threshold,
             locale,
             theme,
+            ffmpeg_location,
         };
 
         let header = Header::new(&settings.root_dir_path);
@@ -165,6 +177,7 @@ impl App {
             settings.similarity_threshold,
             settings.locale,
             settings.theme,
+            settings.ffmpeg_location.clone(),
         );
 
         let gallery = Gallery::new();
@@ -174,11 +187,24 @@ impl App {
 
         push_startup_notices(&mut startup_toasts, &mut toast_id_counter, startup_notices);
 
-        let task = if start_cache_on_startup {
+        let setup_task = setup.initial_task().map(Message::SetupMessage);
+        let mut ffmpeg_authority =
+            update::ffmpeg::state::FfmpegAuthority::new(settings.ffmpeg_location.clone());
+        let ffmpeg_epoch = ffmpeg_authority.begin(
+            message::FfmpegRequestIntent::Startup,
+            settings.ffmpeg_location.clone(),
+        );
+        let ffmpeg_task = update::ffmpeg::request_task(
+            &ffmpeg_runtime,
+            settings.ffmpeg_location.clone(),
+            ffmpeg_epoch,
+        );
+        let cache_task = if start_cache_on_startup {
             Task::done(Message::CacheRequire(None))
         } else {
             Task::none()
         };
+        let task = Task::batch([setup_task, ffmpeg_task, cache_task]);
 
         (
             Self {
@@ -192,6 +218,8 @@ impl App {
                 toasts: startup_toasts,
                 toast_id_counter,
                 settings,
+                ffmpeg_runtime,
+                ffmpeg_authority,
                 dir_node: startup_root.dir_node,
                 image_cell_path: None,
                 processing,
@@ -215,6 +243,7 @@ impl App {
             similarity_threshold: self.settings.similarity_threshold,
             locale: self.settings.locale,
             theme: self.settings.theme,
+            ffmpeg_location: self.settings.ffmpeg_location.clone(),
         }) {
             Ok(()) => true,
             Err(err) => {
@@ -359,6 +388,10 @@ fn settings_error_message(err: &ConfigError) -> String {
         ConfigError::Io(err) => format!("I/O error: {err}"),
         ConfigError::Serialize(err) => format!("JSON serialization error: {err}"),
         ConfigError::Deserialize(err) => format!("JSON deserialization error: {err}"),
+        ConfigError::InvalidPathComponent(component) => {
+            format!("Invalid settings path component: {component}")
+        }
+        ConfigError::Platform(error) => format!("Settings platform error: {error}"),
     }
 }
 
@@ -447,6 +480,7 @@ fn walk_errors_summary(errors: &[WalkError]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use app_json_settings::SaveMode;
 
     fn missing_test_path() -> PathBuf {
         std::env::temp_dir().join(format!("arama-missing-startup-root-{}", std::process::id()))
@@ -496,5 +530,23 @@ mod tests {
 
         assert!(summary.contains("not-readable"));
         assert!(summary.contains("2 total scan errors"));
+    }
+
+    #[test]
+    fn failed_setup_requirement_does_not_trigger_cache_transition() {
+        assert!(!setup_became_complete(false, false, false));
+    }
+
+    #[test]
+    fn readiness_or_explicit_skip_triggers_cache_transition() {
+        assert!(setup_became_complete(false, false, true));
+        assert!(setup_became_complete(false, true, false));
+        assert!(!setup_became_complete(true, true, true));
+    }
+
+    #[test]
+    fn production_settings_manager_uses_atomic_replacement() {
+        let manager = ConfigManager::<Settings>::new().at_current_dir();
+        assert_eq!(manager.save_mode(), SaveMode::Atomic);
     }
 }

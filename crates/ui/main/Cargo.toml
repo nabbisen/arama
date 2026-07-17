@@ -28,6 +28,4 @@ chrono                      = { workspace = true }
 anyhow                      = { workspace = true }
 disk-space                  = { workspace = true }
 reqwest                     = { workspace = true }
-sha2                        = { workspace = true }
 swdir                       = { workspace = true }
-tokio                       = { workspace = true }

@@ -1,5 +1,8 @@
 use std::{path::PathBuf, sync::Arc};
 
+use arama_sidecar::media::video::video_engine::discovery::{
+    FfmpegDiscoveryEvent, FfmpegDiscoveryTicket,
+};
 use arama_ui_layout::{aside, footer, header};
 use arama_ui_main::views::{cache_page, gallery, setup};
 use arama_ui_widgets::{
@@ -9,6 +12,14 @@ use arama_ui_widgets::{
 use iced::Point;
 
 use super::NavPage;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum FfmpegRequestIntent {
+    Startup,
+    Recheck,
+    Selection,
+    ClearToAuto,
+}
 
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone)]
@@ -35,6 +46,15 @@ pub enum Message {
     MediaFocusDialogMessage(media_focus_dialog::message::Message),
     SimilarPairsDialogMessage(similar_pairs_dialog::message::Message),
     SettingsDialogMessage(settings_dialog::message::Message),
+    FfmpegDiscoveryEvent {
+        epoch: u64,
+        ticket: FfmpegDiscoveryTicket,
+        event: Option<FfmpegDiscoveryEvent>,
+    },
+    FfmpegDirectoryPicked {
+        picker_epoch: u64,
+        directory: Option<PathBuf>,
+    },
     ContextMenuMessage(context_menu::message::Message),
     ToggleAside,
     DialogClose,

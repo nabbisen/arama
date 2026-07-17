@@ -1,5 +1,4 @@
 use arama_i18n::t;
-use arama_ui_main::views::setup;
 use iced::{
     Element,
     Length::Fill,
@@ -10,14 +9,14 @@ use lucide_icons::iced::{
 };
 use snora::{AppLayout, Dialog as SnoraDialog, ToastPosition, render};
 
-use super::{App, Dialog, NavPage, message::Message};
+use super::{App, Dialog, NavPage, message::Message, setup_complete};
 
 impl App {
     pub fn view(&self) -> Element<'_, Message> {
         // Setup screen: bypass the main skeleton, but keep the shared
         // toast layer so startup notices remain visible before setup
         // finishes.
-        if !self.setup.finished && !setup::util::ready() {
+        if !setup_complete(self.setup.finished, self.setup.ready()) {
             let setup = self.setup.view().map(Message::SetupMessage);
             return render(self.toast_layout(setup));
         }

@@ -6,12 +6,15 @@ const SOURCE_SHA256: &str = "a63082132ba4f97a80bea76823f544493bffa8082296d62d715
 use super::{ModelContainer, SourceUrl};
 
 pub fn model() -> ModelContainer {
-    ModelContainer {
-        name: MODEL_NAME.to_owned(),
-        source_url: SourceUrl::PyTorch(SOURCE_URL.to_owned()),
-        expected_sha256: SOURCE_SHA256,
-        config_expected_sha256: None,
-    }
+    ModelContainer::new(
+        MODEL_NAME,
+        SourceUrl::PyTorch(SOURCE_URL.to_owned()),
+        SOURCE_SHA256,
+        None,
+        1024 * 1024 * 1024,
+        None,
+    )
+    .expect("built-in CLIP specification is valid")
 }
 
 pub fn revision() -> &'static str {

@@ -36,7 +36,7 @@ impl VideoExtractor {
 
     /// Get video duration in seconds with ffprobe.
     ///
-    /// Uses the ffprobe binary managed by arama, so no separate installation is required.
+    /// Uses ffprobe from arama's validated paired toolchain.
     pub fn get_duration(&self, path: &Path) -> anyhow::Result<f64> {
         let output = VideoEngine::ffprobe()
             .with_context(|| "failed to get ffprobe")?

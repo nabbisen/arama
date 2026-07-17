@@ -18,8 +18,11 @@ pub enum DownloadProgress {
 pub enum DownloadState {
     #[default]
     Idle,
+    Checking,
+    WorkerDraining,
     Downloading(f32),
     Finished,
     Errored(String),
     NotRequired,
+    ExternalRequired,
 }

@@ -15,7 +15,7 @@ use arama_env::{
     IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path,
     cache_thumbnail_dir_path,
 };
-use arama_sidecar::media::video::video_engine::VideoEngine;
+use arama_sidecar::media::video::video_engine::FfmpegToolchain;
 use iced::Task;
 use rayon::prelude::*;
 use swdir::DirNode;
@@ -37,6 +37,7 @@ pub struct SimilarPairsDialog {
     pairs: Option<Vec<SimilarPair>>,
     hovered_media_item_path_str: Option<String>,
     similarity_threshold: f32,
+    ffmpeg_toolchain: Option<FfmpegToolchain>,
 }
 
 #[derive(Clone)]
@@ -52,26 +53,33 @@ impl SimilarPairsDialog {
         dir_node: T,
         pairs: Option<Vec<SimilarPair>>,
         similarity_threshold: f32,
+        ffmpeg_toolchain: Option<FfmpegToolchain>,
     ) -> Self {
         Self {
             dir_node: dir_node.into(),
             pairs,
             hovered_media_item_path_str: None,
             similarity_threshold,
+            ffmpeg_toolchain,
         }
     }
 
     pub fn default_task(&self) -> Task<message::Message> {
         let dir_node = self.dir_node.clone();
         let threshold = self.similarity_threshold;
+        let ffmpeg_toolchain = self.ffmpeg_toolchain.clone();
         Task::perform(
-            prepare_embeddings(dir_node, threshold),
+            prepare_embeddings(dir_node, threshold, ffmpeg_toolchain),
             message::Message::EmbeddingsReady,
         )
     }
 }
 
-async fn prepare_embeddings(dir_node: DirNode, similarity_threshold: f32) -> Vec<SimilarPair> {
+async fn prepare_embeddings(
+    dir_node: DirNode,
+    similarity_threshold: f32,
+    ffmpeg_toolchain: Option<FfmpegToolchain>,
+) -> Vec<SimilarPair> {
     let paths = dir_node.flatten_paths();
 
     let db_location = match cache_storage_path() {
@@ -146,11 +154,11 @@ async fn prepare_embeddings(dir_node: DirNode, similarity_threshold: f32) -> Vec
         })
         .collect();
     if !video_paths.is_empty() {
-        match VideoEngine::ffmpeg_path() {
-            Ok(ffmpeg_path) => {
+        match ffmpeg_toolchain {
+            Some(toolchain) => {
                 let video_cache_reader = VideoCacheReader::as_session(VideoCacheConfig {
                     cache_config,
-                    ffmpeg_path: Some(ffmpeg_path),
+                    ffmpeg_path: Some(toolchain.ffmpeg_path().to_path_buf()),
                 });
                 match video_cache_reader {
                     Ok(video_cache_reader) => {
@@ -182,8 +190,8 @@ async fn prepare_embeddings(dir_node: DirNode, similarity_threshold: f32) -> Vec
                     }
                 }
             }
-            Err(err) => {
-                eprintln!("failed to get ffmpeg path: {err}");
+            None => {
+                eprintln!("failed to discover a compatible ffmpeg/ffprobe pair");
                 // Video cache reads need ffmpeg path normalization; keep any
                 // image pairs already collected instead of failing the dialog.
             }

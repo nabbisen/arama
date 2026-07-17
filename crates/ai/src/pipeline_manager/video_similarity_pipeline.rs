@@ -113,7 +113,8 @@ impl VideoSimilarityPipeline {
             Err(err) => return VideoPreloadOutcome::Skipped(err),
         };
 
-        let ffmpeg_path = VideoEngine::ffmpeg().map(|command| command.get_program().into());
+        let ffmpeg_path =
+            VideoEngine::toolchain().map(|toolchain| toolchain.ffmpeg_path().to_path_buf());
         let thumbnail_dir = cache_thumbnail_dir_path().ok();
         let writer = VideoCacheWriter::onetime(
             arama_cache::DbLocation::Custom(cache_path),

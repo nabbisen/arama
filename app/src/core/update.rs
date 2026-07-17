@@ -1,5 +1,6 @@
 mod cache;
 mod component;
+pub(super) mod ffmpeg;
 mod ui;
 
 use iced::Task;
@@ -33,6 +34,15 @@ impl App {
                 self.handle_similar_pairs_dialog_message(message)
             }
             Message::SettingsDialogMessage(message) => self.handle_settings_dialog_message(message),
+            Message::FfmpegDiscoveryEvent {
+                epoch,
+                ticket,
+                event,
+            } => self.handle_ffmpeg_discovery_event(epoch, ticket, event),
+            Message::FfmpegDirectoryPicked {
+                picker_epoch,
+                directory,
+            } => self.handle_ffmpeg_directory_picked(picker_epoch, directory),
 
             // --- ui housekeeping ---
             Message::ContextMenuMessage(message) => self.handle_context_menu_message(message),

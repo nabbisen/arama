@@ -111,6 +111,41 @@ workflows, not an exhaustive exploratory QA script.
 - **`SMOKE-SETUP-AI-SETTINGS`** — Settings -> AI: existing models show ready
   state; absent models show the expected load/get actions.
 
+### macOS ffmpeg trust boundary
+
+Run these on each available macOS architecture (Apple Silicon and Intel) when
+ffmpeg/setup behavior changes. Record unavailable architectures as `not run`
+or `environment-dependent`; never infer native results from Linux tests.
+Missing/legacy-only cases need a disposable host or VM with no valid native
+Homebrew fallback; never rename or replace an owner's normal Homebrew tools.
+For controlled rejection/timeout candidates, use marker-producing wrappers in
+a disposable directory to prove which commands ran. Record the selected-pair
+diagnostic when available, a process listing or marker proving timeout-child
+cleanup, and a network capture scoped to arama's re-check interval. If the
+environment cannot safely produce that evidence, use `environment-dependent`
+rather than an inferred pass.
+
+- **`SMOKE-MACOS-FFMPEG-PATH`** — With a compatible `ffmpeg` and `ffprobe`
+  pair first on inherited `PATH`, re-check finds that exact pair, reports Ready,
+  and probes/extracts one short fixture video.
+- **`SMOKE-MACOS-FFMPEG-PREFIX`** — Launch from Finder or an environment whose
+  `PATH` omits Homebrew. Re-check finds the native prefix pair
+  (`/opt/homebrew/bin` on Apple Silicon, `/usr/local/bin` on Intel) and a short
+  video probe succeeds.
+- **`SMOKE-MACOS-FFMPEG-MISSING`** — With no eligible pair, setup/Settings show
+  external-install guidance and re-check only; image-only continuation remains
+  available and no ffmpeg network request occurs.
+- **`SMOKE-MACOS-FFMPEG-LEGACY`** — With only legacy
+  `.arama-local/bin/ffmpeg`/`ffprobe` files, discovery stays Missing, leaves the
+  files untouched, and does not execute or download them.
+- **`SMOKE-MACOS-FFMPEG-MISMATCH`** — With missing, mixed-directory, malformed,
+  or incompatible-version commands, discovery rejects the whole pair and the
+  UI remains actionable rather than combining candidates.
+- **`SMOKE-MACOS-FFMPEG-TIMEOUT`** — With a controlled candidate that exceeds
+  the probe deadline, the child and descendants are terminated/reaped and the
+  UI does not remain blocked. Re-check reports Missing when no later valid
+  candidate exists, or Ready for the independently validated later pair.
+
 ### Gallery and indexing
 
 - **`SMOKE-GALLERY-INDEX`** — Select a fixture directory. Gallery rows populate

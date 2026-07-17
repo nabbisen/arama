@@ -18,6 +18,7 @@
 # For Contributors
 
 - [Architecture Overview](./dev/architecture.md)
+- [Security Boundaries](./dev/security.md)
 - [Workspace Structure](./dev/workspace.md)
 - [Development Workflow](./dev/workflow.md)
 - [RFC Process](./dev/rfc-process.md)

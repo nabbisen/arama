@@ -16,15 +16,28 @@ impl Setup {
                 Task::none()
             }
             Message::DownloaderMessage(message) => {
+                if matches!(
+                    message,
+                    downloader::message::Message::ExternalFfmpegRequested
+                ) {
+                    return Task::done(Message::FfmpegRecheckRequested);
+                }
+                let download_progress = matches!(
+                    message,
+                    downloader::message::Message::AiModelProgressUpdated(_, _)
+                        | downloader::message::Message::GeneralProgressUpdated(_, _)
+                );
                 let task = self
                     .downloader
                     .update(message)
                     .map(Message::DownloaderMessage);
-                if !self.downloader.is_downloading {
+                self.ready = self.downloader.requirements_ready();
+                if download_progress && self.ready {
                     self.finished = true;
                 }
                 task
             }
+            Message::FfmpegRecheckRequested => Task::none(),
         }
     }
 }

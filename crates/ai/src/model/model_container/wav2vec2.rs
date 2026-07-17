@@ -10,15 +10,15 @@ const SOURCE_SHA256: &str = "8aa76ab2243c81747a1f832954586bc566090c83a0ac167df6f
 const CONFIG_JSON_SHA256: &str = "d3ec255c063d9f95057b553b19c20135b259875834a4fe9deb218a6be25b4cf3";
 
 pub fn model() -> ModelContainer {
-    ModelContainer {
-        name: MODEL_NAME.to_owned(),
-        source_url: SourceUrl::ModelSafetensorsConfigJson((
-            SOURCE_URL.to_owned(),
-            CONFIG_JSON_URL.to_owned(),
-        )),
-        expected_sha256: SOURCE_SHA256,
-        config_expected_sha256: Some(CONFIG_JSON_SHA256),
-    }
+    ModelContainer::new(
+        MODEL_NAME,
+        SourceUrl::ModelSafetensorsConfigJson((SOURCE_URL.to_owned(), CONFIG_JSON_URL.to_owned())),
+        SOURCE_SHA256,
+        Some(CONFIG_JSON_SHA256),
+        1024 * 1024 * 1024,
+        Some(4 * 1024 * 1024),
+    )
+    .expect("built-in Wav2Vec2 specification is valid")
 }
 
 pub fn revision() -> &'static str {

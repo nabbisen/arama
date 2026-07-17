@@ -10,6 +10,7 @@ permanent; implemented and archived RFCs are never deleted.
 | ID | Title | Priority |
 |----|-------|----------|
 | 031 | [macOS ffmpeg trust boundary](./proposed/031-macos-ffmpeg-trust-boundary.md) | High |
+| 032 | [Cross-platform external FFmpeg](./proposed/032-cross-platform-external-ffmpeg.md) | High |
 
 ## Implemented
 

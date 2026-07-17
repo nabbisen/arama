@@ -38,6 +38,7 @@ arama-ui-widgets    = { version = "0", path = "crates/ui/widgets" }
 iced                = { version = "0.14", features = ["image-without-codecs", "tokio"] }
 snora               = { version = "0.25", default-features = false, features = ["widgets", "design"] }
 
+# app control
 app-json-settings   = "2"
 disk-space          = "0"
 file-handle         = { version = "0", features = ["open", "show", "trash"] }
@@ -47,9 +48,15 @@ rfd                 = "0.17"
 swdir               = "0"
 webbrowser          = "1"
 
+# archiver / compressor
+tar                 = "0.4"
+xz2                 = "0.1"
+zip                 = { version = "8", features = ["deflate"], default-features = false }
+
 # general
 anyhow              = "1"
 chrono              = { version = "0.4", default-features = false, features = ["clock"] }
+command-group       = "5"
 image               = { version = "0.25", default-features = false, features = ["bmp", "gif", "jpeg", "png", "rayon", "webp"] }
 libc                = "0.2"
 rayon               = "1"

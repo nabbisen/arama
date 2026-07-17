@@ -41,6 +41,30 @@ not a release action by itself. Record an owner-run pass with the reusable
 `not run` or `environment-dependent` where the release environment cannot
 exercise a check.
 
+### Managed FFmpeg redistribution gate
+
+The Linux/Windows managed artifacts currently selected in
+`supported_artifacts()` are static `*-gpl` variants. Their upstream build
+definition enables `--enable-gpl --enable-version3` and packages
+`COPYING.GPLv3`; treat them as GNU GPL version 3 artifacts, not as an
+LGPL/GPL-dependent choice.
+
+Before publishing any release that redistributes these artifacts or directs
+arama to download them, the release owner must review the exact pinned asset
+identity and retain non-expiring evidence for its corresponding source. At a
+minimum, confirm the distributed archive preserves its license and copyright
+notices and provide recipients clear, equivalent access to the exact source,
+dependency source, patches, and build scripts needed to reproduce that binary.
+Do not rely only on a floating `master` or `latest` URL. Record the immutable
+source/build identity and delivery location in the release review package.
+
+The authoritative references are the upstream
+[GPL build definition](https://github.com/yt-dlp/FFmpeg-Builds/blob/master/variants/defaults-gpl.sh),
+[FFmpeg legal guidance](https://ffmpeg.org/legal.html), and
+[GPLv3 terms](https://www.gnu.org/licenses/gpl-3.0.html). This project process
+is a conservative release gate, not a legal opinion; unresolved corresponding
+source or other license obligations block distribution.
+
 ### 2. Bump the version
 
 Use the dependency-free helper to update `[workspace.package].version`:
@@ -172,6 +196,8 @@ release review package.
 - [ ] All tests pass
 - [ ] Manual UI smoke considered for UI/setup/cache/first-run changes; owner
       evidence recorded when run
+- [ ] Managed FFmpeg GPLv3 artifact notices and exact corresponding-source
+      delivery evidence reviewed for Linux/Windows distribution
 - [ ] Workspace package version updated; internal dependency requirements unchanged
 - [ ] `Cargo.lock` refreshed and reviewed without unrelated dependency churn
 - [ ] Post-bump locked metadata/check gate passed

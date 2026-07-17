@@ -4,23 +4,54 @@ use arama_ui_main::{components::gallery::image_cell, views::gallery};
 use arama_ui_widgets::dialog::{media_focus_dialog, settings_dialog, similar_pairs_dialog};
 use iced::Task;
 
-use super::super::{App, Dialog, message::Message};
+use super::super::{
+    App, Dialog,
+    message::{FfmpegRequestIntent, Message},
+    setup_became_complete, setup_complete,
+};
 use arama_ui_widgets::context_menu::ContextMenuState;
+
+fn setup_message_refreshes_ai(message: &arama_ui_main::views::setup::message::Message) -> bool {
+    matches!(
+        message,
+        arama_ui_main::views::setup::message::Message::DownloaderMessage(
+            arama_ui_main::components::setup::downloader::message::Message::AiModelProgressUpdated(
+                _,
+                _
+            )
+        )
+    )
+}
 
 impl App {
     pub(super) fn handle_setup_message(
         &mut self,
         message: arama_ui_main::views::setup::message::Message,
     ) -> Task<Message> {
+        if matches!(
+            message,
+            arama_ui_main::views::setup::message::Message::FfmpegRecheckRequested
+        ) {
+            return self.request_current_ffmpeg(FfmpegRequestIntent::Recheck);
+        }
+        let refresh_ai = setup_message_refreshes_ai(&message);
+        let was_ready = setup_complete(self.setup.finished, self.setup.ready());
         let task = self
             .setup
             .update(message.clone())
             .map(Message::SetupMessage);
-        if self.setup.finished {
-            self.processing_on();
-            Task::done(Message::CacheRequire(None))
+        let refresh_task = if refresh_ai {
+            Task::done(Message::SettingsDialogMessage(
+                settings_dialog::message::Message::RefreshAiCapabilities,
+            ))
         } else {
-            task
+            Task::none()
+        };
+        if setup_became_complete(was_ready, self.setup.finished, self.setup.ready()) {
+            self.processing_on();
+            Task::batch([task, refresh_task, Task::done(Message::CacheRequire(None))])
+        } else {
+            Task::batch([task, refresh_task])
         }
     }
 
@@ -46,6 +77,7 @@ impl App {
                             path,
                             self.settings.cache_lookup_strategy,
                             self.settings.similarity_threshold,
+                            self.ffmpeg_authority.toolchain().cloned(),
                         );
                         let dialog = Dialog::MediaFocusDialog(media_focus_dialog.clone());
                         let default_task = media_focus_dialog.default_task();
@@ -103,6 +135,7 @@ impl App {
                         dir_node,
                         None,
                         self.settings.similarity_threshold,
+                        self.ffmpeg_authority.toolchain().cloned(),
                     );
                     self.dialog = Some(Dialog::SimilarPairsDialog(dialog.clone()));
                     return dialog
@@ -190,6 +223,7 @@ impl App {
                     path,
                     self.settings.cache_lookup_strategy,
                     self.settings.similarity_threshold,
+                    self.ffmpeg_authority.toolchain().cloned(),
                 );
                 let dialog = Dialog::MediaFocusDialog(media_focus_dialog.clone());
                 let default_task = media_focus_dialog.default_task();
@@ -208,6 +242,18 @@ impl App {
         &mut self,
         message: settings_dialog::message::Message,
     ) -> Task<Message> {
+        match &message {
+            settings_dialog::message::Message::FfmpegRecheckRequested => {
+                return self.request_current_ffmpeg(FfmpegRequestIntent::Recheck);
+            }
+            settings_dialog::message::Message::FfmpegSelectRequested => {
+                return self.pick_ffmpeg_directory();
+            }
+            settings_dialog::message::Message::FfmpegClearRequested => {
+                return self.clear_ffmpeg_selection();
+            }
+            _ => {}
+        }
         let task = self
             .settings_page
             .update(message.clone())
@@ -254,5 +300,27 @@ impl App {
         }
 
         task
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use arama_ui_main::{
+        components::setup::downloader::{message as downloader_message, state::DownloadProgress},
+        views::setup::message::Message as SetupMessage,
+    };
+
+    use super::setup_message_refreshes_ai;
+
+    #[test]
+    fn model_progress_refreshes_persistent_ai_settings_state() {
+        let message =
+            SetupMessage::DownloaderMessage(downloader_message::Message::AiModelProgressUpdated(
+                1,
+                DownloadProgress::Downloading(50.0),
+            ));
+
+        assert!(setup_message_refreshes_ai(&message));
+        assert!(!setup_message_refreshes_ai(&SetupMessage::Skip));
     }
 }

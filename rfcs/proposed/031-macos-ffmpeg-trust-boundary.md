@@ -23,6 +23,22 @@ Linux and Windows retain their existing verified automatic-download path. The
 artifact type is hardened so every future arama-managed download must carry a
 required SHA-256 digest.
 
+## Relationship to RFC 032
+
+The owner subsequently selected external user-managed FFmpeg on every
+platform. [RFC 032](./032-cross-platform-external-ffmpeg.md) supersedes this
+RFC's target-policy statements that retain, harden, document, test, or release
+the managed Linux/Windows download path. In particular, the affected material
+appears in the Summary, Parts A/B/D, documentation impact, compatibility,
+non-goals, acceptance criteria, required tests, and implementation sequence.
+
+Those statements remain here as history for the already reviewed RFC 031
+implementation checkpoints; they are not authority for new implementation or
+release work. RFC 031 remains Proposed and continues to own its macOS and
+paired-toolchain security evidence until RFC 032 is reviewed and the two RFCs
+are reconciled during implementation. Production code must not be changed for
+RFC 032 before that design review.
+
 ## Why now
 
 The architecture preparation review identified macOS ffmpeg as the remaining
@@ -271,6 +287,54 @@ The implementation should add a concise `docs/src/dev/security.md` threat-model
 page and link it from mdBook navigation, because executable artifact trust is a
 durable project security boundary rather than only an RFC implementation note.
 
+## Implementation checkpoint — 2026-07-15
+
+Architect review accepted the security-core and UI-layer implementation
+checkpoints. The implemented boundary now includes:
+
+- required digests and verified complete-pair publication for every managed
+  Linux/Windows ffmpeg artifact;
+- no macOS automatic artifact, download, extraction, or legacy-local execution
+  path;
+- one bounded paired-toolchain discovery authority used by AI, cache, setup,
+  Settings, and widget consumers;
+- localized macOS external-prerequisite/re-check behavior and restart-stable
+  CLIP-only readiness;
+- one authenticated, bounded, generation-published AI model authority shared
+  by setup, Settings, and the deprecated compatibility API;
+- registry-owned cancellation-safe model workers, exact joined results,
+  per-model inter-process locking, bounded lock contention, manifest-based
+  readiness, sequence-ordered recovery, and warning-only post-Ready cleanup;
+- user installation/first-run/Settings/FAQ guidance, maintainer architecture,
+  workspace/security documentation, corrected `NOTICE` scope, and stable
+  macOS owner-smoke IDs.
+
+Local Linux-host evidence includes focused/workspace Rust tests, formatting,
+clippy with warnings denied, documentation build/checks, loopback transfer
+fixtures, process timeout fixtures, injected publication failures, and
+cross-process model-lock serialization. These checks do not constitute native
+macOS validation.
+
+RFC 031 deliberately remains **Proposed** and in `rfcs/proposed/`. Under the
+four-folder lifecycle, movement to `done/` means Implemented/shipped. Native
+owner smoke is still required on each available macOS architecture and must
+record inherited-PATH, native-prefix, missing-pair, legacy-only,
+incompatible-pair, and timeout results as pass, fail, not run, or
+environment-dependent. No macOS host was available in this Linux environment,
+so all six native cases are currently **not run** rather than inferred from
+automated tests.
+
+Accepted follow-up evidence notes remain:
+
+- cleanup warnings currently use stderr rather than a durable structured sink;
+- sequence rename provides serialized process-crash ordering but does not claim
+  power-loss durability, and corrupt sequence state fails closed;
+- the setup mapping and lower lifecycle cleanup-failure tests are complementary
+  rather than one end-to-end cross-crate injected fixture;
+- readers do not take the model publication lock; future replacement of an
+  already-Ready revision should add reader coordination or an atomic active
+  generation pointer.
+
 ## Alternatives considered
 
 ### Pin the current provider files and SHA-256 values
@@ -341,7 +405,6 @@ Rejected. Attribution is necessary but does not authenticate executable bytes.
 
 ## Non-goals
 
-- No implementation in the proposal change.
 - No automatic Homebrew installation or update.
 - No shell, privilege, quarantine, Gatekeeper, or code-signing bypass.
 - No bundled or mirrored macOS ffmpeg binaries.

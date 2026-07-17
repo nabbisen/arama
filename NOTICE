@@ -1,5 +1,5 @@
 arama
-Copyright 2024 nabbisen
+Copyright 2026 nabbisen
 
 This product is licensed under the Apache License, Version 2.0.
 A copy of the license is available at:
@@ -21,10 +21,24 @@ at first launch. Each model is subject to its own license:
     License: Apache 2.0
     https://huggingface.co/facebook/wav2vec2-base-960h
 
-This application downloads a pre-built ffmpeg binary at first launch.
-The binary is provided by yt-dlp/FFmpeg-Builds and is subject to the
-FFmpeg project license (LGPL/GPL, depending on the build):
+On Linux and Windows, this application can download one of these pre-built
+ffmpeg/ffprobe artifacts provided by yt-dlp/FFmpeg-Builds:
+
+    ffmpeg-master-latest-linux64-gpl.tar.xz
+    ffmpeg-master-latest-linuxarm64-gpl.tar.xz
+    ffmpeg-master-latest-win64-gpl.zip
+
+These are GNU General Public License version 3 (GPLv3) variants. The upstream
+GPL build definition enables `--enable-gpl --enable-version3` and packages
+FFmpeg's `COPYING.GPLv3` as `LICENSE.txt` in each artifact:
     https://github.com/yt-dlp/FFmpeg-Builds
+    https://github.com/yt-dlp/FFmpeg-Builds/blob/master/variants/defaults-gpl.sh
+    https://www.gnu.org/licenses/gpl-3.0.html
+    https://ffmpeg.org/legal.html
+
+On macOS, this application does not download or redistribute ffmpeg. Users
+provide their own ffmpeg/ffprobe installation; its license and provenance are
+those of the selected installation source.
 
 For Rust crate dependencies, see Cargo.lock and the individual crates'
 license files (available via `cargo license` or on crates.io).

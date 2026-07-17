@@ -4,10 +4,10 @@
 
 **Does arama send any data to the internet?**
 
-Only during the one-time setup: the AI models are downloaded from
-HuggingFace and the ffmpeg binary from GitHub CDN. After setup, arama
-runs entirely offline. No telemetry, no analytics, no background
-connections.
+Only for explicit setup resources: AI models are downloaded from HuggingFace,
+and Linux/Windows can download a verified ffmpeg pair from GitHub. Arama never
+downloads ffmpeg on macOS. After resources are ready, media processing is
+local. There is no telemetry or analytics.
 
 **Which file formats are supported?**
 
@@ -18,10 +18,11 @@ Support for additional formats is tracked in the issue tracker.
 
 **How much disk space does arama use?**
 
-Around 800 MB for the AI models and ffmpeg binary (stored in
-`.arama-local/`). The cache database and thumbnails grow with your
-library — roughly 50–100 KB per file, depending on whether embeddings
-have been computed.
+Around 700 MB for both AI models in `.arama-local/`. Linux and Windows may
+also store an approximately 80 MB managed ffmpeg/ffprobe download there;
+macOS uses the user's external installation instead. The cache database and
+thumbnails grow with your library — roughly 50–100 KB per file, depending on
+whether embeddings have been computed.
 
 ---
 
@@ -95,10 +96,10 @@ indexing.
 
 **arama warns about local setup on startup.**
 
-arama prepares `.arama-local/` next to the executable for setup artifacts such
-as models and ffmpeg. If that directory cannot be created or used, arama opens
-with a warning so you can fix permissions or move the executable to a writable
-location.
+arama prepares `.arama-local/` next to the executable for AI models and, on
+Linux/Windows, the managed ffmpeg pair. macOS ffmpeg remains external. If that
+directory cannot be created or used, arama opens with a warning so you can fix
+permissions or move the executable to a writable location.
 
 **The app crashes on launch with a database error.**
 
@@ -106,17 +107,24 @@ The most common cause is a missing `.arama-cache/` directory. This
 directory is created automatically; if it fails, check that the
 executable has write permission in its containing folder.
 
-**"ffmpeg not found" after setup.**
+**"ffmpeg not found" or "external ffmpeg required" after setup.**
 
-The ffmpeg binary is stored in `.arama-local/bin/`. If that directory
-is missing or the binary was removed, go to **Settings → AI** and click
-**Get** to re-download it.
+On Linux and Windows, go to **Settings → AI** and use **Get** to reinstall the
+verified managed pair. On macOS, install a user-managed pair and re-check:
+
+```sh
+brew install ffmpeg
+```
+
+Arama also accepts a compatible `ffmpeg`/`ffprobe` pair found together on
+`PATH`. Legacy macOS files in `.arama-local/bin/` are ignored and are not
+deleted automatically.
 
 **Setup downloads stall or fail.**
 
 Check that the following domains are reachable from your network:
 - `huggingface.co` (AI models)
-- `github.com` / `objects.githubusercontent.com` (ffmpeg binary)
+- `github.com` / `objects.githubusercontent.com` (Linux/Windows ffmpeg only)
 
 On corporate networks, outbound HTTPS on port 443 to these domains may
 need to be explicitly allowed.
