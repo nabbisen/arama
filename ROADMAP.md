@@ -6,15 +6,46 @@ through the RFC process before code changes begin.
 
 ## Current focus
 
-### macOS ffmpeg trust boundary
+### Cross-platform external FFmpeg closeout
 
-**Status.** RFC 031 proposed.
+**Status.** RFC 032 proposed; production migration committed; closeout
+evidence and lifecycle acceptance pending.
 
-**Why now.** macOS is the remaining executable-download exception: arama uses
-moving third-party ffmpeg URLs without expected digests, then executes the
-downloaded binary against user media. RFC 031 proposes a user-managed
-`ffmpeg`/`ffprobe` pair on macOS while retaining verified automatic downloads
-on Linux and Windows.
+**Why now.** Arama has removed managed FFmpeg acquisition and now uses a
+user-managed `ffmpeg`/`ffprobe` pair on every supported platform. The remaining
+work is to make the source-build baseline truthful, review the automated
+artifact-absence and real-media smoke tooling, record or explicitly defer
+native-platform evidence, and reconcile RFCs 031/032 before any release
+decision.
+
+RFC 031 remains proposed only as retained history and security context. RFC 032
+supersedes its managed Linux/Windows policy; the lifecycle transition is
+deliberately deferred until RFC 032 completion evidence is accepted.
+
+### Near-term milestones
+
+1. **Source-build baseline decision.** Resolve the `localcache`/`rusqlite`
+   toolchain contract with the collaborator crate and declare the lowest Rust
+   version supported by the resulting locked dependency graph.
+2. **Implementation closeout review.** Review the external-FFmpeg contract
+   check, native real-media smoke, maintainer documentation, package/source
+   absence evidence, and available MSRV/cross-target gates as one bounded
+   implementation checkpoint.
+3. **Native evidence review.** Record Linux, Windows, and macOS owner-smoke
+   results independently. Mark unavailable hardware `not run` or
+   `environment-dependent`; never infer a native result from another platform.
+4. **RFC reconciliation.** After completion evidence is accepted, archive RFC
+   031 as superseded by RFC 032, move RFC 032 to implemented, and update the RFC
+   index, roadmap, and cross-references atomically.
+5. **Release checkpoint.** Treat the completed external-FFmpeg theme and the
+   accumulated unreleased RFC batch as a candidate release boundary. Audit,
+   packaging, versioning, and publication remain separate owner-authorized
+   work. Before release authorization, every required native target row must
+   record `pass`, `fail`, `not run`, or `environment-dependent`; every executed
+   row must pass, any failure blocks release, and every unavailable row requires
+   an explicit owner risk acceptance rather than an inferred pass. At least one
+   available native target must pass the real-media and artifact-absence
+   checks.
 
 ## Recently implemented, unreleased
 
@@ -142,6 +173,14 @@ The decision is recorded in
 [`rfcs/notes/clip-safetensors-source-decision.md`](./rfcs/notes/clip-safetensors-source-decision.md).
 
 ## Later candidates
+
+### ELOC remeasurement and focused splits
+
+Re-run an effective-line-count sweep before the next broad implementation
+batch. Prioritize files that exceed the 300-ELOC consideration threshold, but
+open a split RFC only after exact measurements identify a coherent scope. A
+preliminary sweep found no file above the 500-ELOC strongly recommended
+threshold.
 
 ### Remaining audit-warning owners
 

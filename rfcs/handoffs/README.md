@@ -1,8 +1,9 @@
 # RFC Implementation Handoffs
 
-Developer-facing handoff documents, one per feature RFC. Each handoff
-distils its RFC into three sections aimed at a developer picking up (or
-reviewing, or regression-checking) the work:
+Developer-facing handoff documents for selected feature RFCs. A handoff is
+added when implementation or closeout is complex enough to benefit from a
+separate execution companion. Each handoff distils its RFC into sections aimed
+at a developer picking up, reviewing, or regression-checking the work:
 
 1. **Implementation Handoff** — the goal, the key mechanics, and the
    non-obvious pitfalls to avoid.
@@ -11,17 +12,19 @@ reviewing, or regression-checking) the work:
 3. **Acceptance / QA Checklist** — automated and manual checks that
    define "done", reusable as a regression pass.
 
-These are derived from the RFCs in [`../done/`](../done/) and are kept in
-sync with them. They are **not** part of the numbered RFC lifecycle; they
-are companion documents (like the migration notes in [`../notes/`](../notes/)).
+These are derived from their corresponding RFCs and are kept in sync with
+them. They are **not** part of the numbered RFC lifecycle; they are companion
+documents (like the migration notes in [`../notes/`](../notes/)). Their status
+is inherited from the corresponding RFC, so a handoff may accompany proposed
+work when it is useful for implementation or closeout.
 
 RFC 000 (the RFC lifecycle policy) is a meta-policy, not implementable
 feature work, so it has no handoff.
 
 ## Index
 
-| RFC | Handoff | Shipped |
-|----|---------|---------|
+| RFC | Handoff | RFC status / shipped |
+|----|---------|----------------------|
 | 001 | [Migrate UI to snora](./001-migrate-ui-to-snora-handoff.md) | 0.22.0 |
 | 002 | [Replace cache engine with localcache](./002-replace-cache-engine-with-localcache-handoff.md) | 0.23.0 |
 | 003 | [Side-nav shell redesign](./003-side-nav-shell-handoff.md) | 0.24.0 |
@@ -36,3 +39,4 @@ feature work, so it has no handoff.
 | 012 | [Workspace housekeeping](./012-workspace-housekeeping-handoff.md) | 0.35.0 |
 | 013 | [ELOC splits](./013-eloc-splits-handoff.md) | 0.36.0 |
 | 014 | [Explorer aside tree toggle](./014-aside-tree-toggle-handoff.md) | 0.36.1 |
+| 032 | [Cross-platform external FFmpeg](./032-cross-platform-external-ffmpeg-handoff.md) | Proposed; closeout pending |
