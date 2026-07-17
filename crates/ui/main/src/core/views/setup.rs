@@ -7,7 +7,6 @@ use std::io::Result;
 
 use crate::components::setup::downloader::{Downloader, config::DownloaderConfig};
 use arama_ai::model::model_container::{clip, wav2vec2};
-use arama_sidecar::media::video::video_engine::FfmpegDistribution;
 
 pub struct Setup {
     pub finished: bool,
@@ -28,8 +27,7 @@ impl Setup {
 
     #[allow(clippy::should_implement_trait)]
     pub fn default() -> Result<Self> {
-        let distribution = FfmpegDistribution::External;
-        let downloader = Downloader::new_with_distribution(setup_configs(), distribution);
+        let downloader = Downloader::new(setup_configs());
         let ready = downloader.requirements_ready();
         Ok(Self {
             finished: false,
@@ -72,7 +70,6 @@ fn setup_configs() -> Vec<DownloaderConfig> {
 #[cfg(test)]
 mod tests {
     use arama_ai::model::model_container::{clip, wav2vec2};
-    use arama_sidecar::media::video::video_engine::FfmpegDistribution;
 
     use crate::components::setup::downloader::{
         Downloader,
@@ -83,7 +80,7 @@ mod tests {
 
     use super::{Setup, message::Message, setup_configs};
 
-    fn macos_setup(
+    fn external_ffmpeg_setup(
         clip_state: DownloadState,
         wav2vec2_state: DownloadState,
         is_downloading: bool,
@@ -106,8 +103,7 @@ mod tests {
                 (config, state)
             })
             .collect();
-        let downloader =
-            Downloader::from_states_for_test(FfmpegDistribution::External, states, is_downloading);
+        let downloader = Downloader::from_states_for_test(states, is_downloading);
         let ready = downloader.requirements_ready();
         Setup {
             finished: false,
@@ -117,8 +113,8 @@ mod tests {
     }
 
     #[test]
-    fn reconstructed_macos_setup_does_not_reopen_when_only_clip_is_ready() {
-        let setup = macos_setup(DownloadState::NotRequired, DownloadState::Idle, false);
+    fn reconstructed_setup_does_not_reopen_when_only_clip_is_ready() {
+        let setup = external_ffmpeg_setup(DownloadState::NotRequired, DownloadState::Idle, false);
 
         assert!(setup.ready());
         assert!(!setup.finished);
@@ -140,7 +136,8 @@ mod tests {
 
     #[test]
     fn failed_required_clip_download_remains_in_setup() {
-        let mut setup = macos_setup(DownloadState::Downloading(10.0), DownloadState::Idle, true);
+        let mut setup =
+            external_ffmpeg_setup(DownloadState::Downloading(10.0), DownloadState::Idle, true);
 
         let _ = setup.update(Message::DownloaderMessage(
             downloader_message::Message::AiModelProgressUpdated(
@@ -154,8 +151,9 @@ mod tests {
     }
 
     #[test]
-    fn successful_clip_download_completes_macos_setup_without_audio_or_video() {
-        let mut setup = macos_setup(DownloadState::Downloading(90.0), DownloadState::Idle, true);
+    fn successful_clip_download_completes_setup_without_audio_or_video() {
+        let mut setup =
+            external_ffmpeg_setup(DownloadState::Downloading(90.0), DownloadState::Idle, true);
 
         let _ = setup.update(Message::DownloaderMessage(
             downloader_message::Message::AiModelProgressUpdated(
@@ -170,7 +168,8 @@ mod tests {
 
     #[test]
     fn ready_clip_with_housekeeping_warning_still_completes_setup() {
-        let mut setup = macos_setup(DownloadState::Downloading(90.0), DownloadState::Idle, true);
+        let mut setup =
+            external_ffmpeg_setup(DownloadState::Downloading(90.0), DownloadState::Idle, true);
 
         let _ = setup.update(Message::DownloaderMessage(
             downloader_message::Message::AiModelProgressUpdated(
@@ -185,7 +184,7 @@ mod tests {
 
     #[test]
     fn optional_audio_failure_does_not_block_successful_clip_completion() {
-        let mut setup = macos_setup(
+        let mut setup = external_ffmpeg_setup(
             DownloadState::Downloading(90.0),
             DownloadState::Errored("optional download failed".to_owned()),
             true,
@@ -204,7 +203,7 @@ mod tests {
 
     #[test]
     fn explicit_skip_is_the_only_not_ready_bypass() {
-        let mut setup = macos_setup(DownloadState::Idle, DownloadState::Idle, false);
+        let mut setup = external_ffmpeg_setup(DownloadState::Idle, DownloadState::Idle, false);
 
         let _ = setup.update(Message::Skip);
 

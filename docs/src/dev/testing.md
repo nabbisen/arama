@@ -96,26 +96,26 @@ workflows, not an exhaustive exploratory QA script.
 - Clean first-run checks require a temporary profile or intentionally moved
   local state. Do not delete the owner's real cache/settings unless that is
   the explicit test.
-- Model and ffmpeg download checks require network access and available
-  upstream artifacts. In offline/headless environments, record them as not
-  run rather than blocking automated gate evidence.
+- Model download checks require network access and available upstream
+  artifacts. In offline/headless environments, record them as not run rather
+  than blocking automated gate evidence. ffmpeg re-check is local-only.
 
 ### First-run and setup
 
 - **`SMOKE-SETUP-READY`** — Existing configured state: app opens without the
   setup wizard and the footer/model status reflects ready local artifacts.
 - **`SMOKE-SETUP-FIRST-RUN`** — Clean first-run state,
-  environment-dependent: setup wizard presents required model/ffmpeg actions,
-  downloads complete, checksum failures or local path failures surface as
-  visible setup errors instead of crashes.
+  environment-dependent: setup wizard presents model download actions and the
+  external ffmpeg prerequisite, model downloads complete, and checksum or
+  local path failures surface as visible setup errors instead of crashes.
 - **`SMOKE-SETUP-AI-SETTINGS`** — Settings -> AI: existing models show ready
   state; absent models show the expected load/get actions.
 
-### macOS ffmpeg trust boundary
+### External ffmpeg trust boundary
 
-Run these on each available macOS architecture (Apple Silicon and Intel) when
-ffmpeg/setup behavior changes. Record unavailable architectures as `not run`
-or `environment-dependent`; never infer native results from Linux tests.
+Run these on each available native platform when ffmpeg/setup behavior
+changes. Record unavailable platforms as `not run` or `environment-dependent`;
+never infer native Windows or macOS results from Linux tests.
 Missing/legacy-only cases need a disposable host or VM with no valid native
 Homebrew fallback; never rename or replace an owner's normal Homebrew tools.
 For controlled rejection/timeout candidates, use marker-producing wrappers in
@@ -125,23 +125,23 @@ cleanup, and a network capture scoped to arama's re-check interval. If the
 environment cannot safely produce that evidence, use `environment-dependent`
 rather than an inferred pass.
 
-- **`SMOKE-MACOS-FFMPEG-PATH`** — With a compatible `ffmpeg` and `ffprobe`
+- **`SMOKE-FFMPEG-PATH`** — With a compatible `ffmpeg` and `ffprobe`
   pair first on inherited `PATH`, re-check finds that exact pair, reports Ready,
   and probes/extracts one short fixture video.
-- **`SMOKE-MACOS-FFMPEG-PREFIX`** — Launch from Finder or an environment whose
+- **`SMOKE-MACOS-FFMPEG-PREFIX`** — On macOS, launch from Finder or an environment whose
   `PATH` omits Homebrew. Re-check finds the native prefix pair
   (`/opt/homebrew/bin` on Apple Silicon, `/usr/local/bin` on Intel) and a short
   video probe succeeds.
-- **`SMOKE-MACOS-FFMPEG-MISSING`** — With no eligible pair, setup/Settings show
+- **`SMOKE-FFMPEG-MISSING`** — With no eligible pair, setup/Settings show
   external-install guidance and re-check only; image-only continuation remains
   available and no ffmpeg network request occurs.
-- **`SMOKE-MACOS-FFMPEG-LEGACY`** — With only legacy
+- **`SMOKE-FFMPEG-LEGACY`** — With only legacy
   `.arama-local/bin/ffmpeg`/`ffprobe` files, discovery stays Missing, leaves the
   files untouched, and does not execute or download them.
-- **`SMOKE-MACOS-FFMPEG-MISMATCH`** — With missing, mixed-directory, malformed,
+- **`SMOKE-FFMPEG-MISMATCH`** — With missing, mixed-directory, malformed,
   or incompatible-version commands, discovery rejects the whole pair and the
   UI remains actionable rather than combining candidates.
-- **`SMOKE-MACOS-FFMPEG-TIMEOUT`** — With a controlled candidate that exceeds
+- **`SMOKE-FFMPEG-TIMEOUT`** — With a controlled candidate that exceeds
   the probe deadline, the child and descendants are terminated/reaped and the
   UI does not remain blocked. Re-check reports Missing when no later valid
   candidate exists, or Ready for the independently validated later pair.

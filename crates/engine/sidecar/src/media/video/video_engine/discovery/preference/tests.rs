@@ -7,7 +7,7 @@ use super::{
     prepare_selection, publish_validated_selection, reject_selection,
 };
 use crate::media::video::video_engine::{
-    FfmpegToolchain, ToolchainSource,
+    FfmpegToolchain,
     discovery::{DiscoverySource, FfmpegDiscoveryFailure, FfmpegDiscoveryOutcome, PairIssue},
 };
 
@@ -35,7 +35,6 @@ fn toolchain(directory: &std::path::Path) -> FfmpegToolchain {
         } else {
             "ffprobe"
         }),
-        source: ToolchainSource::System,
     }
 }
 

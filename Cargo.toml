@@ -48,11 +48,6 @@ rfd                 = "0.17"
 swdir               = "0"
 webbrowser          = "1"
 
-# archiver / compressor
-tar                 = "0.4"
-xz2                 = "0.1"
-zip                 = { version = "8", features = ["deflate"], default-features = false }
-
 # general
 anyhow              = "1"
 chrono              = { version = "0.4", default-features = false, features = ["clock"] }

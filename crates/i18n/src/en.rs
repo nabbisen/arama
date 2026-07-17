@@ -32,18 +32,13 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "settings.ai.wav2vec2_downloading" => "Downloading Wav2Vec2\u{2026}",
         "settings.ai.wav2vec2_error" => "Wav2Vec2 download failed",
         "settings.ai.wav2vec2_retry" => "Retry Wav2Vec2 download",
-        "settings.ai.ffmpeg_missing" => {
-            "ffmpeg for video analysis is not found.\nShould get executable. Network will be used"
-        }
         "settings.ai.ffmpeg_ready" => "ffmpeg is ready.",
-        "settings.ai.ffmpeg_get" => "Get",
-        "settings.ai.ffmpeg_fetching" => "Downloading ffmpeg\u{2026}",
         "settings.ai.ffmpeg_checking" => "Checking for a valid ffmpeg and ffprobe pair\u{2026}",
         "settings.ai.ffmpeg_draining" => {
             "A previous FFmpeg check is still stopping. The latest check will start automatically."
         }
         "settings.ai.ffmpeg_external" => {
-            "A matching ffmpeg and ffprobe pair is required for video analysis. Install it outside arama (recommended: brew install ffmpeg), then re-check."
+            "A matching ffmpeg and ffprobe pair is required for video analysis. Install it through a trusted source for your platform, then re-check."
         }
         "settings.ai.ffmpeg_recheck" => "Re-check",
         "settings.ai.ffmpeg_select" => "Select ffmpeg folder",
@@ -147,7 +142,7 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "setup.disk_gb_avail" => "GB available",
         "setup.disk_gb_total" => "GB total",
         "setup.ffmpeg.external_help" => {
-            "Install a matching ffmpeg and ffprobe pair outside arama (recommended: brew install ffmpeg), then re-check. Image-only use can continue without it."
+            "Install a matching ffmpeg and ffprobe pair through a trusted source for your platform, then re-check. Image-only use can continue without it."
         }
         "setup.ffmpeg.recheck" => "Re-check",
 

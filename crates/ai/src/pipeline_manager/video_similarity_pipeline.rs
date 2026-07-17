@@ -16,7 +16,7 @@ use crate::{
 };
 use arama_cache::{LookupResult, UpsertVideoRequest, VideoCacheReader, VideoCacheWriter};
 use arama_env::{cache_storage_path, cache_thumbnail_dir_path};
-use arama_sidecar::media::video::video_engine::VideoEngine;
+use arama_sidecar::media::video::video_engine::FfmpegToolchain;
 
 pub struct VideoSimilarityPipeline {
     cfg: VideoSimilarityConfig,
@@ -36,7 +36,7 @@ pub enum VideoPreloadOutcome {
 }
 
 impl VideoSimilarityPipeline {
-    pub fn new(cfg: VideoSimilarityConfig) -> Self {
+    pub fn new(cfg: VideoSimilarityConfig, toolchain: FfmpegToolchain) -> Self {
         let device = ModelManager::device();
 
         let (clip_encoder, clip_setup_error) = match ClipEncoder::load(device.clone()) {
@@ -47,7 +47,7 @@ impl VideoSimilarityPipeline {
             Ok(encoder) => (Some(Box::new(encoder) as Box<dyn AudioEncoder>), None),
             Err(err) => (None, Some(err.to_string())),
         };
-        let extractor = VideoExtractor::new(cfg.clone());
+        let extractor = VideoExtractor::new(cfg.clone(), toolchain);
 
         // let cache = FeatureCache::open(db_path, &cfg)?;
         // cache.purge_stale_configs()?;
@@ -113,8 +113,7 @@ impl VideoSimilarityPipeline {
             Err(err) => return VideoPreloadOutcome::Skipped(err),
         };
 
-        let ffmpeg_path =
-            VideoEngine::toolchain().map(|toolchain| toolchain.ffmpeg_path().to_path_buf());
+        let ffmpeg_path = Some(self.extractor.ffmpeg_path().to_path_buf());
         let thumbnail_dir = cache_thumbnail_dir_path().ok();
         let writer = VideoCacheWriter::onetime(
             arama_cache::DbLocation::Custom(cache_path),

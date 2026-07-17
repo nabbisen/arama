@@ -1,6 +1,6 @@
 [package]
 name        = "arama-sidecar"
-description = "ffmpeg sidecar binary management for arama"
+description = "External ffmpeg toolchain discovery and probing for arama"
 readme      = "../../../README.md"
 version.workspace       = true
 edition.workspace       = true
@@ -17,14 +17,4 @@ arama-env                   = { workspace = true }
 anyhow                      = { workspace = true }
 command-group               = { workspace = true }
 libc                        = { workspace = true }
-reqwest                     = { workspace = true }
-sha2                        = { workspace = true }
-tokio                       = { workspace = true }
-
-# ffmpeg archive extraction
-[target.'cfg(target_os = "linux")'.dependencies]
-tar                         = { workspace = true }
-xz2                         = { workspace = true }
-
-[target.'cfg(not(target_os = "linux"))'.dependencies]
-zip                         = { workspace = true }
+tokio                       = { workspace = true, features = ["rt"] }

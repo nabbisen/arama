@@ -10,24 +10,21 @@ wizard** before opening the main interface.
 |---|---|---|
 | CLIP model (`clip-vit-base-patch32`) | HuggingFace (`openai/`) | ~350 MB |
 | wav2vec2 model (`wav2vec2-base-960h`) | HuggingFace (`facebook/`) | ~360 MB |
-| ffmpeg/ffprobe pair | GitHub (`yt-dlp/FFmpeg-Builds`) | ~80 MB (Linux/Windows only) |
 
 Model downloads may run in parallel. The total model data is roughly 700 MB
 when both CLIP and wav2vec2 are installed. Subsequent runs reuse authenticated
 complete model generations.
 
-Downloaded model files are checked against pinned HuggingFace revisions
-and SHA-256 digests before arama accepts them. Linux and Windows ffmpeg
-downloads use pinned GitHub release asset IDs and are checked against the
-SHA-256 digest published with the `yt-dlp/FFmpeg-Builds` release metadata.
-If verification fails, the setup item stops with an error and the partial
-file is discarded.
+Downloaded model files are checked against pinned HuggingFace revisions and
+SHA-256 digests before arama accepts them. If verification fails, the setup
+item stops with an error and the partial file is discarded.
 
-On macOS, arama never downloads ffmpeg. Setup shows an external prerequisite
-with the recommended command `brew install ffmpeg` and a re-check action. The
-re-check performs local discovery only; it does not run Homebrew or make an
-ffmpeg network request. A compatible pair already present together on `PATH`
-or in the native Homebrew prefix is accepted.
+On every supported platform, arama never downloads ffmpeg. Setup shows it as
+an external prerequisite with a re-check action. Install `ffmpeg` and
+`ffprobe` through a source you trust, then make the pair available together on
+`PATH` or select their directory in **Settings → AI**. On macOS, discovery
+also checks the native Homebrew prefix. Re-check performs local discovery
+only; it does not invoke a package manager or make an ffmpeg network request.
 
 ## If a download fails
 
@@ -38,16 +35,15 @@ or in the native Homebrew prefix is accepted.
 - If setup reports a checksum mismatch, retry later. This usually means the
   download was corrupted before arama accepted it, or a pinned remote artifact
   was replaced upstream.
-- On corporate networks, large model or Linux/Windows ffmpeg downloads may be
-  blocked. Contact your network administrator rather than bypassing checksum
-  validation with manually placed files.
+- On corporate networks, large model downloads may be blocked. Contact your
+  network administrator rather than bypassing checksum validation.
 
 ## Skipping video support
 
-On macOS, CLIP readiness is sufficient to continue with image-only use.
-Wav2vec2 and ffmpeg remain optional video capabilities available from
-**Settings → AI**. Their absence does not reopen setup after restart. You can
-also disable video in **Settings → General**.
+On every supported platform, CLIP readiness is sufficient to continue with
+image-only use. Wav2vec2 and ffmpeg remain optional video capabilities
+available from **Settings → AI**. Their absence does not reopen setup after
+restart. You can also disable video in **Settings → General**.
 
 ## After setup
 

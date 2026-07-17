@@ -30,15 +30,14 @@ Shows the status of the two AI models and the ffmpeg binary:
 - If a model is missing, a **Load** button appears. Click it to
   download the model from HuggingFace. This is the same download that
   runs automatically during first launch.
-- On Linux and Windows, a missing ffmpeg pair offers **Get** for the verified
-  managed download.
-- On macOS, a missing pair shows `brew install ffmpeg` guidance and **Re-check**.
-  Re-check only discovers locally installed tools; arama does not run Homebrew
-  or download an executable.
+- On every platform, a missing ffmpeg pair is an external prerequisite. Install
+  a pair through a source you trust, then use **Re-check** or select its
+  directory. Re-check only discovers locally installed tools; arama does not
+  run a package manager or download an executable.
 
-Wav2vec2 and ffmpeg are optional for image-only use on macOS. A compatible
-macOS pair must contain both `ffmpeg` and `ffprobe` from one candidate
-directory and both must report the same release/build token.
+Wav2vec2 and ffmpeg are optional for image-only use. A compatible pair must
+contain both `ffmpeg` and `ffprobe` in one candidate directory and both must
+report the same release/build token.
 
 This tab is useful after a clean install or if the `.arama-local/`
 directory was moved or deleted.

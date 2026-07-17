@@ -4,15 +4,12 @@ mod view;
 
 use arama_ai::model::model_container::wav2vec2;
 use arama_env::ffmpeg_location::FfmpegLocationPreference;
-use arama_sidecar::media::video::video_engine::{
-    FfmpegDistribution, discovery::FfmpegDiscoveryOutcome,
-};
+use arama_sidecar::media::video::video_engine::discovery::FfmpegDiscoveryOutcome;
 
 #[derive(Clone, Debug)]
 pub struct AiSettings {
     message: String,
     ffmpeg_state: FfmpegState,
-    distribution: FfmpegDistribution,
     ffmpeg_preference: FfmpegLocationPreference,
     candidate_failure: Option<(std::path::PathBuf, FfmpegState)>,
     ffmpeg_select_enabled: bool,
@@ -48,7 +45,6 @@ impl Default for AiSettings {
         Self {
             message: String::new(),
             ffmpeg_state: FfmpegState::Unknown,
-            distribution: FfmpegDistribution::External,
             ffmpeg_preference: FfmpegLocationPreference::Auto,
             candidate_failure: None,
             ffmpeg_select_enabled: true,

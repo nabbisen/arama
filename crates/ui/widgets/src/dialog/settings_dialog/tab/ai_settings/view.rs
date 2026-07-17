@@ -33,19 +33,9 @@ impl AiSettings {
                 text(t("settings.ai.ffmpeg_checking")).into()
             }
             FfmpegState::Ready => text(t("settings.ai.ffmpeg_ready")).into(),
-            FfmpegState::Missing
-                if self.distribution
-                    == arama_sidecar::media::video::video_engine::FfmpegDistribution::External =>
-            {
-                column![
-                    text(t("settings.ai.ffmpeg_external")),
-                    button(text(t("settings.ai.ffmpeg_recheck"))).on_press(Message::CheckFfmpeg),
-                ]
-                .into()
-            }
             FfmpegState::Missing => column![
-                text(t("settings.ai.ffmpeg_missing")),
-                button(text(t("settings.ai.ffmpeg_get"))).on_press(Message::GetFfmpegStart),
+                text(t("settings.ai.ffmpeg_external")),
+                button(text(t("settings.ai.ffmpeg_recheck"))).on_press(Message::CheckFfmpeg),
             ]
             .into(),
             state => column![

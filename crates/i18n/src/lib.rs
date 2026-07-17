@@ -143,4 +143,21 @@ mod tests {
         set_locale(Locale::En);
         assert_eq!(t("no.such.key"), "no.such.key");
     }
+
+    #[test]
+    fn ffmpeg_guidance_is_external_platform_neutral_and_has_no_managed_keys() {
+        for get in [en::get, ja::get] {
+            for key in ["settings.ai.ffmpeg_external", "setup.ffmpeg.external_help"] {
+                let guidance = get(key).expect("external ffmpeg guidance must exist");
+                assert!(!guidance.contains("brew install"));
+            }
+            for removed in [
+                "settings.ai.ffmpeg_missing",
+                "settings.ai.ffmpeg_get",
+                "settings.ai.ffmpeg_fetching",
+            ] {
+                assert_eq!(get(removed), None);
+            }
+        }
+    }
 }

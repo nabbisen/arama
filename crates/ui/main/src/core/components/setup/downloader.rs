@@ -4,7 +4,6 @@ pub mod state;
 mod update;
 mod view;
 
-use arama_sidecar::media::video::video_engine::FfmpegDistribution;
 use config::DownloaderConfig;
 use state::{DownloadState, DownloaderState};
 
@@ -12,18 +11,10 @@ use state::{DownloadState, DownloaderState};
 pub struct Downloader {
     pub is_downloading: bool,
     states: Vec<DownloaderState>,
-    distribution: FfmpegDistribution,
 }
 
 impl Downloader {
     pub fn new(configs: Vec<DownloaderConfig>) -> Self {
-        Self::new_with_distribution(configs, FfmpegDistribution::current())
-    }
-
-    pub(crate) fn new_with_distribution(
-        configs: Vec<DownloaderConfig>,
-        distribution: FfmpegDistribution,
-    ) -> Self {
         let states = configs
             .into_iter()
             .map(|config| {
@@ -35,13 +26,7 @@ impl Downloader {
                             DownloadState::default()
                         }
                     }
-                    DownloaderConfig::Ffmepg => {
-                        if distribution == FfmpegDistribution::External {
-                            DownloadState::ExternalRequired
-                        } else {
-                            DownloadState::Checking
-                        }
-                    }
+                    DownloaderConfig::Ffmepg => DownloadState::ExternalRequired,
                 };
 
                 DownloaderState {
@@ -55,7 +40,6 @@ impl Downloader {
         Self {
             is_downloading: false,
             states,
-            distribution,
         }
     }
 
@@ -126,7 +110,6 @@ impl Downloader {
 
     #[cfg(test)]
     pub(crate) fn from_states_for_test(
-        distribution: FfmpegDistribution,
         states: Vec<(DownloaderConfig, DownloadState)>,
         is_downloading: bool,
     ) -> Self {
@@ -140,7 +123,6 @@ impl Downloader {
                     download_state,
                 })
                 .collect(),
-            distribution,
         }
     }
 }
@@ -148,7 +130,6 @@ impl Downloader {
 #[cfg(test)]
 mod tests {
     use arama_ai::model::model_container::{ModelContainer, SourceUrl};
-    use arama_sidecar::media::video::video_engine::FfmpegDistribution;
 
     use super::{
         Downloader,
@@ -182,7 +163,6 @@ mod tests {
                     download_state,
                 })
                 .collect(),
-            distribution: FfmpegDistribution::Managed,
         }
     }
 
@@ -217,28 +197,8 @@ mod tests {
     }
 
     #[test]
-    fn general_progress_error_counts_as_done_with_not_required_states() {
-        let mut downloader = downloader_with_states(vec![
-            DownloadState::Downloading(12.0),
-            DownloadState::NotRequired,
-        ]);
-
-        let _ = downloader.update(Message::GeneralProgressUpdated(
-            0,
-            DownloadProgress::Errored("download failed".to_owned()),
-        ));
-
-        assert_eq!(
-            downloader.states[0].download_state,
-            DownloadState::Errored("download failed".to_owned())
-        );
-        assert!(!downloader.is_downloading);
-    }
-
-    #[test]
-    fn external_direct_install_message_transitions_to_discovery() {
+    fn start_request_transitions_external_ffmpeg_to_discovery() {
         let mut downloader = Downloader::from_states_for_test(
-            FfmpegDistribution::External,
             vec![(DownloaderConfig::Ffmepg, DownloadState::Idle)],
             false,
         );
@@ -249,12 +209,11 @@ mod tests {
     }
 
     #[test]
-    fn setup_readiness_is_clip_only_on_managed_platforms_too() {
+    fn setup_readiness_is_clip_only_with_external_ffmpeg() {
         let clip = DownloaderConfig::AiModel(arama_ai::model::model_container::clip::model());
         let wav2vec2 =
             DownloaderConfig::AiModel(arama_ai::model::model_container::wav2vec2::model());
         let downloader = Downloader::from_states_for_test(
-            FfmpegDistribution::Managed,
             vec![
                 (clip, DownloadState::NotRequired),
                 (wav2vec2, DownloadState::Idle),

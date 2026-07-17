@@ -1,7 +1,7 @@
 use std::{path::Path, process::Stdio};
 
 use anyhow::{Context, anyhow};
-use arama_sidecar::media::video::video_engine::VideoEngine;
+use arama_sidecar::media::video::video_engine::FfmpegToolchain;
 
 use crate::{
     config::video_similarity_config::VideoSimilarityConfig,
@@ -15,6 +15,7 @@ pub mod image_frame;
 
 pub struct VideoExtractor {
     cfg: VideoSimilarityConfig,
+    toolchain: FfmpegToolchain,
 }
 
 pub struct VideoFrameExtraction {
@@ -28,8 +29,12 @@ pub struct AudioSegmentExtraction {
 }
 
 impl VideoExtractor {
-    pub fn new(cfg: VideoSimilarityConfig) -> Self {
-        Self { cfg }
+    pub fn new(cfg: VideoSimilarityConfig, toolchain: FfmpegToolchain) -> Self {
+        Self { cfg, toolchain }
+    }
+
+    pub(crate) fn ffmpeg_path(&self) -> &Path {
+        self.toolchain.ffmpeg_path()
     }
 
     // Video duration.
@@ -38,8 +43,9 @@ impl VideoExtractor {
     ///
     /// Uses ffprobe from arama's validated paired toolchain.
     pub fn get_duration(&self, path: &Path) -> anyhow::Result<f64> {
-        let output = VideoEngine::ffprobe()
-            .with_context(|| "failed to get ffprobe")?
+        let output = self
+            .toolchain
+            .ffprobe()
             .args([
                 "-v",
                 "error",
@@ -95,8 +101,9 @@ impl VideoExtractor {
     ) -> anyhow::Result<Option<RawVideoFrame>> {
         let scale = format!("{}:{}", size, size);
 
-        let output = VideoEngine::ffmpeg()
-            .with_context(|| "failed to get ffmpeg")?
+        let output = self
+            .toolchain
+            .ffmpeg()
             .args([
                 "-ss",
                 &timestamp.to_string(),
@@ -171,8 +178,9 @@ impl VideoExtractor {
         duration: f64,
         sample_rate: u32,
     ) -> anyhow::Result<RawAudioSegment> {
-        let output = VideoEngine::ffmpeg()
-            .with_context(|| "failed to get ffmpeg")?
+        let output = self
+            .toolchain
+            .ffmpeg()
             .args([
                 "-ss",
                 &start.to_string(),

@@ -12,8 +12,8 @@ use super::{
     StdCandidateFilesystem, ValidatedSelection, normalize_auto_candidates, prepare_selection,
 };
 use crate::media::video::video_engine::{
-    FfmpegToolchain, PROBE_POLL_INTERVAL, ProbePolicy, ToolchainSource, bin_name,
-    parse_version_token, run_bounded_probe_with_cancellation,
+    FfmpegToolchain, PROBE_POLL_INTERVAL, ProbePolicy, bin_name, parse_version_token,
+    run_bounded_probe_with_cancellation,
 };
 
 pub(super) enum WorkerCompletion {
@@ -166,11 +166,7 @@ fn validate_candidate(
         return FfmpegDiscoveryOutcome::InvalidPair(PairIssue::VersionMismatch);
     }
     FfmpegDiscoveryOutcome::Ready {
-        toolchain: FfmpegToolchain {
-            ffmpeg,
-            ffprobe,
-            source: ToolchainSource::System,
-        },
+        toolchain: FfmpegToolchain { ffmpeg, ffprobe },
         source: candidate.source,
     }
 }

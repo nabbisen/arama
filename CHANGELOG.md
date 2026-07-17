@@ -14,9 +14,12 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
   globally, removing the unmaintained `hnsw_rs` dependency and its transitive
   `bincode` 1.3 audit warning.
 - **Dependency modernization.** The first-party Candle AI stack now uses
-  `candle-core`, `candle-nn`, and `candle-transformers` 0.11, and the
-  non-Linux ffmpeg sidecar ZIP extractor now targets `zip` 8.6.0. `zip` 8.6.0
-  requires Rust 1.88, below arama's Rust 1.90 workspace floor.
+  `candle-core`, `candle-nn`, and `candle-transformers` 0.11.
+- **External ffmpeg authority.** arama now discovers and validates a
+  user-provided `ffmpeg`/`ffprobe` pair on every supported platform. The
+  setup and Settings flows no longer offer an arama-managed executable
+  download, and video consumers use only the validated toolchain captured by
+  application authority.
 - **Cache capacity controls.** The Cache page now distinguishes source
   media size from actual cache footprint and adds explicit manual
   pruning toward a one-off MiB target. The prune pass removes orphan
@@ -55,10 +58,8 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
   dependency-owner issues rather than new broad audit ignores.
 - **First-run artifact verification.** Hugging Face model downloads now use
   pinned repository revisions and SHA-256 checks before downloaded weights are
-  accepted. Linux and Windows ffmpeg setup downloads use pinned GitHub release
-  asset IDs and verify the SHA-256 digest published in the
-  `yt-dlp/FFmpeg-Builds` release metadata; checksum failures surface as setup
-  errors instead of silently accepting the file.
+  accepted. Executable acquisition was removed: arama does not download or
+  redistribute ffmpeg on any supported platform.
 
 ### Fixed
 

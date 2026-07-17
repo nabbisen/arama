@@ -119,9 +119,10 @@ impl App {
         }
 
         if clip::model().ready().unwrap_or(false) {
+            let ffmpeg_toolchain = self.ffmpeg_authority.toolchain().cloned();
             let (task, handle) = Task::perform(
-                async {
-                    image_embedding(ret.into_iter().map(|x| x.0).collect())
+                async move {
+                    image_embedding(ret.into_iter().map(|x| x.0).collect(), ffmpeg_toolchain)
                         .await
                         .map_err(|err| format!("failed to get embedding: {err}"))
                 },

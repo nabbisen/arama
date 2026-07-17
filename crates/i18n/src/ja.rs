@@ -54,16 +54,9 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "settings.ai.wav2vec2_retry" => {
             "Wav2Vec2\u{306e}\u{30c0}\u{30a6}\u{30f3}\u{30ed}\u{30fc}\u{30c9}\u{3092}\u{518d}\u{8a66}\u{884c}"
         }
-        "settings.ai.ffmpeg_missing" => {
-            "\u{52d5}\u{753b}\u{89e3}\u{6790}\u{7528}ffmpeg\u{304c}\u{898b}\u{3064}\u{304b}\u{308a}\u{307e}\u{305b}\u{3093}\u{3002}\n\u{5b9f}\u{884c}\u{30d5}\u{30a1}\u{30a4}\u{30eb}\u{3092}\u{53d6}\u{5f97}\u{3057}\u{307e}\u{3059}\u{3002}\u{30cd}\u{30c3}\u{30c8}\u{30ef}\u{30fc}\u{30af}\u{304c}\u{4f7f}\u{7528}\u{3055}\u{308c}\u{307e}\u{3059}"
-        }
         "settings.ai.ffmpeg_ready" => {
             "ffmpeg\u{306f}\u{4f7f}\u{7528}\u{53ef}\u{80fd}\u{3067}\u{3059}\u{3002}"
         } // ffmpegは使用可能です。
-        "settings.ai.ffmpeg_get" => "\u{53d6}\u{5f97}", // 取得
-        "settings.ai.ffmpeg_fetching" => {
-            "ffmpeg\u{3092}\u{30c0}\u{30a6}\u{30f3}\u{30ed}\u{30fc}\u{30c9}\u{4e2d}\u{2026}"
-        } // ffmpegをダウンロード中…
         "settings.ai.ffmpeg_checking" => {
             "ffmpeg\u{3068}ffprobe\u{306e}\u{6709}\u{52b9}\u{306a}\u{30da}\u{30a2}\u{3092}\u{78ba}\u{8a8d}\u{4e2d}\u{2026}"
         }
@@ -71,7 +64,7 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
             "\u{524d}\u{306e}FFmpeg\u{78ba}\u{8a8d}\u{306e}\u{505c}\u{6b62}\u{3092}\u{5f85}\u{3063}\u{3066}\u{3044}\u{307e}\u{3059}\u{3002}\u{6700}\u{65b0}\u{306e}\u{78ba}\u{8a8d}\u{306f}\u{81ea}\u{52d5}\u{7684}\u{306b}\u{958b}\u{59cb}\u{3055}\u{308c}\u{307e}\u{3059}\u{3002}"
         }
         "settings.ai.ffmpeg_external" => {
-            "\u{52d5}\u{753b}\u{89e3}\u{6790}\u{306b}\u{306f}\u{540c}\u{3058}\u{30d0}\u{30fc}\u{30b8}\u{30e7}\u{30f3}\u{306e}ffmpeg\u{3068}ffprobe\u{304c}\u{5fc5}\u{8981}\u{3067}\u{3059}\u{3002}arama\u{306e}\u{5916}\u{3067}\u{30a4}\u{30f3}\u{30b9}\u{30c8}\u{30fc}\u{30eb}\u{3057}\u{ff08}\u{63a8}\u{5968}: brew install ffmpeg\u{ff09}\u{3001}\u{518d}\u{78ba}\u{8a8d}\u{3057}\u{3066}\u{304f}\u{3060}\u{3055}\u{3044}\u{3002}"
+            "\u{52d5}\u{753b}\u{89e3}\u{6790}\u{306b}\u{306f}\u{540c}\u{3058}\u{30d0}\u{30fc}\u{30b8}\u{30e7}\u{30f3}\u{306e}ffmpeg\u{3068}ffprobe\u{304c}\u{5fc5}\u{8981}\u{3067}\u{3059}\u{3002}\u{304a}\u{4f7f}\u{3044}\u{306e}\u{30d7}\u{30e9}\u{30c3}\u{30c8}\u{30d5}\u{30a9}\u{30fc}\u{30e0}\u{7528}\u{306e}\u{4fe1}\u{983c}\u{3067}\u{304d}\u{308b}\u{914d}\u{5e03}\u{5143}\u{304b}\u{3089}\u{30a4}\u{30f3}\u{30b9}\u{30c8}\u{30fc}\u{30eb}\u{3057}\u{3001}\u{518d}\u{78ba}\u{8a8d}\u{3057}\u{3066}\u{304f}\u{3060}\u{3055}\u{3044}\u{3002}"
         }
         "settings.ai.ffmpeg_recheck" => "\u{518d}\u{78ba}\u{8a8d}",
         "settings.ai.ffmpeg_select" => {
@@ -211,7 +204,7 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "setup.disk_gb_avail" => "GB \u{7a7a}\u{304d}",                           // GB 空き
         "setup.disk_gb_total" => "GB \u{5408}\u{8a08}",                           // GB 合計
         "setup.ffmpeg.external_help" => {
-            "arama\u{306e}\u{5916}\u{3067}\u{540c}\u{3058}\u{30d0}\u{30fc}\u{30b8}\u{30e7}\u{30f3}\u{306e}ffmpeg\u{3068}ffprobe\u{3092}\u{30a4}\u{30f3}\u{30b9}\u{30c8}\u{30fc}\u{30eb}\u{3057}\u{ff08}\u{63a8}\u{5968}: brew install ffmpeg\u{ff09}\u{3001}\u{518d}\u{78ba}\u{8a8d}\u{3057}\u{3066}\u{304f}\u{3060}\u{3055}\u{3044}\u{3002}\u{753b}\u{50cf}\u{306e}\u{307f}\u{306e}\u{5229}\u{7528}\u{306f}\u{305d}\u{306e}\u{307e}\u{307e}\u{7d9a}\u{884c}\u{3067}\u{304d}\u{307e}\u{3059}\u{3002}"
+            "\u{304a}\u{4f7f}\u{3044}\u{306e}\u{30d7}\u{30e9}\u{30c3}\u{30c8}\u{30d5}\u{30a9}\u{30fc}\u{30e0}\u{7528}\u{306e}\u{4fe1}\u{983c}\u{3067}\u{304d}\u{308b}\u{914d}\u{5e03}\u{5143}\u{304b}\u{3089}\u{3001}\u{540c}\u{3058}\u{30d0}\u{30fc}\u{30b8}\u{30e7}\u{30f3}\u{306e}ffmpeg\u{3068}ffprobe\u{3092}\u{30a4}\u{30f3}\u{30b9}\u{30c8}\u{30fc}\u{30eb}\u{3057}\u{3001}\u{518d}\u{78ba}\u{8a8d}\u{3057}\u{3066}\u{304f}\u{3060}\u{3055}\u{3044}\u{3002}\u{753b}\u{50cf}\u{306e}\u{307f}\u{306e}\u{5229}\u{7528}\u{306f}\u{305d}\u{306e}\u{307e}\u{307e}\u{7d9a}\u{884c}\u{3067}\u{304d}\u{307e}\u{3059}\u{3002}"
         }
         "setup.ffmpeg.recheck" => "\u{518d}\u{78ba}\u{8a8d}",
 

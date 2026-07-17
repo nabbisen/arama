@@ -98,11 +98,11 @@ described in [Security Boundaries](./security.md).
 ## Video toolchain
 
 Every video probe/extraction consumer uses one validated `ffmpeg`/`ffprobe`
-pair authority. Linux and Windows prefer the digest-authenticated managed
-pair, then may use a compatible system pair. macOS accepts only a compatible
-user-managed pair selected together from `PATH` or its native Homebrew prefix;
-legacy managed-local macOS binaries are excluded. Pair probes have bounded
-output and deadlines and must report the same release/build token.
+pair authority captured before its work begins. Every platform accepts only a
+compatible user-managed pair selected together from `PATH`, a configured
+directory, or the native Homebrew prefix on macOS. Legacy managed-local
+binaries are excluded. Pair probes have bounded output and deadlines and must
+report the same release/build token.
 
 ## Video sampling strategy
 

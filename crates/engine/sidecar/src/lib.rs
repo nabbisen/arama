@@ -1,14 +1,11 @@
 //! # arama-sidecar
 //!
-//! ffmpeg binary management for arama.
+//! External ffmpeg toolchain integration for arama.
 //!
-//! Handles paired `ffmpeg` / `ffprobe` discovery and command creation. Linux
-//! and Windows may install digest-authenticated archives from the GitHub CDN
-//! via `yt-dlp/FFmpeg-Builds`; macOS executable acquisition is user-managed.
-//!
-//! Managed binaries are stored in `.arama-local/bin` relative to the
-//! application executable. Discovery validates both tools as one compatible
-//! pair before returning an [`FfmpegToolchain`].
+//! Handles paired `ffmpeg` / `ffprobe` discovery, bounded validation, and
+//! command creation. Acquisition is user-managed on every supported platform.
+//! Discovery validates both tools as one compatible pair before returning an
+//! [`FfmpegToolchain`].
 
 //! [`FfmpegToolchain`]: crate::media::video::video_engine::FfmpegToolchain
 

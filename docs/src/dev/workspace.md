@@ -64,10 +64,10 @@ localcache engine details are an implementation concern.
 ### `crates/engine/sidecar`
 
 Owns the validated ffmpeg/ffprobe toolchain authority. Linux and Windows use
-pinned GitHub release asset IDs and required SHA-256 digests via
-`yt-dlp/FFmpeg-Builds`, then publish a verified complete pair. macOS never uses
-an arama-managed download: it discovers a user-installed same-directory pair
-from `PATH` or the native Homebrew prefix and requires matching version tokens.
+the same external-only policy as macOS: arama discovers a user-installed
+same-directory pair from `PATH`, a selected directory, or the native Homebrew
+prefix on macOS, and requires matching version tokens. It does not acquire or
+publish executables.
 See [Security Boundaries](./security.md).
 
 ### `crates/ui/layout`

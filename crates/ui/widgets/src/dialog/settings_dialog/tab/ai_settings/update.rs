@@ -1,32 +1,8 @@
 use arama_ai::model::model_container::{ModelDownloadStatus, clip, wav2vec2};
 use arama_i18n::t;
-use arama_sidecar::media::video::video_engine::{FfmpegDistribution, VideoEngine};
 use iced::Task;
 
 use super::{AiSettings, message::Message};
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum FfmpegSettingsCommand {
-    Discover,
-    Install,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum FfmpegSettingsRequest {
-    Recheck,
-    Install,
-}
-
-fn ffmpeg_settings_command(
-    distribution: FfmpegDistribution,
-    request: FfmpegSettingsRequest,
-) -> FfmpegSettingsCommand {
-    if distribution == FfmpegDistribution::External || request == FfmpegSettingsRequest::Recheck {
-        FfmpegSettingsCommand::Discover
-    } else {
-        FfmpegSettingsCommand::Install
-    }
-}
 
 fn wav2vec2_state(status: ModelDownloadStatus) -> super::ModelCapabilityState {
     match status {
@@ -101,82 +77,28 @@ impl AiSettings {
                 }
                 self.ffmpeg_state = super::FfmpegState::Checking;
                 self.message = t("settings.ai.ffmpeg_checking");
-                match ffmpeg_settings_command(self.distribution, FfmpegSettingsRequest::Recheck) {
-                    FfmpegSettingsCommand::Discover => Task::done(Message::FfmpegRecheckRequested),
-                    FfmpegSettingsCommand::Install => {
-                        unreachable!("re-check requests cannot select installation")
-                    }
-                }
-            }
-            Message::FfmpegChecked(ready) => {
-                self.ffmpeg_state = if ready {
-                    super::FfmpegState::Ready
-                } else {
-                    super::FfmpegState::Missing
-                };
-                self.message = if ready {
-                    t("settings.ai.ffmpeg_ready")
-                } else {
-                    String::new()
-                };
-                Task::none()
+                Task::done(Message::FfmpegRecheckRequested)
             }
             Message::FfmpegRecheckRequested
             | Message::SelectFfmpegDirectory
             | Message::ClearFfmpegSelection => Task::none(),
-            Message::GetFfmpegStart => {
-                match ffmpeg_settings_command(self.distribution, FfmpegSettingsRequest::Install) {
-                    FfmpegSettingsCommand::Discover => {
-                        return self.update(Message::CheckFfmpeg);
-                    }
-                    FfmpegSettingsCommand::Install => {}
-                }
-                self.message = t("settings.ai.ffmpeg_fetching");
-                Task::perform(
-                    async {
-                        VideoEngine::download_and_install()
-                            .await
-                            .err()
-                            .map(|e| e.to_string())
-                    },
-                    Message::FfmpegGot,
-                )
-            }
-            Message::FfmpegGot(result) => {
-                match result {
-                    None => {
-                        self.ffmpeg_state = super::FfmpegState::Ready;
-                        self.message = t("settings.ai.ffmpeg_ready");
-                    }
-                    Some(err) => {
-                        self.ffmpeg_state = super::FfmpegState::Missing;
-                        self.message = err;
-                    }
-                }
-                Task::none()
-            }
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use arama_ai::model::model_container::ModelDownloadStatus;
-    use arama_env::ffmpeg_location::FfmpegLocationPreference;
-    use arama_sidecar::media::video::video_engine::FfmpegDistribution;
-
-    use super::{
-        FfmpegSettingsCommand, FfmpegSettingsRequest, ffmpeg_settings_command, wav2vec2_state,
-    };
+    use super::wav2vec2_state;
     use crate::dialog::settings_dialog::tab::ai_settings::{
         AiSettings, FfmpegState, ModelCapabilityState, message::Message,
     };
+    use arama_ai::model::model_container::ModelDownloadStatus;
+    use arama_env::ffmpeg_location::FfmpegLocationPreference;
 
     fn external_settings(state: FfmpegState) -> AiSettings {
         AiSettings {
             message: String::new(),
             ffmpeg_state: state,
-            distribution: FfmpegDistribution::External,
             ffmpeg_preference: FfmpegLocationPreference::Auto,
             candidate_failure: None,
             ffmpeg_select_enabled: true,
@@ -186,23 +108,10 @@ mod tests {
     }
 
     #[test]
-    fn external_install_message_selects_discovery_not_install() {
-        assert_eq!(
-            ffmpeg_settings_command(FfmpegDistribution::External, FfmpegSettingsRequest::Install,),
-            FfmpegSettingsCommand::Discover
-        );
-
+    fn external_ffmpeg_action_requests_app_discovery() {
         let mut settings = external_settings(FfmpegState::Missing);
-        let _ = settings.update(Message::GetFfmpegStart);
+        let _ = settings.update(Message::CheckFfmpeg);
         assert_eq!(settings.ffmpeg_state, FfmpegState::Checking);
-    }
-
-    #[test]
-    fn external_recheck_selects_discovery_only() {
-        assert_eq!(
-            ffmpeg_settings_command(FfmpegDistribution::External, FfmpegSettingsRequest::Recheck,),
-            FfmpegSettingsCommand::Discover
-        );
     }
 
     #[test]

@@ -5,6 +5,7 @@ use arama_cache::{
     CacheConfig, DbLocation, ImageCacheConfig, ImageCacheWriter, LookupResult, UpsertImageRequest,
 };
 use arama_env::{VIDEO_EXTENSION_ALLOWLIST, cache_storage_path, cache_thumbnail_dir_path};
+use arama_sidecar::media::video::video_engine::FfmpegToolchain;
 
 use crate::{
     config::video_similarity_config::VideoSimilarityConfig,
@@ -31,7 +32,46 @@ pub struct EmbeddingFileIssue {
     pub message: String,
 }
 
-pub async fn image_embedding(paths: Vec<PathBuf>) -> anyhow::Result<EmbeddingRunReport> {
+const NO_USABLE_MODALITY: &str = "failed to initialize any requested embedding modality";
+const VIDEO_PIPELINE_UNAVAILABLE: &str = "video pipeline unavailable";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum EmbeddingPathAction {
+    ProcessImage,
+    ProcessVideo,
+    SkipVideo,
+}
+
+#[derive(Clone, Copy)]
+struct EmbeddingAvailability {
+    image_calculator: bool,
+    video_pipeline: bool,
+    video_modality: bool,
+}
+
+impl EmbeddingAvailability {
+    fn initialization_error(self, paths: &[PathBuf]) -> Option<&'static str> {
+        let has_image = paths.iter().any(|path| !is_video_path(path));
+        let has_video = paths.iter().any(|path| is_video_path(path));
+        (!(has_image && self.image_calculator || has_video && self.video_modality))
+            .then_some(NO_USABLE_MODALITY)
+    }
+
+    fn action_for(self, path: &Path) -> EmbeddingPathAction {
+        if !is_video_path(path) {
+            EmbeddingPathAction::ProcessImage
+        } else if self.video_pipeline {
+            EmbeddingPathAction::ProcessVideo
+        } else {
+            EmbeddingPathAction::SkipVideo
+        }
+    }
+}
+
+pub async fn image_embedding(
+    paths: Vec<PathBuf>,
+    ffmpeg_toolchain: Option<FfmpegToolchain>,
+) -> anyhow::Result<EmbeddingRunReport> {
     let has_video = paths.iter().any(|path| is_video_path(path));
     let has_image = paths.iter().any(|path| !is_video_path(path));
 
@@ -53,18 +93,17 @@ pub async fn image_embedding(paths: Vec<PathBuf>) -> anyhow::Result<EmbeddingRun
     };
 
     let video_similarity_config = VideoSimilarityConfig::default();
-    let pipeline = has_video.then(|| VideoSimilarityPipeline::new(video_similarity_config));
-    if !has_usable_requested_modality(
-        has_image,
-        calculator.is_some(),
-        has_video,
-        pipeline
+    let pipeline = ffmpeg_toolchain
+        .map(|toolchain| VideoSimilarityPipeline::new(video_similarity_config, toolchain));
+    let availability = EmbeddingAvailability {
+        image_calculator: calculator.is_some(),
+        video_pipeline: pipeline.is_some(),
+        video_modality: pipeline
             .as_ref()
             .is_some_and(VideoSimilarityPipeline::has_any_modality),
-    ) {
-        return Err(anyhow!(
-            "failed to initialize any requested embedding modality"
-        ));
+    };
+    if let Some(message) = availability.initialization_error(&paths) {
+        return Err(anyhow!(message));
     }
 
     let mut report = EmbeddingRunReport::default();
@@ -75,17 +114,27 @@ pub async fn image_embedding(paths: Vec<PathBuf>) -> anyhow::Result<EmbeddingRun
         // to a different directory before indexing finishes.
         tokio::task::yield_now().await;
 
-        if is_video_path(&path) {
-            let Some(pipeline) = &pipeline else {
+        match availability.action_for(&path) {
+            EmbeddingPathAction::SkipVideo => {
                 report.skipped.push(EmbeddingFileIssue {
                     path,
-                    message: "video pipeline unavailable".to_owned(),
+                    message: VIDEO_PIPELINE_UNAVAILABLE.to_owned(),
                 });
                 continue;
-            };
-            let outcome = pipeline.preload(&path);
-            record_video_outcome(&mut report, path, outcome);
-            continue;
+            }
+            EmbeddingPathAction::ProcessVideo => {
+                let Some(pipeline) = &pipeline else {
+                    report.skipped.push(EmbeddingFileIssue {
+                        path,
+                        message: VIDEO_PIPELINE_UNAVAILABLE.to_owned(),
+                    });
+                    continue;
+                };
+                let outcome = pipeline.preload(&path);
+                record_video_outcome(&mut report, path, outcome);
+                continue;
+            }
+            EmbeddingPathAction::ProcessImage => {}
         }
 
         let Some(calculator) = &calculator else {
@@ -145,15 +194,6 @@ fn is_video_path(path: &Path) -> bool {
     path.extension().is_some_and(|x| {
         VIDEO_EXTENSION_ALLOWLIST.contains(&x.to_string_lossy().to_string().as_str())
     })
-}
-
-fn has_usable_requested_modality(
-    has_image: bool,
-    has_image_calculator: bool,
-    has_video: bool,
-    has_video_modality: bool,
-) -> bool {
-    (has_image && has_image_calculator) || (has_video && has_video_modality)
 }
 
 fn record_video_outcome(
@@ -217,7 +257,41 @@ mod tests {
     }
 
     #[test]
-    fn no_requested_modality_is_usable_for_mixed_selection_is_fatal() {
-        assert!(!has_usable_requested_modality(true, false, true, false));
+    fn mixed_selection_without_toolchain_processes_images_and_skips_video() {
+        let paths = vec![PathBuf::from("image.jpg"), PathBuf::from("video.mp4")];
+        let availability = EmbeddingAvailability {
+            image_calculator: true,
+            video_pipeline: false,
+            video_modality: false,
+        };
+
+        assert_eq!(availability.initialization_error(&paths), None);
+        assert_eq!(
+            availability.action_for(&paths[0]),
+            EmbeddingPathAction::ProcessImage
+        );
+        assert_eq!(
+            availability.action_for(&paths[1]),
+            EmbeddingPathAction::SkipVideo
+        );
+    }
+
+    #[test]
+    fn video_only_without_toolchain_fails_with_visible_initialization_error() {
+        let paths = vec![PathBuf::from("video.mp4")];
+        let availability = EmbeddingAvailability {
+            image_calculator: false,
+            video_pipeline: false,
+            video_modality: false,
+        };
+
+        assert_eq!(
+            availability.initialization_error(&paths),
+            Some(NO_USABLE_MODALITY)
+        );
+        assert_eq!(
+            availability.action_for(&paths[0]),
+            EmbeddingPathAction::SkipVideo
+        );
     }
 }

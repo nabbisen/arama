@@ -25,7 +25,6 @@ impl Setup {
                 let download_progress = matches!(
                     message,
                     downloader::message::Message::AiModelProgressUpdated(_, _)
-                        | downloader::message::Message::GeneralProgressUpdated(_, _)
                 );
                 let task = self
                     .downloader

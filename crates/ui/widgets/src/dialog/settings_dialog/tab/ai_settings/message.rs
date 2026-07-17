@@ -9,7 +9,4 @@ pub enum Message {
     FfmpegRecheckRequested,
     SelectFfmpegDirectory,
     ClearFfmpegSelection,
-    FfmpegChecked(bool),
-    GetFfmpegStart,
-    FfmpegGot(Option<String>),
 }
