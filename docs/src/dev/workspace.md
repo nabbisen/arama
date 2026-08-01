@@ -11,7 +11,7 @@ arama-X.Y.Z/
 │   ├── i18n/                 # Locale tables and t() translation function
 │   ├── theme/                # Snora Design token-driven button styles
 │   ├── engine/
-│   │   └── sidecar/          # ffmpeg binary management
+│   │   └── sidecar/          # external ffmpeg discovery and probing
 │   └── ui/
 │       ├── layout/           # Shell layout (aside, header, footer)
 │       ├── main/             # Gallery, setup wizard, core views

@@ -41,12 +41,12 @@ the final two columns.
 | `SMOKE-SETUP-READY` | `<result>` | | |
 | `SMOKE-SETUP-FIRST-RUN` | `<result>` | | |
 | `SMOKE-SETUP-AI-SETTINGS` | `<result>` | | |
-| `SMOKE-MACOS-FFMPEG-PATH` | `<result>` | | |
+| `SMOKE-FFMPEG-PATH` | `<result>` | | |
 | `SMOKE-MACOS-FFMPEG-PREFIX` | `<result>` | | |
-| `SMOKE-MACOS-FFMPEG-MISSING` | `<result>` | | |
-| `SMOKE-MACOS-FFMPEG-LEGACY` | `<result>` | | |
-| `SMOKE-MACOS-FFMPEG-MISMATCH` | `<result>` | | |
-| `SMOKE-MACOS-FFMPEG-TIMEOUT` | `<result>` | | |
+| `SMOKE-FFMPEG-MISSING` | `<result>` | | |
+| `SMOKE-FFMPEG-LEGACY` | `<result>` | | |
+| `SMOKE-FFMPEG-MISMATCH` | `<result>` | | |
+| `SMOKE-FFMPEG-TIMEOUT` | `<result>` | | |
 | `SMOKE-GALLERY-INDEX` | `<result>` | | |
 | `SMOKE-GALLERY-SWITCH` | `<result>` | | |
 | `SMOKE-GALLERY-FOCUS` | `<result>` | | |

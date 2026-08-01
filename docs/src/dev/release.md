@@ -50,6 +50,17 @@ missing ffmpeg is reported as an external prerequisite and image-only use
 remains available. Users retain responsibility for the license and provenance
 of the external pair they select.
 
+Run the reproducible source/package check before versioning. When evidence
+archives or a built executable are available, pass each one explicitly:
+
+```sh
+bash scripts/check-external-ffmpeg-contract.sh
+bash scripts/check-external-ffmpeg-contract.sh \
+  --archive ../arama-X.Y.Z.tar.gz \
+  --archive arama@Linux-x64-gnu-cpu-X.Y.Z.tar.gz \
+  --binary target/release/arama
+```
+
 ### 2. Bump the version
 
 Use the dependency-free helper to update `[workspace.package].version`:

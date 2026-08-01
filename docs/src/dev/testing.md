@@ -128,6 +128,16 @@ rather than an inferred pass.
 - **`SMOKE-FFMPEG-PATH`** — With a compatible `ffmpeg` and `ffprobe`
   pair first on inherited `PATH`, re-check finds that exact pair, reports Ready,
   and probes/extracts one short fixture video.
+
+  The ignored native smoke test exercises selected-directory validation and
+  uses only the returned toolchain to generate, probe, and extract a real
+  fixture. Run it with a trusted installed pair, for example on Linux:
+
+  ```sh
+  ARAMA_FFMPEG_SMOKE_DIR=/usr/bin \
+    cargo test -p arama-sidecar --test external_ffmpeg_smoke \
+    -- --ignored --exact selected_external_pair_generates_probes_and_extracts_real_video
+  ```
 - **`SMOKE-MACOS-FFMPEG-PREFIX`** — On macOS, launch from Finder or an environment whose
   `PATH` omits Homebrew. Re-check finds the native prefix pair
   (`/opt/homebrew/bin` on Apple Silicon, `/usr/local/bin` on Intel) and a short
