@@ -1,0 +1,50 @@
+name: MSRV
+
+# Verifies the contributor-setup Rust baseline declared in
+# [workspace.package].rust-version (root Cargo.toml), so the declaration is
+# kept true by automation rather than by memory. See RFC 033 Part F.
+#
+# Intentionally narrow: this pins the exact declared toolchain, never a
+# floating channel, because a channel that drifts upward would silently
+# stop testing the claim. Format, Clippy, cargo audit, feature-matrix, and
+# cross-target verification are out of scope for this job.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  RUST_TOOLCHAIN: '1.91'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Cache cargo dependencies and build
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: msrv-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            msrv-${{ runner.os }}-cargo-
+
+      - name: Install Rust ${{ env.RUST_TOOLCHAIN }}
+        run: bash .github/workflows/scripts/install-rust.sh ${{ env.RUST_TOOLCHAIN }}
+
+      - name: cargo check --workspace --locked
+        run: cargo check --workspace --locked
+
+      - name: cargo test --workspace --locked
+        run: cargo test --workspace --locked

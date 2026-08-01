@@ -15,7 +15,7 @@ with Cargo, or build a source release archive.
 
 The Cargo-install and source-build routes also require a stable Rust toolchain
 from [rustup.rs](https://rustup.rs/). The workspace uses Rust 2024 edition and
-MSRV 1.90.
+declares Rust 1.91 as its verified source-build baseline.
 
 ## Route 1: Platform executable asset
 

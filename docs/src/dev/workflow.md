@@ -2,7 +2,11 @@
 
 ## Prerequisites
 
-- Rust toolchain via [rustup.rs](https://rustup.rs/) (stable channel)
+- Rust toolchain via [rustup.rs](https://rustup.rs/) (stable channel), Rust
+  1.91 or newer — the workspace's verified contributor-setup baseline
+  (`[workspace.package].rust-version` in the root `Cargo.toml` is the single
+  normative declaration; this line and `docs/src/users/installation.md`
+  mirror it)
 - `cargo` in `PATH`
 
 ## Daily loop
@@ -75,8 +79,25 @@ cargo fmt --all
 cargo clippy --workspace -- -D warnings
 ```
 
-There is no CI enforcement at this stage; run both before opening a
-pull request.
+There is no CI enforcement for formatting or linting at this stage; run both
+before opening a pull request. CI does verify the Rust baseline declared
+above — see [MSRV verification](#msrv-verification) below.
+
+## MSRV verification
+
+The `MSRV` GitHub Actions workflow (`.github/workflows/msrv.yaml`) installs
+the exact declared `[workspace.package].rust-version` toolchain — not
+`stable` or another floating channel — and runs `cargo check --workspace
+--locked` and `cargo test --workspace --locked` on it. It triggers on every
+push and pull request against `main`.
+
+This is the only CI job in the repository. It exists to keep the declared
+baseline (above) true by construction rather than by memory: a
+`rust-version` with no automated check is a claim that can silently drift
+out of date as dependencies are bumped. It is intentionally narrow —
+formatting, Clippy, `cargo audit`, feature-matrix, and cross-target
+verification remain manual, run locally before opening a pull request, as
+described above and in the [release process](./release.md).
 
 ## Workspace version bumps
 
