@@ -64,7 +64,10 @@ and will be sent back:
   `[workspace.package] rust-version`
 - `Cargo.lock` — refreshed, reviewed
 - `crates/cache/src/core/engine.rs`, `image.rs`, `video.rs` — error surface only
-- `crates/cache/tests/**` — one added focused test
+- `crates/cache/src/core/image/tests.rs` — new crate-internal test module
+  (and the `video` sibling if mirrored). **Amended 2026-08-01** after review
+  059: the original `crates/cache/tests/**` scoping was wrong, because the
+  poisoning path is not reachable from the public-API integration boundary.
 - `.github/workflows/` — one new MSRV job
 - `docs/src/users/installation.md`, `docs/src/dev/workflow.md` — baseline mirrors
 - `CHANGELOG.md` `[Unreleased]`, `ROADMAP.md` milestone 1
@@ -72,6 +75,8 @@ and will be sent back:
 ### Explicit non-change scope
 
 - cache schema, payload format, codec, or namespace (RFC 023 authority);
+- `app/` and `crates/ui/*` error routing, including the similarity dialogs —
+  deferred by RFC 033 Part B, confirmed at review 059;
 - the `arama-cache` public facade API and existing test expectations;
 - RFC 032's external-FFmpeg policy, and the 031/032 lifecycle move;
 - `event-listener` / `cargo audit` ledger work (RFC 027 authority);
@@ -101,9 +106,17 @@ and will be sent back:
   newer transitive release was strictly safer.
 - **Review the lockfile diff before accepting it.** Stop if dependencies
   unrelated to the SQLite chain move.
-- **If `localcache`'s API does not let a test induce pool poisoning**, report
-  that as a design request. Do not delete the test, mark it `#[ignore]` without
-  a recorded reason, or assert something weaker that passes trivially.
+- **The poisoning test must use `read_conns = 1`.** `ReadPool::checkout` skips a
+  poisoned slot during its `try_lock` scan exactly as it skips a busy one, and
+  reports `Poisoned` only from the blocking fallback when no slot remains. A
+  multi-slot pool therefore will not surface the error deterministically.
+  Record that reason in the test so nobody later "simplifies" the size away.
+- **Verify the panic actually poisons; do not assume it.** Run the test and
+  report its observed output.
+- **Do not weaken the assertion to whatever passes.** The property is
+  `Err(..)` and specifically *not* `Ok(LookupResult::Miss)`. Match the variant
+  with `matches!` — `LocalFileCacheError` is `#[non_exhaustive]`, so it can be
+  matched with a `_` arm but not constructed from outside `localcache`.
 
 ## 3. Task breakdown / PR plan
 
@@ -146,11 +159,13 @@ Task 3 if that keeps the review coherent.
 
 - [ ] A poisoned read pool surfaces as an error, never as `Miss` and never
       silently.
-- [ ] The surfaced error follows RFC 017 tiers: blocking view error where stale
-      data is rendered, recoverable action error for discrete user actions, and
-      not a developer-only diagnostic.
-- [ ] A focused test covers this, or a design request explains why it cannot be
-      induced through the public API.
+- [ ] No `.ok()`, `.unwrap_or(Miss)`, or equivalent swallows a pool error on any
+      read path in `image.rs` or `video.rs`.
+- [ ] A focused crate-internal test at `read_conns = 1` proves it, and was
+      actually executed.
+- [ ] Similarity-dialog tier routing is **not** attempted here — deferred per
+      RFC 033 Part B to a follow-up RFC. The Cache page already satisfies the
+      blocking-view case with no change.
 
 ### Baseline
 

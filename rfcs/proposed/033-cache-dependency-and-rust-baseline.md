@@ -9,7 +9,8 @@ upstream release, and declare one measured source-build Rust baseline as a
 single authority.
 **Touches.** `Cargo.toml`, `Cargo.lock`, `crates/cache/src/core/engine.rs`,
 `crates/cache/src/core/image.rs`, `crates/cache/src/core/video.rs`,
-`crates/cache/tests/**`, `.github/workflows/` (one new MSRV job),
+`crates/cache/src/core/image/tests.rs` (new; and the `video` sibling if
+mirrored), `crates/cache/tests/**`, `.github/workflows/` (one new MSRV job),
 `docs/src/users/installation.md`, `docs/src/dev/workflow.md`, `CHANGELOG.md`,
 `ROADMAP.md`, `rfcs/README.md`, `rfcs/notes/snora-recipe-theme-custom.md`.
 
@@ -99,8 +100,17 @@ state a panicking thread abandoned mid-operation. In arama that state becomes
 cache hits feeding similarity scores, so the application would present a
 similarity judgement derived from abandoned data with no signal at any layer.
 For a tool whose entire product is that judgement, a silent wrong answer is a
-worse failure than a visible error. `0.21.0` returns
-`Poisoned { resource: "ReadPool" }` instead.
+worse failure than a visible error.
+
+`0.21.0` never returns abandoned state. Its `checkout` treats a poisoned slot
+exactly like a busy one during the `try_lock` scan — it moves on — and reports
+`Poisoned { resource: "ReadPool" }` only from the blocking fallback, when no
+other slot remains to try. The integrity property is therefore absolute (an
+abandoned guard is never handed out), while the *visible error* is rare:
+arama's production pool is `read_conns = num_cpus()`
+(`crates/cache/src/core/engine.rs:152`), so one panicking worker normally
+costs a slot from rotation rather than surfacing anything. This RFC's
+justification rests on the integrity property, not on error frequency.
 
 Arama must not add a direct `rusqlite`, `libsqlite3-sys`, or SQLite dependency,
 and must not pin the transitive graph locally. Dependency ownership stays with
@@ -108,18 +118,41 @@ and must not pin the transitive graph locally. Dependency ownership stays with
 
 ### Part B — Surface pool poisoning truthfully
 
-`0.21.0` makes a previously silent condition into a returned error, so the new
-path must reach the user under the RFC 017 tiers rather than being swallowed:
+`0.21.0` makes a previously silent condition into a returned error. This RFC's
+scope is the **cache layer's propagation of it**, not a UI routing sweep.
 
-- a poisoned pool during a cache read is a **blocking view error** where stale
-  or unavailable data is being rendered (Cache page, gallery population);
-- it is a **recoverable action error** where the user triggered a discrete
-  action (similar-pairs, media focus);
-- it must not be downgraded to a developer diagnostic, because the fallback
-  would not be truthful — the data is unknown, not merely unavailable.
+**In scope — `arama-cache` must propagate, never collapse:**
 
-The implementation must not convert `Poisoned` into a cache miss. A miss is a
-statement that nothing is cached; that is a different and false claim.
+- `Poisoned` must never be converted into a cache miss. A miss is a statement
+  that nothing is cached; that is a different and false claim.
+- No `.ok()`, `.unwrap_or(Miss)`, or equivalent may swallow a pool error on any
+  read path in `image.rs` or `video.rs`.
+- The property is covered by a focused test, not only by inspection.
+
+**Already satisfied — no change required:**
+
+- the Cache page propagates any `CacheError` through RFC 017's `CacheLoadError`
+  inline blocking-view state (`crates/ui/main/src/core/views/cache_page.rs`,
+  `load_rows`/`load_task`), with no success-shaped fallback substituted.
+
+**Deferred — explicitly out of scope for RFC 033:**
+
+The similarity dialogs (`crates/ui/widgets/src/dialog/similar_pairs_dialog.rs`,
+`.../media_focus_dialog/similar_media.rs`) route **every** `CacheError` variant
+to `eprintln!` and then render a partial or empty result. That gap predates
+this RFC, applies uniformly to all variants rather than to anything `0.21.0`
+introduces, and was never classified in RFC 017's own first-pass table. Closing
+it properly requires UX decisions — partial-versus-empty semantics, toast
+versus inline placement, and new localized strings — which is RFC-shaped work,
+not a mechanical routing change inside a dependency task.
+
+It is deferred to a follow-up RFC and is **not** an RFC 033 acceptance
+criterion. Deferring is safe: with the dialogs unchanged, a pool failure now
+produces an *omission* (a similar item missing) where `0.20.1` produced a
+*fabrication* (a similarity score computed from abandoned state). For a
+deduplication tool, a false positive can lead a user to delete a file that is
+not a duplicate; a false negative merely under-reports. The upgrade therefore
+improves user-facing safety even before the dialog work lands.
 
 ### Part C — Declare a verified contributor baseline, not a minimized floor
 
@@ -321,8 +354,11 @@ Focused cache evidence:
 
 - the full existing image/video/cross/maintenance integration suite passes
   unchanged — it is the RFC 002 compatibility contract and must not be weakened;
-- a focused test that a poisoned read pool surfaces as an error rather than a
-  miss or a silent success.
+- a focused crate-internal test, at `read_conns = 1`, proving a poisoned pool
+  yields `Err` rather than `Ok(LookupResult::Miss)`. Pool size 1 is required,
+  not incidental: multi-slot pools skip a poisoned slot during the `try_lock`
+  scan, so only a single-slot pool forces the blocking fallback that reports
+  the error. State that reason in the test.
 
 Report only observed output. A toolchain that was not run is recorded as not
 run.
@@ -331,8 +367,10 @@ run.
 
 - `localcache 0.21.0` is adopted; the locked graph resolves
   `libsqlite3-sys 0.37.0`; no direct SQLite dependency or transitive pin exists.
-- Read-pool poisoning surfaces as a truthful user-visible error under the
-  RFC 017 tiers and is never reported as a cache miss.
+- `arama-cache` propagates read-pool poisoning as an error and never collapses
+  it into a cache miss, proven by a focused crate-internal test at pool size 1.
+  Similarity-dialog tier routing is explicitly deferred per Part B and is not
+  an acceptance criterion here.
 - The declared `rust-version` is 1.91, or a higher version with the dependency
   that required it recorded, and was verified by an exact-toolchain run in the
   review package rather than inferred.
