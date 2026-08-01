@@ -44,8 +44,10 @@ a discrete GPU is not required.
 ### Prerequisites
 
 - [Rust toolchain](https://rustup.rs/) (stable, 2024 edition)
-- An internet connection for the one-time model and ffmpeg download
-  (a few hundred MB total)
+- An internet connection for the one-time AI model download
+  (a few hundred MB)
+- For **video** only: a matching `ffmpeg` and `ffprobe` pair that you install
+  yourself — see [ffmpeg for video](#ffmpeg-for-video) below
 
 ### Build and run
 
@@ -63,13 +65,31 @@ Platform executable assets and `cargo install arama` are also available. See
 the [installation guide](./docs/src/users/installation.md) for the supported
 asset matrix and the differences between distribution routes.
 
-The first launch opens a setup wizard that downloads:
+The first launch opens a setup wizard that downloads the AI models:
 - `openai/clip-vit-base-patch32` — CLIP model for image similarity
 - `facebook/wav2vec2-base-960h` — audio model for video similarity
-- `ffmpeg` — frame / audio extraction for video files
 
-All files are stored alongside the executable under `.arama-local/`.
-Once setup completes, no further network access is required.
+They are stored alongside the executable under `.arama-local/`. CLIP alone
+completes setup, so you can start using image similarity immediately. Once the
+models are in place, no further network access is required.
+
+### ffmpeg for video
+
+Video analysis needs a matching `ffmpeg` and `ffprobe` pair. **arama does not
+download, install, bundle, or invoke a package manager to obtain them** on any
+platform — you install them yourself, so their license and provenance stay
+yours. For example, on macOS:
+
+```sh
+brew install ffmpeg
+```
+
+arama then discovers the pair on your `PATH` (plus the native Homebrew prefix
+on macOS), or you can point it at a specific folder from **Settings → AI**.
+Until a valid pair is found, video features stay unavailable and everything
+else keeps working. See the
+[installation guide](./docs/src/users/installation.md#video-prerequisite) for
+per-platform detail.
 
 ---
 
