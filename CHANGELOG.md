@@ -15,6 +15,11 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
   `bincode` 1.3 audit warning.
 - **Dependency modernization.** The first-party Candle AI stack now uses
   `candle-core`, `candle-nn`, and `candle-transformers` 0.11.
+- **Rust contributor baseline.** Source-build and `cargo install` routes now
+  declare and verify Rust 1.91 as arama's contributor-setup baseline
+  (`[workspace.package].rust-version`), enforced on every push and pull
+  request by a new, narrowly-scoped CI job. Executable release users are
+  unaffected.
 - **External ffmpeg authority.** arama now discovers and validates a
   user-provided `ffmpeg`/`ffprobe` pair on every supported platform. The
   setup and Settings flows no longer offer an arama-managed executable
@@ -47,6 +52,12 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
   explicitly enabling only the accepted PNG, JPEG, WebP, GIF, and BMP formats.
   This removes the active AVIF/ravif/rav1e dependency path from arama's image
   stack without changing the image extension allowlist.
+- **Cache read-pool integrity.** `localcache` moved from `0.20.0` to
+  `0.21.0`, fixing a Rust-toolchain resolution defect in the prior release
+  and replacing `ReadPool`'s silent poisoned-guard recovery with a reported
+  error. A panic during a parallel cache read (e.g. a similarity-scoring
+  fan-out) can no longer surface abandoned state as if it were valid cached
+  data; it now returns a truthful error instead.
 - **Cache serialization dependency strategy.** RFC 023 keeps the current
   `localcache` 0.20 / bincode-backed cache payload path unchanged because no
   published or local bincode-free `localcache` dependency route is available
