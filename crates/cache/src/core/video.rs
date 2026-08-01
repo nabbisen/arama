@@ -21,6 +21,9 @@ use crate::types::{
     CacheRead, DirCacheSummary, LookupResult, UpsertVideoRequest, VideoCacheEntry, VideoFeatures,
 };
 
+#[cfg(test)]
+mod tests;
+
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------

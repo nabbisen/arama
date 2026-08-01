@@ -20,6 +20,9 @@ use crate::types::{
     CacheRead, DirCacheSummary, ImageCacheEntry, ImageFeatures, LookupResult, UpsertImageRequest,
 };
 
+#[cfg(test)]
+mod tests;
+
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
