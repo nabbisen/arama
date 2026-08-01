@@ -8,6 +8,11 @@ name: MSRV
 # floating channel, because a channel that drifts upward would silently
 # stop testing the claim. Format, Clippy, cargo audit, feature-matrix, and
 # cross-target verification are out of scope for this job.
+#
+# The toolchain is read from Cargo.toml, not restated here, so
+# rust-version stays the workspace's only normative declaration (RFC 033
+# Part E) — a hardcoded value here would itself decay the next time the
+# baseline is bumped without this file being remembered.
 
 on:
   push:
@@ -19,9 +24,6 @@ defaults:
   run:
     shell: bash
 
-env:
-  RUST_TOOLCHAIN: '1.91'
-
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -29,19 +31,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Cache cargo dependencies and build
+      - name: Read Rust baseline from Cargo.toml
+        id: baseline
+        run: |
+          TOOLCHAIN=$(grep -m1 '^rust-version' Cargo.toml | sed -E 's/^rust-version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/')
+          if [ -z "$TOOLCHAIN" ]; then
+            echo "failed to read [workspace.package].rust-version from Cargo.toml" >&2
+            exit 1
+          fi
+          echo "toolchain=$TOOLCHAIN" >> "$GITHUB_OUTPUT"
+
+      # Registry/git caching only. `target/` is deliberately excluded: this
+      # workspace's clean debug build (candle, iced/wgpu/naga, bundled
+      # SQLite) is multiple gigabytes, comfortably capable of exhausting
+      # GitHub Actions' cache allowance and the runner's free disk, which
+      # would fail the job for a reason unrelated to the baseline it exists
+      # to verify.
+      - name: Cache cargo registry
         uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
           key: msrv-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             msrv-${{ runner.os }}-cargo-
 
-      - name: Install Rust ${{ env.RUST_TOOLCHAIN }}
-        run: bash .github/workflows/scripts/install-rust.sh ${{ env.RUST_TOOLCHAIN }}
+      - name: Install Rust ${{ steps.baseline.outputs.toolchain }}
+        run: bash .github/workflows/scripts/install-rust.sh ${{ steps.baseline.outputs.toolchain }}
 
       - name: cargo check --workspace --locked
         run: cargo check --workspace --locked
