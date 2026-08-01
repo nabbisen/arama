@@ -261,8 +261,12 @@ section. Published release history is not rewritten; it is left as-is.
   for 031 or 032.
 - No `event-listener` / audit-ledger work. Arama's locked `event-listener 5.4.1`
   arrives via `zbus` and the `async-*` desktop-portal stack behind `rfd` and
-  `file-handle`, not via `localcache`; it is tracked separately under the
-  RFC 027 ledger.
+  `file-handle`, not via `localcache`. **Correction, 2026-08-01:** an earlier
+  draft of this line said it was already tracked in the RFC 027 ledger. It is
+  not — `rfcs/notes/audit-warning-burn-down.md` records four warnings
+  (`bincode`, `paste`, `rustybuzz`, `ttf-parser`), and RUSTSEC-2026-0221 is
+  dated after that refresh. It is an open follow-up, not a tracked one, and
+  remains out of scope here.
 - No release, version bump, archive, tag, publish, commit, or push action.
 - No broad audit ignore.
 - No general CI buildout. Part F adds exactly one MSRV job; format, Clippy,
