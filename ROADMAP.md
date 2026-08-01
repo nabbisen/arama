@@ -47,9 +47,15 @@ deliberately deferred until RFC 032 completion evidence is accepted.
    check, native real-media smoke, maintainer documentation, package/source
    absence evidence, and available MSRV/cross-target gates as one bounded
    implementation checkpoint.
-3. **Native evidence review.** Record Linux, Windows, and macOS owner-smoke
-   results independently. Mark unavailable hardware `not run` or
-   `environment-dependent`; never infer a native result from another platform.
+3. **Native evidence review — decided 2026-08-01.** Linux x86_64 is the
+   executed target and passed real-media smoke; Windows x86_64 and Apple
+   Silicon macOS are `not run` with explicit owner risk acceptance; Intel macOS
+   and Linux aarch64 are closed as permanently `not run` on near-zero
+   incremental value. Rendered setup/Settings UI smoke on Linux remains
+   outstanding. The acceptance, the specific risks accepted, and the supporting
+   evidence are recorded in
+   [`rfcs/notes/native-smoke-risk-acceptance.md`](./rfcs/notes/native-smoke-risk-acceptance.md).
+   No result is inferred from another platform.
 4. **RFC reconciliation.** After completion evidence is accepted, archive RFC
    031 as superseded by RFC 032, move RFC 032 to implemented, and update the RFC
    index, roadmap, and cross-references atomically.
@@ -189,6 +195,29 @@ The decision is recorded in
 [`rfcs/notes/clip-safetensors-source-decision.md`](./rfcs/notes/clip-safetensors-source-decision.md).
 
 ## Later candidates
+
+### Native smoke on CI runners
+
+**Owner-accepted 2026-08-01; to land before the next release, not this one.**
+
+Extend automated native smoke to the `windows-latest` and `macos-latest`
+runners the release workflow already uses, covering the two highest-value
+targets without owning hardware. Needs its own RFC: RFC 033 Part F fenced CI
+expansion as a separate theme, and the runners must install a trusted
+`ffmpeg`/`ffprobe` pair with the ignored smoke parameterised for them. It
+cannot cover Finder-launch `PATH` inheritance or rendered UI, which stay
+desktop-only. Supersedes the corresponding rows in
+[`rfcs/notes/native-smoke-risk-acceptance.md`](./rfcs/notes/native-smoke-risk-acceptance.md)
+once it lands.
+
+### Similarity-dialog cache-error tier routing
+
+Deferred from RFC 033 Part B. The similarity dialogs route **every**
+`CacheError` variant to `eprintln!` and render a partial or empty result. The
+gap predates RFC 033 and is variant-agnostic, so the RFC should classify all
+variants under RFC 017 rather than only the `Poisoned` case. Requires UX
+decisions — partial-versus-empty semantics, toast versus inline placement, new
+localized strings.
 
 ### ELOC remeasurement and focused splits
 

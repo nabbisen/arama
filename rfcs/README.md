@@ -71,6 +71,7 @@ and are not numbered, but are kept here as permanent project records.
 | [audit-warning-burn-down](./notes/audit-warning-burn-down.md) | RustSec warning burn-down: patched actionable lockfile warnings and recorded remaining transitive owners |
 | [clip-safetensors-source-decision](./notes/clip-safetensors-source-decision.md) | RFC 021 implementation decision: retain CLIP runtime conversion until a trustworthy pinned SafeTensors source exists |
 | [cache-serialization-dependency-decision](./notes/cache-serialization-dependency-decision.md) | RFC 023 implementation decision: retain current localcache/bincode cache serialization until a bincode-free localcache route exists |
+| [native-smoke-risk-acceptance](./notes/native-smoke-risk-acceptance.md) | RFC 032 release checkpoint: owner risk acceptance for unexecuted Windows/macOS native smoke, with the specific residual risks and the Linux evidence that was executed |
 
 
 ## Handoffs
