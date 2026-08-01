@@ -1,8 +1,17 @@
 # RFC 033: Cache dependency correction and Rust source-build baseline
 
-**Status.** Proposed — accepted for implementation by the project owner
-2026-08-01. Remains in `rfcs/proposed/` until the work ships, per RFC 000.
-Execution is directed by
+**Status.** Implemented (Unreleased) — accepted by the project owner
+2026-08-01 and implemented across handoff Tasks 1–4 the same day.
+
+**Deferred.** Similarity-dialog cache-error tier routing (Part B) did **not**
+ship with this RFC and is deferred to a future RFC, not yet written. The gap
+predates RFC 033, applies to every `CacheError` variant rather than only the
+`Poisoned` one introduced here, and requires UX decisions outside a dependency
+task. This note satisfies RFC 000's requirement that deferred work be either
+covered by a follow-up RFC or logged explicitly in the Status section; replace
+it with the follow-up RFC's number once that RFC exists.
+
+Execution was directed by
 [the RFC 033 handoff](../handoffs/033-cache-dependency-and-rust-baseline-handoff.md).
 **Tracks.** Correct the `localcache`-driven toolchain break, adopt the fixed
 upstream release, and declare one measured source-build Rust baseline as a

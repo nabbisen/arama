@@ -11,7 +11,6 @@ permanent; implemented and archived RFCs are never deleted.
 |----|-------|----------|
 | 031 | [macOS ffmpeg trust boundary](./proposed/031-macos-ffmpeg-trust-boundary.md) | High |
 | 032 | [Cross-platform external FFmpeg](./proposed/032-cross-platform-external-ffmpeg.md) | High |
-| 033 | [Cache dependency correction and Rust source-build baseline](./proposed/033-cache-dependency-and-rust-baseline.md) | High |
 
 ## Implemented
 
@@ -48,6 +47,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 028 | [Source TODO hygiene and orphan cleanup](./done/028-source-todo-hygiene.md) | Unreleased |
 | 029 | [Release smoke evidence template](./done/029-release-smoke-evidence-template.md) | Unreleased |
 | 030 | [Distribution and version contract reconciliation](./done/030-distribution-and-version-contracts.md) | Unreleased |
+| 033 | [Cache dependency correction and Rust source-build baseline](./done/033-cache-dependency-and-rust-baseline.md) | Unreleased |
 
 ## Archive
 

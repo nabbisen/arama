@@ -1,16 +1,19 @@
 # RFC 033 Handoff — Cache dependency correction and Rust source-build baseline
 
-Companion to [RFC 033](../proposed/033-cache-dependency-and-rust-baseline.md).
-RFC 033 is **accepted for implementation** and remains in `rfcs/proposed/` until
-the work ships, per the four-folder lifecycle in
-[RFC 000](../done/000-rfc-lifecycle-policy.md). This handoff directs execution;
-it does not change the RFC's lifecycle state and does not override its design.
+Companion to [RFC 033](../done/033-cache-dependency-and-rust-baseline.md).
+RFC 033 is **Implemented (Unreleased)** and now lives in `rfcs/done/`, per the
+four-folder lifecycle in [RFC 000](../done/000-rfc-lifecycle-policy.md). This
+handoff directed execution across Tasks 1–4; it is retained as the historical
+execution record and does not override the RFC's design.
+
+Note that Part B's similarity-dialog tier routing was deferred and did not ship
+— see the RFC's Status section.
 
 ## 1. Design authority and precedence
 
 Check the implementation against, in order:
 
-1. [RFC 033](../proposed/033-cache-dependency-and-rust-baseline.md) — the
+1. [RFC 033](../done/033-cache-dependency-and-rust-baseline.md) — the
    governing design for the dependency choice, the baseline declaration, and
    its CI verification;
 2. [RFC 017 — Visible recoverable error UX](../done/017-visible-recoverable-error-ux.md)

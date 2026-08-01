@@ -39,9 +39,10 @@ deliberately deferred until RFC 032 completion evidence is accepted.
    setup and release stability. Similarity-dialog cache-error tier routing
    was explicitly deferred to a follow-up RFC (RFC 033 Part B); the Cache
    page already satisfied its blocking-view case with no change needed.
-   [RFC 033](./rfcs/proposed/033-cache-dependency-and-rust-baseline.md)
-   remains in `rfcs/proposed/` pending a separate, owner-authorized
-   lifecycle move to `rfcs/done/`.
+   [RFC 033](./rfcs/done/033-cache-dependency-and-rust-baseline.md) is
+   Implemented (Unreleased) and moved to `rfcs/done/` on 2026-08-01; the
+   deferred dialog-routing work is recorded in its Status section pending a
+   follow-up RFC.
 2. **Implementation closeout review.** Review the external-FFmpeg contract
    check, native real-media smoke, maintainer documentation, package/source
    absence evidence, and available MSRV/cross-target gates as one bounded
