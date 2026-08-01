@@ -24,9 +24,16 @@ deliberately deferred until RFC 032 completion evidence is accepted.
 
 ### Near-term milestones
 
-1. **Source-build baseline decision.** Resolve the `localcache`/`rusqlite`
-   toolchain contract with the collaborator crate and declare the lowest Rust
-   version supported by the resulting locked dependency graph.
+1. **Source-build baseline (RFC 033, accepted).** The `localcache`/`rusqlite`
+   toolchain contract is resolved: `localcache` 0.20.1 and 0.21.0 constrain
+   `rusqlite` to `^0.39`, removing the Rust 1.95 constraint that was never
+   arama's. Execute
+   [RFC 033](./rfcs/proposed/033-cache-dependency-and-rust-baseline.md): adopt
+   `localcache` 0.21.0 for its `ReadPool` poison reporting, declare Rust 1.91 as
+   a verified contributor-setup baseline, and enforce it with one pinned CI job.
+   The baseline is deliberately **not** the lowest version the graph permits —
+   arama is an application, not a library, so the declaration exists for
+   contributor setup and release stability.
 2. **Implementation closeout review.** Review the external-FFmpeg contract
    check, native real-media smoke, maintainer documentation, package/source
    absence evidence, and available MSRV/cross-target gates as one bounded

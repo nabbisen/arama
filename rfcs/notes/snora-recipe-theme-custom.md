@@ -1,7 +1,8 @@
 # Recipe: `Theme::custom` from Snora Design tokens
 
 **Status.** Recipe
-**Format.** RFC-033 nine-section recipe
+**Format.** snora RFC-033 nine-section recipe (snora's numbering, not arama's;
+see arama RFC 033 for an unrelated document)
 
 ---
 

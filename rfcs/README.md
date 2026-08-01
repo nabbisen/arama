@@ -11,6 +11,7 @@ permanent; implemented and archived RFCs are never deleted.
 |----|-------|----------|
 | 031 | [macOS ffmpeg trust boundary](./proposed/031-macos-ffmpeg-trust-boundary.md) | High |
 | 032 | [Cross-platform external FFmpeg](./proposed/032-cross-platform-external-ffmpeg.md) | High |
+| 033 | [Cache dependency correction and Rust source-build baseline](./proposed/033-cache-dependency-and-rust-baseline.md) | High |
 
 ## Implemented
 
@@ -65,7 +66,7 @@ and are not numbered, but are kept here as permanent project records.
 | [dep-migration-lucide-icons](./notes/dep-migration-lucide-icons.md) | lucide-icons 0.576 → 1.17: API diff and safe-to-update confirmation |
 | [dep-migration-candle](./notes/dep-migration-candle.md) | candle-{core,nn,transformers} 0.9 → 0.10: symbol audit and safe-to-update confirmation |
 | [dep-migration-snora](./notes/dep-migration-snora.md) | snora 0.8 → 0.18: API diff across ten minor versions, safe-to-update confirmation |
-| [snora-recipe-theme-custom](./notes/snora-recipe-theme-custom.md) | RFC-033 recipe: `Theme::custom` from Snora Design tokens (contribution to snora) |
+| [snora-recipe-theme-custom](./notes/snora-recipe-theme-custom.md) | `Theme::custom` from Snora Design tokens, written in snora's own RFC-033 recipe format (contribution to snora; unrelated to arama RFC 033) |
 | [dep-fix-pt2safetensors](./notes/dep-fix-pt2safetensors.md) | `pt2safetensors` 0.1.2 build break against candle-core 0.10 + safetensors ≥ 0.5; root cause, workspace patch, and upstream fix instructions |
 | [audit-warning-burn-down](./notes/audit-warning-burn-down.md) | RustSec warning burn-down: patched actionable lockfile warnings and recorded remaining transitive owners |
 | [clip-safetensors-source-decision](./notes/clip-safetensors-source-decision.md) | RFC 021 implementation decision: retain CLIP runtime conversion until a trustworthy pinned SafeTensors source exists |
