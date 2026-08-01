@@ -110,7 +110,7 @@ separate from the folder-only aside tree UI state.
 
 **Status.** RFC 023 implemented; unreleased.
 
-**Why now.** The current `localcache` 0.20 bincode-backed cache payload path was
+**Why now.** The current `localcache`/bincode-backed cache payload path was
 retained because no published or local bincode-free `localcache` dependency
 route is available yet.
 

@@ -52,14 +52,15 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
   explicitly enabling only the accepted PNG, JPEG, WebP, GIF, and BMP formats.
   This removes the active AVIF/ravif/rav1e dependency path from arama's image
   stack without changing the image extension allowlist.
-- **Cache read-pool integrity.** `localcache` moved from `0.20.0` to
-  `0.21.0`, fixing a Rust-toolchain resolution defect in the prior release
-  and replacing `ReadPool`'s silent poisoned-guard recovery with a reported
-  error. A panic during a parallel cache read (e.g. a similarity-scoring
-  fan-out) can no longer surface abandoned state as if it were valid cached
-  data; it now returns a truthful error instead.
+- **Cache read-pool integrity.** `localcache` moved from `0.20.0` to `0.21.0`,
+  fixing a Rust-toolchain resolution defect in the prior release and
+  replacing `ReadPool`'s silent poisoned-guard recovery. A panic during a
+  parallel cache read (e.g. a similarity-scoring fan-out) can no longer
+  surface abandoned state as if it were valid cached data: the affected
+  connection is withdrawn from use, and a read left with no healthy
+  connection reports a truthful error rather than silently recovering.
 - **Cache serialization dependency strategy.** RFC 023 keeps the current
-  `localcache` 0.20 / bincode-backed cache payload path unchanged because no
+  `localcache`/bincode-backed cache payload path unchanged because no
   published or local bincode-free `localcache` dependency route is available
   yet. No cache payload migration, JSON switch, workspace patch, or cache-engine
   replacement is included.
