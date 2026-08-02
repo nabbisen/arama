@@ -194,44 +194,77 @@ impl App {
                 Task::none()
             }
             FfmpegDiscoveryEvent::SelectedReady { validated, .. } => {
-                if self.ffmpeg_authority.intent(epoch) != Some(FfmpegRequestIntent::Selection) {
-                    return Task::none();
-                }
-                let Some(prior) = self.ffmpeg_authority.prior_preference(epoch).cloned() else {
-                    return Task::none();
-                };
-                let manager = ConfigManager::new().at_current_dir();
-                let Some(transition) = run_current_selection(&self.ffmpeg_authority, epoch, || {
-                    publish_validated_selection(&mut self.settings, &prior, validated, |settings| {
-                        manager.save(settings)
-                    })
-                }) else {
-                    return Task::none();
-                };
-                match transition {
-                    PreferenceTransition::PublishedReady {
-                        preference,
-                        outcome: FfmpegDiscoveryOutcome::Ready { toolchain, .. },
-                    } => {
+                match route_selected_ready(&self.ffmpeg_authority, epoch) {
+                    SelectedReadyRoute::Selection => {
+                        let Some(prior) = self.ffmpeg_authority.prior_preference(epoch).cloned()
+                        else {
+                            return Task::none();
+                        };
+                        let manager = ConfigManager::new().at_current_dir();
+                        let Some(transition) =
+                            run_current_selection(&self.ffmpeg_authority, epoch, || {
+                                publish_validated_selection(
+                                    &mut self.settings,
+                                    &prior,
+                                    validated,
+                                    |settings| manager.save(settings),
+                                )
+                            })
+                        else {
+                            return Task::none();
+                        };
+                        match transition {
+                            PreferenceTransition::PublishedReady {
+                                preference,
+                                outcome: FfmpegDiscoveryOutcome::Ready { toolchain, .. },
+                            } => {
+                                self.ffmpeg_authority.finish_selection_persistence::<()>(
+                                    epoch,
+                                    Ok((preference, toolchain)),
+                                );
+                                self.publish_ffmpeg_authority();
+                                self.settings_page.set_ffmpeg_select_enabled(true);
+                                Task::none()
+                            }
+                            PreferenceTransition::Retained { .. } => {
+                                let resolution = self
+                                    .ffmpeg_authority
+                                    .finish_selection_persistence::<()>(epoch, Err(()));
+                                self.publish_ffmpeg_authority();
+                                self.settings_page.set_ffmpeg_select_enabled(true);
+                                self.push_error_toast(
+                                    "FFmpeg settings",
+                                    "The validated FFmpeg folder could not be saved.".to_owned(),
+                                );
+                                self.resume_after_rollback(resolution)
+                            }
+                            _ => unreachable!(),
+                        }
+                    }
+                    // Startup and Recheck revalidate the preference already on
+                    // disk: RFC 032's transaction table requires no save on
+                    // either path ("Re-check | No save; validate current
+                    // authority | Same preference + new typed outcome"). This
+                    // publishes the terminal directly from the validated
+                    // outcome, mirroring the Published event's non-Selection
+                    // Ready arm below rather than reusing the Selection-only
+                    // save-and-publish helper.
+                    SelectedReadyRoute::Terminal => {
+                        let outcome = validated.outcome();
+                        let FfmpegDiscoveryOutcome::Ready { toolchain, .. } = outcome.clone()
+                        else {
+                            unreachable!("ValidatedSelection::outcome() always reports Ready")
+                        };
                         self.ffmpeg_authority
-                            .finish_selection_persistence::<()>(epoch, Ok((preference, toolchain)));
-                        self.publish_ffmpeg_authority();
-                        self.settings_page.set_ffmpeg_select_enabled(true);
+                            .publish_terminal(epoch, AuthorityTerminal::Ready(toolchain));
+                        self.setup.set_ffmpeg_ready(true);
+                        self.settings_page.set_ffmpeg_outcome(
+                            self.ffmpeg_authority.preference().clone(),
+                            &outcome,
+                        );
                         Task::none()
                     }
-                    PreferenceTransition::Retained { .. } => {
-                        let resolution = self
-                            .ffmpeg_authority
-                            .finish_selection_persistence::<()>(epoch, Err(()));
-                        self.publish_ffmpeg_authority();
-                        self.settings_page.set_ffmpeg_select_enabled(true);
-                        self.push_error_toast(
-                            "FFmpeg settings",
-                            "The validated FFmpeg folder could not be saved.".to_owned(),
-                        );
-                        self.resume_after_rollback(resolution)
-                    }
-                    _ => unreachable!(),
+                    SelectedReadyRoute::Stale => Task::none(),
                 }
             }
         }
@@ -323,6 +356,43 @@ impl App {
                 directory,
             },
         )
+    }
+}
+
+/// Where a `SelectedReady` event should route for the transaction live at
+/// `epoch`.
+///
+/// This is the dispatch seam responsible for review 067 Finding 1: every
+/// intent must resolve to `Selection`, `Terminal`, or `Stale` — never a
+/// silent no-op for a live, re-armed transaction, which is what left the UI
+/// on "Checking" forever for `Startup`/`Recheck`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SelectedReadyRoute {
+    /// Interactive pick: keep the existing validate-then-persist
+    /// transaction, unchanged.
+    Selection,
+    /// Startup or Recheck: publish the validated toolchain as the terminal
+    /// authority immediately. No settings save — the preference was already
+    /// on disk (Startup) or is the currently published one (Recheck); RFC
+    /// 032's transaction table requires "No save" for re-check.
+    Terminal,
+    /// `ClearToAuto` never carries a Selected preference, so the worker
+    /// cannot emit `SelectedReady` for it; a stale/superseded epoch is
+    /// already filtered by `is_current` before this is reached. Neither is
+    /// reachable in practice; this is a defensive no-op, not a live drop.
+    Stale,
+}
+
+fn route_selected_ready<T: Clone>(
+    authority: &FfmpegAuthority<T>,
+    epoch: u64,
+) -> SelectedReadyRoute {
+    match authority.intent(epoch) {
+        Some(FfmpegRequestIntent::Selection) => SelectedReadyRoute::Selection,
+        Some(FfmpegRequestIntent::Startup | FfmpegRequestIntent::Recheck) => {
+            SelectedReadyRoute::Terminal
+        }
+        Some(FfmpegRequestIntent::ClearToAuto) | None => SelectedReadyRoute::Stale,
     }
 }
 

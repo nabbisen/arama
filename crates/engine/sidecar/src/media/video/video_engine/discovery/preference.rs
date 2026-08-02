@@ -81,7 +81,11 @@ impl ValidatedSelection {
         })
     }
 
-    pub(super) fn outcome(&self) -> FfmpegDiscoveryOutcome {
+    /// Returns the validated Ready outcome. Callers outside this crate can
+    /// only obtain a `ValidatedSelection` from a successful discovery event
+    /// — its fields are private and `bind` is crate-internal — so this
+    /// cannot be used to publish an unvalidated toolchain.
+    pub fn outcome(&self) -> FfmpegDiscoveryOutcome {
         FfmpegDiscoveryOutcome::Ready {
             toolchain: self.toolchain.clone(),
             source: DiscoverySource::SelectedDirectory,
