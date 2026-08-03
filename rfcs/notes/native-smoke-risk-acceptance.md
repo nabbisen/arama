@@ -6,6 +6,47 @@
 **Applies to.** The RFC 032 external-FFmpeg release checkpoint (ROADMAP
 milestones 3 and 5).
 
+## Re-confirmation — 2026-08-03
+
+The owner re-confirmed this acceptance **knowing** what the Linux smoke run
+subsequently found. The original decision below is unchanged; this section
+records what changed around it, so nobody reads the acceptance as having been
+made in ignorance.
+
+**Three findings surfaced after this note was written**, all from Task 004's
+rendered smoke and its follow-ups:
+
+1. a release-blocking hang — a valid persisted Selected-directory preference
+   never resolved on startup or re-check (review 067 Finding 1, fixed at 069);
+2. a missing required Setup action — Select directory (Finding 2, fixed at 070);
+3. a prohibited affordance — a progress bar and MB label on the FFmpeg Setup row
+   (Finding 3, fixed at 071).
+
+**None of them implicates the risks accepted below.** All three were
+platform-independent, all were found *by* the Linux testing this note authorised,
+and none touches Windows job-object reaping, filesystem identity semantics, or
+macOS launch-context `PATH` behaviour. What they revised was confidence in the
+implementation generally — not the specific residual risk list.
+
+**One risk is narrower than stated below.** The macOS entry cites RFC 031's
+rationale that "a `.app` launched from Finder may not inherit the interactive
+shell's `PATH`." Arama ships **no `.app` bundle** — the release workflow produces
+a bare binary inside a wrapping directory in a `.zip`. A user launching from a
+terminal inherits `PATH` normally. The Homebrew-prefix fallback retains value,
+but the scenario that motivated it is not arama's distribution format.
+
+**The residual risk is temporary, not permanent.** Route B (native smoke on the
+`windows-latest` and `macos-latest` runners already used by the release
+workflow) discharges essentially all of it: PATH discovery, pair validation,
+timeout and descendant reaping, real-media probe and extraction, and — by
+stripping `PATH` on the runner — the macOS prefix fallback itself. What CI
+cannot drive is a rendered GUI, which a human on either platform could do at any
+time. Intel macOS and Linux aarch64 remain closed by decision rather than
+pending.
+
+Condition 1 below still governs: this acceptance covers **this release
+checkpoint only**.
+
 ## Why this record exists
 
 ROADMAP milestone 5 requires that every unavailable native target row carry an
