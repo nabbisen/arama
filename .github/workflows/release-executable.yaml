@@ -2,7 +2,16 @@ name: Executable
 
 on:
   release:
-    types: [created]
+    # `published` fires once when a release becomes public, whether it was
+    # created already-published or created as a draft and published later.
+    # `created` was the previous trigger and did not fire for a release
+    # created already-published (observed on 0.37.0); adding it back
+    # alongside `published` would double-fire the draft-then-publish flow,
+    # and the upload step is not idempotent.
+    types: [published]
+  # Manual fallback: lets the asset build be re-run against an existing tag
+  # without recreating the release.
+  workflow_dispatch:
 
 permissions:
   contents: write
