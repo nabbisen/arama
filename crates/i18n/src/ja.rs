@@ -199,7 +199,9 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "setup.status.error" => "\u{30a8}\u{30e9}\u{30fc}",         // エラー
         "setup.not_ready" => "\u{672a}\u{6e96}\u{5099}\u{ff1a}",    // 未準備：
         "setup.ready" => "\u{6e96}\u{5099}\u{6e08}\u{307f}\u{ff1a}", // 準備済み：
-        "setup.download_into" => "\u{30c0}\u{30a6}\u{30f3}\u{30ed}\u{30fc}\u{30c9}\u{5148}\u{ff1a}", // ダウンロード先：
+        "setup.download_into" => {
+            "AI\u{30e2}\u{30c7}\u{30eb}\u{306e}\u{30c0}\u{30a6}\u{30f3}\u{30ed}\u{30fc}\u{30c9}\u{5148}\u{ff1a}" // AIモデルのダウンロード先：
+        }
         "setup.disk_space" => "\u{30c7}\u{30a3}\u{30b9}\u{30af}\u{5bb9}\u{91cf}", // ディスク容量
         "setup.disk_gb_avail" => "GB \u{7a7a}\u{304d}",                           // GB 空き
         "setup.disk_gb_total" => "GB \u{5408}\u{8a08}",                           // GB 合計

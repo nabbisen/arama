@@ -40,18 +40,19 @@ impl Downloader {
                         }
                     };
 
-                    let size_str = if let Some(x) = state.file_size {
-                        x.to_string()
+                    let name = if state.download_state == DownloadState::ExternalRequired {
+                        state_name(&state.config)
                     } else {
-                        t("setup.item.size_unknown")
+                        let size_str = if let Some(x) = state.file_size {
+                            x.to_string()
+                        } else {
+                            t("setup.item.size_unknown")
+                        };
+                        format!("{} ({} MB)", state_name(&state.config), size_str)
                     };
-                    let name = format!("{} ({} MB)", state_name(&state.config), size_str,);
 
-                    let mut item = column![
-                        text(format!("{} : {}", name, status)).size(14),
-                        container(progress_bar(0.0..=100.0, progress)).height(12),
-                    ]
-                    .spacing(5);
+                    let mut item =
+                        column![text(format!("{} : {}", name, status)).size(14)].spacing(5);
                     if state.download_state == DownloadState::ExternalRequired {
                         item = item
                             .push(text(t("setup.ffmpeg.external_help")).size(14))
@@ -64,6 +65,8 @@ impl Downloader {
                                 ]
                                 .spacing(10),
                             );
+                    } else {
+                        item = item.push(container(progress_bar(0.0..=100.0, progress)).height(12));
                     }
                     col.push(item)
                 },

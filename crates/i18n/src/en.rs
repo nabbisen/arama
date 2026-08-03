@@ -137,7 +137,7 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "setup.status.error" => "Error",
         "setup.not_ready" => "Not ready:",
         "setup.ready" => "Ready:",
-        "setup.download_into" => "Will be downloaded into:",
+        "setup.download_into" => "AI models will be downloaded into:",
         "setup.disk_space" => "Disk space",
         "setup.disk_gb_avail" => "GB available",
         "setup.disk_gb_total" => "GB total",
