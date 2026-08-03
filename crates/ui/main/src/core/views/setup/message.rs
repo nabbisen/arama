@@ -6,4 +6,5 @@ pub enum Message {
     Skip,
     DownloaderMessage(downloader::message::Message),
     FfmpegRecheckRequested,
+    FfmpegSelectRequested,
 }

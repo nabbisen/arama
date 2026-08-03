@@ -145,6 +145,7 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
             "Install a matching ffmpeg and ffprobe pair through a trusted source for your platform, then re-check. Image-only use can continue without it."
         }
         "setup.ffmpeg.recheck" => "Re-check",
+        "setup.ffmpeg.select" => "Select ffmpeg folder",
 
         // Focus dialog
         "focus.strategy" => "Cache lookup strategy",

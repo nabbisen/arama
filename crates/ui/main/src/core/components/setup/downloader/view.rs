@@ -56,8 +56,13 @@ impl Downloader {
                         item = item
                             .push(text(t("setup.ffmpeg.external_help")).size(14))
                             .push(
-                                button(text(t("setup.ffmpeg.recheck")))
-                                    .on_press(Message::RecheckFfmpeg(id)),
+                                row![
+                                    button(text(t("setup.ffmpeg.recheck")))
+                                        .on_press(Message::RecheckFfmpeg(id)),
+                                    button(text(t("setup.ffmpeg.select")))
+                                        .on_press(Message::SelectFfmpegDirectory),
+                                ]
+                                .spacing(10),
                             );
                     }
                     col.push(item)

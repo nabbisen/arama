@@ -22,6 +22,12 @@ impl Setup {
                 ) {
                     return Task::done(Message::FfmpegRecheckRequested);
                 }
+                if matches!(
+                    message,
+                    downloader::message::Message::FfmpegDirectorySelectRequested
+                ) {
+                    return Task::done(Message::FfmpegSelectRequested);
+                }
                 let download_progress = matches!(
                     message,
                     downloader::message::Message::AiModelProgressUpdated(_, _)
@@ -37,6 +43,7 @@ impl Setup {
                 task
             }
             Message::FfmpegRecheckRequested => Task::none(),
+            Message::FfmpegSelectRequested => Task::none(),
         }
     }
 }

@@ -37,6 +37,14 @@ impl Downloader {
                 Task::done(Message::ExternalFfmpegRequested)
             }
             Message::ExternalFfmpegRequested => Task::none(),
+            // No local state change here: unlike a re-check, a selection's
+            // outcome is unknown until the native picker resolves (it may
+            // be cancelled), and the shared authority publish path already
+            // updates this item's state once validation actually starts
+            // (see `App::publish_ffmpeg_checking`/`publish_ffmpeg_authority`
+            // via `Setup::set_ffmpeg_checking`/`set_ffmpeg_ready`).
+            Message::SelectFfmpegDirectory => Task::done(Message::FfmpegDirectorySelectRequested),
+            Message::FfmpegDirectorySelectRequested => Task::none(),
             Message::StartDownloads => {
                 self.is_downloading = true;
                 let tasks = self.states.iter_mut().enumerate().map(|(id, state)| {

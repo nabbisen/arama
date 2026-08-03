@@ -6,6 +6,8 @@ pub enum Message {
     MetadataChecked(usize, Option<u64>),
     RecheckFfmpeg(usize),
     ExternalFfmpegRequested,
+    SelectFfmpegDirectory,
+    FfmpegDirectorySelectRequested,
     StartDownloads,
     AiModelProgressUpdated(usize, DownloadProgress),
 }

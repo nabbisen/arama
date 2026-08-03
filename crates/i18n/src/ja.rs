@@ -207,6 +207,9 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
             "\u{304a}\u{4f7f}\u{3044}\u{306e}\u{30d7}\u{30e9}\u{30c3}\u{30c8}\u{30d5}\u{30a9}\u{30fc}\u{30e0}\u{7528}\u{306e}\u{4fe1}\u{983c}\u{3067}\u{304d}\u{308b}\u{914d}\u{5e03}\u{5143}\u{304b}\u{3089}\u{3001}\u{540c}\u{3058}\u{30d0}\u{30fc}\u{30b8}\u{30e7}\u{30f3}\u{306e}ffmpeg\u{3068}ffprobe\u{3092}\u{30a4}\u{30f3}\u{30b9}\u{30c8}\u{30fc}\u{30eb}\u{3057}\u{3001}\u{518d}\u{78ba}\u{8a8d}\u{3057}\u{3066}\u{304f}\u{3060}\u{3055}\u{3044}\u{3002}\u{753b}\u{50cf}\u{306e}\u{307f}\u{306e}\u{5229}\u{7528}\u{306f}\u{305d}\u{306e}\u{307e}\u{307e}\u{7d9a}\u{884c}\u{3067}\u{304d}\u{307e}\u{3059}\u{3002}"
         }
         "setup.ffmpeg.recheck" => "\u{518d}\u{78ba}\u{8a8d}",
+        "setup.ffmpeg.select" => {
+            "ffmpeg \u{30d5}\u{30a9}\u{30eb}\u{30c0}\u{30fc}\u{3092}\u{9078}\u{629e}"
+        }
 
         // Focus dialog
         "focus.strategy" => {

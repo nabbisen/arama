@@ -34,6 +34,12 @@ impl App {
         ) {
             return self.request_current_ffmpeg(FfmpegRequestIntent::Recheck);
         }
+        if matches!(
+            message,
+            arama_ui_main::views::setup::message::Message::FfmpegSelectRequested
+        ) {
+            return self.pick_ffmpeg_directory();
+        }
         let refresh_ai = setup_message_refreshes_ai(&message);
         let was_ready = setup_complete(self.setup.finished, self.setup.ready());
         let task = self
