@@ -1,6 +1,6 @@
 # RFC 018 — AI/video pipeline resilience
 
-**Status.** Implemented (Unreleased)
+**Status.** Implemented (0.37.0)
 **Tracks.** Roadmap follow-up: define how video indexing and AI embedding
 workflows handle per-file, per-modality, cache, and sidecar failures without
 turning one bad media file into a misleading or unnecessarily aborted indexing

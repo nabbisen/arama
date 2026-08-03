@@ -30,24 +30,24 @@ permanent; implemented and archived RFCs are never deleted.
 | 012 | [Workspace housekeeping (manifest inheritance, orphan removal, changelog & doc reconciliation)](./done/012-workspace-housekeeping.md) | 0.35.0 |
 | 013 | [ELOC splits: update.rs and cache integration tests](./done/013-eloc-splits.md) | 0.36.0 |
 | 014 | [Explorer aside tree toggle](./done/014-aside-tree-toggle.md) | 0.36.1 |
-| 015 | [Cache lifecycle: retire v1 migration and define cache-capacity direction](./done/015-cache-lifecycle.md) | Unreleased |
-| 016 | [Cache capacity and disk-pressure management](./done/016-cache-capacity.md) | Unreleased |
-| 017 | [Visible recoverable error UX](./done/017-visible-recoverable-error-ux.md) | Unreleased |
-| 018 | [AI/video pipeline resilience](./done/018-ai-video-pipeline-resilience.md) | Unreleased |
-| 019 | [Startup fatal-boundary resilience](./done/019-startup-fatal-boundary-resilience.md) | Unreleased |
-| 020 | [Dependency modernization: Candle and sidecar archive stack](./done/020-dependency-modernization.md) | Unreleased |
-| 021 | [CLIP SafeTensors source strategy](./done/021-clip-safetensors-source-strategy.md) | Unreleased |
-| 022 | [Image similarity search dependency strategy](./done/022-image-similarity-search-dependency.md) | Unreleased |
-| 023 | [Cache serialization dependency strategy](./done/023-cache-serialization-dependency.md) | Unreleased |
-| 024 | [Image codec dependency minimization](./done/024-image-codec-dependency-minimization.md) | Unreleased |
-| 025 | [Release smoke checklist](./done/025-release-smoke-checklist.md) | Unreleased |
-| 026 | [Explorer tree maintenance and scan ownership](./done/026-explorer-tree-maintenance.md) | Unreleased |
-| 027 | [Audit warning ledger refresh](./done/027-audit-warning-ledger-refresh.md) | Unreleased |
-| 028 | [Source TODO hygiene and orphan cleanup](./done/028-source-todo-hygiene.md) | Unreleased |
-| 029 | [Release smoke evidence template](./done/029-release-smoke-evidence-template.md) | Unreleased |
-| 030 | [Distribution and version contract reconciliation](./done/030-distribution-and-version-contracts.md) | Unreleased |
-| 032 | [Cross-platform external FFmpeg](./done/032-cross-platform-external-ffmpeg.md) | Unreleased |
-| 033 | [Cache dependency correction and Rust source-build baseline](./done/033-cache-dependency-and-rust-baseline.md) | Unreleased |
+| 015 | [Cache lifecycle: retire v1 migration and define cache-capacity direction](./done/015-cache-lifecycle.md) | 0.37.0 |
+| 016 | [Cache capacity and disk-pressure management](./done/016-cache-capacity.md) | 0.37.0 |
+| 017 | [Visible recoverable error UX](./done/017-visible-recoverable-error-ux.md) | 0.37.0 |
+| 018 | [AI/video pipeline resilience](./done/018-ai-video-pipeline-resilience.md) | 0.37.0 |
+| 019 | [Startup fatal-boundary resilience](./done/019-startup-fatal-boundary-resilience.md) | 0.37.0 |
+| 020 | [Dependency modernization: Candle and sidecar archive stack](./done/020-dependency-modernization.md) | 0.37.0 |
+| 021 | [CLIP SafeTensors source strategy](./done/021-clip-safetensors-source-strategy.md) | 0.37.0 |
+| 022 | [Image similarity search dependency strategy](./done/022-image-similarity-search-dependency.md) | 0.37.0 |
+| 023 | [Cache serialization dependency strategy](./done/023-cache-serialization-dependency.md) | 0.37.0 |
+| 024 | [Image codec dependency minimization](./done/024-image-codec-dependency-minimization.md) | 0.37.0 |
+| 025 | [Release smoke checklist](./done/025-release-smoke-checklist.md) | 0.37.0 |
+| 026 | [Explorer tree maintenance and scan ownership](./done/026-explorer-tree-maintenance.md) | 0.37.0 |
+| 027 | [Audit warning ledger refresh](./done/027-audit-warning-ledger-refresh.md) | 0.37.0 |
+| 028 | [Source TODO hygiene and orphan cleanup](./done/028-source-todo-hygiene.md) | 0.37.0 |
+| 029 | [Release smoke evidence template](./done/029-release-smoke-evidence-template.md) | 0.37.0 |
+| 030 | [Distribution and version contract reconciliation](./done/030-distribution-and-version-contracts.md) | 0.37.0 |
+| 032 | [Cross-platform external FFmpeg](./done/032-cross-platform-external-ffmpeg.md) | 0.37.0 |
+| 033 | [Cache dependency correction and Rust source-build baseline](./done/033-cache-dependency-and-rust-baseline.md) | 0.37.0 |
 
 ## Archive
 

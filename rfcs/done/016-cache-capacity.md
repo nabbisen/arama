@@ -1,6 +1,6 @@
 # RFC 016 — Cache capacity and disk-pressure management
 
-**Status.** Implemented (Unreleased)
+**Status.** Implemented (0.37.0)
 **Tracks.** RFC 002 follow-up and RFC 015 split-path follow-up: define how
 arama measures cache storage, exposes cache-size controls, and prunes cache
 entries under an explicit user-visible policy.

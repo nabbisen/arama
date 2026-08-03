@@ -1,6 +1,6 @@
 # RFC 028 - Source TODO hygiene and orphan cleanup
 
-**Status.** Implemented (Unreleased)
+**Status.** Implemented (0.37.0)
 **Tracks.** Maintenance follow-up: remove stale source TODOs and orphaned
 legacy source that no longer describe actionable implementation work.
 **Touches.** `env/src/file_system.rs`, `crates/ai/src/lib.rs`,

@@ -1,6 +1,6 @@
 # RFC 025 - Release smoke checklist
 
-**Status.** Implemented (Unreleased)
+**Status.** Implemented (0.37.0)
 **Tracks.** Release-readiness follow-up: define a repeatable manual GUI smoke
 checklist for owner-managed release preparation without performing release
 actions.

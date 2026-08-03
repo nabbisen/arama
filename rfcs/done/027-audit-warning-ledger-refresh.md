@@ -1,6 +1,6 @@
 # RFC 027 - Audit warning ledger refresh
 
-**Status.** Implemented (Unreleased)
+**Status.** Implemented (0.37.0)
 **Tracks.** Release-gate hygiene follow-up: reconcile the audit-warning ledger
 and release-gate wording with the current `cargo audit` output.
 **Touches.** `rfcs/notes/audit-warning-burn-down.md`,

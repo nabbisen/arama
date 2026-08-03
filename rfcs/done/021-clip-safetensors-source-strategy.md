@@ -1,6 +1,6 @@
 # RFC 021 - CLIP SafeTensors source strategy
 
-**Status.** Implemented (Unreleased)
+**Status.** Implemented (0.37.0)
 **Tracks.** Follow-up after RFC 020: decide whether arama should continue
 runtime PyTorch-to-SafeTensors conversion for CLIP or move to a pinned
 SafeTensors artifact source.

@@ -1,6 +1,6 @@
 # RFC 026 - Explorer tree maintenance and scan ownership
 
-**Status.** Implemented (Unreleased)
+**Status.** Implemented (0.37.0)
 **Tracks.** Small explorer-tree maintenance pass after the release-smoke
 checklist work: keep the `iced-swdir-tree` patch dependency current and clarify
 the ownership boundary between the aside directory tree and arama's media cache

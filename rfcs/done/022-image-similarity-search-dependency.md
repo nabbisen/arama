@@ -1,6 +1,6 @@
 # RFC 022 - Image similarity search dependency strategy
 
-**Status.** Implemented (Unreleased)
+**Status.** Implemented (0.37.0)
 **Tracks.** Remaining audit-warning owner follow-up: decide whether to replace
 `hnsw_rs` in image similar-pairs search so the transitive `bincode` 1.3 warning
 can be removed.

@@ -1,6 +1,6 @@
 # RFC 029 - Release smoke evidence template
 
-**Status.** Implemented (Unreleased)
+**Status.** Implemented (0.37.0)
 **Tracks.** Maintenance follow-up: make owner-managed release-smoke evidence
 repeatable and comparable across releases.
 **Touches.** `docs/src/dev/testing.md`,

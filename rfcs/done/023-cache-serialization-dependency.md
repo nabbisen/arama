@@ -1,6 +1,6 @@
 # RFC 023 - Cache serialization dependency strategy
 
-**Status.** Implemented (Unreleased)
+**Status.** Implemented (0.37.0)
 **Tracks.** Remaining audit-warning owner follow-up: decide whether arama can
 remove the `localcache` -> `bincode` 2.0.1 warning without destabilizing the
 cache engine or persistent cache payload format.

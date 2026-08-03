@@ -1,6 +1,6 @@
 # RFC 030: Distribution and version contract reconciliation
 
-**Status:** Implemented (Unreleased)
+**Status:** Implemented (0.37.0)
 
 ## Summary
 

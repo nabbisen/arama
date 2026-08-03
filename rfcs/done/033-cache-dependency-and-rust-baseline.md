@@ -1,6 +1,6 @@
 # RFC 033: Cache dependency correction and Rust source-build baseline
 
-**Status.** Implemented (Unreleased) — accepted by the project owner
+**Status.** Implemented (0.37.0) — accepted by the project owner
 2026-08-01 and implemented across handoff Tasks 1–4 the same day.
 
 **Deferred.** Similarity-dialog cache-error tier routing (Part B) did **not**

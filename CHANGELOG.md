@@ -7,6 +7,26 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+---
+
+## [0.37.0]
+
+**Before you upgrade:**
+
+- **FFmpeg is no longer downloaded by arama, on any platform.** If you are
+  upgrading from an earlier release on Linux or Windows and relied on
+  arama's managed ffmpeg download, video processing stops working until you
+  install a matching `ffmpeg`/`ffprobe` pair yourself, through a trusted
+  source for your platform. arama then discovers it automatically, or you
+  can point it at the install folder from Setup or Settings → AI. Image
+  browsing and search are unaffected. See "External ffmpeg authority" below.
+- **Rust baseline raised from 1.90 to 1.91.** This affects source builds and
+  `cargo install`. Executable-release users are unaffected. See "Rust
+  contributor baseline" below.
+
+Nothing else in this release changes compatibility with existing cache,
+settings, or media data.
+
 ### Changed
 
 - **Image similarity search dependency strategy.** Image similar-pairs search

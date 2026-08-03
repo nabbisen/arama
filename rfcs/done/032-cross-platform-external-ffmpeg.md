@@ -1,6 +1,6 @@
 # RFC 032: Cross-platform external FFmpeg
 
-**Status.** Implemented (Unreleased) — implementation closeout accepted
+**Status.** Implemented (0.37.0) — implementation closeout accepted
 2026-08-03. Supersedes [RFC 031](../archive/031-macos-ffmpeg-trust-boundary.md),
 now archived.
 
