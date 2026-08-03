@@ -120,9 +120,10 @@ Per-crate `readme` paths (corrected to the actual depth to the root
 | `crates/engine/sidecar`, `crates/ui/layout`, `crates/ui/main`, `crates/ui/widgets` | `../../../README.md` |
 
 A bump is now a one-line edit to `[workspace.package].version`. The
-canonical `authors` string is consolidated to
-`["nabbisen <nabbisen@scqr.net>"]` (the fuller form already present in
-most crates); see Open questions.
+canonical `authors` string is consolidated to the email-bearing form
+already present in most crates; see Open questions. (Superseded during
+implementation — the bare `["nabbisen"]` form was chosen instead, for the
+privacy reason recorded below.)
 
 ### (b) Remove the orphan `arama-storage` crate
 
@@ -261,7 +262,7 @@ implementation:
 3. **Canonical `authors`:** `["nabbisen"]` — the bare-name form, chosen
    over the email-bearing form for privacy / anti-spam reasons. The
    workspace already declared `["nabbisen"]`; the three crates that
-   carried `["nabbisen <nabbisen@scqr.net>"]` now inherit the bare form.
+   carried the email-bearing form now inherit the bare form.
 4. **`crates/engine/` grouping:** retained; `engine/sidecar` is
    unchanged (no flattening).
 

@@ -34,9 +34,8 @@ The installed `localcache` 0.20.0 crate source shows:
 - bincode serialization uses `bincode::config::legacy()` for wire-format
   compatibility.
 
-A local upstream checkout at
-`/home/nabbisen/Desktop/__dev__/dev-crates-lib/localcache-rs/localcache-rs-git`
-was inspected read-only. It was clean and matched the same dependency shape:
+A local upstream `localcache` checkout was inspected read-only. It was clean
+and matched the same dependency shape:
 `bincode` remains unconditional and no bincode-free codec/dependency route is
 present in that checkout.
 
