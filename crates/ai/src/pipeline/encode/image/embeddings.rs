@@ -51,6 +51,11 @@ struct EmbeddingAvailability {
 
 impl EmbeddingAvailability {
     fn initialization_error(self, paths: &[PathBuf]) -> Option<&'static str> {
+        if paths.is_empty() {
+            // No work to do is a vacuous success, not a failure: nothing
+            // downstream requires a modality we don't have.
+            return None;
+        }
         let has_image = paths.iter().any(|path| !is_video_path(path));
         let has_video = paths.iter().any(|path| is_video_path(path));
         (!(has_image && self.image_calculator || has_video && self.video_modality))
@@ -274,6 +279,17 @@ mod tests {
             availability.action_for(&paths[1]),
             EmbeddingPathAction::SkipVideo
         );
+    }
+
+    #[test]
+    fn empty_paths_is_vacuous_success_not_initialization_error() {
+        let availability = EmbeddingAvailability {
+            image_calculator: false,
+            video_pipeline: false,
+            video_modality: false,
+        };
+
+        assert_eq!(availability.initialization_error(&[]), None);
     }
 
     #[test]

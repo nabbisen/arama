@@ -118,7 +118,7 @@ impl App {
             }
         }
 
-        if clip::model().ready().unwrap_or(false) {
+        if clip::model().ready().unwrap_or(false) && !ret.is_empty() {
             let ffmpeg_toolchain = self.ffmpeg_authority.toolchain().cloned();
             let (task, handle) = Task::perform(
                 async move {

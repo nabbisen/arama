@@ -165,6 +165,9 @@ rather than an inferred pass.
   indicators.
 - **`SMOKE-GALLERY-FOCUS`** — Open a gallery item. The focus view opens and
   similar media are ordered by score when enough cache data exists.
+- **`SMOKE-GALLERY-EMPTY`** — Select a directory containing no media files.
+  The gallery reports no files and the footer shows a zero count, with no
+  error toast and no processing indicator left running.
 
 ### Similarity dialogs
 

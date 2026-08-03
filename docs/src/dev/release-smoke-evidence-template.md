@@ -50,6 +50,7 @@ the final two columns.
 | `SMOKE-GALLERY-INDEX` | `<result>` | | |
 | `SMOKE-GALLERY-SWITCH` | `<result>` | | |
 | `SMOKE-GALLERY-FOCUS` | `<result>` | | |
+| `SMOKE-GALLERY-EMPTY` | `<result>` | | |
 | `SMOKE-SIMILARITY-PAIRS` | `<result>` | | |
 | `SMOKE-SIMILARITY-SPARSE` | `<result>` | | |
 | `SMOKE-CACHE-SUMMARY` | `<result>` | | |
