@@ -1,6 +1,10 @@
 # RFC 031: macOS ffmpeg trust boundary
 
-**Status.** Proposed
+**Status.** Superseded by RFC 032 (2026-08-03). Its macOS external-acquisition,
+paired-toolchain, bounded-process, and legacy-exclusion work was carried forward
+into [RFC 032](../done/032-cross-platform-external-ffmpeg.md) and shipped there;
+its managed Linux/Windows download policy was rejected and never shipped. Retained
+as history and as the security-reasoning record behind the accepted design.
 **Tracks.** Remove automatic execution of unverified macOS ffmpeg downloads.
 **Touches.** `crates/engine/sidecar`, `crates/ai`, `crates/cache`,
 `crates/ui/main`, `crates/ui/widgets`, setup/settings UI and i18n, user and
@@ -26,18 +30,23 @@ required SHA-256 digest.
 ## Relationship to RFC 032
 
 The owner subsequently selected external user-managed FFmpeg on every
-platform. [RFC 032](./032-cross-platform-external-ffmpeg.md) supersedes this
-RFC's target-policy statements that retain, harden, document, test, or release
-the managed Linux/Windows download path. In particular, the affected material
-appears in the Summary, Parts A/B/D, documentation impact, compatibility,
-non-goals, acceptance criteria, required tests, and implementation sequence.
+platform. [RFC 032](../done/032-cross-platform-external-ffmpeg.md) supersedes
+this RFC's target-policy statements that retain, harden, document, test, or
+release the managed Linux/Windows download path. In particular, the affected
+material appears in the Summary, Parts A/B/D, documentation impact,
+compatibility, non-goals, acceptance criteria, required tests, and
+implementation sequence.
 
 Those statements remain here as history for the already reviewed RFC 031
-implementation checkpoints; they are not authority for new implementation or
-release work. RFC 031 remains Proposed and continues to own its macOS and
-paired-toolchain security evidence until RFC 032 is reviewed and the two RFCs
-are reconciled during implementation. Production code must not be changed for
-RFC 032 before that design review.
+implementation checkpoints; they are not authority for implementation or
+release work.
+
+**Reconciled 2026-08-03.** RFC 032's implementation closeout was accepted and
+the two RFCs were reconciled: this RFC moved to `archive/` as superseded, and
+RFC 032 moved to `done/` as Implemented (Unreleased). The macOS and
+paired-toolchain security work this RFC owned shipped under RFC 032. The
+paragraph below, and the dated implementation checkpoint further down, describe
+the state before that reconciliation and are retained unedited as history.
 
 ## Why now
 

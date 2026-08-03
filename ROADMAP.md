@@ -8,19 +8,22 @@ through the RFC process before code changes begin.
 
 ### Cross-platform external FFmpeg closeout
 
-**Status.** RFC 032 proposed; production migration committed; closeout
-evidence and lifecycle acceptance pending.
+**Status.** Complete. RFC 032 implemented (unreleased); implementation closeout
+accepted 2026-08-03; RFC 031 archived as superseded in the same change.
 
-**Why now.** Arama has removed managed FFmpeg acquisition and now uses a
-user-managed `ffmpeg`/`ffprobe` pair on every supported platform. The remaining
-work is to make the source-build baseline truthful, review the automated
-artifact-absence and real-media smoke tooling, record or explicitly defer
-native-platform evidence, and reconcile RFCs 031/032 before any release
-decision.
+**Outcome.** Arama removed managed FFmpeg acquisition and uses a user-managed
+`ffmpeg`/`ffprobe` pair on every supported platform. The source-build baseline
+is truthful and CI-enforced (RFC 033), the automated absence tooling passes for
+source and Cargo package listings, Linux x86_64 passed real-media smoke, and
+Windows/macOS carry an explicit owner risk acceptance recorded in
+[`rfcs/notes/native-smoke-risk-acceptance.md`](./rfcs/notes/native-smoke-risk-acceptance.md).
 
-RFC 031 remains proposed only as retained history and security context. RFC 032
-supersedes its managed Linux/Windows policy; the lifecycle transition is
-deliberately deferred until RFC 032 completion evidence is accepted.
+Three defects were found and fixed during closeout — a release-blocking
+Selected-directory startup hang, a missing required Setup action, and a
+prohibited download affordance — none of which automated gates detected. Two
+items are carried into release prep: archive and built-executable
+artifact-absence inspection, which has never run because no artifacts existed,
+and the ~15 release-smoke rows outside the FFmpeg subset.
 
 ### Near-term milestones
 
@@ -43,22 +46,25 @@ deliberately deferred until RFC 032 completion evidence is accepted.
    Implemented (Unreleased) and moved to `rfcs/done/` on 2026-08-01; the
    deferred dialog-routing work is recorded in its Status section pending a
    follow-up RFC.
-2. **Implementation closeout review.** Review the external-FFmpeg contract
-   check, native real-media smoke, maintainer documentation, package/source
-   absence evidence, and available MSRV/cross-target gates as one bounded
-   implementation checkpoint.
-3. **Native evidence review — decided 2026-08-01.** Linux x86_64 is the
-   executed target and passed real-media smoke; Windows x86_64 and Apple
-   Silicon macOS are `not run` with explicit owner risk acceptance; Intel macOS
-   and Linux aarch64 are closed as permanently `not run` on near-zero
-   incremental value. Rendered setup/Settings UI smoke on Linux remains
-   outstanding. The acceptance, the specific risks accepted, and the supporting
-   evidence are recorded in
+2. **Implementation closeout review — accepted 2026-08-03.** The
+   external-FFmpeg contract check, Linux real-media smoke, rendered setup and
+   Settings smoke, user and maintainer documentation, source and package
+   absence evidence, and the MSRV gate were reviewed as one bounded checkpoint.
+   Three defects were found, fixed, and re-verified before acceptance. Archive
+   and built-executable inspection is carried into release prep.
+3. **Native evidence review — decided 2026-08-01, re-confirmed 2026-08-03.**
+   Linux x86_64 is the executed target and passed real-media and rendered smoke;
+   Windows x86_64 and Apple Silicon macOS are `not run` with explicit owner risk
+   acceptance, re-confirmed knowing what closeout found; Intel macOS and Linux
+   aarch64 are closed on near-zero incremental value. The acceptance, the
+   specific risks, and the supporting evidence are recorded in
    [`rfcs/notes/native-smoke-risk-acceptance.md`](./rfcs/notes/native-smoke-risk-acceptance.md).
    No result is inferred from another platform.
-4. **RFC reconciliation.** After completion evidence is accepted, archive RFC
-   031 as superseded by RFC 032, move RFC 032 to implemented, and update the RFC
-   index, roadmap, and cross-references atomically.
+4. **RFC reconciliation — done 2026-08-03.**
+   [RFC 031](./rfcs/archive/031-macos-ffmpeg-trust-boundary.md) archived as
+   superseded; [RFC 032](./rfcs/done/032-cross-platform-external-ffmpeg.md)
+   moved to `done/` as Implemented (Unreleased); the RFC index, handoff, this
+   roadmap, and all cross-references updated in the same atomic change.
 5. **Release checkpoint.** Treat the completed external-FFmpeg theme and the
    accumulated unreleased RFC batch as a candidate release boundary. Audit,
    packaging, versioning, and publication remain separate owner-authorized

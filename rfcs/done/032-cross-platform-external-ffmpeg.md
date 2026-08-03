@@ -1,6 +1,15 @@
 # RFC 032: Cross-platform external FFmpeg
 
-**Status.** Proposed
+**Status.** Implemented (Unreleased) — implementation closeout accepted
+2026-08-03. Supersedes [RFC 031](../archive/031-macos-ffmpeg-trust-boundary.md),
+now archived.
+
+**Native verification.** Linux x86_64 passed real-media smoke; Windows x86_64 and
+Apple Silicon macOS are recorded `not run` under an explicit owner risk
+acceptance; Intel macOS and Linux aarch64 are closed as out of scope. See
+[`rfcs/notes/native-smoke-risk-acceptance.md`](../notes/native-smoke-risk-acceptance.md).
+Archive and built-executable artifact-absence inspection is deferred to release
+packaging and has not yet run.
 **Tracks.** Replace arama-managed FFmpeg acquisition with user-managed external
 toolchains on Linux, Windows, and macOS.
 **Touches.** `crates/engine/sidecar`, `crates/ui/main`, `crates/ui/widgets`,

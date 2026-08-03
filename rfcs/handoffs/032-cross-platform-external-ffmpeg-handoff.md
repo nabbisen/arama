@@ -1,17 +1,17 @@
 # RFC 032 Handoff — Cross-platform external FFmpeg
 
-Companion to [RFC 032](../proposed/032-cross-platform-external-ffmpeg.md).
-RFC 032 remains **Proposed** while implementation closeout and native evidence
-are reviewed. This handoff records how to verify and finish the accepted design;
-it does not change the RFC's lifecycle state.
+Companion to [RFC 032](../done/032-cross-platform-external-ffmpeg.md).
+RFC 032 is **Implemented (Unreleased)**; its implementation closeout was accepted
+2026-08-03 and RFC 031 was archived as superseded in the same change. This
+handoff is retained as the historical execution record for that work.
 
 ## 1. Design authority and precedence
 
 The implementation and its reviews must be checked against:
 
-1. [RFC 032 — Cross-platform external FFmpeg](../proposed/032-cross-platform-external-ffmpeg.md),
+1. [RFC 032 — Cross-platform external FFmpeg](../done/032-cross-platform-external-ffmpeg.md),
    the primary product and cross-platform policy;
-2. [RFC 031 — macOS ffmpeg trust boundary](../proposed/031-macos-ffmpeg-trust-boundary.md),
+2. [RFC 031 — macOS ffmpeg trust boundary](../archive/031-macos-ffmpeg-trust-boundary.md),
    for the paired-toolchain, bounded-process, legacy-exclusion, and macOS
    security requirements retained by RFC 032;
 3. [RFC 030 — Distribution and version contract reconciliation](../done/030-distribution-and-version-contracts.md),
@@ -153,7 +153,7 @@ Primary implementation seams:
 
 ### Lifecycle and release boundaries
 
-- [ ] RFC 031 remains Proposed until RFC 032 completion review is accepted.
-- [ ] RFC 032 remains Proposed until its closeout contract is accepted.
+- [x] RFC 031 archived as superseded and RFC 032 moved to `done/` — done
+      2026-08-03, after the closeout contract was accepted.
 - [ ] Lifecycle reconciliation is performed as one reviewed change.
 - [ ] Release/version/package publication remains separately owner-authorized.

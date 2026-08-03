@@ -39,5 +39,5 @@ feature work, so it has no handoff.
 | 012 | [Workspace housekeeping](./012-workspace-housekeeping-handoff.md) | 0.35.0 |
 | 013 | [ELOC splits](./013-eloc-splits-handoff.md) | 0.36.0 |
 | 014 | [Explorer aside tree toggle](./014-aside-tree-toggle-handoff.md) | 0.36.1 |
-| 032 | [Cross-platform external FFmpeg](./032-cross-platform-external-ffmpeg-handoff.md) | Proposed; closeout pending |
+| 032 | [Cross-platform external FFmpeg](./032-cross-platform-external-ffmpeg-handoff.md) | Implemented; unreleased |
 | 033 | [Cache dependency and Rust baseline](./033-cache-dependency-and-rust-baseline-handoff.md) | Implemented; unreleased |
