@@ -47,6 +47,12 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      # Let every variant report rather than cancelling the rest on the
+      # first failure. The gate is the `release` job's `needs:`
+      # relationship, not matrix cancellation — under the required order a
+      # failure now costs a whole tag-and-retry cycle, so seeing every
+      # broken variant in one run turns three retries into one.
+      fail-fast: false
       matrix:
         include:
           - name: Linux-x64-gnu-cpu
@@ -252,6 +258,11 @@ jobs:
           merge-multiple: true
           path: dist
 
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - name: Create release if it does not already exist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -260,6 +271,14 @@ jobs:
           # an already-created release (Part B: idempotent recovery).
           if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
             echo "Release ${{ github.ref_name }} already exists; reusing it."
+          # Every tag in this repo is annotated, and the annotation is
+          # where the human-written release notes live (e.g. 0.37.0's
+          # "Before you upgrade:" block) — --generate-notes only produces
+          # an auto-generated commit/PR list and would silently drop that.
+          elif git for-each-ref "refs/tags/${{ github.ref_name }}" --format='%(contents)' | grep -q .; then
+            gh release create "${{ github.ref_name }}" \
+              --title "${{ github.ref_name }}" \
+              --notes-from-tag
           else
             gh release create "${{ github.ref_name }}" \
               --title "${{ github.ref_name }}" \
