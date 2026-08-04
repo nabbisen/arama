@@ -106,6 +106,39 @@ what the upload step already expects. Under `workflow_dispatch` against a
 branch it is the branch name — so the dispatch path must **not** attempt to
 upload. Dispatch is build-verification only (Part C).
 
+**4.6 SemVer pre-release tags** (RFC 034 Part E, owner-accepted 2026-08-04).
+Three pieces, all required together — implementing any one alone produces a
+worse state than not implementing it:
+
+- **E1** a second anchored trigger pattern, `'[0-9]+.[0-9]+.[0-9]+-*'`. Tag
+  filters are **glob, not regex**; the hyphen must be required so the pattern
+  cannot match arbitrary tags.
+- **E2** detect the suffix and pass `--prerelease` to `gh release create`.
+  GitHub does not infer prerelease status from the tag name, so without this a
+  `-pre.1` release takes the "Latest" badge from the previous final version.
+- **E3** the manifest version must equal the tag. `version.sh` runs for a
+  pre-release exactly as for a final release, and the final release bumps again
+  to strip the suffix. Two bumps per cycle is accepted.
+
+**Do not** implement E1 without E2 and E3. A pre-release tag that publishes as
+"Latest", or whose binaries report a different version than the release name,
+is worse than having no pre-release support at all.
+
+`docs/src/dev/release.md` must describe the pre-release path alongside the
+final-release one, including the two-bump sequence.
+
+## 4.7 Corrections from review 076 — apply before verifying
+
+Both fix defects that would otherwise be found by spending a throwaway tag on a
+workflow about to change:
+
+- **Release notes.** `--generate-notes` loses the annotated tag's content. 0.37.0
+  used `--notes-from-tag`, and its annotation carried the hand-written
+  "Before you upgrade" block. Prefer the annotation, fall back only if absent.
+- **`fail-fast`.** Set `fail-fast: false` on the build matrix. Blocking is
+  enforced by the `needs:` relationship, not by matrix cancellation, so letting
+  every variant report turns several tag-and-retry cycles into one.
+
 ## 5. Change scope
 
 - `.github/workflows/release-executable.yaml`
@@ -135,9 +168,37 @@ Steps 1–3 prove the happy path. **Step 4 proves the property the owner actuall
 decided**, and this channel has only ever failed in ways the happy path would
 not catch.
 
-**Throwaway tag hygiene.** Step 2 needs a tag matching the trigger pattern,
-which means it creates a real release. Use a clearly disposable patch version,
-then delete both the release and the tag afterwards, and confirm the deletion.
+**Throwaway tag: `0.0.1`** — owner-accepted 2026-08-04, after the alternatives
+were weighed and rejected. Verified free: arama's tag history starts at
+`0.1.0`, so there is no collision with a real historical tag.
+
+**Run the failure test before the success test.** If a broken variant behaves
+correctly, **no release is ever created** — the public artifact is a tag and a
+red Actions run. Running it first therefore minimises exposure and front-loads
+the test most likely to reveal a design error.
+
+**What deletion does and does not remove.** `gh release delete` plus a remote
+tag delete removes the tag and the release. It does **not** remove the Actions
+run entry, the repository event-feed records, or any clone fetched during the
+window. The tag is volatile; the record is not. Keep the window short.
+
+Cleanup, in this order, then confirm with `gh release list` and
+`git ls-remote --tags origin`:
+
+```sh
+gh release delete 0.0.1 --yes          # only if a release exists
+git push origin :refs/tags/0.0.1
+git tag -d 0.0.1
+```
+
+**Do not** use `gh release edit --draft` for cleanup — on a published release it
+detaches the release from its tag.
+
+**The trigger pattern itself is unverified.** `workflow_dispatch` bypasses the
+tag filter entirely, so it cannot validate the glob. The first tag push tests
+two things at once — whether push-on-tag fires, and whether the pattern is
+written correctly. If it does not fire, distinguish those before concluding
+anything.
 
 **A hazard found during 0.37.0:** `gh release edit --draft` on a published
 release **detaches it from its tag** — the URL becomes

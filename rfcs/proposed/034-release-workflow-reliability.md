@@ -143,6 +143,55 @@ from a successful one without manually inspecting the run list.
 Minimum: add an explicit check to `docs/src/dev/release.md`'s checklist. Better:
 a job step that fails when the expected asset count is not present.
 
+### Part E — SemVer pre-release tags (scope addition, owner-accepted 2026-08-04)
+
+Support tags carrying a SemVer pre-release identifier — `0.38.0-pre.1`,
+`0.38.0-rc.2` — as first-class release triggers.
+
+**Why it belongs here.** A pre-release lets a version be exercised end to end
+before its final tag is spent. If `0.38.0-pre.1` fails to trigger or fails a
+variant, `0.38.0` is still untouched; without it, a failed `0.38.0` must be
+deleted and re-pushed or abandoned for `0.38.1`. That is a reliability
+property, which is this RFC's subject.
+
+**This is a capability, not a testing device.** Done properly it costs the same
+bookkeeping as a release — see the manifest requirement below. It does not make
+verifying the trigger cheap, and must not be adopted on the assumption that it
+does.
+
+Three pieces, all required together:
+
+**E1 — Trigger pattern.** A second, deliberately anchored pattern:
+
+```yaml
+tags:
+  - '[0-9]+.[0-9]+.[0-9]+'
+  - '[0-9]+.[0-9]+.[0-9]+-*'
+```
+
+GitHub Actions tag filters are **glob, not regex**: `+` means one or more of
+the preceding character and `.` is literal. The suffix pattern must require the
+hyphen so it cannot match arbitrary tags.
+
+**E2 — Prerelease flag.** GitHub does **not** infer prerelease status from a
+tag name. `gh release create` defaults to a full release, so a `-pre.1` tag
+would publish as a normal release and take the "Latest" badge from the previous
+final version. The workflow must detect the suffix and pass `--prerelease`.
+
+**E3 — The manifest must match the tag.** The workflow builds from the tagged
+commit, so the binary reports whatever `[workspace.package].version` says. A
+`0.38.0-pre.1` tag against a `0.37.0` manifest ships binaries claiming 0.37.0
+inside a release named 0.38.0-pre.1.
+
+`version.sh` must therefore be run for a pre-release exactly as for a final
+one, and the final release bumps again to strip the suffix. **Two bumps per
+release cycle is the accepted cost.**
+
+The alternative — manifest at `0.38.0`, tag at `0.38.0-pre.1` — is rejected. It
+reintroduces the mismatch class this project has repeatedly had to correct:
+documentation or metadata asserting something the delivered artifact does not
+match. RFC 033 Part E's single-normative-declaration rule applies unchanged.
+
 ## Non-goals
 
 - No change to what is built — the five-variant matrix, targets, and CUDA
