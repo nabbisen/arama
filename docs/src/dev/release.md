@@ -100,7 +100,12 @@ For any RFCs that ship in this release:
 - Add implementation notes if the as-built design deviated.
 - Update `rfcs/README.md`.
 
-### 5. Package the archive
+### 5. Package the archive (local sanity check)
+
+CI produces the release's authoritative source archive (step 7 below).
+Building it locally first is a pre-tag sanity check, not the release
+action itself — it catches a layout or exclusion mistake before the tag
+push commits to it.
 
 From the workspace root, archive the project so the files sit at the
 **root** of the tarball — no wrapping directory — so it unpacks
@@ -137,15 +142,76 @@ Confirm the top-level entries are the project files themselves
 (`./Cargo.toml`, `./app/`, …) and **not** a wrapping `arama-X.Y.Z/`
 directory.
 
+### 7. Push the tag — this triggers the release
+
+Commit steps 1–4 to `main`, then push a tag matching the release version,
+with no `v` prefix:
+
+```sh
+git tag X.Y.Z
+git push origin X.Y.Z
+```
+
+The tag push triggers `.github/workflows/release-executable.yaml`, which
+**creates the release itself** (RFC 034) — nothing here is a manual `gh
+release create` step. The workflow's required order:
+
+```text
+tag push
+   │
+   ▼
+build all five executable variants + the source archive
+   │  (all succeeded)
+   ▼
+create the release
+   │
+   ▼
+attach all six assets           ← --clobber, safe to re-run
+   │
+   ▼
+verify the expected asset count
+```
+
+**Nothing is published until every variant has succeeded.** A failed
+variant leaves the tag with no release — visible in the Actions run, and
+recoverable by pushing a fix and re-running — rather than a published
+release with some assets missing.
+
+Before pushing a real release tag, `workflow_dispatch` against `main`
+proves all five executable variants build without creating or uploading
+anything (Part C). This is cheap pre-tag verification; a variant failure
+after the tag exists costs a whole tag-and-retry cycle instead.
+
+### 8. Verify the published release
+
+```sh
+gh release view X.Y.Z
+```
+
+Confirm all **six** assets are attached: five executables
+(`arama@<variant>-X.Y.Z.<ext>`) and one source archive
+(`arama-X.Y.Z.tar.gz`, the same contract-compliant archive from steps 5–6
+— **not** GitHub's auto-generated "Source code" links, which wrap in a
+`<repo>-<sha>/` directory and do not satisfy the contract). The workflow's
+own asset-count check makes this redundant in the ordinary case; run it
+anyway as the human-facing confirmation.
+
 ## Distribution contracts
 
 The three release channels have deliberately different contracts:
 
 | Channel | Naming | Layout or resolution | Produced by |
 |---|---|---|---|
-| Source archive | `arama-X.Y.Z.tar.gz` | Project files at archive root; no wrapper | Owner source-release step |
-| Executable asset | `arama@<variant>-<tag>.<ext>` | One same-named wrapping directory containing the binary | GitHub release executable workflow |
+| Source archive | `arama-X.Y.Z.tar.gz` | Project files at archive root; no wrapper | GitHub release executable workflow (`source-archive` job), from the tagged commit |
+| Executable asset | `arama@<variant>-<tag>.<ext>` | One same-named wrapping directory containing the binary | GitHub release executable workflow (`build` job) |
 | crates.io | `arama` plus internal `arama-*` packages | Published registry dependency graph | Owner-staged publication |
+
+Both the source archive and the executable assets are produced and attached
+by the same workflow, from the same tag push (RFC 034) — the owner's local
+build in steps 5–6 is a pre-tag sanity check, not a separate release action.
+GitHub's own auto-generated "Source code" archives are not the source-archive
+channel; they always exist alongside a release regardless of this workflow
+and carry a wrapping directory that does not satisfy this project's contract.
 
 The executable workflow currently produces Linux x86_64 CPU/CUDA, Apple
 Silicon macOS, and Windows x86_64 CPU/CUDA assets. Its wrapping directory is
@@ -200,9 +266,16 @@ release review package.
 - [ ] `CHANGELOG.md` updated
 - [ ] RFC files moved and status fields updated
 - [ ] `rfcs/README.md` updated
-- [ ] Archive created with files at the root (no parent directory)
-- [ ] Archive excludes `.git/`, `.git-exclude/`, `target/`, and generated
-      `docs/book/`
+- [ ] Local sanity archive built with files at the root (no parent directory)
+- [ ] Local sanity archive excludes `.git/`, `.git-exclude/`, `target/`, and
+      generated `docs/book/`
+- [ ] `workflow_dispatch` run against `main` before tagging, for a release
+      that changed platform-conditional code (Part C)
+- [ ] Tag pushed (`X.Y.Z`, no `v` prefix); release-executable workflow
+      completed with all jobs succeeding
+- [ ] Published release has all six assets: five executables plus the
+      contract-compliant source archive — verified via `gh release view`,
+      not inferred from the workflow's own green checkmark
 - [ ] Source, executable, and crates.io artifact contracts checked separately
 - [ ] crates.io dry-run/publication follows dependency order with `arama` last
 - [ ] `NOTICE` updated if new third-party components were added
