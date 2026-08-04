@@ -56,6 +56,12 @@ Cargo-install or source-build route instead.
 The `arama` package and its internal packages are published on crates.io.
 Cargo downloads and builds that graph locally; this is not a pre-built binary.
 
+> **This route can lag.** crates.io publication happens at stable release
+> points rather than at every release, so the version available here may be
+> older than the source archive and executable assets — currently **0.36.2**,
+> which predates the external-ffmpeg change described below. Use Route 1 or
+> Route 3 if you need the current behaviour.
+
 ```sh
 cargo install arama --locked
 arama
