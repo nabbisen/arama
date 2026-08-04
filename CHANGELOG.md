@@ -20,6 +20,13 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
   resolving RUSTSEC-2026-0221 (an unsound `!Send` tag crossing thread
   boundaries via `StackSlot`). No ignore or override was needed.
 
+### Changed
+
+- **Routine dependency maintenance.** `localcache` moved from `0.21.0` to
+  `0.21.2`; the resolved `rusqlite`/`libsqlite3-sys` chain RFC 033 selected
+  is unchanged, and the cache suite including the `ReadPool` poisoning tests
+  passes unmodified. No behavior change.
+
 ---
 
 ## [0.37.0]
