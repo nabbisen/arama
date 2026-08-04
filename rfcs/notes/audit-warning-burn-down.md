@@ -96,6 +96,21 @@ does not change dependencies, add audit ignores, or introduce
 `cargo audit --deny warnings`; it only records the current owner paths and
 clarifies that allowed warnings still require rationale and revisit conditions.
 
+## Event-listener Follow-up
+
+`event-listener` 5.4.1 was flagged by `cargo audit` as RUSTSEC-2026-0221 (an
+unsound `!Send` tag crossing thread boundaries via `StackSlot`), reaching
+arama via `zbus` and the `async-*` desktop-portal stack behind `rfd` and
+`file-handle` — not via `localcache`. This note never listed it: a Task 008
+review request claimed all five then-current warnings were "already
+tracked," and review 073 found that claim wrong, since this ledger has only
+ever recorded the four below.
+
+Task 010 Item A resolved it directly: `cargo update -p event-listener`
+moved the locked graph to 5.4.2, published and unyanked, which does not
+carry the advisory. `cargo audit`'s allowed-warning count went from five to
+four as a result. No ignore, patch, or override was needed.
+
 ## Remaining Warnings
 
 ### `bincode` 2.0.1

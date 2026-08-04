@@ -14,6 +14,12 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
   compile for that target). This is the difference between arama having
   Windows executable release assets and not having them.
 
+### Security
+
+- **Audit warning burn-down.** `event-listener` moved from `5.4.1` to `5.4.2`,
+  resolving RUSTSEC-2026-0221 (an unsound `!Send` tag crossing thread
+  boundaries via `StackSlot`). No ignore or override was needed.
+
 ---
 
 ## [0.37.0]
