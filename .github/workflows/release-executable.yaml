@@ -16,7 +16,13 @@ name: Executable
 # recoverable — rather than a published release missing assets.
 on:
   push:
-    tags: ['[0-9]+.[0-9]+.[0-9]+']
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+      # Part E: SemVer pre-release tags (e.g. `0.38.0-pre.1`). A second,
+      # separately anchored pattern rather than widening the first — tag
+      # filters are glob, not regex, and the hyphen must be required so
+      # this cannot also match arbitrary non-numeric tags.
+      - '[0-9]+.[0-9]+.[0-9]+-*'
   # Manual fallback and Part C's pre-tag verification: dispatched against a
   # branch, `github.ref_type` is `branch`, so the `source-archive` and
   # `release` jobs (both gated on `github.ref_type == 'tag'`) do not run.
@@ -89,6 +95,24 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Verify manifest version matches the tag
+        # Only meaningful for an actual tag push — under workflow_dispatch
+        # against a branch, `env.TAG` is the branch name, which correctly
+        # never matches a version and would otherwise always fail Part C's
+        # build-only verification.
+        if: github.ref_type == 'tag'
+        run: |
+          # Part E3: the tag is the version, including any pre-release
+          # suffix. A pre-release tag whose binaries report a different
+          # version than the release name is worse than no pre-release
+          # support at all — fail fast here rather than shipping the
+          # mismatch.
+          MANIFEST_VERSION=$(grep -m1 '^version' Cargo.toml | sed -E 's/^version *= *"([^"]*)".*/\1/')
+          if [ "${MANIFEST_VERSION}" != "${{ env.TAG }}" ]; then
+            echo "::error::[workspace.package].version (${MANIFEST_VERSION}) does not match the tag (${{ env.TAG }})"
+            exit 1
+          fi
 
       - name: Cache cargo dependencies and build
         uses: actions/cache@v5
@@ -211,6 +235,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Verify manifest version matches the tag
+        run: |
+          # Part E3, same check as the build job — this job is already
+          # gated to tag pushes only, so no branch-dispatch exemption is
+          # needed here.
+          MANIFEST_VERSION=$(grep -m1 '^version' Cargo.toml | sed -E 's/^version *= *"([^"]*)".*/\1/')
+          if [ "${MANIFEST_VERSION}" != "${{ github.ref_name }}" ]; then
+            echo "::error::[workspace.package].version (${MANIFEST_VERSION}) does not match the tag (${{ github.ref_name }})"
+            exit 1
+          fi
+
       # Mirrors docs/src/dev/release.md exactly: files at archive root, no
       # wrapping directory. GitHub's auto-generated "Source code" links do
       # not satisfy this contract (they wrap in a `<repo>-<sha>/`
@@ -267,6 +302,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Part E2: GitHub does not infer prerelease status from the tag
+          # name. Without this, a `-pre.1` tag would take the "Latest"
+          # badge from the previous final release. The trigger only
+          # accepts `X.Y.Z` or `X.Y.Z-*` (E1), so a hyphen reliably means
+          # pre-release within that constrained set.
+          PRERELEASE_FLAG=()
+          case "${{ github.ref_name }}" in
+            *-*) PRERELEASE_FLAG=(--prerelease) ;;
+          esac
+
           # Re-running after a fix (e.g. an upload retry) must not fail on
           # an already-created release (Part B: idempotent recovery).
           if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
@@ -278,11 +323,13 @@ jobs:
           elif git for-each-ref "refs/tags/${{ github.ref_name }}" --format='%(contents)' | grep -q .; then
             gh release create "${{ github.ref_name }}" \
               --title "${{ github.ref_name }}" \
-              --notes-from-tag
+              --notes-from-tag \
+              "${PRERELEASE_FLAG[@]}"
           else
             gh release create "${{ github.ref_name }}" \
               --title "${{ github.ref_name }}" \
-              --generate-notes
+              --generate-notes \
+              "${PRERELEASE_FLAG[@]}"
           fi
 
       - name: Upload assets to the release
