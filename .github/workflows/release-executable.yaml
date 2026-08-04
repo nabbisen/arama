@@ -41,7 +41,11 @@ env:
   PRODUCT_BASENAME: arama
   TAG: ${{ github.ref_name }}            # tag or branch name
   JOB_WORKDIR: tmp-${{ github.run_id }}  # unique number
-  CUDA_VERSION: '13.1.0'
+  # Task 011: the windows-latest runner's MSVC toolset requires CUDA 13.2
+  # or newer (candle-kernels' build script failed with STL1002 at 13.1.0).
+  # Raising this also required raising the Jimver/cuda-toolkit pin below,
+  # since the previously pinned action version did not offer 13.2.x.
+  CUDA_VERSION: '13.2.2'
   CUDA_COMPUTE_CAPS: 86
   # 5 executable variants (the build matrix) + 1 contract-compliant source
   # archive (the source-archive job). Part D: "all variants built" and "all
@@ -129,8 +133,8 @@ jobs:
       # linux and windows
       - name: cuda toolkit setup
         if: matrix.cuda_enabled == true
-        # v0.2.30 - b6fc3a9
-        uses: Jimver/cuda-toolkit@b6fc3a9f3f15256d9d94ffe1254f9c5a2565cde6
+        # v0.2.36 - b8bf9c6 (Task 011: v0.2.30 did not offer CUDA 13.2.x)
+        uses: Jimver/cuda-toolkit@b8bf9c6c28f8a92fbb04dcfcaee872e60c57462d
         with:
           cuda: ${{ env.CUDA_VERSION }}
           method: 'network'
