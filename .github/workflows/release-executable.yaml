@@ -165,6 +165,13 @@ jobs:
               throw "MSVC Bin path not found"
           }
 
+          # Task 011 phase 2: CUDA 13.2's cccl headers hard-require MSVC's
+          # standard-conforming preprocessor and #error out under the
+          # traditional one. -Xcompiler forwards the flag from nvcc to
+          # cl.exe; NVCC_APPEND_FLAGS is read directly by nvcc, so this
+          # needs no candle-kernels/cudarc patch.
+          echo "NVCC_APPEND_FLAGS=-Xcompiler /Zc:preprocessor" >> $env:GITHUB_ENV
+
       # [ build ]
       - name: Install Rust
         run: bash .github/workflows/scripts/install-rust.sh stable ${{ matrix.target }}
