@@ -40,4 +40,6 @@ feature work, so it has no handoff.
 | 013 | [ELOC splits](./013-eloc-splits-handoff.md) | 0.36.0 |
 | 014 | [Explorer aside tree toggle](./014-aside-tree-toggle-handoff.md) | 0.36.1 |
 | 032 | [Cross-platform external FFmpeg](./032-cross-platform-external-ffmpeg-handoff.md) | Implemented; unreleased |
-| 033 | [Cache dependency and Rust baseline](./033-cache-dependency-and-rust-baseline-handoff.md) | Implemented; unreleased |
+| 033 | [Cache dependency and Rust baseline](./033-cache-dependency-and-rust-baseline-handoff.md) | 0.37.0 |
+| 034 | [Release workflow reliability](./034-release-workflow-reliability-handoff.md) | Proposed; accepted for implementation |
+| 035 | [Similarity-dialog cache-error routing](./035-similarity-dialog-error-routing-handoff.md) | Proposed; accepted for implementation |
