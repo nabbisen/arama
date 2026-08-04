@@ -9,7 +9,8 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| — | (none currently) | |
+| 034 | [Release workflow reliability](./proposed/034-release-workflow-reliability.md) | High |
+| 035 | [Similarity-dialog cache-error routing](./proposed/035-similarity-dialog-error-routing.md) | Medium |
 
 ## Implemented
 
