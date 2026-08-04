@@ -4,234 +4,128 @@ This roadmap records near-term project themes that are specific enough to
 guide planning but not yet implementation promises. Non-trivial themes move
 through the RFC process before code changes begin.
 
+Themes are agreed jointly by the project owner and the architect. The current
+set was agreed on 2026-08-03, after 0.37.0 shipped and the RFC queue emptied.
+
 ## Current focus
 
-### Cross-platform external FFmpeg closeout
+### A — Release and CI reliability
 
-**Status.** Complete. RFC 032 implemented (unreleased); implementation closeout
-accepted 2026-08-03; RFC 031 archived as superseded in the same change.
+**Status.** Agreed 2026-08-03. RFC 034 to be proposed.
 
-**Outcome.** Arama removed managed FFmpeg acquisition and uses a user-managed
-`ffmpeg`/`ffprobe` pair on every supported platform. The source-build baseline
-is truthful and CI-enforced (RFC 033), the automated absence tooling passes for
-source and Cargo package listings, Linux x86_64 passed real-media smoke, and
-Windows/macOS carry an explicit owner risk acceptance recorded in
-[`rfcs/notes/native-smoke-risk-acceptance.md`](./rfcs/notes/native-smoke-risk-acceptance.md).
+**Why now.** 0.37.0 released with its source archive and **no executable
+assets, and no workflow run queued at all**. The cause is still unexplained:
+the workflow is active, its trigger is correct on the default branch, and
+GitHub registered two `release … published` events — yet no run started, on
+either attempt.
 
-Three defects were found and fixed during closeout — a release-blocking
-Selected-directory startup hang, a missing required Setup action, and a
-prohibited download affordance — none of which automated gates detected. Two
-items are carried into release prep: archive and built-executable
-artifact-absence inspection, which has never run because no artifacts existed,
-and the ~15 release-smoke rows outside the FFmpeg subset.
+That incident exposed four independent ways the release channel can silently
+produce nothing, each indistinguishable to the operator from success:
 
-### Near-term milestones
+1. the trigger listened for `created`, which does not fire for a release
+   created already-published;
+2. a trigger change may not be live the instant its push completes;
+3. `workflow_dispatch` resolves the workflow from the *dispatched ref*, so a
+   fallback added after a tag exists cannot rescue that tag's release;
+4. one further cause, still unidentified.
 
-1. **Source-build baseline (RFC 033) — implemented, unreleased.**
-   `localcache` moved to 0.21.0: the `rusqlite`/toolchain resolution defect is
-   fixed, and `ReadPool`'s silent poisoned-guard recovery is replaced with a
-   reported error, proven by a crate-internal test at pool size 1 (the
-   condition under which `ReadPool::checkout`'s blocking fallback, not its
-   `try_lock` scan, reports poisoning). Rust 1.91 is declared as arama's
-   verified contributor-setup baseline (`[workspace.package].rust-version`,
-   the workspace's only normative declaration) and enforced by a new,
-   single `MSRV` CI job that reads the declaration from `Cargo.toml` rather
-   than restating it, on push and pull request against `main`. The baseline
-   is deliberately **not** the lowest version the graph permits — arama is
-   an application, not a library, so the declaration exists for contributor
-   setup and release stability. Similarity-dialog cache-error tier routing
-   was explicitly deferred to a follow-up RFC (RFC 033 Part B); the Cache
-   page already satisfied its blocking-view case with no change needed.
-   [RFC 033](./rfcs/done/033-cache-dependency-and-rust-baseline.md) is
-   Implemented (Unreleased) and moved to `rfcs/done/` on 2026-08-01; the
-   deferred dialog-routing work is recorded in its Status section pending a
-   follow-up RFC.
-2. **Implementation closeout review — accepted 2026-08-03.** The
-   external-FFmpeg contract check, Linux real-media smoke, rendered setup and
-   Settings smoke, user and maintainer documentation, source and package
-   absence evidence, and the MSRV gate were reviewed as one bounded checkpoint.
-   Three defects were found, fixed, and re-verified before acceptance. Archive
-   and built-executable inspection is carried into release prep.
-3. **Native evidence review — decided 2026-08-01, re-confirmed 2026-08-03.**
-   Linux x86_64 is the executed target and passed real-media and rendered smoke;
-   Windows x86_64 and Apple Silicon macOS are `not run` with explicit owner risk
-   acceptance, re-confirmed knowing what closeout found; Intel macOS and Linux
-   aarch64 are closed on near-zero incremental value. The acceptance, the
-   specific risks, and the supporting evidence are recorded in
-   [`rfcs/notes/native-smoke-risk-acceptance.md`](./rfcs/notes/native-smoke-risk-acceptance.md).
-   No result is inferred from another platform.
-4. **RFC reconciliation — done 2026-08-03.**
-   [RFC 031](./rfcs/archive/031-macos-ffmpeg-trust-boundary.md) archived as
-   superseded; [RFC 032](./rfcs/done/032-cross-platform-external-ffmpeg.md)
-   moved to `done/` as Implemented (Unreleased); the RFC index, handoff, this
-   roadmap, and all cross-references updated in the same atomic change.
-5. **Release checkpoint.** Treat the completed external-FFmpeg theme and the
-   accumulated unreleased RFC batch as a candidate release boundary. Audit,
-   packaging, versioning, and publication remain separate owner-authorized
-   work. Before release authorization, every required native target row must
-   record `pass`, `fail`, `not run`, or `environment-dependent`; every executed
-   row must pass, any failure blocks release, and every unavailable row requires
-   an explicit owner risk acceptance rather than an inferred pass. At least one
-   available native target must pass the real-media and artifact-absence
-   checks.
+Items 1 and 3 were fixed during the release itself (commit `8950240`:
+`types: [published]`, plus `workflow_dispatch`). Those are **shipped**, and
+RFC 034 documents rather than re-proposes them.
 
-## Recently implemented, unreleased
+This theme is first because the release channel is the mechanism by which all
+other work reaches users, and it is currently the least trustworthy part of the
+project.
 
-### Distribution and version contract reconciliation
+**Planned RFCs.**
 
-**Status.** RFC 030 implemented; unreleased.
+- **RFC 034 — release workflow reliability.** Primary recommendation:
+  tag-push-triggered release creation, which removes causes 1–3 structurally —
+  the tag carries the workflow that will run, the trigger is `push`, and the
+  ref is a tag by construction. Plus `--clobber` on the upload step so re-runs
+  are idempotent, and pre-release build verification via `workflow_dispatch`
+  against a branch.
+- **A sibling RFC — native smoke on CI runners** (previously "route B").
+  Extends automated native smoke to the `windows-latest` and `macos-latest`
+  runners the release workflow already uses, covering the two highest-value
+  unverified targets without owning hardware. Supersedes the corresponding rows
+  in [`rfcs/notes/native-smoke-risk-acceptance.md`](./rfcs/notes/native-smoke-risk-acceptance.md)
+  once it lands. It cannot cover Finder-launch `PATH` inheritance or rendered
+  UI, which stay desktop-only.
 
-**Why now.** Source, executable, and crates.io distribution contracts are now
-distinct, while the version helper remains independent of workspace topology
-and updates only the package version inherited by members.
+**Evidence this theme is worth its cost.** Four defects were found during the
+0.37.0 cycle — a release-blocking startup hang, a missing required action, a
+prohibited affordance, and a false first-run error. **None was found by
+automated gates**, which were green throughout the period all four existed.
+Three came from rendered smoke; the fourth from the owner running the
+application independently.
 
-### Release smoke evidence template
+## Next
 
-**Status.** RFC 029 implemented; unreleased.
+### B — Quality debt
 
-**Why now.** The RFC 025 checklist now has stable smoke IDs and a reusable
-owner evidence template for recording pass, fail, not-run, and
-environment-dependent results without adding desktop UI automation or
-performing release actions.
+**Status.** Agreed 2026-08-03. Follows theme A.
 
-### Source TODO hygiene
+Four scoped items. Only the first needs an RFC.
 
-**Status.** RFC 028 implemented; unreleased.
+- **Similarity-dialog cache-error tier routing (RFC 035).** Deferred from
+  [RFC 033](./rfcs/done/033-cache-dependency-and-rust-baseline.md) Part B and
+  recorded in its Status field. The similarity dialogs route **every**
+  `CacheError` variant to `eprintln!` and render a partial or empty result. The
+  gap predates RFC 033 and is variant-agnostic, so the RFC classifies all
+  variants under [RFC 017](./rfcs/done/017-visible-recoverable-error-ux.md)
+  rather than only the `Poisoned` case introduced there. Requires UX decisions:
+  partial-versus-empty semantics, toast versus inline placement, new localized
+  strings.
+- **ELOC remeasurement.** Nothing currently exceeds the 500-ELOC "strongly
+  recommended" threshold. Measured 2026-08-03: `app/src/core.rs` raw 552 /
+  ELOC ≈474, `app/src/core/update/cache.rs` 463, `app/src/core/update/ffmpeg.rs`
+  450, `video_engine.rs` raw 355 / ELOC ≈307. `app/src/core.rs` is the one to
+  watch — it will cross on its next material growth, and it grew during the
+  0.37.0 cycle. Open a split RFC only after an exact measurement identifies a
+  coherent scope.
+- **`event-listener` 5.4.2.** The locked graph carries 5.4.1 with
+  RUSTSEC-2026-0221, reaching arama via `zbus` and the `async-*` desktop-portal
+  stack behind `rfd`/`file-handle` — not via `localcache`. It is **not** in the
+  [audit-warning ledger](./rfcs/notes/audit-warning-burn-down.md), which records
+  four entries; the advisory postdates that refresh. A `cargo update -p
+  event-listener` may resolve it outright.
+- **`localcache` 0.21.1 / 0.21.2.** 0.21.0 is current in the lockfile and was
+  chosen deliberately under RFC 033. 0.21.1 is published and unaffected by the
+  MSRV defect; 0.21.2 is expected to carry the upstream `dependency_security`
+  documentation of the affected version set (0.19.1 and 0.20.0). Assess as a
+  routine bump, not a correction.
 
-**Why now.** Stale source TODO comments were removed or replaced with current
-design-boundary rationale, and the undeclared gallery subscription legacy source
-was deleted without changing runtime behavior.
+### C — Product direction
 
-### Audit warning ledger refresh
+**Status.** Agreed as a theme 2026-08-03; **awaiting a problem statement from
+the project owner.**
 
-**Status.** RFC 027 implemented; unreleased.
+Every other candidate on this roadmap is infrastructure, quality, or debt.
+arama has had no product theme proposed since the RFCs that built the current
+UI. This theme exists to correct that, and it is deliberately empty until the
+owner states what an arama user should be able to do that they currently
+cannot.
 
-**Why now.** The audit-warning ledger now matches the current `cargo audit`
-allowed-warning surface: `bincode`, `paste`, `rustybuzz`, and `ttf-parser`.
-Release-gate docs distinguish explicit `.cargo/audit.toml` ignores from
-allowed warnings with recorded owner paths and revisit conditions.
+The architect does not populate this section. Requirements, options, and an RFC
+portfolio follow from the owner's problem statement, not from the architect's
+inference about what users might want.
 
-### Explorer tree maintenance
+## Shipped
 
-**Status.** RFC 026 implemented; unreleased.
+**0.37.0** (2026-08-03) shipped RFCs 015–030, 032, and 033, plus an
+audit-warning burn-down maintenance pass. RFC 031 was archived as superseded by
+RFC 032. See [`CHANGELOG.md`](./CHANGELOG.md) for the user-facing record and
+[`rfcs/README.md`](./rfcs/README.md) for the RFC index.
 
-**Why now.** The workspace now locks `iced-swdir-tree` 0.9.3 on the accepted
-0.9 line, and the cache update path documents that media `DirNode` discovery is
-separate from the folder-only aside tree UI state.
+Two items from that release remain open and are tracked under theme A:
 
-### Cache serialization dependency strategy
-
-**Status.** RFC 023 implemented; unreleased.
-
-**Why now.** The current `localcache`/bincode-backed cache payload path was
-retained because no published or local bincode-free `localcache` dependency
-route is available yet.
-
-### Release smoke checklist
-
-**Status.** RFC 025 implemented; unreleased.
-
-**Why now.** The release-readiness review called out manual GUI smoke as a
-reasonable owner-managed check before a release point. The developer testing
-docs now provide a concise smoke checklist for setup, gallery/indexing,
-similarity, cache, settings/theme, and restart behavior.
-
-### Image codec dependency minimization
-
-**Status.** RFC 024 implemented; unreleased.
-
-**Why now.** The workspace now disables unused default image codecs and keeps
-only arama's accepted PNG, JPEG, WebP, GIF, and BMP decode path active. This
-removes the AVIF/ravif/rav1e owner path from the active dependency graph while
-leaving the remaining `paste` owners tracked.
-
-### Image similarity search dependency strategy
-
-**Status.** RFC 022 implemented; unreleased.
-
-**Why now.** `hnsw_rs` was replaced with exact bounded pairwise image search,
-removing the `bincode` 1.3 warning while preserving a deterministic top-50
-similar-pairs contract.
-
-### Cache lifecycle
-
-**Status.** RFC 015 implemented; unreleased.
-
-**Why now.** RFC 002 moved arama from the old `file-feature-cache` engine to
-`localcache` in v0.23.0. RFC 015 retires the temporary v1 migration path and
-keeps cache-size/disk-pressure management split into a separate design.
-
-**Follow-up status.** RFC 016 implemented; unreleased.
-
-### Visible recoverable error UX
-
-**Status.** RFC 017 implemented; unreleased.
-
-### AI and video pipeline resilience
-
-**Status.** RFC 018 implemented; unreleased.
-
-### Startup fatal-boundary resilience
-
-**Status.** RFC 019 implemented; unreleased.
-
-### Audit warning burn-down
-
-**Status.** Maintenance pass implemented; unreleased.
-
-**Why now.** Compatible patch-level RustSec warnings for `anyhow` and `memmap2`
-were resolved. Remaining allowed warnings are tracked in
-[`rfcs/notes/audit-warning-burn-down.md`](./rfcs/notes/audit-warning-burn-down.md).
-
-### Dependency modernization
-
-**Status.** RFC 020 implemented; unreleased.
-
-**Why now.** First-party Candle dependencies moved to 0.11 and non-Linux
-sidecar ZIP extraction moved to stable `zip` 8.6.0. `pt2safetensors` remains
-as the only Candle 0.10 owner.
-
-### CLIP SafeTensors source strategy
-
-**Status.** RFC 021 implemented; unreleased.
-
-**Why now.** Runtime PyTorch-to-SafeTensors conversion is intentionally retained
-until a trustworthy pinned SafeTensors source or owner-managed mirror exists.
-The decision is recorded in
-[`rfcs/notes/clip-safetensors-source-decision.md`](./rfcs/notes/clip-safetensors-source-decision.md).
+- executable assets were never produced for 0.37.0;
+- archive and built-executable artifact-absence inspection ran and passed
+  against the source tarball and the Linux binary, but no Windows or macOS
+  executable exists to inspect.
 
 ## Later candidates
-
-### Native smoke on CI runners
-
-**Owner-accepted 2026-08-01; to land before the next release, not this one.**
-
-Extend automated native smoke to the `windows-latest` and `macos-latest`
-runners the release workflow already uses, covering the two highest-value
-targets without owning hardware. Needs its own RFC: RFC 033 Part F fenced CI
-expansion as a separate theme, and the runners must install a trusted
-`ffmpeg`/`ffprobe` pair with the ignored smoke parameterised for them. It
-cannot cover Finder-launch `PATH` inheritance or rendered UI, which stay
-desktop-only. Supersedes the corresponding rows in
-[`rfcs/notes/native-smoke-risk-acceptance.md`](./rfcs/notes/native-smoke-risk-acceptance.md)
-once it lands.
-
-### Similarity-dialog cache-error tier routing
-
-Deferred from RFC 033 Part B. The similarity dialogs route **every**
-`CacheError` variant to `eprintln!` and render a partial or empty result. The
-gap predates RFC 033 and is variant-agnostic, so the RFC should classify all
-variants under RFC 017 rather than only the `Poisoned` case. Requires UX
-decisions — partial-versus-empty semantics, toast versus inline placement, new
-localized strings.
-
-### ELOC remeasurement and focused splits
-
-Re-run an effective-line-count sweep before the next broad implementation
-batch. Prioritize files that exceed the 300-ELOC consideration threshold, but
-open a split RFC only after exact measurements identify a coherent scope. A
-preliminary sweep found no file above the 500-ELOC strongly recommended
-threshold.
 
 ### Remaining audit-warning owners
 
@@ -239,8 +133,10 @@ The remaining `bincode`, Candle/transitive `paste`, and font/rendering stack
 warnings should be revisited when upstream releases expose compatible fixes or
 when a replacement design is intentionally proposed.
 
-### Release prep
+### Release cadence
 
-Release prep remains owner-driven. The roadmap does not make a release point;
+Release prep remains owner-driven. This roadmap does not set a release point;
 it only identifies when a coherent reviewed batch may be ready for release
-consideration.
+consideration. crates.io publication was deliberately deferred at 0.37.0 —
+34 total downloads across two published versions made the channel's staleness
+a low-impact trade — and is expected to resume at a future stable cut.
