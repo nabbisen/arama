@@ -392,6 +392,13 @@ fn settings_error_message(err: &ConfigError) -> String {
             format!("Invalid settings path component: {component}")
         }
         ConfigError::Platform(error) => format!("Settings platform error: {error}"),
+        // ConfigError is not #[non_exhaustive]; upstream has already added a
+        // variant in each of two prior minor releases without one. Keep the
+        // specific arms above for better messages, but this arm is what
+        // stops the next such minor from breaking this build. Unreachable
+        // today, by construction — that's the insurance, not a mistake.
+        #[allow(unreachable_patterns)]
+        _ => format!("Settings error: {err}"),
     }
 }
 

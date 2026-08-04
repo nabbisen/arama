@@ -7,6 +7,13 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Windows executable build.** `app-json-settings` moved from `2.3.0` to
+  `2.5.1`, fixing a Windows-only compile error (`2.3.0` and `2.4.0` did not
+  compile for that target). This is the difference between arama having
+  Windows executable release assets and not having them.
+
 ---
 
 ## [0.37.0]
