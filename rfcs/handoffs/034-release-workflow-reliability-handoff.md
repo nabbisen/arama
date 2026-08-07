@@ -156,6 +156,14 @@ workflow about to change:
 
 ## 7. Verification — step 4 is the one that matters
 
+> **Authorized by the project owner, 2026-08-04.** Step 1 is complete — run
+> 30881426383 built all five variants green. Steps 2–6 below, including the
+> `0.0.1` tag push and the briefly-public release it creates, are approved to
+> proceed. No further per-step authorization is needed; report the results.
+>
+> This authorization covers **`0.0.1` only**. It is not a general licence to
+> push tags, and it does not extend to `0.38.0` or any real version.
+
 1. **`workflow_dispatch` against a branch** — all five variants build. No
    upload attempted.
 2. **Throwaway tag push** — release created, all assets attached.
