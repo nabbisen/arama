@@ -9,6 +9,13 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Fixed
 
+- **Similarity results no longer hide read failures.** When the cache cannot
+  be read, the similar-pairs and focus dialogs previously showed an empty
+  result that looked exactly like "nothing similar was found". Both now show
+  a single inline message — "Some files could not be read; results may be
+  incomplete." — and still display whatever results were obtained. An empty
+  cache, an unindexed item, and a missing ffmpeg toolchain are unaffected:
+  those are ordinary states, not failures, and stay silent.
 - **Windows executable build.** `app-json-settings` moved from `2.3.0` to
   `2.5.1`, fixing a Windows-only compile error (`2.3.0` and `2.4.0` did not
   compile for that target). This is the difference between arama having
@@ -22,6 +29,16 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Changed
 
+- **Executable releases are now built and published by tag push.** 0.37.0
+  shipped with its source archive and no executable assets at all, because
+  the release channel depended on the release event type, on a trigger edit
+  having propagated, and on the tag already containing the right workflow —
+  three independent ways to produce nothing, each looking identical to
+  success. Pushing a version tag now builds all five variants first and
+  creates the release only if every one succeeds, so a failed build leaves no
+  release rather than a release missing binaries. Re-running is safe, the
+  attached asset count is verified, and a tag whose version disagrees with
+  the manifest is rejected before anything is built.
 - **Routine dependency maintenance.** `localcache` moved from `0.21.0` to
   `0.21.2`; the resolved `rusqlite`/`libsqlite3-sys` chain RFC 033 selected
   is unchanged, and the cache suite including the `ReadPool` poisoning tests

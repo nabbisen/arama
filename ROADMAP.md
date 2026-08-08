@@ -11,7 +11,9 @@ set was agreed on 2026-08-03, after 0.37.0 shipped and the RFC queue emptied.
 
 ### A — Release and CI reliability
 
-**Status.** Agreed 2026-08-03. RFC 034 to be proposed.
+**Status.** Agreed 2026-08-03. RFC 034 accepted and implemented; its end-to-end
+verification rides the 0.38.0 tag, which is the first release cut under the new
+mechanism. RFC 035 implemented. The sibling native-smoke RFC is still unwritten.
 
 **Why now.** 0.37.0 released with its source archive and **no executable
 assets, and no workflow run queued at all**. The cause is still unexplained:
@@ -37,14 +39,25 @@ This theme is first because the release channel is the mechanism by which all
 other work reaches users, and it is currently the least trustworthy part of the
 project.
 
-**Planned RFCs.**
+**RFCs.**
 
-- **RFC 034 — release workflow reliability.** Primary recommendation:
-  tag-push-triggered release creation, which removes causes 1–3 structurally —
-  the tag carries the workflow that will run, the trigger is `push`, and the
-  ref is a tag by construction. Plus `--clobber` on the upload step so re-runs
-  are idempotent, and pre-release build verification via `workflow_dispatch`
-  against a branch.
+- **RFC 034 — release workflow reliability.** *Implemented, verification
+  pending.* Tag-push-triggered release creation removes causes 1–3
+  structurally — the tag carries the workflow that will run, the trigger is
+  `push`, and the ref is a tag by construction. All five variants must build
+  before the release is created, so a failure leaves no release rather than a
+  partial one. Plus `--clobber` for idempotent re-runs, asset-count
+  verification, a manifest-must-equal-tag gate, and pre-tag build verification
+  via `workflow_dispatch`. **Cause 4 is still unidentified**; the 0.38.0 cut is
+  the first real test of whether it recurs.
+  - Pre-release tag support was accepted, implemented, then withdrawn: internal
+    dependencies carry `version = "0"` per RFC 030, and a Cargo requirement
+    without a pre-release component never matches a pre-release version, so no
+    pre-release could build. Recorded in the RFC rather than deleted.
+- **RFC 035 — similarity-dialog cache-error routing.** *Implemented.* Closes
+  RFC 033's Part B deferral: cache-read failures in the similar-pairs and focus
+  dialogs no longer render as an empty result indistinguishable from "nothing
+  found".
 - **A sibling RFC — native smoke on CI runners** (previously "route B").
   Extends automated native smoke to the `windows-latest` and `macos-latest`
   runners the release workflow already uses, covering the two highest-value
@@ -66,17 +79,20 @@ application independently.
 
 **Status.** Agreed 2026-08-03. Follows theme A.
 
-Four scoped items. Only the first needs an RFC.
+Three of the original four items have shipped. What remains, plus one successor:
 
-- **Similarity-dialog cache-error tier routing (RFC 035).** Deferred from
-  [RFC 033](./rfcs/done/033-cache-dependency-and-rust-baseline.md) Part B and
-  recorded in its Status field. The similarity dialogs route **every**
-  `CacheError` variant to `eprintln!` and render a partial or empty result. The
-  gap predates RFC 033 and is variant-agnostic, so the RFC classifies all
-  variants under [RFC 017](./rfcs/done/017-visible-recoverable-error-ux.md)
-  rather than only the `Poisoned` case introduced there. Requires UX decisions:
-  partial-versus-empty semantics, toast versus inline placement, new localized
-  strings.
+- **~~Similarity-dialog cache-error tier routing (RFC 035).~~** *Shipped.*
+  Closed RFC 033's Part B deferral. Cache-read failures in both similarity
+  dialogs now surface as one inline message per dialog open, with partial
+  results retained.
+- **Similarity-dialog absence states
+  ([RFC 036](./rfcs/proposed/036-similarity-dialog-absence-states.md)).**
+  *Proposed, awaiting owner decision.* RFC 035 gave failure a voice and left two
+  silences behind: a similar-pairs dialog with zero results renders **no text at
+  all** — indistinguishable from still-loading — and a user missing ffmpeg gets
+  image-only results with no in-dialog explanation. Both were found with
+  rendered evidence during RFC 035's cycle. Neither is a regression; the RFC's
+  own open question is whether it lands before or after 0.38.0.
 - **ELOC remeasurement.** Nothing currently exceeds the 500-ELOC "strongly
   recommended" threshold. Measured 2026-08-03: `app/src/core.rs` raw 552 /
   ELOC ≈474, `app/src/core/update/cache.rs` 463, `app/src/core/update/ffmpeg.rs`
@@ -84,17 +100,12 @@ Four scoped items. Only the first needs an RFC.
   watch — it will cross on its next material growth, and it grew during the
   0.37.0 cycle. Open a split RFC only after an exact measurement identifies a
   coherent scope.
-- **`event-listener` 5.4.2.** The locked graph carries 5.4.1 with
-  RUSTSEC-2026-0221, reaching arama via `zbus` and the `async-*` desktop-portal
-  stack behind `rfd`/`file-handle` — not via `localcache`. It is **not** in the
-  [audit-warning ledger](./rfcs/notes/audit-warning-burn-down.md), which records
-  four entries; the advisory postdates that refresh. A `cargo update -p
-  event-listener` may resolve it outright.
-- **`localcache` 0.21.1 / 0.21.2.** 0.21.0 is current in the lockfile and was
-  chosen deliberately under RFC 033. 0.21.1 is published and unaffected by the
-  MSRV defect; 0.21.2 is expected to carry the upstream `dependency_security`
-  documentation of the affected version set (0.19.1 and 0.20.0). Assess as a
-  routine bump, not a correction.
+- **~~`event-listener` 5.4.2.~~** *Shipped.* RUSTSEC-2026-0221 resolved by a
+  straight bump; no ignore or override was needed. The audit warning count went
+  from five to four.
+- **~~`localcache` 0.21.1 / 0.21.2.~~** *Shipped.* Routine bump to 0.21.2. The
+  `rusqlite`/`libsqlite3-sys` chain RFC 033 selected is unchanged and the cache
+  suite, including the `ReadPool` poisoning tests, passes unmodified.
 
 ### C — Product direction
 
