@@ -106,26 +106,35 @@ what the upload step already expects. Under `workflow_dispatch` against a
 branch it is the branch name — so the dispatch path must **not** attempt to
 upload. Dispatch is build-verification only (Part C).
 
-**4.6 SemVer pre-release tags** (RFC 034 Part E, owner-accepted 2026-08-04).
-Three pieces, all required together — implementing any one alone produces a
-worse state than not implementing it:
+**4.6 Pre-release support is withdrawn** (RFC 034 Part E, owner, 2026-08-08).
 
-- **E1** a second anchored trigger pattern, `'[0-9]+.[0-9]+.[0-9]+-*'`. Tag
-  filters are **glob, not regex**; the hyphen must be required so the pattern
-  cannot match arbitrary tags.
-- **E2** detect the suffix and pass `--prerelease` to `gh release create`.
-  GitHub does not infer prerelease status from the tag name, so without this a
-  `-pre.1` release takes the "Latest" badge from the previous final version.
-- **E3** the manifest version must equal the tag. `version.sh` runs for a
-  pre-release exactly as for a final release, and the final release bumps again
-  to strip the suffix. Two bumps per cycle is accepted.
+Part E was accepted 2026-08-04, implemented, and then found unbuildable:
+internal deps carry `version = "0"` per RFC 030, and a Cargo requirement
+without a pre-release component never matches a pre-release version. Any
+pre-release fails at `cargo check`. See
+`.git-exclude/reviewed/082-rfc034-e3-prerelease-semver-blocker-review.md`.
 
-**Do not** implement E1 without E2 and E3. A pre-release tag that publishes as
-"Latest", or whose binaries report a different version than the release name,
-is worse than having no pre-release support at all.
+**Remove E1 and E2 from the workflow:**
 
-`docs/src/dev/release.md` must describe the pre-release path alongside the
-final-release one, including the two-bump sequence.
+- **E1** — the `'[0-9]+.[0-9]+.[0-9]+-*'` tag pattern and its comment. The
+  final-version pattern stays.
+- **E2** — the `PRERELEASE_FLAG` / `*-*)` suffix detection and its expansion in
+  `gh release create`.
+
+**Keep E3 — it is now Part F, and it is not pre-release-specific.** The
+manifest-equals-tag check protects real releases exactly as much as candidates;
+a `0.38.0` tag against a `0.37.0` manifest ships mislabelled binaries either
+way. Leave the check in both the `build` and `source-archive` jobs, unchanged
+in behaviour. Update its comment to reference Part F rather than Part E, so a
+future reader does not delete it as Part E residue.
+
+**Do not** attempt to make pre-releases work by loosening the internal
+`version = "0"` requirements. That is RFC 030's contract and out of scope here.
+
+`docs/src/dev/release.md` must describe the final-release path only. Its
+"Pre-release tags" section goes — **except** the manifest-equals-tag rule inside
+it, which is the doc's only statement of Part F and must be kept, restated for
+final tags.
 
 ## 4.7 Corrections from review 076 — apply before verifying
 
@@ -154,50 +163,68 @@ workflow about to change:
 - Any attempt to diagnose RFC 034's cause 4 from inside the workflow.
 - Any release, tag, or publication action beyond the verification in §7.
 
-## 7. Verification — step 4 is the one that matters
+## 7. Verification — the failure test is the one that matters
 
-> **Authorized by the project owner, 2026-08-04.** Step 1 is complete — run
-> 30881426383 built all five variants green. Steps 2–6 below, including the
-> `0.0.1` tag push and the briefly-public release it creates, are approved to
-> proceed. No further per-step authorization is needed; report the results.
+> **The `0.0.1` authorization of 2026-08-04 is withdrawn** (owner, 2026-08-08).
+> It was given for a plan that Part F makes unexecutable — a `0.0.1` tag against
+> a `0.37.0` manifest fails every build leg. Do not push `0.0.1`. Its
+> replacement is below.
 >
-> This authorization covers **`0.0.1` only**. It is not a general licence to
-> push tags, and it does not extend to `0.38.0` or any real version.
+> **Verification rides the real `0.38.0` release.** Approved in approach, owner,
+> 2026-08-08. It does **not** authorize the release itself: the 0.38.0 cut needs
+> its own go-ahead, as every cut has.
 
-1. **`workflow_dispatch` against a branch** — all five variants build. No
-   upload attempted.
-2. **Throwaway tag push** — release created, all assets attached.
-3. **Re-run the same workflow** — upload succeeds rather than failing on
-   existing assets.
-4. **Deliberately break one variant** — confirm **no release is created** and
-   the failure is visible.
+**Prerequisite: RFC 035 must ship first.** `rfcs/handoffs/035-similarity-dialog-error-routing-handoff.md`
+is accepted and unstarted. 0.38.0's content is not complete until it lands, and
+this verification is 0.38.0's release.
 
-Steps 1–3 prove the happy path. **Step 4 proves the property the owner actually
-decided**, and this channel has only ever failed in ways the happy path would
-not catch.
+Step 1 is complete — run 30881426383 built all five variants green.
 
-**Throwaway tag: `0.0.1`** — owner-accepted 2026-08-04, after the alternatives
-were weighed and rejected. Verified free: arama's tag history starts at
-`0.1.0`, so there is no collision with a real historical tag.
+| # | Step | Tag | Manifest | Expected |
+|---|---|---|---|---|
+| 1 | `workflow_dispatch` on a branch | — | — | ✅ done: five variants build, no upload |
+| 2 | **Failure test** | `0.38.0` | `0.38.0` | one variant broken → **no release created** |
+| 3 | Success | `0.38.0` | `0.38.0` | release created, six assets, count verified |
+| 4 | Idempotency | re-run step 3's workflow | unchanged | `--clobber` makes the re-run safe |
 
-**Run the failure test before the success test.** If a broken variant behaves
-correctly, **no release is ever created** — the public artifact is a tag and a
-red Actions run. Running it first therefore minimises exposure and front-loads
-the test most likely to reveal a design error.
+**Why a real version is safe here.** Under §2's required order a failed tag push
+creates **nothing public** — no release, no assets, only a tag and a red run.
+Step 2 behaving correctly therefore leaves nothing to clean up but the tag
+itself. That is what makes spending `0.38.0` on the failure test acceptable, and
+it is the same property being tested.
 
-**What deletion does and does not remove.** `gh release delete` plus a remote
-tag delete removes the tag and the release. It does **not** remove the Actions
-run entry, the repository event-feed records, or any clone fetched during the
-window. The tag is volatile; the record is not. Keep the window short.
+**Run the failure test first.** It front-loads the test most likely to reveal a
+design error, at the point where nothing has been published.
 
-Cleanup, in this order, then confirm with `gh release list` and
-`git ls-remote --tags origin`:
+### Keeping the deliberate break off `main`
+
+The break must not land on `main`. Build it on a detached HEAD or a scratch
+branch, tag that commit, and **push only the tag** — a tag can point at a commit
+on no branch. After step 2, delete the tag and the commit becomes unreachable;
+`main` never carries a break-then-revert pair.
 
 ```sh
-gh release delete 0.0.1 --yes          # only if a release exists
-git push origin :refs/tags/0.0.1
-git tag -d 0.0.1
+git switch --detach main
+# introduce the break, e.g. an invalid flag on one matrix variant
+git commit -am 'TEMPORARY: break <variant> to verify RFC 034 Part D'
+git tag -a 0.38.0 -m '...'
+git push origin 0.38.0          # pushes the tag and its commit only
+# observe: build fails, `release` job does not run, no release exists
+git push origin :refs/tags/0.38.0
+git tag -d 0.38.0
+git switch main                 # the break commit is now unreachable
 ```
+
+Then re-tag `main` proper for step 3.
+
+**Confirm no release exists after step 2** with `gh release list` before
+proceeding — "the run went red" is not the same claim as "nothing was
+published."
+
+**What tag deletion does and does not remove.** It removes the tag. It does
+**not** remove the Actions run entry, the repository event-feed records, or any
+clone fetched during the window. Here that costs nothing: a red run against a
+real version is an ordinary event, not a record needing explanation.
 
 **Do not** use `gh release edit --draft` for cleanup — on a published release it
 detaches the release from its tag.
@@ -216,14 +243,17 @@ toggling as a tidy-up mechanism. Delete the release outright, without
 
 ## 8. Acceptance criteria
 
-- Tag push creates the release and attaches all five assets.
+- Tag push creates the release and attaches all six assets (five executables
+  plus the source archive — `EXPECTED_ASSET_COUNT`).
 - A failed variant results in **no release**, visibly.
 - Re-running is idempotent.
 - The archive has files at root, correct exclusions, no wrapping directory.
 - Asset count is verified after attachment.
 - `workflow_dispatch` builds without attempting upload.
+- E1 and E2 are gone; the Part F manifest-equals-tag check remains in both jobs.
 - `docs/src/dev/release.md` matches the implemented mechanism.
-- Step 4 was actually executed, with its evidence.
+- **The failure test (§7 step 2) was actually executed**, with its evidence,
+  including `gh release list` output showing no release was created.
 
 ## 9. Known risks
 

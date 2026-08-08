@@ -143,51 +143,55 @@ from a successful one without manually inspecting the run list.
 Minimum: add an explicit check to `docs/src/dev/release.md`'s checklist. Better:
 a job step that fails when the expected asset count is not present.
 
-### Part E — SemVer pre-release tags (scope addition, owner-accepted 2026-08-04)
+### Part E — SemVer pre-release tags (**withdrawn**, owner, 2026-08-08)
 
-Support tags carrying a SemVer pre-release identifier — `0.38.0-pre.1`,
-`0.38.0-rc.2` — as first-class release triggers.
+Accepted as a scope addition 2026-08-04; **withdrawn before shipping**. Recorded
+here rather than deleted, per [RFC 000](../done/000-rfc-lifecycle-policy.md).
 
-**Why it belongs here.** A pre-release lets a version be exercised end to end
-before its final tag is spent. If `0.38.0-pre.1` fails to trigger or fails a
-variant, `0.38.0` is still untouched; without it, a failed `0.38.0` must be
-deleted and re-pushed or abandoned for `0.38.1`. That is a reliability
-property, which is this RFC's subject.
+Part E would have supported tags carrying a SemVer pre-release identifier —
+`0.38.0-pre.1`, `0.38.0-rc.2` — as first-class release triggers, so a version
+could be exercised end to end before its final tag was spent.
 
-**This is a capability, not a testing device.** Done properly it costs the same
-bookkeeping as a release — see the manifest requirement below. It does not make
-verifying the trigger cheap, and must not be adopted on the assumption that it
-does.
+**Why it was withdrawn.** Two independent reasons, either sufficient:
 
-Three pieces, all required together:
+1. **It cannot build.** Arama's internal path dependencies carry
+   `version = "0"` per [RFC 030](../done/030-distribution-and-version-contracts.md).
+   A Cargo requirement matches a pre-release only if the requirement itself
+   carries a pre-release for the same major/minor/patch, so `^0` never matches
+   `0.38.0-pre.1`. Any pre-release version fails at `cargo check`, upstream of
+   the workflow, the trigger, and compilation. Making it work would require
+   loosening RFC 030's deliberate contract across every internal dependency —
+   a change to a different RFC, for this feature's sole benefit.
 
-**E1 — Trigger pattern.** A second, deliberately anchored pattern:
+2. **Its premise did not hold.** Part E's justification was that a failed final
+   tag is expensive, so a candidate should absorb the risk. But under Part A's
+   required order a failed tag push creates **nothing public** — no release, no
+   assets, only a tag and a red run. The cost Part E was buying down is close
+   to zero, which leaves the RFC 030 change unjustified.
 
-```yaml
-tags:
-  - '[0-9]+.[0-9]+.[0-9]+'
-  - '[0-9]+.[0-9]+.[0-9]+-*'
-```
+**What replaces it:** nothing. Arama releases final versions only. Verification
+of Parts A–D uses a real version tag, which the point above makes safe.
 
-GitHub Actions tag filters are **glob, not regex**: `+` means one or more of
-the preceding character and `.` is literal. The suffix pattern must require the
-hyphen so it cannot match arbitrary tags.
+**E3 is not withdrawn** — see Part F. It was grouped under Part E because
+pre-releases made it acute, but it constrains every release.
 
-**E2 — Prerelease flag.** GitHub does **not** infer prerelease status from a
-tag name. `gh release create` defaults to a full release, so a `-pre.1` tag
-would publish as a normal release and take the "Latest" badge from the previous
-final version. The workflow must detect the suffix and pass `--prerelease`.
+### Part F — The manifest must match the tag
 
-**E3 — The manifest must match the tag.** The workflow builds from the tagged
-commit, so the binary reports whatever `[workspace.package].version` says. A
-`0.38.0-pre.1` tag against a `0.37.0` manifest ships binaries claiming 0.37.0
-inside a release named 0.38.0-pre.1.
+Formerly Part E's E3, retained independently when Part E was withdrawn.
 
-`version.sh` must therefore be run for a pre-release exactly as for a final
-one, and the final release bumps again to strip the suffix. **Two bumps per
-release cycle is the accepted cost.**
+The workflow builds from the tagged commit, so the binary reports whatever
+`[workspace.package].version` says. A `0.38.0` tag against a `0.37.0` manifest
+ships binaries claiming 0.37.0 inside a release named 0.38.0.
 
-The alternative — manifest at `0.38.0`, tag at `0.38.0-pre.1` — is rejected. It
+The workflow must therefore verify, on every tag-triggered leg, that the
+manifest version equals the tag, and fail before building if it does not.
+
+**This must not be scoped to any tag subset.** The mismatch it prevents is
+exactly as wrong for a real release as for a candidate; exempting bare `X.Y.Z`
+tags would mean the only releases users actually install are the ones left
+unprotected.
+
+The alternative — manifest and tag deliberately differing — is rejected. It
 reintroduces the mismatch class this project has repeatedly had to correct:
 documentation or metadata asserting something the delivered artifact does not
 match. RFC 033 Part E's single-normative-declaration rule applies unchanged.
@@ -217,15 +221,22 @@ Automated CI tests for CI are not proposed — the cost exceeds the value at thi
 project's scale. Verification is by exercise:
 
 1. `workflow_dispatch` against a branch — all five variants build (Part C).
-2. A tag push on a throwaway pre-release tag — the release is created and
-   assets attached (Part A).
-3. Re-run the same workflow — upload succeeds rather than failing on existing
+2. Deliberately break one variant, push the tag, and confirm **no release is
+   created** and the failure is visible (Part D).
+3. Restore, re-push the tag — the release is created and assets attached
+   (Part A).
+4. Re-run the same workflow — upload succeeds rather than failing on existing
    assets (Part B).
-4. Deliberately break one variant and confirm the failure is visible rather
-   than producing a silent partial release (Part D).
 
-Step 4 matters most. Every other step proves the happy path, which is not where
-this channel has failed.
+Step 2 matters most. Every other step proves the happy path, which is not where
+this channel has failed. Running it first also means that if the design is
+correct, nothing public is created by it.
+
+**Verification uses a real version tag** — the next release's own — not a
+throwaway. With Part E withdrawn there is no pre-release tag available, and
+Part F forbids a tag that disagrees with the manifest, so a throwaway tag would
+require a throwaway manifest bump in the permanent git log. A real version
+avoids that, and step 2 failing correctly leaves nothing public to clean up.
 
 ## Risks
 

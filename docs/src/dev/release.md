@@ -11,26 +11,10 @@ The version follows loose semantic versioning: minor bumps for new features,
 patch bumps for fixes only. Project versions and Git tags use `X.Y.Z` without a
 `v` prefix.
 
-### Pre-release tags
-
-`X.Y.Z-<suffix>` (e.g. `0.38.0-pre.1`) triggers the same release workflow as
-a final tag, for pre-tag verification on the real runners without claiming
-to be the release. The workflow marks it a GitHub prerelease automatically —
-it does not take the "Latest" badge from the previous final release.
-
-**The manifest version must equal the tag exactly, suffix included.** The
-workflow fails the build otherwise. This means a pre-release cycle bumps the
-version **twice**:
-
-```sh
-./version.sh --update X.Y.Z-pre.1   # pre-release tag
-# ... tag and push X.Y.Z-pre.1, verify ...
-./version.sh --update X.Y.Z         # final tag, suffix stripped
-# ... tag and push X.Y.Z ...
-```
-
-Two bumps per cycle is the accepted cost of the binaries always reporting the
-same version as the release that ships them.
+**The manifest version must equal the tag exactly.** The release workflow
+fails the build otherwise — a `0.38.0` tag against a `0.37.0` manifest would
+ship binaries that report the wrong version. Run `./version.sh --update
+X.Y.Z` before tagging, every time.
 
 ## Steps
 
@@ -202,11 +186,6 @@ Before pushing a real release tag, `workflow_dispatch` against `main`
 proves all five executable variants build without creating or uploading
 anything (Part C). This is cheap pre-tag verification; a variant failure
 after the tag exists costs a whole tag-and-retry cycle instead.
-
-For a pre-release tag (`X.Y.Z-<suffix>`, see "Pre-release tags" above), the
-same commands apply — `git tag X.Y.Z-pre.1`, `git push origin X.Y.Z-pre.1`
-— and the same workflow runs, publishing a GitHub prerelease rather than
-the "Latest" release.
 
 ### 8. Verify the published release
 
