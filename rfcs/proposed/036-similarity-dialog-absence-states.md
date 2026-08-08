@@ -23,9 +23,13 @@ mechanisms for one problem, which is the reasoning RFC 035 itself applied.
 
 Both were found with evidence during RFC 035's cycle, not speculated:
 
-- **Gap 1** is captured in
-  `.git-exclude/review-request/084-rfc035-similarity-dialog-error-routing/evidence/03-similar-pairs-dialog-empty-result-no-visible-text.png`,
-  captured during that package's own smoke run.
+- **Gap 1** was captured in a rendered screenshot during RFC 035's own smoke
+  run: the Similar Pairs dialog, opened against a healthy cache yielding zero
+  pairs, showing the gallery dimmed by the overlay backdrop and **no dialog
+  text of any kind** — no title, no message, no card. The capture lives with
+  the project's internal review records, which are not distributed in the
+  source archive; the observation is restated in full under Gap 1 below so this
+  RFC stands on its own.
 - **Gap 2** was identified while scoping RFC 035 §3.1 and recorded there as a
   knowing exclusion.
 
