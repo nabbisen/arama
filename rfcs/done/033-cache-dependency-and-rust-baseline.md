@@ -4,12 +4,13 @@
 2026-08-01 and implemented across handoff Tasks 1–4 the same day.
 
 **Deferred.** Similarity-dialog cache-error tier routing (Part B) did **not**
-ship with this RFC and is deferred to a future RFC, not yet written. The gap
-predates RFC 033, applies to every `CacheError` variant rather than only the
-`Poisoned` one introduced here, and requires UX decisions outside a dependency
-task. This note satisfies RFC 000's requirement that deferred work be either
-covered by a follow-up RFC or logged explicitly in the Status section; replace
-it with the follow-up RFC's number once that RFC exists.
+ship with this RFC and was deferred to
+[RFC 035](../proposed/035-similarity-dialog-error-routing.md), which closes
+this gap. The gap predated RFC 033, applied to every `CacheError` variant
+rather than only the `Poisoned` one introduced here, and required UX
+decisions outside a dependency task. This note satisfies RFC 000's
+requirement that deferred work be either covered by a follow-up RFC or
+logged explicitly in the Status section.
 
 Execution was directed by
 [the RFC 033 handoff](../handoffs/033-cache-dependency-and-rust-baseline-handoff.md).

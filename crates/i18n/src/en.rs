@@ -147,6 +147,9 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "setup.ffmpeg.recheck" => "Re-check",
         "setup.ffmpeg.select" => "Select ffmpeg folder",
 
+        // Similarity dialogs (shared: similar-pairs and focus)
+        "similarity.read_error" => "Some files could not be read; results may be incomplete.",
+
         // Focus dialog
         "focus.strategy" => "Cache lookup strategy",
         "focus.close" => "Close",

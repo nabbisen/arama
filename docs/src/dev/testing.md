@@ -175,6 +175,10 @@ rather than an inferred pass.
   renders image/video pairs when cache data exists.
 - **`SMOKE-SIMILARITY-SPARSE`** — With sparse or partial cache data, the dialog
   remains usable and degrades to partial or empty results instead of crashing.
+- **`SMOKE-SIMILARITY-ERROR`** — With the cache genuinely unreadable (e.g. the
+  cache database file replaced or made unreadable before the dialog opens),
+  both the similar-pairs and focus dialogs show a single inline "some files
+  could not be read" message rather than silently reporting no matches.
 
 ### Cache page
 

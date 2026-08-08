@@ -157,6 +157,18 @@ mod tests {
     }
 
     #[test]
+    fn similarity_read_error_resolves_to_real_text_in_both_locales() {
+        for get in [en::get, ja::get] {
+            let resolved = get("similarity.read_error").expect("similarity.read_error must exist");
+            assert_ne!(
+                resolved, "similarity.read_error",
+                "must resolve to translated text, not the raw key"
+            );
+            assert!(!resolved.is_empty());
+        }
+    }
+
+    #[test]
     fn ffmpeg_guidance_is_external_platform_neutral_and_has_no_managed_keys() {
         for get in [en::get, ja::get] {
             for key in ["settings.ai.ffmpeg_external", "setup.ffmpeg.external_help"] {

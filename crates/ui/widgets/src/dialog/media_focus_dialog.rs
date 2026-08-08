@@ -22,6 +22,9 @@ pub struct MediaFocusDialog {
     cache_lookup_strategy: CacheLookupStrategy,
     similarity_threshold: f32,
     similar_media: Vec<SimilarMediaItem>,
+    /// Set when any cache read failed while preparing `similar_media`
+    /// (RFC 035). One aggregated flag per lookup, not one per failed file.
+    has_read_error: bool,
     ffmpeg_toolchain: Option<FfmpegToolchain>,
 }
 
@@ -40,6 +43,7 @@ impl MediaFocusDialog {
             cache_lookup_strategy,
             similarity_threshold,
             similar_media: vec![],
+            has_read_error: false,
             ffmpeg_toolchain,
         }
     }

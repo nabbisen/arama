@@ -213,6 +213,11 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
             "ffmpeg \u{30d5}\u{30a9}\u{30eb}\u{30c0}\u{30fc}\u{3092}\u{9078}\u{629e}"
         }
 
+        // Similarity dialogs (shared: similar-pairs and focus)
+        "similarity.read_error" => {
+            "\u{4e00}\u{90e8}\u{306e}\u{30d5}\u{30a1}\u{30a4}\u{30eb}\u{3092}\u{8aad}\u{307f}\u{8fbc}\u{3081}\u{307e}\u{305b}\u{3093}\u{3067}\u{3057}\u{305f}\u{3002}\u{7d50}\u{679c}\u{304c}\u{4e0d}\u{5b8c}\u{5168}\u{306a}\u{5834}\u{5408}\u{304c}\u{3042}\u{308a}\u{307e}\u{3059}\u{3002}"
+        } // 一部のファイルを読み込めませんでした。結果が不完全な場合があります。
+
         // Focus dialog
         "focus.strategy" => {
             "\u{30ad}\u{30e3}\u{30c3}\u{30b7}\u{30e5}\u{691c}\u{7d22}\u{7bc4}\u{56f2}"

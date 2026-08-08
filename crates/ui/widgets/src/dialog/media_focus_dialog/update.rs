@@ -6,7 +6,10 @@ use super::message::Message;
 impl MediaFocusDialog {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::SimilarMediaReady(similar_images) => self.similar_media = similar_images,
+            Message::SimilarMediaReady(outcome) => {
+                self.has_read_error = outcome.had_errors;
+                self.similar_media = outcome.items;
+            }
             Message::SimilarMediaItemDoubleClicked(path) => {
                 self.history.push(path.clone());
                 self.history_index = self.history.len() - 1;

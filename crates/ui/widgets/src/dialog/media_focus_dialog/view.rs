@@ -122,7 +122,13 @@ impl MediaFocusDialog {
             container(space())
         }
         .height(20);
+        let read_error: Element<'_, Message> = if self.has_read_error {
+            text(t("similarity.read_error")).into()
+        } else {
+            text("").into()
+        };
         let similar_media = column![
+            read_error,
             mouse_area(scrollable(container(similar_media_items)).horizontal())
                 .on_exit(Message::MediaItemExit),
             similar_media_items_footer

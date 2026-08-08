@@ -14,6 +14,12 @@ impl SimilarPairsDialog {
             None => return text(t("pairs.no_valid")).into(),
         };
 
+        let read_error: Element<'_, Message> = if self.has_read_error {
+            text(t("similarity.read_error")).into()
+        } else {
+            text("").into()
+        };
+
         let header = if let Some(x) = &self.hovered_media_item_path_str {
             container(text(x))
         } else {
@@ -57,6 +63,9 @@ impl SimilarPairsDialog {
         });
         let pairs = mouse_area(scrollable(pairs_columns)).on_exit(Message::MediaExit);
 
-        column![header, pairs].spacing(10).padding([10, 0]).into()
+        column![read_error, header, pairs]
+            .spacing(10)
+            .padding([10, 0])
+            .into()
     }
 }

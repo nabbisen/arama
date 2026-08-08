@@ -53,6 +53,7 @@ the final two columns.
 | `SMOKE-GALLERY-EMPTY` | `<result>` | | |
 | `SMOKE-SIMILARITY-PAIRS` | `<result>` | | |
 | `SMOKE-SIMILARITY-SPARSE` | `<result>` | | |
+| `SMOKE-SIMILARITY-ERROR` | `<result>` | | |
 | `SMOKE-CACHE-SUMMARY` | `<result>` | | |
 | `SMOKE-CACHE-PRUNE` | `<result>` | | |
 | `SMOKE-CACHE-RELOAD` | `<result>` | | |

@@ -27,3 +27,6 @@ lucide-icons = { workspace = true }
 rayon = { workspace = true }
 swdir = { workspace = true }
 webbrowser = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
