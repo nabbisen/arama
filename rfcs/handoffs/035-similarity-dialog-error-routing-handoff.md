@@ -60,6 +60,52 @@ Replace that with:
 **Behaviour must be identical between the two dialogs.** They are the same
 problem in two places; divergence here is how the next inconsistency starts.
 
+### 3.1 Which failure paths are in scope — added 2026-08-08
+
+The paragraph above says "every `CacheError`". Re-reading the code before
+handover, that under-describes it: these two functions tangle **four** distinct
+failure classes, and only some belong here. Decide by *harm*, not by error type
+— decision 4 rejected classifying by variant, and the same reasoning applies to
+classifying by origin.
+
+**In scope — silent incompleteness the user cannot otherwise learn about:**
+
+- All `CacheError` paths, per-item and whole-lookup, in both files.
+- `similar_media.rs` — the `path.canonicalize()` failure (~line 96). Not a
+  `CacheError`, but it returns an empty vector on a real failure, which is the
+  exact harm this RFC exists to remove. Excluding it because of its type would
+  be the curated allowlist decision 4 rejected.
+
+**Out of scope — must NOT produce a message:**
+
+- `similar_media.rs` — the bare `return vec![]` when the target item has no
+  CLIP vector (~line 112). This means *this item is not indexed*, which is an
+  ordinary empty state, not a failure. It is the single most likely place to get
+  §4 wrong, because it looks identical to the failure returns around it. An
+  unindexed item must show the same thing as an empty cache.
+- `similar_pairs_dialog.rs` — the missing-ffmpeg branch (~line 193). See below.
+
+**Missing ffmpeg is deliberately excluded.** It produces incomplete results, so
+the temptation to fold it in is real, but:
+
+- Nothing *failed to be read*. Video comparison never ran. Reporting it under an
+  aggregated "some files could not be read" message would misdescribe the cause,
+  which §4 forbids in the opposite direction — the message must match the effect
+  *and* not assert a mechanism that did not occur.
+- It already has a dedicated, actionable surface. `crates/i18n/src/en.rs` carries
+  a full set of `settings.ai.ffmpeg_*` states, including `ffmpeg_external`
+  telling the user exactly what to install. A transient read failure has no such
+  home; ffmpeg absence does.
+
+Leave that branch's `eprintln!` and its existing comment as they are.
+
+**This leaves a real residual gap, and it is being left knowingly:** a user with
+indexed videos and no ffmpeg sees an image-only result set with no in-dialog
+explanation. Closing it means surfacing a *configuration state* in the dialog,
+which is a scope addition beyond cache-error routing and therefore the owner's
+call, not this handoff's. Recorded for a later decision. Do not close it here,
+and do not treat its absence as an oversight during review.
+
 ## 4. The distinction that must not be lost
 
 **An empty cache is not a failure.** A user with no indexed data, or a
@@ -101,6 +147,11 @@ the mechanism, and must not appear when nothing failed.
   the direct analogue of RFC 033's "`Poisoned` must never become a cache miss",
   one layer up, and it is the single most important assertion here.
 - **Empty cache produces the ordinary empty state**, no error — §4.
+- **An unindexed target item produces the ordinary empty state**, no error —
+  §3.1. Assert this explicitly; it is the exclusion most likely to be
+  implemented wrong, and a passing "empty cache" test does not cover it.
+- **Missing ffmpeg produces no dialog message** — §3.1. A negative assertion,
+  but the one that keeps a later reader from "fixing" the exclusion.
 - **Both locales resolve** the new keys, with a test. RFC 032's cycle showed a
   missing `ja` entry renders a raw key in the Japanese UI.
 - **Rendered evidence** for both dialogs, using the method established during
@@ -128,6 +179,8 @@ change that ships this work.
 - Per-item and whole-lookup failures share one mechanism.
 - Behaviour identical between the two dialogs.
 - Empty cache still shows the ordinary empty state.
+- The §3.1 exclusions hold: an unindexed target item and a missing ffmpeg
+  produce no error message, each covered by a test.
 - Both locales carry the strings, verified by test.
 - `SMOKE-SIMILARITY-ERROR` added and executed.
 - RFC 033's Status updated to name RFC 035.
