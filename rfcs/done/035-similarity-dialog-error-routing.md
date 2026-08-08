@@ -1,9 +1,16 @@
 # RFC 035: Similarity-dialog cache-error routing
 
-**Status.** Proposed — accepted for implementation by the project owner
-2026-08-03. Remains in `rfcs/proposed/` until the work ships, per RFC 000. Its
-two open questions are implementation-level and are settled in the handoff, not
-by the owner.
+**Status.** Implemented (0.38.0). Accepted by the project owner 2026-08-03; its
+two open questions were implementation-level and were settled in the handoff.
+
+*As built, two refinements beyond the handoff:* the unindexed-target branch
+reports an error when a **batch** read partially failed, because the target's own
+entry may be exactly what was silently dropped — a flat "no error" there would
+have reproduced the defect this RFC removes. And `.flatten()` on the batch
+cache-listing results, which discarded every per-entry `Err`, was replaced with
+explicit tracking; it was the same defect hidden inside a batch call rather than
+an explicit loop. Two absence states were knowingly left open and are carried by
+[RFC 036](../proposed/036-similarity-dialog-absence-states.md).
 **Tracks.** Close the deferral recorded in
 [RFC 033](../done/033-cache-dependency-and-rust-baseline.md) Part B: the
 similarity dialogs swallow every cache error and render a partial or empty

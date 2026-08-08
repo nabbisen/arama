@@ -150,12 +150,19 @@ directory.
 ### 7. Push the tag — this triggers the release
 
 Commit steps 1–4 to `main`, then push a tag matching the release version,
-with no `v` prefix:
+with no `v` prefix. **The tag must be annotated (`-a`), and its message is
+the release notes:**
 
 ```sh
-git tag X.Y.Z
+git tag -a X.Y.Z -m "$(...)"    # message = this release's CHANGELOG entry
 git push origin X.Y.Z
 ```
+
+The workflow prefers `--notes-from-tag` and falls back to `--generate-notes`
+only when the tag carries no message. A **lightweight** tag — `git tag X.Y.Z`
+with no `-a` — has empty contents, so it silently takes the fallback and the
+release ships an auto-generated commit list instead of the hand-written
+"Before you upgrade" block. Always annotate.
 
 The tag push triggers `.github/workflows/release-executable.yaml`, which
 **creates the release itself** (RFC 034) — nothing here is a manual `gh

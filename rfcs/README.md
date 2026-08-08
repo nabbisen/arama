@@ -9,8 +9,6 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| 034 | [Release workflow reliability](./proposed/034-release-workflow-reliability.md) | High |
-| 035 | [Similarity-dialog cache-error routing](./proposed/035-similarity-dialog-error-routing.md) | Medium |
 | 036 | [Similarity-dialog absence states](./proposed/036-similarity-dialog-absence-states.md) | Medium |
 
 ## Implemented
@@ -50,6 +48,8 @@ permanent; implemented and archived RFCs are never deleted.
 | 030 | [Distribution and version contract reconciliation](./done/030-distribution-and-version-contracts.md) | 0.37.0 |
 | 032 | [Cross-platform external FFmpeg](./done/032-cross-platform-external-ffmpeg.md) | 0.37.0 |
 | 033 | [Cache dependency correction and Rust source-build baseline](./done/033-cache-dependency-and-rust-baseline.md) | 0.37.0 |
+| 034 | [Release workflow reliability](./done/034-release-workflow-reliability.md) | 0.38.0 |
+| 035 | [Similarity-dialog cache-error routing](./done/035-similarity-dialog-error-routing.md) | 0.38.0 |
 
 ## Archive
 

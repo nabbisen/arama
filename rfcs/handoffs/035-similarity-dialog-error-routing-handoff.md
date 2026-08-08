@@ -1,13 +1,13 @@
 # RFC 035 Handoff — Similarity-dialog cache-error routing
 
-Companion to [RFC 035](../proposed/035-similarity-dialog-error-routing.md),
-which is **accepted for implementation** (owner, 2026-08-03) and stays in
-`rfcs/proposed/` until the work ships, per
-[RFC 000](../done/000-rfc-lifecycle-policy.md).
+Companion to [RFC 035](../done/035-similarity-dialog-error-routing.md), which
+shipped in **0.38.0** and moved to `rfcs/done/` with that cut, per
+[RFC 000](../done/000-rfc-lifecycle-policy.md). This handoff is retained as the
+implementation record.
 
 ## 1. Design authority
 
-1. [RFC 035](../proposed/035-similarity-dialog-error-routing.md) — the
+1. [RFC 035](../done/035-similarity-dialog-error-routing.md) — the
    governing design and its four settled decisions;
 2. [RFC 017](../done/017-visible-recoverable-error-ux.md) — the tier model this
    classifies against;

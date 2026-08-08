@@ -5,7 +5,7 @@
 
 **Deferred.** Similarity-dialog cache-error tier routing (Part B) did **not**
 ship with this RFC and was deferred to
-[RFC 035](../proposed/035-similarity-dialog-error-routing.md), which closes
+[RFC 035](../done/035-similarity-dialog-error-routing.md), which closes
 this gap. The gap predated RFC 033, applied to every `CacheError` variant
 rather than only the `Poisoned` one introduced here, and required UX
 decisions outside a dependency task. This note satisfies RFC 000's

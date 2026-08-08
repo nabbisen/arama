@@ -1,8 +1,16 @@
 # RFC 034: Release workflow reliability
 
-**Status.** Proposed — accepted for implementation by the project owner
-2026-08-03, with both open questions decided (see Resolved decisions). Remains
-in `rfcs/proposed/` until the work ships, per RFC 000.
+**Status.** Implemented (0.38.0). Accepted by the project owner 2026-08-03 with
+both open questions decided (see Resolved decisions); Part E was accepted as a
+scope addition 2026-08-04 and **withdrawn** 2026-08-08 before shipping, recorded
+below rather than deleted.
+
+*On verification:* Parts A–D and F are exercised by the 0.38.0 tag push itself.
+Under Part A's required order a failed build creates no release, so a published
+0.38.0 is itself the evidence that the mechanism works end to end. **Cause 4 was
+never identified** — if a tag push produces no run at all, that is cause 4
+recurring under a different trigger, and new information rather than a failure
+of this design.
 **Tracks.** Make the executable-asset release channel produce assets reliably,
 or fail loudly, instead of silently producing nothing.
 **Touches.** `.github/workflows/release-executable.yaml`,

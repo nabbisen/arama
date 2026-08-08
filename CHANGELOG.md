@@ -7,6 +7,17 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+---
+
+## [0.38.0]
+
+**Before you upgrade:**
+
+- **Executable release assets are produced again.** 0.37.0 shipped with its
+  source archive only; if you install arama from a release binary, 0.37.0 had
+  nothing for you to download. 0.38.0 restores that channel. Nothing in this
+  release changes compatibility with existing cache, settings, or media data.
+
 ### Fixed
 
 - **Similarity results no longer hide read failures.** When the cache cannot

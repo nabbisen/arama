@@ -11,9 +11,10 @@ set was agreed on 2026-08-03, after 0.37.0 shipped and the RFC queue emptied.
 
 ### A — Release and CI reliability
 
-**Status.** Agreed 2026-08-03. RFC 034 accepted and implemented; its end-to-end
-verification rides the 0.38.0 tag, which is the first release cut under the new
-mechanism. RFC 035 implemented. The sibling native-smoke RFC is still unwritten.
+**Status.** Agreed 2026-08-03. RFC 034 shipped in 0.38.0, whose tag push is
+itself the mechanism's end-to-end verification. RFC 035 shipped in 0.38.0. The
+sibling native-smoke RFC is still unwritten, and **cause 4 is still
+unidentified** — see below.
 
 **Why now.** 0.37.0 released with its source archive and **no executable
 assets, and no workflow run queued at all**. The cause is still unexplained:
@@ -124,17 +125,22 @@ inference about what users might want.
 
 ## Shipped
 
+**0.38.0** shipped RFCs 034 and 035, plus a dependency-maintenance pass
+(`app-json-settings` 2.5.1, `event-listener` 5.4.2, `localcache` 0.21.2). It is
+the first release cut under tag-push-triggered creation, and the first since
+0.37.0 to carry executable assets.
+
 **0.37.0** (2026-08-03) shipped RFCs 015–030, 032, and 033, plus an
 audit-warning burn-down maintenance pass. RFC 031 was archived as superseded by
 RFC 032. See [`CHANGELOG.md`](./CHANGELOG.md) for the user-facing record and
 [`rfcs/README.md`](./rfcs/README.md) for the RFC index.
 
-Two items from that release remain open and are tracked under theme A:
+One item from 0.37.0 remains open, tracked under theme A:
 
-- executable assets were never produced for 0.37.0;
 - archive and built-executable artifact-absence inspection ran and passed
   against the source tarball and the Linux binary, but no Windows or macOS
-  executable exists to inspect.
+  executable existed to inspect. 0.38.0 produces them, so the inspection can
+  finally run against every shipped target.
 
 ## Later candidates
 

@@ -1,13 +1,13 @@
 # RFC 034 Handoff — Release workflow reliability
 
-Companion to [RFC 034](../proposed/034-release-workflow-reliability.md), which
-is **accepted for implementation** (owner, 2026-08-03) and stays in
-`rfcs/proposed/` until the work ships, per
-[RFC 000](../done/000-rfc-lifecycle-policy.md).
+Companion to [RFC 034](../done/034-release-workflow-reliability.md), which
+shipped in **0.38.0** and moved to `rfcs/done/` with that cut, per
+[RFC 000](../done/000-rfc-lifecycle-policy.md). This handoff is retained as the
+implementation record.
 
 ## 1. Design authority
 
-1. [RFC 034](../proposed/034-release-workflow-reliability.md) — the governing
+1. [RFC 034](../done/034-release-workflow-reliability.md) — the governing
    design, including the two owner decisions and the workflow order they
    together require;
 2. [RFC 030](../done/030-distribution-and-version-contracts.md) — the three
