@@ -270,7 +270,14 @@ jobs:
 
       - name: Verify archive layout
         run: |
-          FIRST_ENTRY=$(tar tzf "${{ env.ARCHIVE_NAME }}" | head -1)
+          # Do not pipe `tar tzf` into `head`: this shell runs with
+          # `pipefail`, and `head -1` closes its end of the pipe after one
+          # line while `tar` still has thousands more entries to write,
+          # which fails the pipeline on the resulting EPIPE regardless of
+          # what the archive's first entry actually was. Capture the full
+          # listing first so `tar`'s stdout is never closed early.
+          tar tzf "${{ env.ARCHIVE_NAME }}" > entries.txt
+          FIRST_ENTRY=$(head -1 entries.txt)
           if [ "${FIRST_ENTRY}" != "./" ]; then
             echo "::error::Source archive does not have files at root (first entry: ${FIRST_ENTRY})"
             exit 1
