@@ -298,17 +298,22 @@ jobs:
     needs: [build, source-archive]
     runs-on: ubuntu-latest
     steps:
+      # Checkout must precede the artifact download: actions/checkout
+      # clears untracked workspace content by default, and dist/ (where
+      # the downloaded assets land) is untracked. Downloading first let
+      # checkout silently wipe it, publishing a 0.38.0 release with zero
+      # assets (Task 013 Step D incident, review 089).
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - name: Download all release assets
         uses: actions/download-artifact@v7
         with:
           pattern: release-asset-*
           merge-multiple: true
           path: dist
-
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
 
       - name: Create release if it does not already exist
         env:
