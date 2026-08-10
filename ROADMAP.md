@@ -11,10 +11,20 @@ set was agreed on 2026-08-03, after 0.37.0 shipped and the RFC queue emptied.
 
 ### A — Release and CI reliability
 
-**Status.** Agreed 2026-08-03. RFC 034 shipped in 0.38.0, whose tag push is
-itself the mechanism's end-to-end verification. RFC 035 shipped in 0.38.0. The
-sibling native-smoke RFC is still unwritten, and **cause 4 is still
-unidentified** — see below.
+**Status.** RFCs 034 and 035 shipped in 0.38.0. **Cause 4 did not recur** — the
+tag-push trigger fired on all four pushes of that cut, retiring the unexplained
+failure mode this theme was built around. The channel now produces executable
+assets, verified against the published artifacts.
+
+**What the cut cost:** four tag pushes and three defects, none of which was
+visible on inspection — an EPIPE in the archive layout check, a latent EPIPE in
+the notes pipeline, and a step-order bug that published a `0.38.0` release with
+zero assets before it was caught and recovered.
+
+**Remaining in this theme:** [RFC 037](./rfcs/proposed/037-release-publication-atomicity.md)
+(publication atomicity — decision 2 holds between jobs but not inside the
+`release` job), the notes-pipeline fix, and the sibling native-smoke RFC, still
+unwritten.
 
 **Why now.** 0.37.0 released with its source archive and **no executable
 assets, and no workflow run queued at all**. The cause is still unexplained:

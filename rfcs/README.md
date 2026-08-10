@@ -10,6 +10,7 @@ permanent; implemented and archived RFCs are never deleted.
 | ID | Title | Priority |
 |----|-------|----------|
 | 036 | [Similarity-dialog absence states](./proposed/036-similarity-dialog-absence-states.md) | Medium |
+| 037 | [Release publication atomicity](./proposed/037-release-publication-atomicity.md) | Medium |
 
 ## Implemented
 

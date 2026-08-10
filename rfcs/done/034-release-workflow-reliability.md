@@ -5,12 +5,19 @@ both open questions decided (see Resolved decisions); Part E was accepted as a
 scope addition 2026-08-04 and **withdrawn** 2026-08-08 before shipping, recorded
 below rather than deleted.
 
-*On verification:* Parts A–D and F are exercised by the 0.38.0 tag push itself.
-Under Part A's required order a failed build creates no release, so a published
-0.38.0 is itself the evidence that the mechanism works end to end. **Cause 4 was
-never identified** — if a tag push produces no run at all, that is cause 4
-recurring under a different trigger, and new information rather than a failure
-of this design.
+*On verification:* Parts A–D and F were exercised by the 0.38.0 cut, across four
+tag pushes. **Cause 4 did not recur** — the `push: tags:` trigger fired every
+time, retiring the one failure mode this RFC declined to claim it had fixed.
+Three real defects were found by executing the path, none of which was visible
+on inspection: an EPIPE in `source-archive`'s layout check, a latent EPIPE in
+the notes-detection pipeline, and a step-order bug in the `release` job.
+
+*Known gap, not fixed here:* decision 2 — nothing is published until everything
+has succeeded — is enforced **between** jobs by `needs:`, but **not within** the
+`release` job, where `gh release create` publishes before assets are attached.
+On 2026-08-10 that gap published a `0.38.0` release with zero assets. The
+proximate step-order bug is fixed (`bb9b5b7`); the structural gap is carried by
+[RFC 037](../proposed/037-release-publication-atomicity.md).
 **Tracks.** Make the executable-asset release channel produce assets reliably,
 or fail loudly, instead of silently producing nothing.
 **Touches.** `.github/workflows/release-executable.yaml`,
