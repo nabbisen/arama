@@ -10,7 +10,7 @@ have reproduced the defect this RFC removes. And `.flatten()` on the batch
 cache-listing results, which discarded every per-entry `Err`, was replaced with
 explicit tracking; it was the same defect hidden inside a batch call rather than
 an explicit loop. Two absence states were knowingly left open and are carried by
-[RFC 036](../proposed/036-similarity-dialog-absence-states.md).
+[RFC 036](../done/036-similarity-dialog-absence-states.md).
 **Tracks.** Close the deferral recorded in
 [RFC 033](../done/033-cache-dependency-and-rust-baseline.md) Part B: the
 similarity dialogs swallow every cache error and render a partial or empty

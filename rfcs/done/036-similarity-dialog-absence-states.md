@@ -1,9 +1,21 @@
 # RFC 036: Similarity-dialog absence states
 
-**Status.** Proposed — **accepted for implementation by the project owner
-2026-08-10**. Remains in `rfcs/proposed/` until the work ships, per RFC 000.
-Design questions 1–3 are settled in the handoff; question 1's answer **corrects
-this RFC**, see below.
+**Status.** Implemented (0.39.0). Accepted by the project owner 2026-08-10;
+design questions 1–3 were settled in the handoff, and question 1's answer
+**corrects this RFC** — see below.
+
+*As built:* both dialogs render from one shared mechanism in
+`similarity_read_outcome.rs`. One interaction the handoff did not specify was
+found and handled during implementation: when a read failure is present the
+absence message is **suppressed**, because "results may be incomplete" and a
+confident "nothing similar found" directly beneath it would contradict each
+other.
+
+*Known limitation, deliberately out of scope:* the dialog text is legible only
+where it happens to fall on neutral background. `snora`'s dialog overlay draws
+no card, so a message can land over gallery thumbnails. RFC 036's binding rule
+— no dialog renders zero text — is met; making that text reliably readable is
+upstream work in snora, evidenced by this RFC's own rendered captures.
 **Tracks.** Two gaps found during RFC 035's implementation and review, both
 deliberately left out of that RFC's scope: the similarity dialogs are silent in
 situations where nothing went wrong but the user is still owed an explanation.

@@ -1,9 +1,22 @@
 # RFC 037: Release publication atomicity
 
-**Status.** Proposed — **accepted for implementation by the project owner
-2026-08-10**. Remains in `rfcs/proposed/` until the work ships, per RFC 000.
-Design question 1 must be answered by observation before any implementation
-begins; it can invalidate the design. Timing relative to 0.39.0 is still open.
+**Status.** Implemented (0.39.0). Accepted by the project owner 2026-08-10.
+
+*Design question 1 was answered by observation before implementation, as
+required:* `gh release edit --draft=false` does **not** detach a release from
+its tag. The 0.37.0 hazard is specific to the opposite operation — editing an
+already-published release into a draft.
+
+*Verified by execution, not inference.* A deliberately broken upload on a
+disposable tag produced exactly the 0.38.0 incident's shape — a release object
+with zero assets — except invisible, badge-less, and with a red run. A second
+run against the same tag reused that draft and completed it, publishing six
+assets as a single release rather than duplicating it.
+
+*Landed with it:* the notes-detection pipeline no longer pipes
+`git for-each-ref` into `grep -q`, closing the `elif`-context EPIPE that could
+silently substitute auto-generated notes for hand-written ones above the 64 KB
+pipe buffer.
 **Tracks.** Close a gap in [RFC 034](../done/034-release-workflow-reliability.md)'s
 own guarantee: owner decision 2 — *nothing is published until everything has
 succeeded* — is enforced **between** jobs but not **within** the `release` job,

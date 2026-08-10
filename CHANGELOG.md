@@ -7,6 +7,13 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+---
+
+## [0.39.0]
+
+Nothing in this release changes compatibility with existing cache, settings, or
+media data, and no action is required when upgrading.
+
 ### Fixed
 
 - **The similarity dialogs no longer go silent when there is nothing to show.**

@@ -1,13 +1,12 @@
 # RFC 036 Handoff — Similarity-dialog absence states
 
-Companion to [RFC 036](../proposed/036-similarity-dialog-absence-states.md),
-which is **accepted for implementation** (owner, 2026-08-10) and stays in
-`rfcs/proposed/` until the work ships, per
+Companion to [RFC 036](../done/036-similarity-dialog-absence-states.md),
+which shipped in **0.39.0** and moved to `rfcs/done/` with that cut, per
 [RFC 000](../done/000-rfc-lifecycle-policy.md).
 
 ## 1. Design authority
 
-1. [RFC 036](../proposed/036-similarity-dialog-absence-states.md) — the
+1. [RFC 036](../done/036-similarity-dialog-absence-states.md) — the
    governing design;
 2. [RFC 035](../done/035-similarity-dialog-error-routing.md) — the failure
    routing this extends. **Do not change it**; it is correct as shipped;

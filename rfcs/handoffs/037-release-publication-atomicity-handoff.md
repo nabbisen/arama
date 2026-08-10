@@ -1,13 +1,12 @@
 # RFC 037 Handoff — Release publication atomicity
 
-Companion to [RFC 037](../proposed/037-release-publication-atomicity.md), which
-is **accepted for implementation** (owner, 2026-08-10) and stays in
-`rfcs/proposed/` until the work ships, per
+Companion to [RFC 037](../done/037-release-publication-atomicity.md), which
+shipped in **0.39.0** and moved to `rfcs/done/` with that cut, per
 [RFC 000](../done/000-rfc-lifecycle-policy.md).
 
 ## 1. Design authority
 
-1. [RFC 037](../proposed/037-release-publication-atomicity.md) — the governing
+1. [RFC 037](../done/037-release-publication-atomicity.md) — the governing
    design;
 2. [RFC 034](../done/034-release-workflow-reliability.md) — the guarantee this
    completes, and its two owner decisions, which are unchanged;

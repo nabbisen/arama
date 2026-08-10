@@ -21,16 +21,20 @@ visible on inspection — an EPIPE in the archive layout check, a latent EPIPE i
 the notes pipeline, and a step-order bug that published a `0.38.0` release with
 zero assets before it was caught and recovered.
 
-**Remaining in this theme:** [RFC 037](./rfcs/proposed/037-release-publication-atomicity.md)
-(publication atomicity — decision 2 holds between jobs but not inside the
-`release` job), the notes-pipeline fix, and the sibling native-smoke RFC, still
-unwritten.
+**Closed in 0.39.0:** [RFC 037](./rfcs/done/037-release-publication-atomicity.md)
+extended the guarantee inside the `release` job — the release is created as a
+draft and published only after every asset is attached and counted — and the
+notes-detection pipeline's silent-fallback defect was fixed alongside it.
 
-**Why now.** 0.37.0 released with its source archive and **no executable
-assets, and no workflow run queued at all**. The cause is still unexplained:
-the workflow is active, its trigger is correct on the default branch, and
-GitHub registered two `release … published` events — yet no run started, on
-either attempt.
+**Remaining in this theme:** the sibling native-smoke RFC, still unwritten.
+
+**Why this theme existed.** 0.37.0 released with its source archive and **no
+executable assets, and no workflow run queued at all** — with no explanation
+available at the time: the workflow was active, its trigger correct on the
+default branch, and GitHub had registered two `release … published` events, yet
+no run started on either attempt. *(Resolved: replacing the release-event
+trigger with `push: tags:` removed the condition entirely. It has not recurred
+across five subsequent tag pushes.)*
 
 That incident exposed four independent ways the release channel can silently
 produce nothing, each indistinguishable to the operator from success:
@@ -90,20 +94,21 @@ application independently.
 
 **Status.** Agreed 2026-08-03. Follows theme A.
 
-Three of the original four items have shipped. What remains, plus one successor:
+Only the ELOC watch item remains open; everything else in this theme has
+shipped.
 
 - **~~Similarity-dialog cache-error tier routing (RFC 035).~~** *Shipped.*
   Closed RFC 033's Part B deferral. Cache-read failures in both similarity
   dialogs now surface as one inline message per dialog open, with partial
   results retained.
-- **Similarity-dialog absence states
-  ([RFC 036](./rfcs/proposed/036-similarity-dialog-absence-states.md)).**
-  *Proposed, awaiting owner decision.* RFC 035 gave failure a voice and left two
-  silences behind: a similar-pairs dialog with zero results renders **no text at
-  all** — indistinguishable from still-loading — and a user missing ffmpeg gets
-  image-only results with no in-dialog explanation. Both were found with
-  rendered evidence during RFC 035's cycle. Neither is a regression; the RFC's
-  own open question is whether it lands before or after 0.38.0.
+- **~~Similarity-dialog absence states
+  ([RFC 036](./rfcs/done/036-similarity-dialog-absence-states.md)).~~**
+  *Shipped in 0.39.0.* RFC 035 gave failure a voice; this gave the silent
+  states one. Both dialogs now distinguish results, failure, nothing-indexed,
+  nothing-found, and video-unavailable, from one shared mechanism.
+  **Carried forward:** that text is legible only where it lands on neutral
+  background, because `snora`'s dialog overlay draws no card. Upstream work,
+  with rendered evidence available to support it.
 - **ELOC remeasurement.** Nothing currently exceeds the 500-ELOC "strongly
   recommended" threshold. Measured 2026-08-03: `app/src/core.rs` raw 552 /
   ELOC ≈474, `app/src/core/update/cache.rs` 463, `app/src/core/update/ffmpeg.rs`
@@ -134,6 +139,10 @@ portfolio follow from the owner's problem statement, not from the architect's
 inference about what users might want.
 
 ## Shipped
+
+**0.39.0** shipped RFCs 036 and 037. It is the first release cut under
+draft-then-publish, and the first whose release path had already been exercised
+before the tag was pushed.
 
 **0.38.0** shipped RFCs 034 and 035, plus a dependency-maintenance pass
 (`app-json-settings` 2.5.1, `event-listener` 5.4.2, `localcache` 0.21.2). It is

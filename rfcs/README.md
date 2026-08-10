@@ -9,8 +9,8 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| 036 | [Similarity-dialog absence states](./proposed/036-similarity-dialog-absence-states.md) | Medium |
-| 037 | [Release publication atomicity](./proposed/037-release-publication-atomicity.md) | Medium |
+
+*None currently proposed.*
 
 ## Implemented
 
@@ -51,6 +51,8 @@ permanent; implemented and archived RFCs are never deleted.
 | 033 | [Cache dependency correction and Rust source-build baseline](./done/033-cache-dependency-and-rust-baseline.md) | 0.37.0 |
 | 034 | [Release workflow reliability](./done/034-release-workflow-reliability.md) | 0.38.0 |
 | 035 | [Similarity-dialog cache-error routing](./done/035-similarity-dialog-error-routing.md) | 0.38.0 |
+| 036 | [Similarity-dialog absence states](./done/036-similarity-dialog-absence-states.md) | 0.39.0 |
+| 037 | [Release publication atomicity](./done/037-release-publication-atomicity.md) | 0.39.0 |
 
 ## Archive
 

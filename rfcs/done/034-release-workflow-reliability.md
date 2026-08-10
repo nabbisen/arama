@@ -17,7 +17,7 @@ has succeeded — is enforced **between** jobs by `needs:`, but **not within** t
 `release` job, where `gh release create` publishes before assets are attached.
 On 2026-08-10 that gap published a `0.38.0` release with zero assets. The
 proximate step-order bug is fixed (`bb9b5b7`); the structural gap is carried by
-[RFC 037](../proposed/037-release-publication-atomicity.md).
+[RFC 037](../done/037-release-publication-atomicity.md).
 **Tracks.** Make the executable-asset release channel produce assets reliably,
 or fail loudly, instead of silently producing nothing.
 **Touches.** `.github/workflows/release-executable.yaml`,
