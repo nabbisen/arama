@@ -16,6 +16,7 @@ use iced::{
 use lucide_icons::iced::{icon_arrow_left, icon_arrow_right, icon_external_link, icon_folder_open};
 
 use super::{MediaFocusDialog, message::Message};
+use crate::dialog::similarity_read_outcome::{absence_message, status_line};
 use crate::similarity_badge;
 
 impl MediaFocusDialog {
@@ -93,46 +94,55 @@ impl MediaFocusDialog {
 
         let view_control = container(control_buttons).center_x(Fill);
 
-        let similar_media_items = self.similar_media.iter().fold(row![], |r: Row<_>, x| {
-            let handle = Handle::from_path(if let Some(thumbnail_path) = &x.thumbnail_path {
-                thumbnail_path.to_owned()
-            } else {
-                x.path.to_owned()
-            });
-            let item = mouse_area(
-                image(handle)
-                    .width(MAX_THUMBNAIL_SIZE as u32)
-                    .height(MAX_THUMBNAIL_SIZE as u32)
-                    .content_fit(iced::ContentFit::Cover),
-            )
-            .on_enter(Message::MediaItemEnter(x.path.clone()))
-            .on_double_click(Message::SimilarMediaItemDoubleClicked(
-                x.path.to_owned().into(),
-            ))
-            .interaction(iced::mouse::Interaction::Pointer);
-            r.push(
-                column![item, similarity_badge(x.similarity)]
-                    .spacing(5)
-                    .padding(10),
-            )
-        });
         let similar_media_items_footer = if let Some(x) = &self.hovered_media_item_path_str {
             container(text(x))
         } else {
             container(space())
         }
         .height(20);
-        let read_error: Element<'_, Message> = if self.has_read_error {
-            text(t("similarity.read_error")).into()
+
+        let status: Element<'_, Message> =
+            status_line(self.has_read_error, self.ffmpeg_missing_with_videos);
+
+        // RFC 036: an empty `similar_media` must still render text
+        // explaining why, unless a read failure already explained it via
+        // `status` above - showing both would contradict "results may be
+        // incomplete" with a confident "nothing similar found".
+        let body: Element<'_, Message> = if self.similar_media.is_empty() {
+            if self.has_read_error {
+                container(space()).into()
+            } else {
+                absence_message(self.nothing_indexed)
+            }
         } else {
-            text("").into()
-        };
-        let similar_media = column![
-            read_error,
+            let similar_media_items = self.similar_media.iter().fold(row![], |r: Row<_>, x| {
+                let handle = Handle::from_path(if let Some(thumbnail_path) = &x.thumbnail_path {
+                    thumbnail_path.to_owned()
+                } else {
+                    x.path.to_owned()
+                });
+                let item = mouse_area(
+                    image(handle)
+                        .width(MAX_THUMBNAIL_SIZE as u32)
+                        .height(MAX_THUMBNAIL_SIZE as u32)
+                        .content_fit(iced::ContentFit::Cover),
+                )
+                .on_enter(Message::MediaItemEnter(x.path.clone()))
+                .on_double_click(Message::SimilarMediaItemDoubleClicked(
+                    x.path.to_owned().into(),
+                ))
+                .interaction(iced::mouse::Interaction::Pointer);
+                r.push(
+                    column![item, similarity_badge(x.similarity)]
+                        .spacing(5)
+                        .padding(10),
+                )
+            });
             mouse_area(scrollable(container(similar_media_items)).horizontal())
-                .on_exit(Message::MediaItemExit),
-            similar_media_items_footer
-        ];
+                .on_exit(Message::MediaItemExit)
+                .into()
+        };
+        let similar_media = column![status, body, similar_media_items_footer];
 
         let close_button = button(text(t("focus.close"))).on_press(Message::CloseClick);
         let footer = container(close_button).center_x(Fill).padding(10);

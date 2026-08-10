@@ -31,6 +31,8 @@ impl MediaFocusDialog {
                 return SimilarityReadOutcome {
                     items: vec![],
                     had_errors: true,
+                    nothing_indexed: false,
+                    ffmpeg_missing_with_videos: false,
                 };
             }
         };
@@ -42,6 +44,8 @@ impl MediaFocusDialog {
                 return SimilarityReadOutcome {
                     items: vec![],
                     had_errors: true,
+                    nothing_indexed: false,
+                    ffmpeg_missing_with_videos: false,
                 };
             }
         };
@@ -83,6 +87,8 @@ fn similar_images(
             return SimilarityReadOutcome {
                 items: vec![],
                 had_errors: true,
+                nothing_indexed: false,
+                ffmpeg_missing_with_videos: false,
             };
         }
     };
@@ -116,6 +122,8 @@ fn similar_images(
             return SimilarityReadOutcome {
                 items: vec![],
                 had_errors: true,
+                nothing_indexed: false,
+                ffmpeg_missing_with_videos: false,
             };
         }
     };
@@ -131,6 +139,8 @@ fn similar_images(
             return SimilarityReadOutcome {
                 items: vec![],
                 had_errors: true,
+                nothing_indexed: false,
+                ffmpeg_missing_with_videos: false,
             };
         }
     };
@@ -151,6 +161,11 @@ fn similar_images(
         return SimilarityReadOutcome {
             items: vec![],
             had_errors: had_batch_errors,
+            // RFC 036: the target genuinely isn't indexed - this holds
+            // regardless of `had_batch_errors`, since the view suppresses
+            // this message whenever `had_errors` is set anyway.
+            nothing_indexed: true,
+            ffmpeg_missing_with_videos: false,
         };
     };
 
@@ -180,6 +195,10 @@ fn similar_images(
     SimilarityReadOutcome {
         items: ret,
         had_errors: had_batch_errors,
+        // The target was indexed (we reached here), so an empty `ret` is
+        // "searched and found nothing", not "nothing indexed yet".
+        nothing_indexed: false,
+        ffmpeg_missing_with_videos: false,
     }
 }
 
@@ -197,9 +216,13 @@ fn similar_videos(
             // Deliberately excluded from `had_errors` (RFC 035 §3.1): video
             // comparison never ran, so nothing failed to be read. Missing
             // ffmpeg has its own dedicated surface in Settings -> AI.
+            // RFC 036: `ffmpeg_missing_with_videos` carries this instead,
+            // so the dialog still says something rather than nothing.
             return SimilarityReadOutcome {
                 items: vec![],
                 had_errors: false,
+                nothing_indexed: false,
+                ffmpeg_missing_with_videos: true,
             };
         }
     };
@@ -213,6 +236,8 @@ fn similar_videos(
             return SimilarityReadOutcome {
                 items: vec![],
                 had_errors: true,
+                nothing_indexed: false,
+                ffmpeg_missing_with_videos: false,
             };
         }
     };
@@ -246,6 +271,8 @@ fn similar_videos(
             return SimilarityReadOutcome {
                 items: vec![],
                 had_errors: true,
+                nothing_indexed: false,
+                ffmpeg_missing_with_videos: false,
             };
         }
     };
@@ -261,6 +288,8 @@ fn similar_videos(
             return SimilarityReadOutcome {
                 items: vec![],
                 had_errors: true,
+                nothing_indexed: false,
+                ffmpeg_missing_with_videos: false,
             };
         }
     };
@@ -280,6 +309,11 @@ fn similar_videos(
         return SimilarityReadOutcome {
             items: vec![],
             had_errors: had_batch_errors,
+            // RFC 036: the target genuinely isn't indexed - this holds
+            // regardless of `had_batch_errors`, since the view suppresses
+            // this message whenever `had_errors` is set anyway.
+            nothing_indexed: true,
+            ffmpeg_missing_with_videos: false,
         };
     };
     let video_similarity_config = VideoSimilarityConfig::default();
@@ -320,6 +354,10 @@ fn similar_videos(
     SimilarityReadOutcome {
         items: ret,
         had_errors: had_batch_errors,
+        // The target was indexed (we reached here), so an empty `ret` is
+        // "searched and found nothing", not "nothing indexed yet".
+        nothing_indexed: false,
+        ffmpeg_missing_with_videos: false,
     }
 }
 
@@ -459,6 +497,49 @@ mod tests {
             "an unindexed target item is an ordinary empty state, not a failure"
         );
         assert!(outcome.items.is_empty());
+        assert!(
+            outcome.nothing_indexed,
+            "RFC 036: the target itself was never indexed"
+        );
+    }
+
+    #[test]
+    fn similar_images_searched_and_found_nothing_is_distinct_from_not_indexed() {
+        let cache = TestCache::new();
+        let dir = tempfile::TempDir::new().expect("create tempdir");
+        let target = real_file(dir.path(), "target.jpg");
+        let dissimilar = real_file(dir.path(), "dissimilar.jpg");
+
+        let writer = cache.image_writer();
+        writer
+            .upsert(UpsertImageRequest {
+                path: target.clone(),
+                clip_vector: Some(vec![1.0, 0.0, 0.0]),
+            })
+            .expect("upsert target entry");
+        writer
+            .upsert(UpsertImageRequest {
+                path: dissimilar,
+                // Orthogonal vector: dot product is 0.0, well under any
+                // positive threshold.
+                clip_vector: Some(vec![0.0, 1.0, 0.0]),
+            })
+            .expect("upsert dissimilar entry");
+
+        let outcome = similar_images(
+            &target,
+            cache.cache_config(),
+            CacheLookupStrategy::CurrentDirOnly,
+            0.5,
+        );
+
+        assert!(!outcome.had_errors);
+        assert!(outcome.items.is_empty());
+        assert!(
+            !outcome.nothing_indexed,
+            "RFC 036: the target was indexed and a search ran - this is \
+             'found nothing', not 'nothing indexed yet'"
+        );
     }
 
     #[test]
@@ -524,6 +605,10 @@ mod tests {
             "missing ffmpeg has its own dedicated surface, not this dialog's error message"
         );
         assert!(outcome.items.is_empty());
+        assert!(
+            outcome.ffmpeg_missing_with_videos,
+            "RFC 036: the dialog must say video comparison did not run"
+        );
     }
 
     // `similar_videos`'s cache-reader-construction-failure, per-entry

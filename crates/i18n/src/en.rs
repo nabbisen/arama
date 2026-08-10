@@ -149,13 +149,15 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
 
         // Similarity dialogs (shared: similar-pairs and focus)
         "similarity.read_error" => "Some files could not be read; results may be incomplete.",
+        "similarity.nothing_indexed" => "Nothing has been indexed yet.",
+        "similarity.no_results" => "No similar items found.",
+        "similarity.video_unavailable" => {
+            "Video comparison did not run: no ffmpeg/ffprobe pair was found."
+        }
 
         // Focus dialog
         "focus.strategy" => "Cache lookup strategy",
         "focus.close" => "Close",
-
-        // Similar-pairs dialog
-        "pairs.no_valid" => "No valid pairs.",
 
         // Header
         "header.folder" => "Folder",

@@ -8,6 +8,8 @@ impl MediaFocusDialog {
         match message {
             Message::SimilarMediaReady(outcome) => {
                 self.has_read_error = outcome.had_errors;
+                self.nothing_indexed = outcome.nothing_indexed;
+                self.ffmpeg_missing_with_videos = outcome.ffmpeg_missing_with_videos;
                 self.similar_media = outcome.items;
             }
             Message::SimilarMediaItemDoubleClicked(path) => {

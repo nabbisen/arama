@@ -7,6 +7,8 @@ impl SimilarPairsDialog {
         match message {
             Message::EmbeddingsReady(outcome) => {
                 self.has_read_error = outcome.had_errors;
+                self.nothing_indexed = outcome.nothing_indexed;
+                self.ffmpeg_missing_with_videos = outcome.ffmpeg_missing_with_videos;
                 self.pairs = Some(outcome.items);
             }
             Message::MediaItemEnter(path) => self.hovered_media_item_path_str = Some(path),

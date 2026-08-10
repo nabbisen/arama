@@ -169,6 +169,24 @@ mod tests {
     }
 
     #[test]
+    fn similarity_absence_state_keys_resolve_to_real_text_in_both_locales() {
+        for key in [
+            "similarity.nothing_indexed",
+            "similarity.no_results",
+            "similarity.video_unavailable",
+        ] {
+            for get in [en::get, ja::get] {
+                let resolved = get(key).unwrap_or_else(|| panic!("{key} must exist"));
+                assert_ne!(
+                    resolved, key,
+                    "{key} must resolve to translated text, not the raw key"
+                );
+                assert!(!resolved.is_empty());
+            }
+        }
+    }
+
+    #[test]
     fn ffmpeg_guidance_is_external_platform_neutral_and_has_no_managed_keys() {
         for get in [en::get, ja::get] {
             for key in ["settings.ai.ffmpeg_external", "setup.ffmpeg.external_help"] {

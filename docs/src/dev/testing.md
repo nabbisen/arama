@@ -174,11 +174,18 @@ rather than an inferred pass.
 - **`SMOKE-SIMILARITY-PAIRS`** — Open similar pairs from the header. The dialog
   renders image/video pairs when cache data exists.
 - **`SMOKE-SIMILARITY-SPARSE`** — With sparse or partial cache data, the dialog
-  remains usable and degrades to partial or empty results instead of crashing.
+  remains usable and shows **visible, readable text** for an empty result —
+  "Nothing has been indexed yet." for an unindexed target/directory, or "No
+  similar items found." for a search that ran and found nothing (RFC 036). A
+  dialog that renders no text at all, even with no crash, **fails this check**.
 - **`SMOKE-SIMILARITY-ERROR`** — With the cache genuinely unreadable (e.g. the
   cache database file replaced or made unreadable before the dialog opens),
   both the similar-pairs and focus dialogs show a single inline "some files
   could not be read" message rather than silently reporting no matches.
+- **`SMOKE-SIMILARITY-FFMPEG-ABSENT`** — With indexed videos and no
+  ffmpeg/ffprobe pair available, both dialogs show a single statement that
+  video comparison did not run, alongside any image-only results, without
+  a call to action (RFC 036).
 
 ### Cache page
 

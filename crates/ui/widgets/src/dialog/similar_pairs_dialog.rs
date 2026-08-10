@@ -39,6 +39,12 @@ pub struct SimilarPairsDialog {
     /// Set when any cache read failed while preparing `pairs` (RFC 035).
     /// One aggregated flag per dialog open, not one per failed file.
     has_read_error: bool,
+    /// RFC 036: distinguishes "nothing indexed yet" from "searched and
+    /// found nothing" when `pairs` is empty and there was no read error.
+    nothing_indexed: bool,
+    /// RFC 036: true when the directory has video paths but no
+    /// ffmpeg/ffprobe pair was found, so video comparison did not run.
+    ffmpeg_missing_with_videos: bool,
     hovered_media_item_path_str: Option<String>,
     similarity_threshold: f32,
     ffmpeg_toolchain: Option<FfmpegToolchain>,
@@ -63,6 +69,8 @@ impl SimilarPairsDialog {
             dir_node: dir_node.into(),
             pairs,
             has_read_error: false,
+            nothing_indexed: false,
+            ffmpeg_missing_with_videos: false,
             hovered_media_item_path_str: None,
             similarity_threshold,
             ffmpeg_toolchain,
@@ -99,6 +107,8 @@ async fn prepare_embeddings(
             return SimilarityReadOutcome {
                 items: vec![],
                 had_errors: true,
+                nothing_indexed: false,
+                ffmpeg_missing_with_videos: false,
             };
         }
     };
@@ -110,6 +120,8 @@ async fn prepare_embeddings(
             return SimilarityReadOutcome {
                 items: vec![],
                 had_errors: true,
+                nothing_indexed: false,
+                ffmpeg_missing_with_videos: false,
             };
         }
     };
@@ -171,6 +183,9 @@ async fn prepare_embeddings(
             })
         })
         .collect();
+    // RFC 036: captured before `ffmpeg_toolchain` is moved into the match
+    // below. `is_none()` borrows, so this doesn't consume it early.
+    let ffmpeg_missing_with_videos = !video_paths.is_empty() && ffmpeg_toolchain.is_none();
     if !video_paths.is_empty() {
         match ffmpeg_toolchain {
             Some(toolchain) => {
@@ -221,6 +236,13 @@ async fn prepare_embeddings(
         }
     }
 
+    // RFC 036: distinguishes "nothing indexed yet" from "searched and
+    // found nothing" when the final `items` list is empty. Computed from
+    // what was actually collected, independent of *why* video embeddings
+    // may be empty (skipped for missing ffmpeg, or genuinely unindexed) -
+    // `ffmpeg_missing_with_videos` carries that distinction separately.
+    let nothing_indexed = image_path_embeddings.is_empty() && video_path_embeddings.is_empty();
+
     let mut similar_pairs = find_similar_pairs(
         &image_path_embeddings,
         similarity_threshold,
@@ -246,7 +268,12 @@ async fn prepare_embeddings(
             },
         )
         .collect();
-    SimilarityReadOutcome { items, had_errors }
+    SimilarityReadOutcome {
+        items,
+        had_errors,
+        nothing_indexed,
+        ffmpeg_missing_with_videos,
+    }
 }
 
 fn find_similar_video_pairs(map: &[VideoEmbedding], threshold: f32) -> Vec<SimilarImagePair> {
@@ -335,6 +362,11 @@ mod tests {
 
         assert!(!outcome.had_errors, "no files to check is not a failure");
         assert!(outcome.items.is_empty());
+        assert!(
+            outcome.nothing_indexed,
+            "an empty directory has nothing indexed by definition"
+        );
+        assert!(!outcome.ffmpeg_missing_with_videos, "no video paths exist");
     }
 
     #[test]
@@ -352,5 +384,9 @@ mod tests {
             "missing ffmpeg has its own dedicated surface, not this dialog's error message"
         );
         assert!(outcome.items.is_empty());
+        assert!(
+            outcome.ffmpeg_missing_with_videos,
+            "RFC 036: video paths existed but no toolchain was available"
+        );
     }
 }

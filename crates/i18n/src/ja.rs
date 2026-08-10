@@ -217,17 +217,21 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "similarity.read_error" => {
             "\u{4e00}\u{90e8}\u{306e}\u{30d5}\u{30a1}\u{30a4}\u{30eb}\u{3092}\u{8aad}\u{307f}\u{8fbc}\u{3081}\u{307e}\u{305b}\u{3093}\u{3067}\u{3057}\u{305f}\u{3002}\u{7d50}\u{679c}\u{304c}\u{4e0d}\u{5b8c}\u{5168}\u{306a}\u{5834}\u{5408}\u{304c}\u{3042}\u{308a}\u{307e}\u{3059}\u{3002}"
         } // 一部のファイルを読み込めませんでした。結果が不完全な場合があります。
+        "similarity.nothing_indexed" => {
+            "\u{307e}\u{3060}\u{4f55}\u{3082}\u{30a4}\u{30f3}\u{30c7}\u{30c3}\u{30af}\u{30b9}\u{3055}\u{308c}\u{3066}\u{3044}\u{307e}\u{305b}\u{3093}\u{3002}"
+        } // まだ何もインデックスされていません。
+        "similarity.no_results" => {
+            "\u{985e}\u{4f3c}\u{3059}\u{308b}\u{9805}\u{76ee}\u{304c}\u{898b}\u{3064}\u{304b}\u{308a}\u{307e}\u{305b}\u{3093}\u{3067}\u{3057}\u{305f}\u{3002}"
+        } // 類似する項目が見つかりませんでした。
+        "similarity.video_unavailable" => {
+            "ffmpeg/ffprobe\u{306e}\u{30da}\u{30a2}\u{304c}\u{898b}\u{3064}\u{304b}\u{3089}\u{306a}\u{304b}\u{3063}\u{305f}\u{305f}\u{3081}\u{3001}\u{52d5}\u{753b}\u{306e}\u{6bd4}\u{8f03}\u{306f}\u{5b9f}\u{884c}\u{3055}\u{308c}\u{307e}\u{305b}\u{3093}\u{3067}\u{3057}\u{305f}\u{3002}"
+        } // ffmpeg/ffprobeのペアが見つからなかったため、動画の比較は実行されませんでした。
 
         // Focus dialog
         "focus.strategy" => {
             "\u{30ad}\u{30e3}\u{30c3}\u{30b7}\u{30e5}\u{691c}\u{7d22}\u{7bc4}\u{56f2}"
         } // キャッシュ検索範囲
         "focus.close" => "\u{9589}\u{3058}\u{308b}", // 閉じる
-
-        // Similar-pairs dialog
-        "pairs.no_valid" => {
-            "\u{985e}\u{4f3c}\u{30da}\u{30a2}\u{306f}\u{3042}\u{308a}\u{307e}\u{305b}\u{3093}\u{3002}"
-        } // 類似ペアはありません。
 
         // Header
         "header.folder" => "\u{30d5}\u{30a9}\u{30eb}\u{30c0}\u{30fc}", // フォルダー

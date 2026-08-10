@@ -25,6 +25,13 @@ pub struct MediaFocusDialog {
     /// Set when any cache read failed while preparing `similar_media`
     /// (RFC 035). One aggregated flag per lookup, not one per failed file.
     has_read_error: bool,
+    /// RFC 036: distinguishes "nothing indexed yet" from "searched and
+    /// found nothing" when `similar_media` is empty and there was no
+    /// read error.
+    nothing_indexed: bool,
+    /// RFC 036: true when the focused item is a video and no
+    /// ffmpeg/ffprobe pair was found, so video comparison did not run.
+    ffmpeg_missing_with_videos: bool,
     ffmpeg_toolchain: Option<FfmpegToolchain>,
 }
 
@@ -44,6 +51,8 @@ impl MediaFocusDialog {
             similarity_threshold,
             similar_media: vec![],
             has_read_error: false,
+            nothing_indexed: false,
+            ffmpeg_missing_with_videos: false,
             ffmpeg_toolchain,
         }
     }
