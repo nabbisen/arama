@@ -9,6 +9,13 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Fixed
 
+- **The similarity dialogs no longer go silent when there is nothing to show.**
+  A Similar Pairs dialog that found no matches previously rendered no text at
+  all — indistinguishable from one still loading, which is what a first-run
+  user with unindexed media would most often have seen. Both dialogs now always
+  say which is true: results, a read failure, nothing indexed yet, nothing
+  similar found, or video comparison skipped because no ffmpeg/ffprobe pair was
+  available.
 - **A failed release can no longer publish an incomplete one.** The release
   workflow now creates each release as a draft, attaches every asset, verifies
   the expected count, and publishes only as its final action. Previously the
