@@ -175,19 +175,37 @@ tag push
 build all five executable variants + the source archive
    │  (all succeeded)
    ▼
-create the release
+create the release AS A DRAFT (or reuse one left by a prior failed run)
    │
    ▼
 attach all six assets           ← --clobber, safe to re-run
    │
    ▼
 verify the expected asset count
+   │
+   ▼
+publish (draft → published)     ← the job's last action
 ```
 
-**Nothing is published until every variant has succeeded.** A failed
-variant leaves the tag with no release — visible in the Actions run, and
-recoverable by pushing a fix and re-running — rather than a published
-release with some assets missing.
+**Nothing is published until every variant has succeeded, and nothing
+inside the `release` job is published until everything it does has
+succeeded too** (RFC 037). A failed build variant leaves the tag with no
+release at all — visible in the Actions run, recoverable by pushing a fix
+and re-running. A failure *inside* the `release` job (a bad upload, a
+short asset count) leaves a **draft** — not publicly visible and not
+carrying the "Latest" badge, but findable by anyone with repository write
+access via `gh release list` (drafts appear there by default, labeled
+`Draft`) or the repository's Releases page. Publication is a single, final
+`gh release edit --draft=false`, run only after every other claim about
+the release has already been checked.
+
+**If a run ends with a draft:** the job is red, and that is by design —
+inspect it, fix the cause, then re-run against the **same tag**. The
+"create if it does not already exist" step recognizes and reuses an
+existing draft rather than creating a duplicate, so a re-run picks up
+where the failed one left off rather than starting over. Do not delete a
+failed run's draft to tidy up; it is both the evidence of what happened
+and the anchor the next run's idempotent reuse depends on.
 
 Before pushing a real release tag, `workflow_dispatch` against `main`
 proves all five executable variants build without creating or uploading

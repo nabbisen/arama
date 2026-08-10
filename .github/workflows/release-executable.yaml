@@ -315,26 +315,53 @@ jobs:
           merge-multiple: true
           path: dist
 
-      - name: Create release if it does not already exist
+      # RFC 037: create as a draft rather than published. A draft is not
+      # publicly visible and does not take the "Latest" badge, so any
+      # failure between here and the explicit publish step at the end of
+      # this job leaves nothing a user can see - only a maintainer-visible
+      # draft. Verified by observation (not assumed) that a draft survives
+      # `gh release edit --draft=false` without detaching from its tag -
+      # the hazard 0.37.0 established is specific to editing an
+      # already-published release, not publishing a draft.
+      - name: Create release (as draft) if it does not already exist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Re-running after a fix (e.g. an upload retry) must not fail on
           # an already-created release (Part B: idempotent recovery).
+          # `gh release view` finds drafts as well as published releases,
+          # so a draft left behind by a prior failed run is reused here
+          # rather than recreated.
           if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
             echo "Release ${{ github.ref_name }} already exists; reusing it."
-          # Every tag in this repo is annotated, and the annotation is
-          # where the human-written release notes live (e.g. 0.37.0's
-          # "Before you upgrade:" block) — --generate-notes only produces
-          # an auto-generated commit/PR list and would silently drop that.
-          elif git for-each-ref "refs/tags/${{ github.ref_name }}" --format='%(contents)' | grep -q .; then
-            gh release create "${{ github.ref_name }}" \
-              --title "${{ github.ref_name }}" \
-              --notes-from-tag
           else
-            gh release create "${{ github.ref_name }}" \
-              --title "${{ github.ref_name }}" \
-              --generate-notes
+            # Every tag in this repo is annotated, and the annotation is
+            # where the human-written release notes live (e.g. 0.37.0's
+            # "Before you upgrade:" block) — --generate-notes only produces
+            # an auto-generated commit/PR list and would silently drop that.
+            #
+            # Task 015: do not pipe `git for-each-ref` into `grep -q .` -
+            # this shell runs with pipefail, and grep closes its end of the
+            # pipe on its first match while git may still be writing the
+            # rest of the annotation. For any tag message exceeding the
+            # pipe buffer (~64 KB) this trips pipefail on the resulting
+            # EPIPE, and because this whole check sits in an `if` condition
+            # (where `set -e` is suppressed), the failure is silent: control
+            # just falls through to --generate-notes instead of erroring.
+            # Capture the listing to a file first so grep never closes a
+            # pipe git is still writing to.
+            git for-each-ref "refs/tags/${{ github.ref_name }}" --format='%(contents)' > tag_notes.txt
+            if [ -s tag_notes.txt ]; then
+              gh release create "${{ github.ref_name }}" \
+                --title "${{ github.ref_name }}" \
+                --notes-from-tag \
+                --draft
+            else
+              gh release create "${{ github.ref_name }}" \
+                --title "${{ github.ref_name }}" \
+                --generate-notes \
+                --draft
+            fi
           fi
 
       - name: Upload assets to the release
@@ -358,3 +385,15 @@ jobs:
             echo "::error::Release ${{ github.ref_name }} is missing assets (${ACTUAL}/${{ env.EXPECTED_ASSET_COUNT }})."
             exit 1
           fi
+
+      # RFC 037: publication is the job's last action, after every claim
+      # about the release (notes, asset count) has already been verified.
+      # If any step above failed, this never runs and the draft is left in
+      # place for inspection and reuse by the next run - do not delete a
+      # failed run's draft to "clean up"; it is the evidence and the next
+      # run's idempotent-reuse path depends on it existing.
+      - name: Publish the release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "${{ github.ref_name }}" --draft=false
