@@ -1,6 +1,9 @@
 # RFC 036: Similarity-dialog absence states
 
-**Status.** Proposed — awaiting owner decision. Not accepted.
+**Status.** Proposed — **accepted for implementation by the project owner
+2026-08-10**. Remains in `rfcs/proposed/` until the work ships, per RFC 000.
+Design questions 1–3 are settled in the handoff; question 1's answer **corrects
+this RFC**, see below.
 **Tracks.** Two gaps found during RFC 035's implementation and review, both
 deliberately left out of that RFC's scope: the similarity dialogs are silent in
 situations where nothing went wrong but the user is still owed an explanation.
@@ -118,8 +121,26 @@ with no content is invisible. Two directions:
 
 The second is the deeper fix and affects every dialog, not just these two. It is
 also a first-party dependency change with its own release cycle. **This RFC
-should decide the direction before any implementation**, because the first
-approach becomes redundant if the second lands.
+should decide the direction before any implementation.**
+
+> **Settled 2026-08-10 — and this framing was wrong.** I wrote that "the first
+> approach becomes redundant if the second lands." It does not. Reading the
+> source settles both halves:
+>
+> `snora-0.25.0/src/overlay/dialog.rs` is fifteen lines and its whole body is
+> `center(dialog.content)`. There is no container, background, or padding — and
+> its own doc comment calls it *"the centered modal card"*, so snora does not
+> draw what it documents.
+>
+> But a card with no text inside it still tells the user nothing. "No similar
+> items found" is information they need whether or not a frame surrounds it.
+> **The two fixes are orthogonal, not alternatives.**
+>
+> **Direction: fix in arama.** Guarantee the dialog always renders text, so
+> content-emptiness can never mean pixel-emptiness. The snora card is a real
+> improvement that benefits every dialog in every consumer, and should be
+> raised upstream as its own item — but it does not block this work and this
+> work does not wait for it.
 
 ### 2. Is "nothing found" the same message as "not indexed yet"?
 

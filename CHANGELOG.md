@@ -7,6 +7,19 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A failed release can no longer publish an incomplete one.** The release
+  workflow now creates each release as a draft, attaches every asset, verifies
+  the expected count, and publishes only as its final action. Previously the
+  release was published before its assets were attached, so a failure in
+  between left a visible release with missing or no assets — which is what
+  happened during the 0.38.0 cut before it was caught and corrected.
+- **Release notes can no longer be silently replaced.** A tag annotation larger
+  than 64 KB could quietly fall back to an auto-generated commit list instead
+  of the hand-written notes, with nothing reported. Both the detection and the
+  archive-layout check no longer depend on pipelines that can fail unnoticed.
+
 ---
 
 ## [0.38.0]
