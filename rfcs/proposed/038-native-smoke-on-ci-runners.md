@@ -1,6 +1,9 @@
 # RFC 038: Native smoke on CI runners
 
-**Status.** Proposed — awaiting owner decision. Not accepted.
+**Status.** Proposed — **accepted for implementation by the project owner
+2026-08-10**. Remains in `rfcs/proposed/` until the work ships, per RFC 000.
+Design questions 1–3 and the Windows-source open question are settled in the
+handoff.
 **Tracks.** Discharge the residual risks the owner accepted in
 [`native-smoke-risk-acceptance`](../notes/native-smoke-risk-acceptance.md) by
 exercising arama's external-FFmpeg boundary on `windows-latest` and
