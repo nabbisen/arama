@@ -2,8 +2,8 @@ use std::{path::PathBuf, process::Stdio};
 
 use arama_env::{Settings, ffmpeg_location::FfmpegLocationPreference};
 use arama_sidecar::media::video::video_engine::discovery::{
-    FfmpegDiscoveryEvent, FfmpegDiscoveryOutcome, FfmpegDiscoveryRuntime, PreferenceTransition,
-    publish_validated_selection,
+    DiscoverySource, FfmpegDiscoveryEvent, FfmpegDiscoveryOutcome, FfmpegDiscoveryRuntime,
+    PreferenceTransition, publish_validated_selection,
 };
 
 #[test]
@@ -111,4 +111,74 @@ fn selected_external_pair_generates_probes_and_extracts_real_video() {
     assert!(std::fs::metadata(&frame).is_ok_and(|metadata| metadata.len() > 0));
 
     std::fs::remove_dir_all(root).expect("remove smoke directory");
+}
+
+/// RFC 038 Variant 2 — a second entry point rather than a parameterised one
+/// (handoff §3.2), so a failure names which mode broke.
+///
+/// The workflow, not this test, is responsible for installing a real pair
+/// and proving it is absent from `PATH` before this runs (handoff §5: "log
+/// the effective PATH and assert ffmpeg/ffprobe are not resolvable on it" —
+/// that check belongs to the shell step invoking `cargo test`, since this
+/// integration-test crate has no visibility into `PATH` resolution
+/// semantics beyond what the process it runs in already has).
+///
+/// This test's own job is narrower and platform-neutral: report exactly
+/// where discovery found the pair (or that it found nothing), and hard-fail
+/// only on the one universal claim — that a `Ready` outcome must not have
+/// come from a bare `PATH` scan when the workflow went to the trouble of
+/// stripping `PATH` first. A `Ready` outcome via `AutoPath` here would mean
+/// the workflow's own precondition was not actually met, which proves
+/// nothing about any fallback and must not be reported as a pass.
+///
+/// It deliberately does **not** require `Ready` universally: RFC 032's own
+/// design table (`rfcs/done/032-cross-platform-external-ffmpeg.md`) gives
+/// Windows no automatic off-`PATH` fallback at all — the Windows story for
+/// an off-`PATH` pair is explicit Selected-directory mode (Variant 1,
+/// above), not Auto discovery. `Missing` on Windows is therefore the
+/// *correct*, designed outcome, not a defect this test should flag; only
+/// the workflow's per-platform log interpretation (see `native-smoke.yaml`)
+/// decides what a given outcome means for that runner.
+#[test]
+#[ignore = "owner-run native smoke; requires a valid ffmpeg/ffprobe pair installed but excluded from PATH"]
+fn discovery_finds_a_pair_off_path() {
+    let runtime = FfmpegDiscoveryRuntime::default();
+    let ticket = runtime.request(FfmpegLocationPreference::Auto);
+    let async_runtime = tokio::runtime::Builder::new_current_thread()
+        .build()
+        .expect("build smoke runtime");
+
+    assert!(matches!(
+        async_runtime.block_on(ticket.next()),
+        Some(FfmpegDiscoveryEvent::Started(1))
+    ));
+    let Some(FfmpegDiscoveryEvent::Published(publication)) = async_runtime.block_on(ticket.next())
+    else {
+        panic!("auto discovery did not publish a terminal outcome");
+    };
+
+    // Printed (not just logged on failure): the workflow greps this line
+    // regardless of whether the test itself passes, per handoff §5's "a
+    // reviewer must be able to see, from the log alone" requirement. Run
+    // with `--nocapture` or this is invisible on a passing test.
+    match &publication.outcome {
+        FfmpegDiscoveryOutcome::Ready { toolchain, source } => {
+            println!("NATIVE_SMOKE_DISCOVERY_OUTCOME=Ready");
+            println!("NATIVE_SMOKE_DISCOVERY_SOURCE={source:?}");
+            println!(
+                "NATIVE_SMOKE_DISCOVERY_PATH={}",
+                toolchain.ffmpeg_path().display()
+            );
+            assert_ne!(
+                *source,
+                DiscoverySource::AutoPath,
+                "resolved via a bare PATH scan despite the workflow excluding the \
+                 pair from PATH beforehand - this proves nothing about any fallback \
+                 and means the workflow's PATH-exclusion precondition was not met"
+            );
+        }
+        other => {
+            println!("NATIVE_SMOKE_DISCOVERY_OUTCOME={other:?}");
+        }
+    }
 }

@@ -1,0 +1,159 @@
+name: Native FFmpeg Smoke
+
+# RFC 038: exercises arama's external-FFmpeg discovery boundary on
+# windows-latest and macos-latest - the runners release-executable.yaml
+# already pays for - discharging residual risks the owner accepted in
+# rfcs/notes/native-smoke-risk-acceptance.md.
+#
+# Deliberately a SEPARATE workflow from release-executable.yaml, never
+# merged into it (RFC 038 handoff §2, "the one rule that outranks the
+# rest"). That file took four tag pushes and three defects to stabilise
+# and now carries RFC 034's blocking gate and RFC 037's publication
+# atomicity; this workflow's failure surface is platform- and
+# network-install-dependent (Homebrew, Chocolatey) and must never sit in
+# the path that publishes. msrv.yaml is the precedent for a narrow,
+# separately-scoped job living outside the release path.
+#
+# Informational only (RFC 038 handoff §3.1): a failure here turns this
+# run red and nothing else - it gates no release and blocks no merge.
+# Revisit once an observed flake rate is a fact rather than a guess.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install ffmpeg via Homebrew
+        # Homebrew is a first-party, trusted source (RFC 032's own
+        # user-facing guidance for macOS) and installs into the exact
+        # directory the native-prefix fallback is written to find
+        # (/opt/homebrew/bin on Apple Silicon runners).
+        run: |
+          brew install ffmpeg
+          FFMPEG_PATH=$(command -v ffmpeg)
+          FFMPEG_BIN=$(dirname "$FFMPEG_PATH")
+          echo "ffmpeg resolved to: $FFMPEG_PATH"
+          echo "FFMPEG_BIN=$FFMPEG_BIN" >> "$GITHUB_ENV"
+          echo "--- installed version tokens (residual risk: version-token parsing, both platforms) ---"
+          ffmpeg -version | head -1
+          ffprobe -version | head -1
+
+      - name: Install Rust
+        run: bash .github/workflows/scripts/install-rust.sh stable
+
+      - name: Variant 1 - selected directory
+        env:
+          ARAMA_FFMPEG_SMOKE_DIR: ${{ env.FFMPEG_BIN }}
+        run: |
+          cargo test -p arama-sidecar --test external_ffmpeg_smoke --locked -- \
+            --ignored --exact selected_external_pair_generates_probes_and_extracts_real_video \
+            --nocapture
+
+      - name: Variant 2 - strip PATH, confirm the pair is not resolvable
+        # A variant-2 pass that silently used a pair still on PATH proves
+        # nothing (RFC 038 handoff §5) - this step is the precondition
+        # check that stops that from happening unnoticed.
+        run: |
+          export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
+          echo "effective PATH for discovery = $PATH"
+          if command -v ffmpeg >/dev/null 2>&1 || command -v ffprobe >/dev/null 2>&1; then
+            echo "::error::ffmpeg/ffprobe still resolvable on the stripped PATH - variant 2's precondition was not met"
+            exit 1
+          fi
+          echo "confirmed: neither ffmpeg nor ffprobe resolves on this PATH"
+          echo "SMOKE_PATH=$PATH" >> "$GITHUB_ENV"
+
+      - name: Variant 2 - discovery with PATH stripped
+        run: |
+          export PATH="$SMOKE_PATH"
+          echo "PATH for cargo test = $PATH"
+          cargo test -p arama-sidecar --test external_ffmpeg_smoke --locked -- \
+            --ignored --exact discovery_finds_a_pair_off_path --nocapture | tee discovery-output.log
+          echo "--- interpreting discovery result ---"
+          if grep -q "NATIVE_SMOKE_DISCOVERY_SOURCE=NativePrefix" discovery-output.log; then
+            echo "confirmed: the macOS native-prefix fallback (not PATH) found the pair - this is the point of RFC 038"
+          else
+            echo "::error::macOS variant 2 did not exercise the native-prefix fallback (expected NATIVE_SMOKE_DISCOVERY_SOURCE=NativePrefix in the test output)"
+            exit 1
+          fi
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install ffmpeg via Chocolatey
+        # Chocolatey, not winget: verified against the published runner
+        # image software list (actions/runner-images
+        # images/windows/Windows2025-Readme.md) rather than assumed
+        # (RFC 038 handoff §4) - winget does not appear in that list,
+        # Chocolatey 2.7.3 does. Chocolatey is the handoff's named
+        # fallback for exactly this case. No ffmpeg.exe is fetched from
+        # an arbitrary URL; the package comes through Chocolatey's own
+        # trusted distribution.
+        run: |
+          choco install ffmpeg -y --no-progress
+          FFMPEG_EXE=$(find "/c/ProgramData/chocolatey/lib" -iname "ffmpeg.exe" 2>/dev/null | head -1)
+          if [ -z "$FFMPEG_EXE" ]; then
+            echo "::error::ffmpeg.exe not found under Chocolatey's lib directory after install"
+            exit 1
+          fi
+          FFMPEG_BIN=$(dirname "$FFMPEG_EXE")
+          echo "ffmpeg resolved to: $FFMPEG_EXE"
+          echo "FFMPEG_BIN=$FFMPEG_BIN" >> "$GITHUB_ENV"
+          echo "--- installed version tokens (residual risk: version-token parsing, both platforms) ---"
+          "$FFMPEG_BIN/ffmpeg.exe" -version | head -1
+          "$FFMPEG_BIN/ffprobe.exe" -version | head -1
+
+      - name: Install Rust
+        run: bash .github/workflows/scripts/install-rust.sh stable
+
+      - name: Variant 1 - selected directory
+        env:
+          ARAMA_FFMPEG_SMOKE_DIR: ${{ env.FFMPEG_BIN }}
+        run: |
+          cargo test -p arama-sidecar --test external_ffmpeg_smoke --locked -- \
+            --ignored --exact selected_external_pair_generates_probes_and_extracts_real_video \
+            --nocapture
+
+      - name: Variant 2 - strip PATH, confirm the pair is not resolvable
+        run: |
+          export PATH="/c/Windows/System32:/c/Windows"
+          echo "effective PATH for discovery = $PATH"
+          if command -v ffmpeg >/dev/null 2>&1 || command -v ffprobe >/dev/null 2>&1; then
+            echo "::error::ffmpeg/ffprobe still resolvable on the stripped PATH - variant 2's precondition was not met"
+            exit 1
+          fi
+          echo "confirmed: neither ffmpeg nor ffprobe resolves on this PATH"
+          echo "SMOKE_PATH=$PATH" >> "$GITHUB_ENV"
+
+      - name: Variant 2 - discovery with PATH stripped
+        run: |
+          export PATH="$SMOKE_PATH"
+          echo "PATH for cargo test = $PATH"
+          cargo test -p arama-sidecar --test external_ffmpeg_smoke --locked -- \
+            --ignored --exact discovery_finds_a_pair_off_path --nocapture | tee discovery-output.log
+          echo "--- interpreting discovery result ---"
+          grep "NATIVE_SMOKE_DISCOVERY_OUTCOME" discovery-output.log || true
+          # RFC 032's own design table gives Windows no automatic
+          # off-PATH fallback (only "inherited PATH, in order" - the
+          # off-PATH story for Windows is explicit Selected-directory
+          # mode, already exercised by Variant 1 above). A `Missing`
+          # outcome here is therefore the CORRECT, designed behaviour,
+          # not a failure - this step exists to prove discovery fails
+          # safely (no crash, no false Ready) rather than to prove a
+          # fallback that does not exist on this platform by design.
+          # Not hard-failing the job on Missing: see RFC 038's review
+          # package for why the two platforms' Variant 2 do not share
+          # the same pass/fail meaning.
