@@ -183,3 +183,27 @@ jobs:
           # Not hard-failing the job on Missing: see RFC 038's review
           # package for why the two platforms' Variant 2 do not share
           # the same pass/fail meaning.
+
+      - name: RFC 039 Phase 0 - collection-phase timing over the real PATH
+        # Runs with PATH un-stripped (this step's shell never sourced
+        # SMOKE_PATH), so it measures the filesystem-only cost of
+        # scanning this runner's actual inherited PATH - the thing
+        # max_raw_path_entries gates - with the raw-entry and
+        # candidate caps raised past anything the current default
+        # could mask. No subprocess is spawned by this phase.
+        run: |
+          echo "PATH for timing = $PATH"
+          cargo test -p arama-sidecar --test external_ffmpeg_smoke --locked -- \
+            --ignored --exact discovery_collection_phase_timing_over_real_path --nocapture
+
+      - name: RFC 039 Phase 0 - full-attempt timing, PATH stripped
+        # Reuses Variant 2's SMOKE_PATH (pair excluded) so every
+        # candidate takes the cheap "not found" path through
+        # validation - this measures the worst-case-for-timeout shape
+        # a raised max_raw_path_entries would produce: an exhaustive
+        # scan to a confident Missing, not an early truncation.
+        run: |
+          export PATH="$SMOKE_PATH"
+          echo "PATH for timing = $PATH"
+          cargo test -p arama-sidecar --test external_ffmpeg_smoke --locked -- \
+            --ignored --exact discovery_full_attempt_timing_over_real_path --nocapture

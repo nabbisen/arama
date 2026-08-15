@@ -1,9 +1,10 @@
-use std::{path::PathBuf, process::Stdio};
+use std::{path::PathBuf, process::Stdio, time::Instant};
 
 use arama_env::{Settings, ffmpeg_location::FfmpegLocationPreference};
 use arama_sidecar::media::video::video_engine::discovery::{
     DiscoverySource, FfmpegDiscoveryEvent, FfmpegDiscoveryOutcome, FfmpegDiscoveryRuntime,
-    PreferenceTransition, publish_validated_selection,
+    FfmpegLocatorPolicy, PreferenceTransition, StdCandidateFilesystem, normalize_auto_candidates,
+    publish_validated_selection,
 };
 
 #[test]
@@ -180,5 +181,116 @@ fn discovery_finds_a_pair_off_path() {
         other => {
             println!("NATIVE_SMOKE_DISCOVERY_OUTCOME={other:?}");
         }
+    }
+}
+
+/// RFC 039 Phase 0 — blocking measurement, not a regression guard. Times the
+/// filesystem-only collection phase (`normalize_auto_candidates`) over the
+/// runner's real, unstripped `PATH`, with the raw-entry and candidate caps
+/// raised far past anything realistic so nothing here is capped by the value
+/// this RFC is about to change — the point is to measure the uncapped cost,
+/// not to exercise the current bound.
+///
+/// This phase never spawns a subprocess (`normalize_auto_candidates` only
+/// canonicalizes and stats directories), so its timing is the filesystem
+/// half of the two-part cost `max_raw_path_entries` gates: 2 syscalls per
+/// raw entry during collection, independent of whether a later validation
+/// pass would find a match.
+#[test]
+#[ignore = "owner-run native smoke; RFC 039 Phase 0 timing, not a pass/fail check"]
+fn discovery_collection_phase_timing_over_real_path() {
+    let path = std::env::var_os("PATH");
+    let raw_entry_count = path
+        .as_deref()
+        .map(|value| std::env::split_paths(value).count())
+        .unwrap_or(0);
+
+    let policy = FfmpegLocatorPolicy {
+        max_raw_path_entries: 10_000,
+        max_path_candidates: 10_000,
+        ..FfmpegLocatorPolicy::default()
+    };
+    let mut control = || Ok(());
+    let mut filesystem = StdCandidateFilesystem;
+
+    let started = Instant::now();
+    let result =
+        normalize_auto_candidates(path.as_deref(), None, policy, &mut control, &mut filesystem);
+    let elapsed = started.elapsed();
+
+    println!("NATIVE_SMOKE_TIMING_RAW_ENTRY_COUNT={raw_entry_count}");
+    println!(
+        "NATIVE_SMOKE_TIMING_CANDIDATE_COUNT={}",
+        result.candidates.len()
+    );
+    println!(
+        "NATIVE_SMOKE_TIMING_REJECTED_ENTRIES={}",
+        result.rejected_entries
+    );
+    println!("NATIVE_SMOKE_TIMING_RAW_TRUNCATED={}", result.raw_truncated);
+    println!(
+        "NATIVE_SMOKE_TIMING_CANDIDATE_TRUNCATED={}",
+        result.candidate_truncated
+    );
+    println!(
+        "NATIVE_SMOKE_TIMING_COLLECTION_PHASE_MS={}",
+        elapsed.as_secs_f64() * 1000.0
+    );
+    if raw_entry_count > 0 {
+        println!(
+            "NATIVE_SMOKE_TIMING_PER_RAW_ENTRY_US={}",
+            elapsed.as_secs_f64() * 1_000_000.0 / raw_entry_count as f64
+        );
+    }
+}
+
+/// RFC 039 Phase 0 — the full-pipeline counterpart to the collection-phase
+/// measurement above. Uses the same PATH-stripped precondition as
+/// `discovery_finds_a_pair_off_path` (the workflow strips the installed
+/// pair from PATH before this runs), so every candidate takes the cheap
+/// "not found" path through validation (filesystem only, no subprocess) —
+/// this measures the worst-case-for-timeout shape a raised cap would
+/// produce: scanning every real raw PATH entry to a confident `Missing`
+/// rather than truncating early, with `max_raw_path_entries` raised high
+/// enough that the current default cannot mask the true entry count.
+#[test]
+#[ignore = "owner-run native smoke; RFC 039 Phase 0 timing, requires PATH stripped like discovery_finds_a_pair_off_path"]
+fn discovery_full_attempt_timing_over_real_path() {
+    let policy = FfmpegLocatorPolicy {
+        max_raw_path_entries: 512,
+        ..FfmpegLocatorPolicy::default()
+    };
+    let runtime = FfmpegDiscoveryRuntime::new(policy);
+    let ticket = runtime.request(FfmpegLocationPreference::Auto);
+    let async_runtime = tokio::runtime::Builder::new_current_thread()
+        .build()
+        .expect("build smoke runtime");
+
+    let started = Instant::now();
+    assert!(matches!(
+        async_runtime.block_on(ticket.next()),
+        Some(FfmpegDiscoveryEvent::Started(1))
+    ));
+    let Some(FfmpegDiscoveryEvent::Published(publication)) = async_runtime.block_on(ticket.next())
+    else {
+        panic!("auto discovery did not publish a terminal outcome");
+    };
+    let elapsed = started.elapsed();
+
+    println!(
+        "NATIVE_SMOKE_TIMING_FULL_ATTEMPT_MS={}",
+        elapsed.as_secs_f64() * 1000.0
+    );
+    println!(
+        "NATIVE_SMOKE_TIMING_FULL_ATTEMPT_OUTCOME={:?}",
+        publication.outcome
+    );
+    if let FfmpegDiscoveryOutcome::Ready { source, .. } = &publication.outcome {
+        assert_ne!(
+            *source,
+            DiscoverySource::AutoPath,
+            "resolved via a bare PATH scan despite PATH being stripped - the \
+             precondition this timing measurement depends on was not met"
+        );
     }
 }
