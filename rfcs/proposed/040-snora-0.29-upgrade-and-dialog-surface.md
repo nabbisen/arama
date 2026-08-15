@@ -1,6 +1,10 @@
 # RFC 040: snora 0.29 upgrade and dialog surface
 
-**Status.** Proposed — awaiting owner decision. Not accepted.
+**Status.** Proposed — **accepted for implementation by the project owner
+2026-08-15**. Remains in `rfcs/proposed/` until the work ships, per RFC 000.
+Design questions 1–3 are settled in the handoff. **Takes precedence over
+[RFC 039](./039-windows-path-search-reachability.md)** — this one carries a
+defect already shipped to users.
 **Tracks.** Two things at once, because one change fixes both: a **live
 accessibility defect** — modals have no modality signal at all on arama's
 high-contrast dark theme — and [RFC 036](../done/036-similarity-dialog-absence-states.md)'s

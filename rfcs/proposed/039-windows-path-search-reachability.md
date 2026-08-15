@@ -1,6 +1,11 @@
 # RFC 039: Windows `PATH` search reachability
 
-**Status.** Proposed — awaiting owner decision. Not accepted.
+**Status.** Proposed — **accepted for implementation by the project owner
+2026-08-15**. Remains in `rfcs/proposed/` until the work ships, per RFC 000.
+Design questions 1–3 are settled in the handoff, except the bound's **value**,
+which the handoff makes a blocking measurement step rather than a guess.
+**Follows [RFC 040](./040-snora-0.29-upgrade-and-dialog-surface.md)**, which
+carries an already-shipped defect.
 **Tracks.** Amend [RFC 032](../done/032-cross-platform-external-ffmpeg.md)'s
 discovery bounds. `max_raw_path_entries: 64` is a **reachability** limit, not a
 performance limit, and on Windows it is the only thing standing between a user
