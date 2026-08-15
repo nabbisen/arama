@@ -80,7 +80,8 @@ and are not numbered, but are kept here as permanent project records.
 | [clip-safetensors-source-decision](./notes/clip-safetensors-source-decision.md) | RFC 021 implementation decision: retain CLIP runtime conversion until a trustworthy pinned SafeTensors source exists |
 | [cache-serialization-dependency-decision](./notes/cache-serialization-dependency-decision.md) | RFC 023 implementation decision: retain current localcache/bincode cache serialization until a bincode-free localcache route exists |
 | [native-smoke-risk-acceptance](./notes/native-smoke-risk-acceptance.md) | RFC 032 release checkpoint: owner risk acceptance for unexecuted Windows/macOS native smoke, with the specific residual risks and the Linux evidence that was executed |
-| [snora-dialog-overlay-card](./notes/snora-dialog-overlay-card.md) | Upstream report, sent 2026-08-10: snora 0.25's dialog overlay documents "the centered modal card" but draws no card, so dialog text is legible only where it lands on neutral background (contribution to snora) |
+| [snora-dialog-overlay-card](./notes/snora-dialog-overlay-card.md) | Upstream report, sent 2026-08-10: snora 0.25's dialog overlay documents "the centered modal card" but draws no card, so dialog text is legible only where it lands on neutral background (contribution to snora). Carries snora's reply, the high-contrast-dark modality defect it surfaced, and the running record of the exchange |
+| [snora-reply-2026-08-15](./notes/snora-reply-2026-08-15.md) | **Draft, not yet sent.** arama's reply: the before/after captures, whether the card is enough, the `AppLayout` slot breakdown, and a byte-identical pixel-level confirmation of snora's no-visual-change guarantee across 0.25 → 0.29 |
 
 
 ## Handoffs
