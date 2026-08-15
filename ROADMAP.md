@@ -26,14 +26,24 @@ extended the guarantee inside the `release` job — the release is created as a
 draft and published only after every asset is attached and counted — and the
 notes-detection pipeline's silent-fallback defect was fixed alongside it.
 
-**Remaining in this theme:**
-[RFC 038](./rfcs/proposed/038-native-smoke-on-ci-runners.md) — native smoke on
-the `windows-latest` and `macos-latest` runners the release workflow already
-pays for. Proposed, awaiting owner decision. It discharges the four residual
-risks named in
+**Closed in 0.39.1:**
+[RFC 038](./rfcs/done/038-native-smoke-on-ci-runners.md) — native smoke now runs
+on the `windows-latest` and `macos-latest` runners the release workflow already
+pays for. Of the four residual risks named in
 [`native-smoke-risk-acceptance`](./rfcs/notes/native-smoke-risk-acceptance.md),
-whose own text calls that risk *temporary, not permanent*, and whose acceptance
-was scoped to the 0.37.0 checkpoint — two releases ago.
+two are fully discharged by execution — including the macOS native-prefix
+fallback, the highest user-visible risk on the list, which had never run
+anywhere — one is discharged for the Selected-directory path only, and
+**Windows process-tree reaping on a probe timeout remains open**: neither smoke
+variant produces a timeout, so it is recorded as undischarged rather than
+implied by a green run.
+
+Running it also surfaced two real defects on Windows —
+[RFC 039](./rfcs/done/039-windows-path-search-reachability.md) and the
+unreachable "install ffmpeg" message — neither of which any amount of reading
+had found.
+
+**Remaining in this theme:** Windows process-tree reaping, above. Nothing else.
 
 **Why this theme existed.** 0.37.0 released with its source archive and **no
 executable assets, and no workflow run queued at all** — with no explanation
@@ -63,15 +73,14 @@ project.
 
 **RFCs.**
 
-- **RFC 034 — release workflow reliability.** *Implemented, verification
-  pending.* Tag-push-triggered release creation removes causes 1–3
-  structurally — the tag carries the workflow that will run, the trigger is
-  `push`, and the ref is a tag by construction. All five variants must build
-  before the release is created, so a failure leaves no release rather than a
-  partial one. Plus `--clobber` for idempotent re-runs, asset-count
-  verification, a manifest-must-equal-tag gate, and pre-tag build verification
-  via `workflow_dispatch`. **Cause 4 is still unidentified**; the 0.38.0 cut is
-  the first real test of whether it recurs.
+- **RFC 034 — release workflow reliability.** *Shipped in 0.38.0.*
+  Tag-push-triggered release creation removes causes 1–3 structurally — the tag
+  carries the workflow that will run, the trigger is `push`, and the ref is a
+  tag by construction. All five variants must build before the release is
+  created, so a failure leaves no release rather than a partial one. Plus
+  `--clobber` for idempotent re-runs, asset-count verification, a
+  manifest-must-equal-tag gate, and pre-tag build verification via
+  `workflow_dispatch`. **Cause 4 did not recur** — see this theme's Status.
   - Pre-release tag support was accepted, implemented, then withdrawn: internal
     dependencies carry `version = "0"` per RFC 030, and a Cargo requirement
     without a pre-release component never matches a pre-release version, so no
@@ -80,13 +89,11 @@ project.
   RFC 033's Part B deferral: cache-read failures in the similar-pairs and focus
   dialogs no longer render as an empty result indistinguishable from "nothing
   found".
-- **A sibling RFC — native smoke on CI runners** (previously "route B").
-  Extends automated native smoke to the `windows-latest` and `macos-latest`
-  runners the release workflow already uses, covering the two highest-value
-  unverified targets without owning hardware. Supersedes the corresponding rows
-  in [`rfcs/notes/native-smoke-risk-acceptance.md`](./rfcs/notes/native-smoke-risk-acceptance.md)
-  once it lands. It cannot cover Finder-launch `PATH` inheritance or rendered
-  UI, which stay desktop-only.
+- **RFC 038 — native smoke on CI runners** (previously "route B"). *Shipped in
+  0.39.1.* Extends automated native smoke to the `windows-latest` and
+  `macos-latest` runners the release workflow already uses, covering the two
+  highest-value unverified targets without owning hardware. It cannot cover
+  rendered UI, which stays desktop-only and human-run.
 
 **Evidence this theme is worth its cost.** Four defects were found during the
 0.37.0 cycle — a release-blocking startup hang, a missing required action, a
@@ -113,9 +120,12 @@ shipped.
   *Shipped in 0.39.0.* RFC 035 gave failure a voice; this gave the silent
   states one. Both dialogs now distinguish results, failure, nothing-indexed,
   nothing-found, and video-unavailable, from one shared mechanism.
-  **Carried forward:** that text is legible only where it lands on neutral
-  background, because `snora`'s dialog overlay draws no card. Upstream work,
-  with rendered evidence available to support it.
+  **Carried forward and now closed:** that text was legible only where it
+  landed on neutral background, because `snora`'s dialog overlay drew no card.
+  Reported upstream, fixed upstream, and adopted in 0.39.1 via
+  [RFC 040](./rfcs/done/040-snora-0.29-upgrade-and-dialog-surface.md) — which
+  also closed a live accessibility defect the report surfaced: modals had **no
+  modality signal at all** on the high-contrast dark preset.
 - **ELOC remeasurement.** Nothing currently exceeds the 500-ELOC "strongly
   recommended" threshold. Measured 2026-08-03: `app/src/core.rs` raw 552 /
   ELOC ≈474, `app/src/core/update/cache.rs` 463, `app/src/core/update/ffmpeg.rs`
@@ -146,6 +156,13 @@ portfolio follow from the owner's problem statement, not from the architect's
 inference about what users might want.
 
 ## Shipped
+
+**0.39.1** shipped RFCs 038, 039 and 040 — a fix-only release. Its headline is
+an accessibility defect: modals had no modality signal at all on the
+high-contrast dark preset, the one chosen by users who most need visual
+clarity. Its release gate also caught this project's first **vulnerability**
+rather than a warning (`webbrowser`, RUSTSEC-2026-0257), closed by a
+semver-compatible bump.
 
 **0.39.0** shipped RFCs 036 and 037. It is the first release cut under
 draft-then-publish, and the first whose release path had already been exercised

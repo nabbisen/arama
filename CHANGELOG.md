@@ -7,6 +7,20 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+---
+
+## [0.39.1]
+
+A fix-only release. Nothing changes compatibility with existing cache,
+settings, or media data, and no action is required when upgrading.
+
+### Security
+
+- **`webbrowser` moved from 1.2.1 to 1.2.4**, closing RUSTSEC-2026-0257 — Unix
+  `BROWSER` handling allowed browser argument injection. arama opens external
+  links through this crate. No arama code changed; the advisory was published
+  after 0.39.0 shipped and was caught by the release gate.
+
 ### Fixed
 
 - **"Install ffmpeg" was the one thing arama would not tell you.** When ffmpeg

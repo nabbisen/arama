@@ -9,9 +9,8 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| 038 | [Native smoke on CI runners](./proposed/038-native-smoke-on-ci-runners.md) | Medium |
-| 039 | [Windows `PATH` search reachability](./proposed/039-windows-path-search-reachability.md) | Medium |
-| 040 | [snora 0.29 upgrade and dialog surface](./proposed/040-snora-0.29-upgrade-and-dialog-surface.md) | **High** — carries a shipped accessibility defect |
+
+*None currently proposed.*
 
 ## Implemented
 
@@ -54,6 +53,9 @@ permanent; implemented and archived RFCs are never deleted.
 | 035 | [Similarity-dialog cache-error routing](./done/035-similarity-dialog-error-routing.md) | 0.38.0 |
 | 036 | [Similarity-dialog absence states](./done/036-similarity-dialog-absence-states.md) | 0.39.0 |
 | 037 | [Release publication atomicity](./done/037-release-publication-atomicity.md) | 0.39.0 |
+| 038 | [Native smoke on CI runners](./done/038-native-smoke-on-ci-runners.md) | 0.39.1 |
+| 039 | [Windows `PATH` search reachability](./done/039-windows-path-search-reachability.md) | 0.39.1 |
+| 040 | [snora 0.29 upgrade and dialog surface](./done/040-snora-0.29-upgrade-and-dialog-surface.md) | 0.39.1 |
 
 ## Archive
 

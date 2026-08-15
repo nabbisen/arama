@@ -1,9 +1,26 @@
 # RFC 038: Native smoke on CI runners
 
-**Status.** Proposed — **accepted for implementation by the project owner
-2026-08-10**. Remains in `rfcs/proposed/` until the work ships, per RFC 000.
-Design questions 1–3 and the Windows-source open question are settled in the
-handoff.
+**Status.** Implemented (0.39.1). Accepted by the project owner 2026-08-10.
+
+*As built:* `winget` was preferred in the handoff *unless unavailable*; the
+published runner-image list documents Chocolatey and not `winget`, so
+Chocolatey was used — the instruction followed including its escape hatch,
+with the image list checked rather than assumed.
+
+*Discharged by execution:* the macOS native-prefix fallback resolved via
+`NativePrefix` with `PATH` verified not to contain the pair — the highest
+user-visible risk on the accepted list, and one that had never executed
+anywhere before. Version-token parsing gained two new real build families
+(Homebrew `8.1.2`, Windows `9.0.1-essentials_build`).
+
+*Still open:* **Windows process-tree reaping on a probe timeout.** Neither
+variant produces a timeout, so it remains undischarged and is recorded as such
+rather than implied by a green run. It is the last open item from
+[`native-smoke-risk-acceptance`](../notes/native-smoke-risk-acceptance.md).
+
+*Found here, fixed elsewhere:* the Windows run surfaced
+`SearchLimitReached(CandidateCount)` rather than the predicted `Missing`,
+which led to [RFC 039](./039-windows-path-search-reachability.md) and Task 019.
 **Tracks.** Discharge the residual risks the owner accepted in
 [`native-smoke-risk-acceptance`](../notes/native-smoke-risk-acceptance.md) by
 exercising arama's external-FFmpeg boundary on `windows-latest` and

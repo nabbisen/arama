@@ -147,7 +147,7 @@ appears floating over an apparently unchanged screen.
 
 This is an accessibility defect in the preset chosen by the users who most need
 visual clarity, and it is shipped in 0.39.0. It is carried by
-[RFC 040](../proposed/040-snora-0.29-upgrade-and-dialog-surface.md).
+[RFC 040](../done/040-snora-0.29-upgrade-and-dialog-surface.md).
 
 ### What snora asked for in return
 

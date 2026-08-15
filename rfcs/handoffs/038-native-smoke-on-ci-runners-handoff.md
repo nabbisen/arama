@@ -1,13 +1,12 @@
 # RFC 038 Handoff — Native smoke on CI runners
 
-Companion to [RFC 038](../proposed/038-native-smoke-on-ci-runners.md), which is
-**accepted for implementation** (owner, 2026-08-10) and stays in
-`rfcs/proposed/` until the work ships, per
+Companion to [RFC 038](../done/038-native-smoke-on-ci-runners.md), which
+shipped in **0.39.1** and moved to `rfcs/done/` with that cut, per
 [RFC 000](../done/000-rfc-lifecycle-policy.md).
 
 ## 1. Design authority
 
-1. [RFC 038](../proposed/038-native-smoke-on-ci-runners.md) — the governing
+1. [RFC 038](../done/038-native-smoke-on-ci-runners.md) — the governing
    design;
 2. [`native-smoke-risk-acceptance`](../notes/native-smoke-risk-acceptance.md) —
    the four residual risks this discharges, and the record that must not be

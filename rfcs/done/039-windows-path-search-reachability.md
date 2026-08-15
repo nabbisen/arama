@@ -1,11 +1,25 @@
 # RFC 039: Windows `PATH` search reachability
 
-**Status.** Proposed — **accepted for implementation by the project owner
-2026-08-15**. Remains in `rfcs/proposed/` until the work ships, per RFC 000.
-Design questions 1–3 are settled in the handoff, except the bound's **value**,
-which the handoff makes a blocking measurement step rather than a guess.
-**Follows [RFC 040](./040-snora-0.29-upgrade-and-dialog-surface.md)**, which
-carries an already-shipped defect.
+**Status.** Implemented (0.39.1). Accepted by the project owner 2026-08-15.
+
+*Phase 0 measured before the value was chosen*, as the handoff required:
+`windows-latest` presents **78 raw entries / 66 unique candidates**;
+filesystem collection costs ~51–85µs per entry on Windows against ~3.9µs on
+Linux; a full all-miss attempt takes 8–12ms against a 6-second budget. The
+bounds are **256 / 128** on Windows only — roughly 3× and 2× headroom over
+what was observed — and `attempt_timeout` is unchanged, now on measurement
+rather than the plausibility argument this RFC raised.
+
+*§3.2 was proven, not assumed:* an instrumented run with the raw cap at 512 and
+`max_path_candidates` left at 32 still returned
+`SearchLimitReached(CandidateCount)`, because 66 real candidates already exceed
+32. Both bounds moved.
+
+*This RFC's own §5 prediction was wrong.* Raising the bounds surfaced
+`FilesystemUnavailable(MetadataOrIdentity)` rather than `Missing` — a
+pre-existing defect that truncation had been masking, in which a single
+dangling `PATH` entry made the "install ffmpeg" message unreachable. Fixed
+under Task 019; the prediction became true only afterwards.
 **Tracks.** Amend [RFC 032](../done/032-cross-platform-external-ffmpeg.md)'s
 discovery bounds. `max_raw_path_entries: 64` is a **reachability** limit, not a
 performance limit, and on Windows it is the only thing standing between a user

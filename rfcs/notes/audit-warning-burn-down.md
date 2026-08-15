@@ -159,6 +159,43 @@ Observed through the font/rendering stack, including `fontdb`, `cosmic-text`,
 paths. `ttf-parser` 0.25.1 is the latest published crate version at the time of
 this ledger refresh, so there is no compatible patch update to apply yet.
 
+### `lru` 0.16.4 — added 2026-08-15
+
+RUSTSEC-2026-0253, **unsound**: potential use-after-free from missing panic
+safety in `LruCache::pop()`.
+
+Observed path:
+
+```text
+lru 0.16.4 <- cryoglyph 0.1.0 <- iced_wgpu 0.14.0 <- iced_renderer 0.14.0 <- iced 0.14.0
+```
+
+Reached only through the iced rendering stack — no direct workspace dependency,
+and no version of it that arama selects. Burning it down requires `cryoglyph`
+or the `iced_wgpu` line to move to a patched `lru`. **Revisit when the iced
+rendering stack next updates**, alongside `rustybuzz` and `ttf-parser`, which
+enter through the same renderer and share that revisit condition.
+
+Not previously listed because the advisory postdates this ledger's last
+refresh; surfaced by the 0.39.1 release gate.
+
+## Resolved during a release gate — 2026-08-15
+
+**RUSTSEC-2026-0257, `webbrowser` 1.2.1 — vulnerability, not a warning.**
+Unix `BROWSER` handling allowed browser argument injection.
+
+Unlike every entry above, this one was **directly actionable**: `webbrowser` is
+a first-party dependency of `arama-ui-widgets`, the workspace pin is
+`webbrowser = "1"`, and the fixed line (`>= 1.2.2`) is semver-compatible. Closed
+by `cargo update -p webbrowser` (1.2.1 → 1.2.4) with no manifest change and no
+other package moving in the lockfile.
+
+Recorded here rather than only in the changelog because it is the first time
+this project's release gate has caught a **vulnerability** rather than a
+warning, and because the reason it was catchable — a direct dependency on a
+permissive pin — is the distinction that separates it from the four entries
+above that arama cannot act on alone.
+
 ## Existing Explicit Ignore
 
 `.cargo/audit.toml` still has only the scoped `quick-xml` ignores added during

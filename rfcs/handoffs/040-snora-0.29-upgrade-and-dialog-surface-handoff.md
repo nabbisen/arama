@@ -1,15 +1,14 @@
 # RFC 040 Handoff — snora 0.29 upgrade and dialog surface
 
-Companion to [RFC 040](../proposed/040-snora-0.29-upgrade-and-dialog-surface.md),
-which is **accepted for implementation** (owner, 2026-08-15) and stays in
-`rfcs/proposed/` until the work ships, per
+Companion to [RFC 040](../done/040-snora-0.29-upgrade-and-dialog-surface.md),
+shipped in **0.39.1** and moved to `rfcs/done/` with that cut, per
 [RFC 000](../done/000-rfc-lifecycle-policy.md).
 
 **Do this before RFC 039.** It carries a defect already shipped to users.
 
 ## 1. Design authority
 
-1. [RFC 040](../proposed/040-snora-0.29-upgrade-and-dialog-surface.md);
+1. [RFC 040](../done/040-snora-0.29-upgrade-and-dialog-surface.md);
 2. [`snora-dialog-overlay-card`](../notes/snora-dialog-overlay-card.md) — the
    report, snora's reply, and the verification of the defect;
 3. [RFC 036](../done/036-similarity-dialog-absence-states.md) — the limitation

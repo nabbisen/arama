@@ -1,10 +1,26 @@
 # RFC 040: snora 0.29 upgrade and dialog surface
 
-**Status.** Proposed — **accepted for implementation by the project owner
-2026-08-15**. Remains in `rfcs/proposed/` until the work ships, per RFC 000.
-Design questions 1–3 are settled in the handoff. **Takes precedence over
-[RFC 039](./039-windows-path-search-reachability.md)** — this one carries a
-defect already shipped to users.
+**Status.** Implemented (0.39.1). Accepted by the project owner 2026-08-15.
+
+*The upgrade alone changes nothing, and that was verified rather than assumed.*
+This RFC's §5 table read as though the bump itself would fix the defect; it does
+not — snora's own migration guide states the fix applies only through
+`design::render`, with unstyled `snora::render` keeping the old dim by the
+compatibility promise. The commit-1 checkpoint capture is **byte-identical**
+(same MD5) to the pre-upgrade capture, which is a stronger result than "no
+visible change" and, so far as snora knows, the first pixel-level confirmation
+of that guarantee from any consumer.
+
+*One additional file was needed:* `crates/theme/src/lib.rs`'s `tokens()` became
+public, since `view()` had no `Tokens` value reachable before. Exposing the
+existing mapping was preferred over building a second one, which would have
+created two sources of truth for the active palette.
+
+*The card's sufficiency, answered:* where dialog content is large the card
+covers the gallery entirely; where it is small — a one-line "No similar items
+found." — the card is compact and the gallery remains visible behind the dim,
+with the card's opacity doing the legibility work. So the harder question does
+arise, and it passes.
 **Tracks.** Two things at once, because one change fixes both: a **live
 accessibility defect** — modals have no modality signal at all on arama's
 high-contrast dark theme — and [RFC 036](../done/036-similarity-dialog-absence-states.md)'s

@@ -1,16 +1,15 @@
 # RFC 039 Handoff — Windows `PATH` search reachability
 
-Companion to [RFC 039](../proposed/039-windows-path-search-reachability.md),
-which is **accepted for implementation** (owner, 2026-08-15) and stays in
-`rfcs/proposed/` until the work ships, per
+Companion to [RFC 039](../done/039-windows-path-search-reachability.md),
+shipped in **0.39.1** and moved to `rfcs/done/` with that cut, per
 [RFC 000](../done/000-rfc-lifecycle-policy.md).
 
-**Do [RFC 040](../proposed/040-snora-0.29-upgrade-and-dialog-surface.md)
+**Do [RFC 040](../done/040-snora-0.29-upgrade-and-dialog-surface.md)
 first.** It carries a defect already shipped to users; this one does not.
 
 ## 1. Design authority
 
-1. [RFC 039](../proposed/039-windows-path-search-reachability.md);
+1. [RFC 039](../done/039-windows-path-search-reachability.md);
 2. [RFC 032](../done/032-cross-platform-external-ffmpeg.md) — the bounds table
    this amends and the security reasoning behind it;
 3. `.git-exclude/review-request/095-…/README.md` — your own Task 018 analysis,
