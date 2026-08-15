@@ -95,6 +95,23 @@ jobs:
             exit 1
           fi
 
+      - name: Task 021 - process-tree reaping on a probe timeout
+        # Unix baseline: proves the test mechanism itself works (every
+        # other test in this workspace already exercises process groups),
+        # so a green run here is what makes the Windows job's result
+        # meaningful rather than a lone data point.
+        run: |
+          STUB_DIR="$RUNNER_TEMP/hang-stub"
+          mkdir -p "$STUB_DIR"
+          rustc crates/engine/sidecar/tests/fixtures/hang_stub.rs -o "$STUB_DIR/ffmpeg"
+          cp "$STUB_DIR/ffmpeg" "$STUB_DIR/ffprobe"
+          ARAMA_HANG_STUB_DIR="$STUB_DIR" \
+            cargo test -p arama-sidecar --test process_tree_reaping --locked -- \
+            --ignored --exact process_tree_reaping_kills_grandchild_on_probe_timeout \
+            --nocapture | tee reaping-output.log
+          echo "--- interpreting process-tree reaping result ---"
+          grep "NATIVE_SMOKE_REAPING_" reaping-output.log
+
   windows:
     runs-on: windows-latest
     steps:
@@ -207,3 +224,21 @@ jobs:
           echo "PATH for timing = $PATH"
           cargo test -p arama-sidecar --test external_ffmpeg_smoke --locked -- \
             --ignored --exact discovery_full_attempt_timing_over_real_path --nocapture
+
+      - name: Task 021 - process-tree reaping on a probe timeout
+        # The platform this task exists to answer: command-group's Windows
+        # job-object path has never executed anywhere in this project
+        # before this step. A hanging ffmpeg stub spawns a grandchild of
+        # itself; the risk is that ProbeGroup::kill() reaps only the
+        # direct child, leaking the grandchild.
+        run: |
+          STUB_DIR="$RUNNER_TEMP/hang-stub"
+          mkdir -p "$STUB_DIR"
+          rustc crates/engine/sidecar/tests/fixtures/hang_stub.rs -o "$STUB_DIR/ffmpeg.exe"
+          cp "$STUB_DIR/ffmpeg.exe" "$STUB_DIR/ffprobe.exe"
+          ARAMA_HANG_STUB_DIR="$STUB_DIR" \
+            cargo test -p arama-sidecar --test process_tree_reaping --locked -- \
+            --ignored --exact process_tree_reaping_kills_grandchild_on_probe_timeout \
+            --nocapture | tee reaping-output.log
+          echo "--- interpreting process-tree reaping result ---"
+          grep "NATIVE_SMOKE_REAPING_" reaping-output.log
