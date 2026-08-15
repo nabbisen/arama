@@ -136,27 +136,24 @@ jobs:
             --nocapture
 
       - name: Variant 2 - strip PATH, confirm the pair is not resolvable
-        # Removes FFMPEG_BIN from the current PATH, rather than replacing
-        # PATH with a bare-minimum list: a wholesale replacement also
-        # excludes cargo's own install directory (not under
-        # System32/Windows on these runners), which fails Variant 2 for a
-        # reason that has nothing to do with FFmpeg discovery.
+        # Removes every PATH entry mentioning "chocolatey" (case-
+        # insensitive substring, not exact-path matching): choco installs
+        # ffmpeg.exe/ffprobe.exe shims into $env:ChocolateyInstall\bin -
+        # always on PATH by Chocolatey's own design, and a *different*
+        # directory from FFMPEG_BIN's real binary location under
+        # lib\ffmpeg\tools\ffmpeg\bin - so excluding only FFMPEG_BIN left
+        # the shim resolvable.
         #
-        # Also removes Chocolatey's shim directory specifically: choco
-        # installs ffmpeg.exe/ffprobe.exe shims into
-        # $env:ChocolateyInstall\bin (always on PATH by Chocolatey's own
-        # design), a *different* directory from FFMPEG_BIN's real binary
-        # location - stripping only FFMPEG_BIN leaves the shim resolvable
-        # and the precondition check (correctly) catches it. Matched
-        # case-insensitively: PATH mixes "Chocolatey" and "chocolatey"
-        # casing on this runner image, and Windows paths are
-        # case-insensitive regardless.
+        # An earlier attempt tried to construct the shim directory's exact
+        # path from $ChocolateyInstall and match it exactly; that failed
+        # silently because $ChocolateyInstall is set in native Windows
+        # backslash form and produced a path string that didn't match Git
+        # Bash's own forward-slash PATH entries at all. A substring filter
+        # sidesteps needing that path built correctly, and safely removes
+        # every other Chocolatey package directory on PATH too (pulumi,
+        # maven, ...), none of which are relevant to FFmpeg discovery.
         run: |
-          CHOCO_BIN="${ChocolateyInstall:-/c/ProgramData/chocolatey}/bin"
-          STRIPPED_PATH=$(printf '%s' "$PATH" | tr ':' '\n' \
-            | grep -Fvxi "$FFMPEG_BIN" \
-            | grep -Fvxi "$CHOCO_BIN" \
-            | tr '\n' ':')
+          STRIPPED_PATH=$(printf '%s' "$PATH" | tr ':' '\n' | grep -vi "chocolatey" | tr '\n' ':')
           STRIPPED_PATH="${STRIPPED_PATH%:}"
           export PATH="$STRIPPED_PATH"
           echo "effective PATH for discovery = $PATH"
