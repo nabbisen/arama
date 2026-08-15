@@ -155,11 +155,50 @@ Auto mode tries a finite ordered candidate list:
 One discovery attempt has all of these fixed bounds:
 
 ```text
-MAX_RAW_PATH_ENTRIES = 64
-MAX_PATH_CANDIDATES  = 32 unique normalized absolute directories
-PROBE_TIMEOUT        = 2 seconds per executable
-AUTO_ATTEMPT_TIMEOUT = 6 seconds total on a monotonic clock
+MAX_RAW_PATH_ENTRIES = 64   (Linux, macOS)  /  256 (Windows)
+MAX_PATH_CANDIDATES  = 32   (Linux, macOS)  /  128 (Windows)  unique normalized absolute directories
+PROBE_TIMEOUT        = 2 seconds per executable, all platforms
+AUTO_ATTEMPT_TIMEOUT = 6 seconds total on a monotonic clock, all platforms
 ```
+
+**Amended by RFC 039 (2026-08-15): the two entry-count bounds are
+platform-conditional; the two time bounds are not.**
+
+These are reachability bounds, not performance bounds:
+`.take(MAX_RAW_PATH_ENTRIES)` is applied to the raw `PATH` iterator before any
+entry is inspected, so an entry beyond the cap is never canonicalized, never
+checked, and never becomes a candidate — its position, not its validity,
+decides whether discovery ever sees it. macOS has a native-prefix candidate
+reserved *after* this cap (see below), so its own bound is never
+reachability-blocking regardless of `PATH` length; Windows has no such
+fallback; Linux has none either but no evidence suggests its `PATH`s
+approach these numbers. Windows is therefore the one platform where these
+bounds are load-bearing for reachability and the one platform with nothing
+behind them — the asymmetry is deliberate, not a general license for
+per-platform tuning of future bounds.
+
+The Windows values are calibrated against a real measurement, not a round
+increase: `windows-latest` (RFC 038's native-smoke runner) presented **78**
+raw `PATH` entries and **66** unique, existing candidate directories on
+2026-08-15, both above the original Linux/macOS defaults. 256 / 128 give
+roughly 3x / 2x headroom over that measurement — a ceiling with room, not a
+value fitted to one data point. The same measurement found Windows
+filesystem collection cost at ~80µs per raw entry, so a full 256-entry scan
+costs on the order of tens of milliseconds against the 6-second
+`AUTO_ATTEMPT_TIMEOUT` — three orders of magnitude of headroom. The time
+bounds therefore do not move: raising the entry-count bounds does not
+reintroduce the risk they exist to prevent, and `AUTO_ATTEMPT_TIMEOUT`'s job
+of bounding wall-clock and `PROBE_TIMEOUT`'s job of bounding subprocess cost
+per executable are unaffected by how many raw entries are scanned before a
+match or a confident `Missing`.
+
+Raising `MAX_RAW_PATH_ENTRIES` alone without `MAX_PATH_CANDIDATES` would have
+been a change with no observable effect on Windows: the real measurement
+above (66 candidates from 78 raw entries) already exceeds the original
+32-candidate cap, confirmed by execution during RFC 039's own measurement
+step — an instrumented run with the raw cap raised and the candidate cap
+left at 32 still returned `SearchLimitReached(CandidateCount)`. Both moved
+together.
 
 The applicable macOS native prefix is a separately reserved final candidate,
 so PATH saturation cannot remove it; total candidates are at most 33. The
@@ -174,7 +213,8 @@ the attempt budget.
 
 PATH processing is deterministic:
 
-- inspect at most the first 64 raw entries and remember truncation;
+- inspect at most the first `MAX_RAW_PATH_ENTRIES` raw entries (64, or 256 on
+  Windows per the RFC 039 amendment above) and remember truncation;
 - reject empty entries rather than interpreting them as the current directory;
 - reject every relative entry rather than joining it to a mutable working
   directory;

@@ -140,6 +140,77 @@ fn native_prefix_after_saturated_path_keeps_its_reserved_slot() {
     fs::remove_dir_all(root).unwrap();
 }
 
+/// RFC 039's regression guard: nothing in the suite exercised the raw cap at
+/// real scale before this (Task 018's finding) — the raw-entry mechanism was
+/// tested only via a synthetic `max_raw_path_entries: 1` override, and the
+/// candidate-cap mechanism only with well under 64 raw entries. This
+/// constructs a `PATH` at the scale RFC 039's Phase 0 measurement actually
+/// observed on `windows-latest` (78 raw entries, 66 unique candidates) and
+/// proves the mechanism, not just the number: a valid, unique directory
+/// beyond the old 64-entry cap is unreachable at the old default and
+/// reachable at the raised one — using the exact policy values
+/// `FfmpegLocatorPolicy::default()` now returns on Windows, not a rounder
+/// stand-in, so this test would fail if those values and this one drifted
+/// apart.
+#[test]
+fn valid_directory_beyond_old_cap_is_reachable_only_at_raised_scale() {
+    let root = root("real-scale-windows-path");
+    let mut path_entries = Vec::new();
+    for index in 0..90 {
+        let directory = root.join(format!("tool-{index}"));
+        fs::create_dir_all(&directory).unwrap();
+        path_entries.push(directory);
+    }
+    // Position 70: past the old 64-entry cap, well inside the raised 256.
+    let target = root.join("tool-70");
+    let path = std::env::join_paths(&path_entries).unwrap();
+
+    let old_default = FfmpegLocatorPolicy {
+        max_raw_path_entries: 64,
+        max_path_candidates: 32,
+        ..FfmpegLocatorPolicy::default()
+    };
+    let raised = FfmpegLocatorPolicy {
+        max_raw_path_entries: 256,
+        max_path_candidates: 128,
+        ..FfmpegLocatorPolicy::default()
+    };
+
+    let mut control = never_stop();
+    let mut filesystem = StdCandidateFilesystem;
+    let at_old_default = normalize_auto_candidates(
+        Some(&path),
+        None,
+        old_default,
+        &mut control,
+        &mut filesystem,
+    );
+    let target_canonical = fs::canonicalize(&target).unwrap();
+    assert!(
+        !at_old_default
+            .candidates
+            .iter()
+            .any(|candidate| candidate.directory == target_canonical),
+        "test setup error: the old cap should not reach position 70"
+    );
+    assert!(at_old_default.raw_truncated);
+
+    let mut control = never_stop();
+    let at_raised_scale =
+        normalize_auto_candidates(Some(&path), None, raised, &mut control, &mut filesystem);
+    assert!(
+        at_raised_scale
+            .candidates
+            .iter()
+            .any(|candidate| candidate.directory == target_canonical),
+        "a valid directory at raw position 70 must be reachable once the cap is raised past it"
+    );
+    assert!(!at_raised_scale.raw_truncated);
+    assert!(!at_raised_scale.candidate_truncated);
+
+    fs::remove_dir_all(root).unwrap();
+}
+
 struct CountingFilesystem {
     operations: Rc<Cell<usize>>,
     identities: HashMap<PathBuf, io::Result<PathBuf>>,
