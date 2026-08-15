@@ -9,6 +9,16 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Fixed
 
+- **"Install ffmpeg" was the one thing arama would not tell you.** When ffmpeg
+  was genuinely not installed, a single stale entry anywhere in `PATH` — a
+  folder listed but never created, which is ordinary on Windows and happens
+  everywhere — caused arama to report a filesystem error and suggest checking
+  permissions, instead of saying ffmpeg was missing. A directory that does not
+  exist is now treated as an entry to skip rather than a fault to report, so
+  the message you get is the one you can act on. When a real access or identity
+  problem does occur, the wording now differs between automatic discovery and a
+  folder you selected yourself, since "check this folder's permissions" is only
+  advice you can follow in the second case.
 - **ffmpeg was undiscoverable on Windows machines with a long `PATH`.** The
   automatic search stopped after the first 64 `PATH` entries, so an installed
   ffmpeg sitting beyond that point was never examined — its position, not
