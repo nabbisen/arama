@@ -95,6 +95,72 @@ behaviour disagreeing is the actual defect**; either half can move.
 - No change to the dim backdrop, which is correct.
 - No urgency. arama has shipped around it and this is not blocking.
 
+## Reply — 2026-08-15, and what it changed
+
+snora upheld the report. Their reply is at
+`.git-exclude/tmp/reply-to-report-2026-08-15.md`. Summary of what binds arama:
+
+**The report's premise was wrong, and the correction is against snora.** At
+0.25.0 `guides/overlays.md` line 43 said *"`Dialog` does not own the card
+chrome… snora is a positioner, not a styler"* — eleven lines below the line 32
+"centered modal card" claim. So the behaviour did match a documented contract.
+snora recorded this as their documentation contradicting **itself**, in one file,
+for four releases, rather than as arama missing the docs. Seven contradiction
+sites were corrected in 0.28.1.
+
+**The card already exists.** `snora::design::render(layout, &tokens)`, shipped
+**0.27.0** — two minors after the version arama reported against. Token-derived
+fill, border, radius; border-defined with no shadow, deliberately, because
+shadows carry little information in high-contrast presets.
+
+**Both resolutions this note offered now exist** — the variant *and* the
+documentation — and both stated constraints hold: no API break
+(`design::render` is a sibling entry point), and no change to the default dim
+backdrop.
+
+**A second defect, found while verifying this report:** since 0.27.0 the
+identifier `snora-dialog-card` was attached to the centring wrapper — a
+window-filling container — rather than to the card. Fixed in 0.29.0. Does not
+affect arama at 0.25.0.
+
+### The finding that matters most to arama, verified here
+
+snora's reply flagged, as an aside:
+
+> Before 0.27.0 the modal dim was a hardcoded 40% black, which over a
+> pure-black background composites to pure black — invisible.
+
+**This applies to arama today.** Verified at source:
+
+- `snora-0.25.0/src/render.rs:192` paints the dim as
+  `Color::from_rgba(0.0, 0.0, 0.0, 0.4)` — hardcoded, and its style closure
+  takes `|_theme|`, so it is theme-independent by construction.
+- `snora-design-0.25.1/src/presets/high_contrast_dark.rs:7` sets
+  `background: Color::rgb(0.0, 0.0, 0.0)` — pure black.
+- arama exposes `HighContrastDark` as a user-selectable theme
+  (`crates/theme/src/lib.rs:49`).
+
+40% black over pure black is pure black. **For any arama user on the
+high-contrast dark theme, opening a modal produces no modality signal at all** —
+the dim is invisible and, at 0.25.0, there is no card either. Dialog content
+appears floating over an apparently unchanged screen.
+
+This is an accessibility defect in the preset chosen by the users who most need
+visual clarity, and it is shipped in 0.39.0. It is carried by
+[RFC 040](../proposed/040-snora-0.29-upgrade-and-dialog-surface.md).
+
+### What snora asked for in return
+
+Recorded so it is not lost:
+
+1. **Screenshots** — before/after over arama's thumbnail gallery. The card has
+   almost no downstream exercise; arama would be the first evidence of how it
+   reads over arbitrary image content rather than a flat background.
+2. **Whether the card is enough.** If dialog text over a photo grid is still
+   hard to read with it, snora wants to know.
+3. **Which parts of `AppLayout` arama uses and ignores.** Both downstream teams
+   so far adopted the engine and none of the prefab widgets.
+
 ## Provenance
 
 Found during arama RFC 036, which changed its similarity dialogs to always

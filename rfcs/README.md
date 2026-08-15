@@ -10,6 +10,8 @@ permanent; implemented and archived RFCs are never deleted.
 | ID | Title | Priority |
 |----|-------|----------|
 | 038 | [Native smoke on CI runners](./proposed/038-native-smoke-on-ci-runners.md) | Medium |
+| 039 | [Windows `PATH` search reachability](./proposed/039-windows-path-search-reachability.md) | Medium |
+| 040 | [snora 0.29 upgrade and dialog surface](./proposed/040-snora-0.29-upgrade-and-dialog-surface.md) | **High** — carries a shipped accessibility defect |
 
 ## Implemented
 
