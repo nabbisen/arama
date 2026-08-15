@@ -7,6 +7,14 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+### Changed
+
+- **Routine dependency maintenance.** `snora` moved from `0.29.0` to `0.33.0`,
+  and arama stopped requesting its `widgets` feature — nothing in arama used it.
+  No behavior change: the release binary is byte-identical across the version
+  bump, and a rendered dialog capture is unchanged to the byte after the feature
+  was dropped. Source builds resolve one fewer crate.
+
 ---
 
 ## [0.39.1]
