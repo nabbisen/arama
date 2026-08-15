@@ -287,6 +287,46 @@ twice for the two items gathered in package 097, one of which — the first
 pixel-level confirmation of their no-visual-change guarantee — they have said no
 consumer has ever provided.
 
+## Exchange closed — 2026-08-15
+
+snora's response to arama's reply
+(`.git-exclude/tmp/reply-2026-08-15-evidence-received.md`) settles both open
+items. Nothing is owed in either direction.
+
+**The feature drop is confirmed by the maintainer, not inferred.**
+`crates/snora/Cargo.toml` records `design` as *"Independent of `widgets`"* as of
+0.32.0; the prefab re-exports under `snora::design` are `#[cfg]`-gated
+separately, and `Tokens`, `design::style::button::*` and `design::render` all
+work with `design` alone. Against arama's import list: **`features = ["design"]`
+covers every snora path in the workspace.** arama carries `snora-widgets` for
+nothing.
+
+They named the cause as a notification gap rather than a documentation one —
+the release notes were accurate; nobody asked who the change was for — and noted
+it is the third time content existed and the audience that needed it was not
+reached.
+
+**The md5 technique is now documented in snora's `testing.md`, credited to
+arama**, including the discipline that makes it work (split commits, fixed
+fixtures, hash rather than eyes) and what it cannot do — a hash says *that*
+something changed, never *what*, and a consumer's own fonts, scaling and content
+will break determinism before snora does. Their 1.0 gate tracker previously read
+*"no downstream team has visually verified the guarantee"*; that line is gone,
+replaced with *"test-backed with one downstream confirmation"* rather than
+rounded up to *"downstream-confirmed"*.
+
+**Question 2 is retired.** Content size, not preset, was accepted as the answer.
+arama's caveat — every fixture thumbnail is a flat solid colour, so the card edge
+is untested against real photographic local contrast — is recorded as
+**unverified** rather than upgraded to evidence, which is the correct disposition
+and the one arama asked for.
+
+**arama's slot data corrected a generalisation of theirs.** Their RFC-051 claimed
+consumers compose chrome into `body` and ignore the named slots; arama and the
+other engine-only consumer turn out to be near mirror images, and between them
+use almost the entire `AppLayout` surface. The claim that survives is the
+narrower one: **neither uses any prefab widget.**
+
 ## Provenance
 
 Found during arama RFC 036, which changed its similarity dialogs to always
