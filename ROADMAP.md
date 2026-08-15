@@ -26,7 +26,14 @@ extended the guarantee inside the `release` job — the release is created as a
 draft and published only after every asset is attached and counted — and the
 notes-detection pipeline's silent-fallback defect was fixed alongside it.
 
-**Remaining in this theme:** the sibling native-smoke RFC, still unwritten.
+**Remaining in this theme:**
+[RFC 038](./rfcs/proposed/038-native-smoke-on-ci-runners.md) — native smoke on
+the `windows-latest` and `macos-latest` runners the release workflow already
+pays for. Proposed, awaiting owner decision. It discharges the four residual
+risks named in
+[`native-smoke-risk-acceptance`](./rfcs/notes/native-smoke-risk-acceptance.md),
+whose own text calls that risk *temporary, not permanent*, and whose acceptance
+was scoped to the 0.37.0 checkpoint — two releases ago.
 
 **Why this theme existed.** 0.37.0 released with its source archive and **no
 executable assets, and no workflow run queued at all** — with no explanation
