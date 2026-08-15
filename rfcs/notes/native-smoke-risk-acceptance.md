@@ -47,6 +47,86 @@ pending.
 Condition 1 below still governs: this acceptance covers **this release
 checkpoint only**.
 
+## Discharge — 2026-08-15
+
+RFC 038 landed and ran for real on `windows-latest` and `macos-latest`
+(`.github/workflows/native-smoke.yaml`), discharging most of what the
+"Follow-up" section below anticipated. This section records which rows
+that changes, and does not edit the original rows above to say "pass" —
+they remain the record of what was knowingly not verified at the time this
+acceptance was made.
+
+**Runs:** [31863143720](https://github.com/nabbisen/arama/actions/runs/31863143720)
+(both `macos` and `windows` jobs green; three earlier attempts on the same
+day found and fixed bugs in the workflow script itself, not in arama — see
+the RFC 038 review package for the full sequence).
+
+**Apple Silicon macOS — discharged.** Variant 1 (selected directory)
+passed: real fixture generated, `ffprobe` duration read, frame extracted,
+using a Homebrew-installed pair (`ffmpeg`/`ffprobe` 8.1.2). Variant 2
+(discovery with `PATH` stripped) proved the native-prefix fallback is what
+actually resolved the pair, not an accident of a runner that happened to
+have `ffmpeg` on `PATH`:
+
+```
+NATIVE_SMOKE_DISCOVERY_OUTCOME=Ready
+NATIVE_SMOKE_DISCOVERY_SOURCE=NativePrefix
+NATIVE_SMOKE_DISCOVERY_PATH=/opt/homebrew/bin/ffmpeg
+```
+
+This was the highest-named risk on the list and the RFC's actual point.
+**Discharged by evidence**, not assertion.
+
+**Windows x86_64 filesystem identity / pair validation — discharged for the
+Selected-directory path.** Variant 1 passed against a real Chocolatey
+install (`ffmpeg`/`ffprobe` 9.0.1, `gyan.dev` build), exercising Windows
+filesystem-identity and canonicalization logic against a real installed
+pair rather than the Linux-only logic tests. A valid pair was recognized,
+not rejected.
+
+**Windows x86_64 process-tree reaping — still not discharged.** Neither
+variant deliberately produced a probe timeout; Variant 1 exercised normal
+spawn/wait (fixture generation, probe, extraction all completed quickly).
+Basic process handling on Windows is now evidenced; the specific
+timeout-then-reap path job objects are meant to handle is not. This risk
+remains open.
+
+**Version-token parsing — discharged against two new build families.**
+The original acceptance had one data point (Linux, `n8.1.2`). This run
+adds two more, both successfully parsed (Variant 1 passing requires
+`parse_version_token` to succeed): macOS Homebrew's `8.1.2` (no `n`
+prefix — a different format than Linux's own build) and Windows's
+`9.0.1-essentials_build-www.gyan.dev` (a third, more elaborate format).
+Three real formats now confirmed parseable.
+
+**A new finding, not one of the four originally accepted risks.** Windows
+Variant 2's auto-discovery outcome was not the expected `Missing` (RFC 032
+gives Windows no automatic off-`PATH` fallback, so `Missing` was predicted
+as the correct behaviour) — it was `SearchLimitReached(CandidateCount)`.
+The GitHub-hosted `windows-latest` runner's real `PATH` has **71 raw
+entries**, and `FfmpegLocatorPolicy::default().max_raw_path_entries` is
+**64** (`crates/engine/sidecar/src/media/video/video_engine/discovery/policy.rs`).
+Discovery truncated the raw list before reaching the point of concluding
+`Missing`.
+
+This is not a bug this task fixes — per RFC 038 handoff §7 and non-change
+scope, a platform finding is reported, not repaired inside this task. It
+is recorded here because it is new information the original four-risk list
+did not anticipate: **a real, unremarkable enterprise/developer Windows
+machine can have a `PATH` long enough that arama's own search-bound policy
+gives up before exhausting it** — independent of whether a valid pair
+would have been found further down the list. The 71-entry `PATH` observed
+here is not synthetic or adversarial; it is what a heavily-provisioned CI
+runner's default environment looks like, and is plausible for real
+developer machines with many SDKs installed. Whether `max_raw_path_entries`
+is still calibrated correctly, and to what, is a design question for a
+future task — not this one.
+
+**Not discharged, unchanged from the original acceptance:** rendered setup
+and Settings UI states (CI cannot drive a GUI on any platform, exactly as
+this note always said); Intel macOS and Linux aarch64 (closed by decision,
+not reopened).
+
 ## Why this record exists
 
 ROADMAP milestone 5 requires that every unavailable native target row carry an
