@@ -69,6 +69,15 @@ One-off investigation records and decision notes that are not design
 proposals. They do not go through the proposed → implemented lifecycle
 and are not numbered, but are kept here as permanent project records.
 
+**Correspondence does not live here.** These notes ship inside the source
+archive, so the test is whether a future arama contributor needs the document
+to understand the project — not whether it concerns the project. A record of
+*what was found and why arama acted on it* belongs here; a letter written to
+an external team about those findings does not, and lives under
+`.git-exclude/correspondence/`. The report that opened the snora exchange is
+the former, because it explains why arama sits on the snora version it does;
+arama's replies are the latter.
+
 | File | Subject |
 |------|---------|
 | [dep-migration-lucide-icons](./notes/dep-migration-lucide-icons.md) | lucide-icons 0.576 → 1.17: API diff and safe-to-update confirmation |
@@ -81,7 +90,6 @@ and are not numbered, but are kept here as permanent project records.
 | [cache-serialization-dependency-decision](./notes/cache-serialization-dependency-decision.md) | RFC 023 implementation decision: retain current localcache/bincode cache serialization until a bincode-free localcache route exists |
 | [native-smoke-risk-acceptance](./notes/native-smoke-risk-acceptance.md) | RFC 032 release checkpoint: owner risk acceptance for unexecuted Windows/macOS native smoke, with the specific residual risks and the Linux evidence that was executed |
 | [snora-dialog-overlay-card](./notes/snora-dialog-overlay-card.md) | Upstream report, sent 2026-08-10: snora 0.25's dialog overlay documents "the centered modal card" but draws no card, so dialog text is legible only where it lands on neutral background (contribution to snora). Carries snora's reply, the high-contrast-dark modality defect it surfaced, and the running record of the exchange |
-| [snora-reply-2026-08-15](./notes/snora-reply-2026-08-15.md) | **Draft, not yet sent.** arama's reply: the before/after captures, whether the card is enough, the `AppLayout` slot breakdown, and a byte-identical pixel-level confirmation of snora's no-visual-change guarantee across 0.25 → 0.29 |
 
 
 ## Handoffs
