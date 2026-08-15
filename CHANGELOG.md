@@ -7,6 +7,20 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Modal dialogs were invisible as modals on the high-contrast dark theme.**
+  On that preset the background is pure black, and the backdrop drawn behind a
+  dialog was a fixed 40% black — which over pure black composites to pure
+  black. The result was a dialog whose content appeared over an apparently
+  unchanged screen, with no dimming and no frame to show that anything modal
+  had opened. This affected the preset chosen by users who most need visual
+  clarity. Dialogs now sit on a card, and the backdrop is derived from the
+  active theme rather than fixed, on every preset.
+- **Dialog text is legible over image content.** Messages such as "No similar
+  items found." previously rendered directly over gallery thumbnails, readable
+  only where they happened to land on plain background.
+
 ---
 
 ## [0.39.0]
