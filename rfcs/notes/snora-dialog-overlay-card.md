@@ -161,6 +161,70 @@ Recorded so it is not lost:
 3. **Which parts of `AppLayout` arama uses and ignores.** Both downstream teams
    so far adopted the engine and none of the prefab widgets.
 
+## Misdirected bundles — 2026-08-15, raised and resolved
+
+Three snora "app team" upgrade bundles arrived
+(`app-team-snora-0.25.2-to-0.28.0`, `-0.28.0-to-0.29.0`,
+`-0.29.0-to-0.30.0`). **All three were addressed to a different downstream
+consumer**, not arama, and carried that team's correspondence — their
+post-adoption report, their architecture, their feature requests, and snora's
+assessment of them.
+
+Identified from internal evidence before the content was mined: two READMEs
+carry an explicit addressee that is not arama; the third targets a team on
+`0.25.2` where arama was on `0.25.0`; and the 0.30.0 bundle states "you are on
+0.28.0", replies to a report arama never sent, and thanks the recipient for an
+`AppLayout` breakdown that was not arama's. "arama" appears in exactly one
+file across all three — `contributing/feature-gating-criteria.md`, a general
+snora policy document that records both consumers as examples of the same
+documentation gap.
+
+**snora confirmed the error the same day**
+(`.git-exclude/tmp/note-2026-08-15-disregard-misdirected-bundle.md`) and asked
+that the 0.30.0 bundle be disregarded. Their stated cause is worth recording
+because it is structural rather than clerical: *"release news and correspondence
+with a named team were the same document, which is how a document addressed to
+one team became something we sent to three. They are separate artifacts from
+now on."*
+
+That note names the 0.30.0 bundle specifically. The other two were addressed to
+the same team and should be treated the same way.
+
+**Nothing from those bundles informs any arama decision.** The version facts
+below are taken from snora's note to arama, not from them.
+
+## Version position — 2026-08-15
+
+Confirmed by snora directly:
+
+- **153 public items at 0.25.0, 157 at 0.30.0, none removed or renamed.**
+- **MSRV unchanged at 1.88** — below arama's declared 1.91.
+- **0.30.0 adds one example and no library change**; the diff over
+  `crates/*/src/` between 0.29.0 and 0.30.0 is empty.
+
+**arama is on 0.29.0** as of RFC 040 (`e3ab14b`), which snora does not yet know
+— nothing has been sent back. The manifest pin is `snora = "0.29"`, which will
+not resolve 0.30.0.
+
+**Staying on 0.29.0 is deliberate.** 0.30.0 contains no library change, so
+moving would be churn against a dependency we have just verified byte-identical
+across an upgrade. A future reader wondering why arama sits a minor behind
+current should read this rather than assume neglect.
+
+## Addition to what we owe snora — the byte-identity result
+
+Beyond the three items above, one further piece of evidence is worth sending
+because it is stronger than what was promised:
+
+**arama's commit-1 checkpoint was byte-identical across the upgrade.** The same
+dialog, on the same preset, captured at `snora 0.25` and at `0.29` with the
+render call unchanged, produced screenshots with identical MD5
+(`daae7534fc2a219d58e145339a9ea236`). Not "indistinguishable" — the same bytes.
+
+That is a pixel-level confirmation of snora's no-visual-change guarantee across
+four minors, which is a stronger claim than the before/after captures alone
+support. It is arama's own evidence and stands on its own merits.
+
 ## Provenance
 
 Found during arama RFC 036, which changed its similarity dialogs to always
