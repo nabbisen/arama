@@ -225,6 +225,68 @@ That is a pixel-level confirmation of snora's no-visual-change guarantee across
 four minors, which is a stronger claim than the before/after captures alone
 support. It is arama's own evidence and stands on its own merits.
 
+## snora 0.31.0–0.33.0 — 2026-08-15, assessed
+
+Two bundles arrived, both **correctly addressed to arama** this time
+(`note-arama-0.33.0`, plus a `release-0.33.0` notes document explicitly
+identical for all consumers). Addressees checked before content was read, per
+the misdirection above.
+
+**snora's assessment: none of the three affects arama.** Verified rather than
+accepted:
+
+- **0.31.0** adds `snora::design::responsive_render`. arama does not use
+  responsive layout.
+- **0.32.0** extracts the token→iced style bridge into a new `snora-style`
+  crate, making `design` and `widgets` **independent features**. No public path
+  changed; a `widgets` + `design` build is byte-for-byte identical before and
+  after.
+- **0.33.0** removes the `snora_widgets::design::{style, theme}` compatibility
+  re-exports. **arama does not import them** — confirmed by grep: every `snora`
+  path arama uses is `snora::design::style::button::*`, `snora::design::Tokens`,
+  `snora::design::render`, `snora::toast::*`, and the layout types. Nothing from
+  `snora_widgets` or `snora::widget` anywhere in the workspace.
+
+`snora` itself is unchanged across the span — 19 public items at 0.30.0, 19 at
+0.33.0 — and MSRV stays 1.88.
+
+### One finding they did not flag
+
+**arama enables `features = ["widgets", "design"]` and imports nothing from the
+widgets crate.** Since 0.32.0 that combination is no longer required: `design`
+without `widgets` is a newly expressible configuration, added precisely for
+consumers in this position.
+
+```toml
+snora = { version = "0.33", default-features = false, features = ["design"] }
+```
+
+Dropping an entire unused crate should reduce binary size and build time across
+all five shipped executable variants. **The saving is unquantified** — snora
+measured that widgets+design is unchanged, not what widgets costs — and it
+requires moving 0.29 → 0.33 first.
+
+Optional, not urgent, and not proposed as work here. Recorded so it is available
+the next time there is reason to touch this dependency.
+
+### Version currency
+
+Where snora's earlier reply says "0.29.0 is current", read **0.33.0**. arama
+remains deliberately on **0.29.0**: nothing in 0.30–0.33 fixes anything arama
+has, and the only reason to move is the optional feature-drop above.
+
+### The note is written on stale information, and that is arama's doing
+
+It advises arama on an upgrade path already taken, offers screenshots "if the
+offer stands", and closes by warning that *if* arama ships `high_contrast_dark`,
+modals have no modality signal — a defect arama diagnosed, fixed, and released
+in **0.39.1** before this note was written.
+
+snora does not know because **nothing has been sent back**. They have now asked
+twice for the two items gathered in package 097, one of which — the first
+pixel-level confirmation of their no-visual-change guarantee — they have said no
+consumer has ever provided.
+
 ## Provenance
 
 Found during arama RFC 036, which changed its similarity dialogs to always
