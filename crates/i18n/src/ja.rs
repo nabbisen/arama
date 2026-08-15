@@ -98,7 +98,10 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "settings.ai.ffmpeg_invalid_path" => {
             "\u{6709}\u{52b9}\u{306a}\u{7d76}\u{5bfe}\u{30d1}\u{30b9}\u{306e}\u{30d5}\u{30a9}\u{30eb}\u{30c0}\u{30fc}\u{3092}\u{9078}\u{629e}\u{3057}\u{3066}\u{304f}\u{3060}\u{3055}\u{3044}\u{3002}"
         }
-        "settings.ai.ffmpeg_filesystem_unavailable" => {
+        "settings.ai.ffmpeg_filesystem_unavailable_auto" => {
+            "PATH\u{306e}\u{4e00}\u{90e8}\u{3092}\u{30d5}\u{30a1}\u{30a4}\u{30eb}\u{30b7}\u{30b9}\u{30c6}\u{30e0}\u{306e}\u{30a8}\u{30e9}\u{30fc}\u{3067}\u{78ba}\u{8a8d}\u{3067}\u{304d}\u{307e}\u{305b}\u{3093}\u{3067}\u{3057}\u{305f}\u{3002}ffmpeg\u{30d5}\u{30a9}\u{30eb}\u{30c0}\u{30fc}\u{3092}\u{76f4}\u{63a5}\u{9078}\u{629e}\u{3059}\u{308b}\u{304b}\u{3001}\u{518d}\u{5ea6}\u{304a}\u{8a66}\u{3057}\u{304f}\u{3060}\u{3055}\u{3044}\u{3002}"
+        }
+        "settings.ai.ffmpeg_filesystem_unavailable_selected" => {
             "\u{30d5}\u{30a1}\u{30a4}\u{30eb}\u{30b7}\u{30b9}\u{30c6}\u{30e0}\u{306e}\u{8b58}\u{5225}\u{60c5}\u{5831}\u{307e}\u{305f}\u{306f}\u{30a2}\u{30af}\u{30bb}\u{30b9}\u{6a29}\u{3092}\u{78ba}\u{8a8d}\u{3067}\u{304d}\u{307e}\u{305b}\u{3093}\u{3067}\u{3057}\u{305f}\u{3002}"
         }
 

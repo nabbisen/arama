@@ -39,7 +39,10 @@ impl AiSettings {
             ]
             .into(),
             state => column![
-                text(ffmpeg_failure_message(state)),
+                text(ffmpeg_failure_message(
+                    state,
+                    matches!(self.ffmpeg_preference, FfmpegLocationPreference::Auto)
+                )),
                 button(text(t("settings.ai.ffmpeg_recheck"))).on_press(Message::CheckFfmpeg),
             ]
             .into(),
@@ -58,7 +61,11 @@ impl AiSettings {
                         "{}: {} — {}",
                         t("settings.ai.ffmpeg_candidate_rejected"),
                         directory.display(),
-                        ffmpeg_failure_message(*state)
+                        // This branch only ever runs for a Selected-directory
+                        // candidate check (set_ffmpeg_candidate_failure is
+                        // only called with a SelectedDirectory preference),
+                        // so is_auto is always false here.
+                        ffmpeg_failure_message(*state, false)
                     ))
                     .into()
                 }
@@ -105,14 +112,23 @@ impl AiSettings {
     }
 }
 
-fn ffmpeg_failure_message(state: FfmpegState) -> String {
+/// Task 019: `FilesystemUnavailable` needs different text depending on which
+/// discovery mode produced it. "Check permissions on this folder" is sound
+/// advice when the user picked one directory (Selected mode); it does not
+/// fit Auto mode, where there is no single folder and the cause is a
+/// filesystem error somewhere in a `PATH` scan. `is_auto` selects between
+/// them; every other state's message is mode-independent.
+fn ffmpeg_failure_message(state: FfmpegState, is_auto: bool) -> String {
     t(match state {
         FfmpegState::InvalidPair => "settings.ai.ffmpeg_invalid_pair",
         FfmpegState::ProbeTimedOut => "settings.ai.ffmpeg_probe_timed_out",
         FfmpegState::SearchLimited => "settings.ai.ffmpeg_search_limited",
         FfmpegState::LegacyExcluded => "settings.ai.ffmpeg_legacy_excluded",
         FfmpegState::InvalidSearchPath => "settings.ai.ffmpeg_invalid_path",
-        FfmpegState::FilesystemUnavailable => "settings.ai.ffmpeg_filesystem_unavailable",
+        FfmpegState::FilesystemUnavailable if is_auto => {
+            "settings.ai.ffmpeg_filesystem_unavailable_auto"
+        }
+        FfmpegState::FilesystemUnavailable => "settings.ai.ffmpeg_filesystem_unavailable_selected",
         FfmpegState::Missing => "settings.ai.ffmpeg_external",
         FfmpegState::Unknown | FfmpegState::Checking => "settings.ai.ffmpeg_checking",
         FfmpegState::Ready => "settings.ai.ffmpeg_ready",

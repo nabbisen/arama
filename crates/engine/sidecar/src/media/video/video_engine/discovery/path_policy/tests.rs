@@ -363,6 +363,87 @@ fn access_diagnostic_retains_issue_and_candidate_source() {
     );
 }
 
+/// Task 019: a `PATH` made entirely of dangling entries - the ordinary case
+/// on a real Windows machine (RFC 039's Phase 0 measurement found 8 of 78 on
+/// `windows-latest`) - must not produce a filesystem diagnostic. Before this
+/// fix, every `NotFound` was recorded exactly like a genuine access/identity
+/// failure, which made `run_discovery_work`'s `Missing` fallback (`worker.rs`)
+/// unreachable in the single most common real-world "ffmpeg is not
+/// installed" case on Windows.
+#[test]
+fn dangling_entries_alone_produce_no_filesystem_diagnostic() {
+    let first = absolute("dangling-first");
+    let second = absolute("dangling-second");
+    let mut identities = HashMap::new();
+    identities.insert(
+        first.clone(),
+        Err(io::Error::new(io::ErrorKind::NotFound, "first")),
+    );
+    identities.insert(
+        second.clone(),
+        Err(io::Error::new(io::ErrorKind::NotFound, "second")),
+    );
+    let mut filesystem = CountingFilesystem {
+        operations: Rc::new(Cell::new(0)),
+        identities,
+    };
+    let path = std::env::join_paths([first, second]).unwrap();
+    let mut control = never_stop();
+
+    let result = normalize_auto_candidates(
+        Some(&path),
+        None,
+        FfmpegLocatorPolicy::default(),
+        &mut control,
+        &mut filesystem,
+    );
+
+    assert_eq!(result.filesystem_diagnostic, None);
+    assert_eq!(result.rejected_entries, 2);
+    assert!(result.candidates.is_empty());
+}
+
+/// A genuine access/identity problem must still be recorded even when
+/// dangling entries are also present, so real diagnostics are not
+/// collateral damage of the Task 019 fix.
+#[test]
+fn a_real_filesystem_error_is_still_recorded_alongside_dangling_entries() {
+    let dangling = absolute("dangling");
+    let denied = absolute("denied");
+    let mut identities = HashMap::new();
+    identities.insert(
+        dangling.clone(),
+        Err(io::Error::new(io::ErrorKind::NotFound, "dangling")),
+    );
+    identities.insert(
+        denied.clone(),
+        Err(io::Error::new(io::ErrorKind::PermissionDenied, "denied")),
+    );
+    let mut filesystem = CountingFilesystem {
+        operations: Rc::new(Cell::new(0)),
+        identities,
+    };
+    let path = std::env::join_paths([dangling, denied]).unwrap();
+    let mut control = never_stop();
+
+    let result = normalize_auto_candidates(
+        Some(&path),
+        None,
+        FfmpegLocatorPolicy::default(),
+        &mut control,
+        &mut filesystem,
+    );
+
+    assert_eq!(result.rejected_entries, 1);
+    assert_eq!(
+        result.filesystem_diagnostic,
+        Some(FilesystemDiagnostic {
+            issue: FilesystemIssue::Access,
+            source: DiscoverySource::AutoPath,
+        })
+    );
+}
+
 #[cfg(unix)]
 #[test]
 fn symlink_alias_is_normalized_to_one_logical_candidate() {

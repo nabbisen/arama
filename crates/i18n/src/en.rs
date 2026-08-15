@@ -60,7 +60,10 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
             "This folder is arama's old managed FFmpeg location. Install or move the pair outside arama, then select that folder."
         }
         "settings.ai.ffmpeg_invalid_path" => "Select a valid absolute folder path.",
-        "settings.ai.ffmpeg_filesystem_unavailable" => {
+        "settings.ai.ffmpeg_filesystem_unavailable_auto" => {
+            "arama could not check part of your PATH due to a filesystem error. Select the ffmpeg folder directly, or try again."
+        }
+        "settings.ai.ffmpeg_filesystem_unavailable_selected" => {
             "arama could not verify this folder's filesystem identity or access. Check permissions and try again."
         }
 

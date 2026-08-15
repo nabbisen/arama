@@ -186,6 +186,27 @@ mod tests {
         }
     }
 
+    /// Task 019: the two `FilesystemUnavailable` messages must stay
+    /// distinct and neither must read as the other's advice — Auto mode has
+    /// no single folder to check permissions on, Selected mode has nothing
+    /// resembling a `PATH` scan.
+    #[test]
+    fn ffmpeg_filesystem_unavailable_keys_resolve_and_stay_distinct_in_both_locales() {
+        for get in [en::get, ja::get] {
+            let auto = get("settings.ai.ffmpeg_filesystem_unavailable_auto")
+                .expect("settings.ai.ffmpeg_filesystem_unavailable_auto must exist");
+            let selected = get("settings.ai.ffmpeg_filesystem_unavailable_selected")
+                .expect("settings.ai.ffmpeg_filesystem_unavailable_selected must exist");
+            assert!(!auto.is_empty());
+            assert!(!selected.is_empty());
+            assert_ne!(
+                auto, selected,
+                "Auto and Selected filesystem-unavailable text must differ"
+            );
+        }
+        assert_eq!(en::get("settings.ai.ffmpeg_filesystem_unavailable"), None);
+    }
+
     #[test]
     fn ffmpeg_guidance_is_external_platform_neutral_and_has_no_managed_keys() {
         for get in [en::get, ja::get] {

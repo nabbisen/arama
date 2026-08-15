@@ -157,7 +157,7 @@ where
     let canonical = match filesystem.canonicalize(path) {
         Ok(canonical) => canonical,
         Err(error) => {
-            record_filesystem_error(result, source, &error);
+            record_missing_or_filesystem_error(result, source, &error);
             let _ = checkpoint(control, result);
             return None;
         }
@@ -169,7 +169,7 @@ where
     let is_directory = match filesystem.is_directory(&canonical) {
         Ok(is_directory) => is_directory,
         Err(error) => {
-            record_filesystem_error(result, source, &error);
+            record_missing_or_filesystem_error(result, source, &error);
             let _ = checkpoint(control, result);
             return None;
         }
@@ -191,6 +191,33 @@ fn checkpoint<C: CandidateWorkControl>(
     control.checkpoint().map_err(|stop| {
         result.stop = Some(stop);
     })
+}
+
+/// Task 019: a `PATH` entry that simply does not exist (`NotFound`) is
+/// ordinary `PATH` hygiene — a stale directory left behind by an
+/// uninstalled tool, a per-user directory never created — not a filesystem
+/// problem. Counting it as a plain rejected entry, the same bucket
+/// `!is_directory` and empty/relative entries already use, keeps `Missing`
+/// reachable when nothing else is wrong: `run_discovery_work`
+/// (`worker.rs`) seeds its failure outcome from `filesystem_diagnostic`
+/// when one is set and only falls back to `Missing` when it is `None`, and
+/// a genuinely dangling `PATH` is common enough on real Windows machines
+/// (8 of 78 raw entries on `windows-latest`, RFC 039's Phase 0 measurement)
+/// that treating it as a diagnostic-worthy failure made the one message
+/// that tells a user to install ffmpeg effectively unreachable in the
+/// common case. A real access or identity problem — `PermissionDenied`, or
+/// anything else `NotFound` does not already cover — still becomes a
+/// diagnostic exactly as before.
+fn record_missing_or_filesystem_error(
+    result: &mut NormalizedPathCandidates,
+    source: DiscoverySource,
+    error: &io::Error,
+) {
+    if error.kind() == io::ErrorKind::NotFound {
+        result.rejected_entries += 1;
+        return;
+    }
+    record_filesystem_error(result, source, error);
 }
 
 fn record_filesystem_error(
