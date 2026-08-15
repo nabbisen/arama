@@ -7,7 +7,7 @@ use iced::{
 use lucide_icons::iced::{
     icon_database, icon_folder, icon_panel_left_close, icon_panel_left_open, icon_settings,
 };
-use snora::{AppLayout, Dialog as SnoraDialog, ToastPosition, render};
+use snora::{AppLayout, Dialog as SnoraDialog, ToastPosition, design::render};
 
 use super::{App, Dialog, NavPage, message::Message, setup_complete};
 
@@ -18,7 +18,7 @@ impl App {
         // finishes.
         if !setup_complete(self.setup.finished, self.setup.ready()) {
             let setup = self.setup.view().map(Message::SetupMessage);
-            return render(self.toast_layout(setup));
+            return render(self.toast_layout(setup), &arama_theme::tokens());
         }
 
         // ── Side-bar nav rail ─────────────────────────────────────────
@@ -150,7 +150,7 @@ impl App {
             layout = layout.dialog(SnoraDialog::new(elem));
         }
 
-        render(layout)
+        render(layout, &arama_theme::tokens())
     }
 
     fn toast_layout<'a>(

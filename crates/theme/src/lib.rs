@@ -61,7 +61,7 @@ pub fn current_theme() -> ThemePreset {
 /// style closures anyway, so this avoids any `'static` lifetime constraint.
 /// `Tokens` is small and `Clone`; the per-button clone cost in `view()` is
 /// negligible.
-fn tokens() -> Tokens {
+pub fn tokens() -> Tokens {
     tokens_for_preset(current_theme())
 }
 
