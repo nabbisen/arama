@@ -1,7 +1,9 @@
 # Upstream report: snora's dialog overlay draws no card
 
-**Status.** Draft — **not yet sent.** Awaiting the owner's decision to file it
-with snora.
+**Status.** **Sent to snora by the project owner, 2026-08-10.** Retained here as
+arama's record of what was reported and why. Any snora-side outcome — a fix, a
+documentation change, or a decision that the current behaviour is intended —
+should be recorded by appending to this note rather than rewriting it.
 **Format.** Downstream bug report, written from arama's evidence.
 **Subject.** `snora` 0.25.0, `src/overlay/dialog.rs`.
 **Relates to.** arama [RFC 036](../done/036-similarity-dialog-absence-states.md),
