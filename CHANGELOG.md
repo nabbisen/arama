@@ -9,6 +9,14 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ### Fixed
 
+- **ffmpeg was undiscoverable on Windows machines with a long `PATH`.** The
+  automatic search stopped after the first 64 `PATH` entries, so an installed
+  ffmpeg sitting beyond that point was never examined — its position, not
+  anything about it, decided whether arama could find it. Long `PATH`s are
+  ordinary on Windows; a current CI runner has 78 entries. The Windows limits
+  are now 256 entries and 128 candidates, measured to cost tens of milliseconds
+  against a six-second budget. macOS and Linux are unchanged, where a
+  platform-specific fallback means the limit was never reachability-blocking.
 - **Modal dialogs were invisible as modals on the high-contrast dark theme.**
   On that preset the background is pure black, and the backdrop drawn behind a
   dialog was a fixed 40% black — which over pure black composites to pure
