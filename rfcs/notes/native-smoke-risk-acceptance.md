@@ -122,6 +122,45 @@ developer machines with many SDKs installed. Whether `max_raw_path_entries`
 is still calibrated correctly, and to what, is a design question for a
 future task — not this one.
 
+**Update, same day — Windows x86_64 process-tree reaping — now discharged
+(Task 021).** The paragraph above records what was true when this section
+was first written; it is left as-is rather than edited, per this note's own
+rule that it is appended to, never rewritten.
+
+Task 021 drove real Selected-directory discovery (the public path;
+`run_bounded_probe_with_cancellation` was deliberately not widened past
+`pub(super)` to make this easier — that would have been a design decision,
+not a test) at a hanging `ffmpeg`/`ffprobe` stub compiled directly with
+`rustc` on both runners (not a workspace member — a text-script stub cannot
+be a native Windows executable). The stub spawns a grandchild of itself
+before hanging, so the test proves something about the *tree*, not the
+direct child: a `kill()` that only reached the process arama spawned itself
+was never in doubt and would have proven nothing.
+
+Both platforms, run
+[31880249221](https://github.com/nabbisen/arama/actions/runs/31880249221):
+
+```
+NATIVE_SMOKE_REAPING_GRANDCHILD_PID=2328               (macOS)
+NATIVE_SMOKE_REAPING_GRANDCHILD_ALIVE_BEFORE_TIMEOUT=true
+NATIVE_SMOKE_REAPING_TERMINAL_OUTCOME=ProbeTimedOut
+NATIVE_SMOKE_REAPING_GRANDCHILD_ALIVE_AFTER_TIMEOUT=false
+
+NATIVE_SMOKE_REAPING_GRANDCHILD_PID=8016               (Windows)
+NATIVE_SMOKE_REAPING_GRANDCHILD_ALIVE_BEFORE_TIMEOUT=true
+NATIVE_SMOKE_REAPING_TERMINAL_OUTCOME=ProbeTimedOut
+NATIVE_SMOKE_REAPING_GRANDCHILD_ALIVE_AFTER_TIMEOUT=false
+```
+
+The grandchild's identity was confirmed alive before the timeout — so the
+tree under test genuinely existed — and confirmed absent after, on both
+platforms. **`command-group`'s Windows job-object path reaps the full
+process tree on a probe timeout, matching its already-trusted Unix
+process-group path.** The worst case this risk described — a leaked
+`ffmpeg.exe` after a probe timeout — is not what happens.
+
+This closes the last of the four risks accepted for the 0.37.0 checkpoint.
+
 **Not discharged, unchanged from the original acceptance:** rendered setup
 and Settings UI states (CI cannot drive a GUI on any platform, exactly as
 this note always said); Intel macOS and Linux aarch64 (closed by decision,
