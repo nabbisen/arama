@@ -233,6 +233,37 @@ fn discovery_collection_phase_timing_over_real_path() {
         result.candidate_truncated
     );
     println!(
+        "NATIVE_SMOKE_TIMING_FILESYSTEM_DIAGNOSTIC={:?}",
+        result.filesystem_diagnostic
+    );
+    // Per-entry pass, deliberately not sharing normalize_auto_candidates'
+    // early-return-on-error path, so a single failing entry does not stop
+    // enumeration of the rest - this is diagnostic-only, characterizing a
+    // finding, not exercising the production candidate-collection code.
+    if let Some(path) = path.as_deref() {
+        for (index, entry) in std::env::split_paths(path).enumerate() {
+            match std::fs::canonicalize(&entry) {
+                Ok(canonical) => match std::fs::metadata(&canonical) {
+                    Ok(_) => {}
+                    Err(error) => {
+                        println!(
+                            "NATIVE_SMOKE_TIMING_ENTRY_METADATA_ERROR index={index} kind={:?} entry={}",
+                            error.kind(),
+                            entry.display()
+                        );
+                    }
+                },
+                Err(error) => {
+                    println!(
+                        "NATIVE_SMOKE_TIMING_ENTRY_CANONICALIZE_ERROR index={index} kind={:?} entry={}",
+                        error.kind(),
+                        entry.display()
+                    );
+                }
+            }
+        }
+    }
+    println!(
         "NATIVE_SMOKE_TIMING_COLLECTION_PHASE_MS={}",
         elapsed.as_secs_f64() * 1000.0
     );
