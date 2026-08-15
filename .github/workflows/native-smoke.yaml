@@ -63,15 +63,23 @@ jobs:
         # A variant-2 pass that silently used a pair still on PATH proves
         # nothing (RFC 038 handoff §5) - this step is the precondition
         # check that stops that from happening unnoticed.
+        #
+        # Removes only FFMPEG_BIN from the current PATH, rather than
+        # replacing PATH with a bare-minimum list: a wholesale replacement
+        # also excludes cargo's own install directory (not under
+        # /usr/bin on these runners), which fails Variant 2 for a reason
+        # that has nothing to do with FFmpeg discovery.
         run: |
-          export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
+          STRIPPED_PATH=$(printf '%s' "$PATH" | tr ':' '\n' | grep -Fvx "$FFMPEG_BIN" | tr '\n' ':')
+          STRIPPED_PATH="${STRIPPED_PATH%:}"
+          export PATH="$STRIPPED_PATH"
           echo "effective PATH for discovery = $PATH"
           if command -v ffmpeg >/dev/null 2>&1 || command -v ffprobe >/dev/null 2>&1; then
             echo "::error::ffmpeg/ffprobe still resolvable on the stripped PATH - variant 2's precondition was not met"
             exit 1
           fi
           echo "confirmed: neither ffmpeg nor ffprobe resolves on this PATH"
-          echo "SMOKE_PATH=$PATH" >> "$GITHUB_ENV"
+          echo "SMOKE_PATH=$STRIPPED_PATH" >> "$GITHUB_ENV"
 
       - name: Variant 2 - discovery with PATH stripped
         run: |
@@ -128,15 +136,22 @@ jobs:
             --nocapture
 
       - name: Variant 2 - strip PATH, confirm the pair is not resolvable
+        # Removes only FFMPEG_BIN from the current PATH, rather than
+        # replacing PATH with a bare-minimum list: a wholesale replacement
+        # also excludes cargo's own install directory (not under
+        # System32/Windows on these runners), which fails Variant 2 for a
+        # reason that has nothing to do with FFmpeg discovery.
         run: |
-          export PATH="/c/Windows/System32:/c/Windows"
+          STRIPPED_PATH=$(printf '%s' "$PATH" | tr ':' '\n' | grep -Fvx "$FFMPEG_BIN" | tr '\n' ':')
+          STRIPPED_PATH="${STRIPPED_PATH%:}"
+          export PATH="$STRIPPED_PATH"
           echo "effective PATH for discovery = $PATH"
           if command -v ffmpeg >/dev/null 2>&1 || command -v ffprobe >/dev/null 2>&1; then
             echo "::error::ffmpeg/ffprobe still resolvable on the stripped PATH - variant 2's precondition was not met"
             exit 1
           fi
           echo "confirmed: neither ffmpeg nor ffprobe resolves on this PATH"
-          echo "SMOKE_PATH=$PATH" >> "$GITHUB_ENV"
+          echo "SMOKE_PATH=$STRIPPED_PATH" >> "$GITHUB_ENV"
 
       - name: Variant 2 - discovery with PATH stripped
         run: |
