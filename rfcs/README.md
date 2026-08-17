@@ -9,8 +9,7 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-| 041 | [Application data locations](./proposed/041-application-data-locations.md) | **High** — settings follow the working directory today |
-| 042 | [Windows Store distribution and the CPU/GPU binary](./proposed/042-windows-store-distribution.md) | Medium — blocked on 041 |
+| 042 | [Windows Store distribution and the CPU/GPU binary](./proposed/042-windows-store-distribution.md) | Medium — Phase 0 answered; route undecided |
 
 ## Implemented
 
@@ -56,6 +55,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 038 | [Native smoke on CI runners](./done/038-native-smoke-on-ci-runners.md) | 0.39.1 |
 | 039 | [Windows `PATH` search reachability](./done/039-windows-path-search-reachability.md) | 0.39.1 |
 | 040 | [snora 0.29 upgrade and dialog surface](./done/040-snora-0.29-upgrade-and-dialog-surface.md) | 0.39.1 |
+| 041 | [Application data locations](./done/041-application-data-locations.md) | 0.40.0 |
 
 ## Archive
 

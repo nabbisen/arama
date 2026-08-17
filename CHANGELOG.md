@@ -7,8 +7,38 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+---
+
+## [0.40.0]
+
+**Before you upgrade:**
+
+- **Your settings, downloaded models and cache move to standard per-user
+  locations on first run.** The move is automatic and nothing is discarded —
+  your indexed library does not need rebuilding. If you have been launching
+  arama from more than one directory, note that settings previously followed the
+  directory you launched from; after this release there is a single
+  configuration, and the one adopted is whichever the migration finds first.
+
+Nothing else changes compatibility with existing cache, settings, or media data.
+
 ### Changed
 
+- **arama now stores its data where your operating system expects it.**
+  Settings, downloaded models, and the cache previously lived beside the arama
+  executable — and the settings file actually followed whichever directory you
+  happened to launch arama from, so starting it from a different place could
+  silently give you a different configuration. All three now use the standard
+  per-user locations for your platform: settings in the usual configuration
+  directory, models and cache in local (non-roaming) application data, so a
+  several-hundred-megabyte model is never synchronised into a roaming Windows
+  profile.
+
+  **Your existing data moves with you.** On the first run after upgrading,
+  settings, models and the cache are relocated automatically — nothing is
+  discarded and no re-indexing is required. If a relocation cannot be completed
+  you are told, rather than being left to discover it. The resolved locations
+  are reported at startup so they can be found without guesswork.
 - **Routine dependency maintenance.** `snora` moved from `0.29.0` to `0.33.0`,
   and arama stopped requesting its `widgets` feature — nothing in arama used it.
   No behavior change: the release binary is byte-identical across the version

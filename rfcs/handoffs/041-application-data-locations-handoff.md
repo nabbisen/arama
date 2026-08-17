@@ -1,8 +1,6 @@
 # RFC 041 Handoff — Application data locations
 
-Companion to [RFC 041](../proposed/041-application-data-locations.md), which is
-**accepted for implementation** (owner, 2026-08-16) and stays in
-`rfcs/proposed/` until the work ships, per
+Companion to [RFC 041](../done/041-application-data-locations.md), shipped in **0.40.0** and moved to `rfcs/done/` with that cut, per
 [RFC 000](../done/000-rfc-lifecycle-policy.md).
 
 **Do this before [RFC 042](../proposed/042-windows-store-distribution.md).**
@@ -10,7 +8,7 @@ That work cannot start until a packaged arama can write anything at all.
 
 ## 1. Design authority
 
-1. [RFC 041](../proposed/041-application-data-locations.md);
+1. [RFC 041](../done/041-application-data-locations.md);
 2. [RFC 017](../done/017-visible-recoverable-error-ux.md) — the tier model
    governing how a failed migration is surfaced;
 3. [RFC 030](../done/030-distribution-and-version-contracts.md) — the

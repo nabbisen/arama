@@ -2,7 +2,7 @@
 
 **Status.** Proposed — **accepted for implementation by the project owner
 2026-08-16**. Remains in `rfcs/proposed/` until the work ships, per RFC 000.
-**Blocked on [RFC 041](./041-application-data-locations.md).** A packaged arama
+**Blocked on [RFC 041](../done/041-application-data-locations.md).** A packaged arama
 cannot write to its own install directory, so it cannot run until data locations
 move. Nothing here is actionable before that ships.
 **Tracks.** Publish arama to the Microsoft Store as a single listing, and decide

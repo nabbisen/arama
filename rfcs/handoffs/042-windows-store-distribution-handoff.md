@@ -7,7 +7,7 @@ Companion to [RFC 042](../proposed/042-windows-store-distribution.md), which is
 
 ## 1. Phase 0 can start now. Everything else cannot.
 
-**Blocked on [RFC 041](../proposed/041-application-data-locations.md)** — a
+**Blocked on [RFC 041](../done/041-application-data-locations.md)** — a
 packaged arama cannot write its models or cache until data locations move, so
 there is nothing to package.
 

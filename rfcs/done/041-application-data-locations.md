@@ -1,7 +1,19 @@
 # RFC 041: Application data locations
 
-**Status.** Proposed — **accepted for implementation by the project owner
-2026-08-16**. Remains in `rfcs/proposed/` until the work ships, per RFC 000.
+**Status.** Implemented (0.40.0). Accepted by the project owner 2026-08-16.
+
+*As built, one correction to this RFC's own §2:* it recommended abandoning the
+cache and rebuilding, citing RFC 015. That precedent does not apply — RFC 015
+abandoned v1 data because its **format** had changed and it was unusable, while
+here the data is valid and merely in another folder. Abandoning it would have
+forced a full re-index, arama's slowest operation, scaling with library size.
+**All three kinds migrate; nothing is abandoned.**
+
+*Verified on all three platforms*, which mattered: the verification failed on
+macOS and Windows for two different reasons — a process-global `ARAMA_DATA_HOME`
+leaking between parallel tests, and a `NATIVE_SMOKE_*` marker written to stderr
+while the workflow grepped stdout. Neither was a defect in this change; both
+were defects in checking it. Linux alone would have reported success.
 **Tracks.** arama writes its data to **three different anchors**, one of which
 follows the current working directory and one of which is unwritable when the
 application is packaged. Consolidate to a single platform-correct location.
@@ -52,7 +64,7 @@ established by running it, not reasoned about.** A redirect would be worse than
 a refusal: several hundred megabytes of model data landing somewhere the user
 never chose, with uninstall behaviour unknown.
 
-This blocks [RFC 042](./042-windows-store-distribution.md) entirely.
+This blocks [RFC 042](../proposed/042-windows-store-distribution.md) entirely.
 
 ## The tool is already a dependency
 

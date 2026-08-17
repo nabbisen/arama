@@ -157,6 +157,15 @@ inference about what users might want.
 
 ## Shipped
 
+**0.40.0** shipped [RFC 041](./rfcs/done/041-application-data-locations.md):
+settings, models and cache move to platform-standard per-user locations, with
+everything migrated rather than abandoned. A minor bump rather than a patch
+because a user's data relocates, which a patch version would understate. Its
+verification failed first on **macOS and Windows for two different reasons** —
+an environment variable leaking between parallel tests, and a marker written to
+stderr while the workflow grepped stdout — neither a defect in the change, both
+defects in checking it, and neither visible on Linux.
+
 **0.39.1** shipped RFCs 038, 039 and 040 — a fix-only release. Its headline is
 an accessibility defect: modals had no modality signal at all on the
 high-contrast dark preset, the one chosen by users who most need visual
