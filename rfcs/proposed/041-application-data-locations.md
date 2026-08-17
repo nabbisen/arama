@@ -1,6 +1,7 @@
 # RFC 041: Application data locations
 
-**Status.** Proposed — awaiting owner decision. Not accepted.
+**Status.** Proposed — **accepted for implementation by the project owner
+2026-08-16**. Remains in `rfcs/proposed/` until the work ships, per RFC 000.
 **Tracks.** arama writes its data to **three different anchors**, one of which
 follows the current working directory and one of which is unwritable when the
 application is packaged. Consolidate to a single platform-correct location.
