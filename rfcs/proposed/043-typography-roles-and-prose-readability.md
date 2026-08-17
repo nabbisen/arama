@@ -1,7 +1,9 @@
 # RFC 043: Typography roles and prose readability
 
-**Status.** Proposed — **requested by the project owner 2026-08-17**, awaiting
-acceptance. Not blocked on anything.
+**Status.** Proposed — requested by the project owner 2026-08-17 and
+**accepted for implementation the same day**. Remains in `rfcs/proposed/` until
+the work ships, per RFC 000. Not blocked on anything.
+**Handoff:** [043 handoff](../handoffs/043-typography-roles-and-prose-readability-handoff.md).
 **Tracks.** Adopt snora's six-role text scale, and give wrapping prose a
 line-height, for the text arama renders itself.
 **Touches.** View code in `crates/ui` and `app/src/core/view.rs`, and one line
@@ -293,7 +295,11 @@ work.
 
 Outward communication remains the owner's, as every prior exchange has been.
 
-## 11. The one decision that is the owner's
+## 11. The one decision that is the owner's — settled
+
+> **Settled 2026-08-17.** The owner accepted this RFC without amending §11, so
+> **(a) departures only** is the scope, as recommended. Carried into the
+> handoff §3.
 
 **How far does annotation go?**
 
