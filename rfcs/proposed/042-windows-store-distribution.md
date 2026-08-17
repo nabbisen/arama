@@ -72,6 +72,34 @@ maintenance cost is the question.
 guess here would mean building a launcher that a single build flag makes
 pointless.
 
+> **Answered 2026-08-17 (Phase 0, review 104): technically yes — at a cost.**
+>
+> `cudarc` 0.19 does offer runtime loading, and includes `fallback-dynamic-loading`
+> in its own defaults. But reaching it needs **two** changes, neither
+> expressible as a Cargo feature from arama's side:
+>
+> 1. `candle-core` hardcodes `dynamic-linking` and exposes no toggle;
+> 2. `candle-kernels`' `build.rs` links `cudart` **unconditionally** for the
+>    statically compiled MoE kernels — so patching (1) alone still fails to
+>    link. Found by building, not by reading; a reading-only answer would have
+>    reported "yes, one line."
+>
+> With both patched, a probe binary has **no CUDA in its `DT_NEEDED` list** and a
+> 512×512 `matmul` still executes on a real GPU through the loading path.
+>
+> **So a single binary is achievable, conditional on carrying two
+> `[patch.crates-io]` entries against third-party crates, re-verified at every
+> candle version bump.** arama has no precedent for that shape — the
+> `pt2safetensors` precedent was own-and-republish, not patching someone else's
+> crate.
+>
+> **Upstream attempt in flight:**
+> [huggingface/candle#3900](https://github.com/huggingface/candle/issues/3900),
+> filed 2026-08-17, asking candle to expose the feature and gate the MoE build.
+> If accepted, the single binary costs nothing ongoing. **Nothing here blocks on
+> a reply** — Option A delivers the single Store listing regardless, and no
+> reply is the default assumption.
+
 ## Options, if Phase 0 says no
 
 ### A — Bundle both binaries with a selector
