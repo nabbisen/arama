@@ -1,5 +1,6 @@
 use std::{
     env,
+    ffi::OsString,
     fs::create_dir_all,
     io::{Error, ErrorKind, Result},
     path::{Path, PathBuf},
@@ -22,8 +23,24 @@ const CACHE_DIR: &str = ".arama-cache";
 /// module answers only the models/cache half.
 pub const DATA_HOME_ENV_VAR: &str = "ARAMA_DATA_HOME";
 
+/// Resolves the `ARAMA_DATA_HOME` override from an environment lookup
+/// function.
+///
+/// Task 023: a pure, testable seam, mirroring `app-json-settings`'s own
+/// `config_dir_from(getenv)` (`app_json_settings::core::dir`) — the
+/// public-facing [`data_home_override`] supplies the real environment via
+/// `std::env::var_os`; tests supply a stub closure instead of mutating a
+/// process-global environment variable, which is `unsafe` in this edition
+/// and races Rust's parallel-by-default test harness (this is exactly the
+/// bug Task 023 fixes: `ARAMA_DATA_HOME`, mutated by one test, was leaking
+/// into every other test's concurrently-running call to `local_dir()`/
+/// `cache_dir()`).
+fn data_home_override_from(getenv: impl Fn(&str) -> Option<OsString>) -> Option<PathBuf> {
+    getenv(DATA_HOME_ENV_VAR).map(PathBuf::from)
+}
+
 fn data_home_override() -> Option<PathBuf> {
-    env::var_os(DATA_HOME_ENV_VAR).map(PathBuf::from)
+    data_home_override_from(|name| env::var_os(name))
 }
 
 fn project_dirs() -> Result<ProjectDirs> {
@@ -32,32 +49,45 @@ fn project_dirs() -> Result<ProjectDirs> {
     })
 }
 
-/// Where CLIP/wav2vec2 models and the legacy ffmpeg `bin/` live.
-///
+/// Where CLIP/wav2vec2 models and the legacy ffmpeg `bin/` live, given an
+/// already-resolved override (or none). Pure - the other half of the same
+/// seam as [`data_home_override_from`]: [`local_dir`] supplies the real
+/// override via [`data_home_override`] at its one call site; tests supply
+/// an explicit value directly, without touching `ARAMA_DATA_HOME` at all.
+fn local_dir_with_override(data_home: Option<&Path>) -> Result<PathBuf> {
+    if let Some(root) = data_home {
+        return Ok(root.join(LOCAL_DIR));
+    }
+    Ok(project_dirs()?.data_local_dir().to_path_buf())
+}
+
 /// Platform data-local directory (RFC 041): `%LOCALAPPDATA%\arama\data` on
 /// Windows, `~/Library/Application Support/arama` on macOS, `$XDG_DATA_HOME`
 /// (or `~/.local/share`)`/arama` on Linux — never the executable's own
 /// directory, which is unwritable once packaged, and never the roaming
 /// profile, which large model downloads should not synchronise into.
 pub fn local_dir() -> Result<PathBuf> {
-    if let Some(root) = data_home_override() {
-        return Ok(root.join(LOCAL_DIR));
-    }
-    Ok(project_dirs()?.data_local_dir().to_path_buf())
+    local_dir_with_override(data_home_override().as_deref())
 }
 
 pub fn local_bin_dir() -> Result<PathBuf> {
     Ok(local_dir()?.join(BIN_DIR))
 }
 
-/// Where the thumbnail/embedding cache lives. Platform cache directory
-/// (RFC 041): `%LOCALAPPDATA%\arama\cache` on Windows, `~/Library/Caches/arama`
-/// on macOS, `$XDG_CACHE_HOME` (or `~/.cache`)`/arama` on Linux.
-pub fn cache_dir() -> Result<PathBuf> {
-    if let Some(root) = data_home_override() {
+/// Where the thumbnail/embedding cache lives, given an already-resolved
+/// override (or none). See [`local_dir_with_override`] - the same seam.
+fn cache_dir_with_override(data_home: Option<&Path>) -> Result<PathBuf> {
+    if let Some(root) = data_home {
         return Ok(root.join(CACHE_DIR));
     }
     Ok(project_dirs()?.cache_dir().to_path_buf())
+}
+
+/// Platform cache directory (RFC 041): `%LOCALAPPDATA%\arama\cache` on
+/// Windows, `~/Library/Caches/arama` on macOS, `$XDG_CACHE_HOME` (or
+/// `~/.cache`)`/arama` on Linux.
+pub fn cache_dir() -> Result<PathBuf> {
+    cache_dir_with_override(data_home_override().as_deref())
 }
 
 /// RFC 041 migration: the pre-041 location for models/`bin/`, always
@@ -150,6 +180,17 @@ mod tests {
     /// vars, unlike `ARAMA_DATA_HOME`, exercises the real `directories`
     /// resolution path rather than bypassing it - still zero filesystem
     /// I/O, so still safe anywhere.
+    ///
+    /// Task 023: this is the one test in this file still allowed to mutate
+    /// real process environment, and it is safe only because nothing else
+    /// in *this* binary shares that assumption - it is the sole test that
+    /// still calls the real, env-reading `local_dir()`/`cache_dir()` (every
+    /// other test below goes through the `_with_override`/`_from` pure
+    /// seam instead, precisely to avoid this), and `#[cfg(target_os)]`
+    /// makes it mutually exclusive with the Windows/macOS platform checks
+    /// above, which never coexist with it in one compiled binary. Do not
+    /// add a second real-`local_dir()`/`cache_dir()`-calling test to this
+    /// file without re-establishing that isolation.
     #[test]
     #[cfg(target_os = "linux")]
     fn linux_local_and_cache_dirs_respect_xdg_overrides() {
@@ -182,35 +223,45 @@ mod tests {
         assert_eq!(cache, scratch.join("cache/arama"));
     }
 
+    /// Task 023 (Defect 1): `data_home_override_from`'s glue reads the
+    /// right variable name and turns a present value into a path - a stub
+    /// closure proves this without ever touching real process environment,
+    /// so this test cannot race any other test no matter how it is run.
+    #[test]
+    fn data_home_override_from_reads_the_named_var_via_the_injected_getenv() {
+        let seen = std::cell::RefCell::new(None);
+        let result = data_home_override_from(|name| {
+            *seen.borrow_mut() = Some(name.to_owned());
+            Some(OsString::from("/scratch/arama-data-home"))
+        });
+
+        assert_eq!(seen.into_inner().as_deref(), Some(DATA_HOME_ENV_VAR));
+        assert_eq!(result, Some(PathBuf::from("/scratch/arama-data-home")));
+    }
+
+    #[test]
+    fn data_home_override_from_is_none_when_the_injected_getenv_finds_nothing() {
+        assert_eq!(data_home_override_from(|_| None), None);
+    }
+
     /// The override must affect both locations identically, or a scratch
     /// profile using it would see models and cache split across two
     /// different roots - the exact "both locations populated" trap RFC 041
     /// exists to avoid, self-inflicted by the test isolation mechanism.
+    ///
+    /// Task 023 (Defect 1): previously proved this by mutating
+    /// `ARAMA_DATA_HOME` and calling the real `local_dir()`/`cache_dir()` -
+    /// exactly the process-global mutation that raced
+    /// `macos_local_and_cache_dirs_resolve_under_their_conventional_locations`
+    /// on CI. Calling the `_with_override` seam directly with an explicit
+    /// value proves the same thing without touching the environment at
+    /// all, so there is nothing left to race.
     #[test]
     fn data_home_override_scopes_both_local_and_cache_dirs_under_one_root() {
-        // env::set_var/remove_var are process-global; serialise against any
-        // other test touching this specific var by using a lock-free but
-        // unique value per call and restoring afterward rather than
-        // asserting on ambient state.
-        let previous = env::var_os(DATA_HOME_ENV_VAR);
-        let root = std::env::temp_dir().join(format!(
-            "arama-dir-test-{}-{}",
-            std::process::id(),
-            "data-home-scoping"
-        ));
-        unsafe {
-            env::set_var(DATA_HOME_ENV_VAR, &root);
-        }
+        let root = PathBuf::from("/scratch/arama-data-home-scoping");
 
-        let local = local_dir().unwrap();
-        let cache = cache_dir().unwrap();
-
-        unsafe {
-            match &previous {
-                Some(value) => env::set_var(DATA_HOME_ENV_VAR, value),
-                None => env::remove_var(DATA_HOME_ENV_VAR),
-            }
-        }
+        let local = local_dir_with_override(Some(&root)).unwrap();
+        let cache = cache_dir_with_override(Some(&root)).unwrap();
 
         assert_eq!(local, root.join(LOCAL_DIR));
         assert_eq!(cache, root.join(CACHE_DIR));

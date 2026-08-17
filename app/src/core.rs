@@ -510,6 +510,22 @@ fn walk_errors_summary(errors: &[WalkError]) -> String {
     }
 }
 
+/// Task 023: `ARAMA_DATA_HOME` and the process's current directory are
+/// both process-global state. Every test in this crate that mutates either
+/// one (here in `core::tests` and in `core::view::tests`) holds this lock
+/// for the full mutation window, so no two such tests can interleave
+/// regardless of how the suite is invoked - not just under native-smoke's
+/// one-`--exact`-test-per-process convention, but also a local
+/// `cargo test -- --ignored` bulk run. The same defect class as Task 023's
+/// Defect 1 (`env/src/dir.rs`'s `ARAMA_DATA_HOME` race); the pure-seam fix
+/// used there doesn't apply cleanly to these tests because their entire
+/// point is exercising the real, env-reading `App::new()` startup path
+/// end-to-end, not a unit in front of it - so this is the task's own
+/// second-preference route (serialise), used deliberately, not as a
+/// smaller effort than the first.
+#[cfg(test)]
+pub(crate) static ARAMA_DATA_HOME_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -607,6 +623,9 @@ mod tests {
 
     #[test]
     fn nothing_is_written_outside_arama_data_home() {
+        let _guard = ARAMA_DATA_HOME_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
         let scratch = scratch_data_home("nothing-outside-data-home");
         let exe_parent = std::env::current_exe()
@@ -651,6 +670,9 @@ mod tests {
         // fixed. The only real-machine effect is `mkdir -p` of the real
         // settings *directory* (never settings.json itself, and never an
         // overwrite) - resolving a location does not write the file.
+        let _guard = ARAMA_DATA_HOME_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let original_cwd = std::env::current_dir().unwrap();
         let dir_a = scratch_data_home("cwd-independence-a");
         let dir_b = scratch_data_home("cwd-independence-b");
@@ -681,6 +703,9 @@ mod tests {
     #[test]
     #[ignore]
     fn native_smoke_migration_moves_settings_models_and_cache_from_the_legacy_layout() {
+        let _guard = ARAMA_DATA_HOME_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let original_cwd = std::env::current_dir().unwrap();
         let legacy_settings_cwd = scratch_data_home("migration-legacy-settings-cwd");
         std::fs::create_dir_all(&legacy_settings_cwd).unwrap();
@@ -748,6 +773,9 @@ mod tests {
     #[test]
     #[ignore]
     fn native_smoke_migration_prefers_new_location_when_both_are_populated() {
+        let _guard = ARAMA_DATA_HOME_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let data_home = scratch_data_home("migration-both-populated");
         let legacy_local = arama_env::legacy_local_dir().unwrap();
         let _ = std::fs::remove_dir_all(&legacy_local);

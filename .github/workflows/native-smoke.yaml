@@ -130,6 +130,17 @@ jobs:
         # exercises `App::new()`'s own startup log line - `--nocapture`
         # plus the grep below is what proves resolved locations are
         # logged/discoverable, the fourth required check.
+        #
+        # Task 023 (Defect 2): `App::new()` emits that marker via
+        # `eprintln!` (stderr) - the right choice for a diagnostic line,
+        # not something to fix by moving it to stdout. `tee` only
+        # captures the pipe's stdin, so a bare `|` here left the marker
+        # visible in the Actions console (which merges both streams) but
+        # never reaching the file `grep` reads, which is why Windows
+        # failed with 39/39 tests passing. `2>&1 |` redirects stderr into
+        # the same pipe before `tee` sees it - fixed here, in the
+        # workflow, which should read the stream the marker is actually
+        # written to.
         run: |
           echo "--- read-only: models/cache resolve under the conventional macOS locations ---"
           cargo test -p arama-env --locked
@@ -146,7 +157,7 @@ jobs:
             --ignored --exact core::tests::native_smoke_migration_prefers_new_location_when_both_are_populated \
             --nocapture
           echo "--- default suite: nothing written outside ARAMA_DATA_HOME, resolved locations logged ---"
-          cargo test -p arama --lib --locked -- --nocapture | tee data-locations-output.log
+          cargo test -p arama --lib --locked -- --nocapture 2>&1 | tee data-locations-output.log
           grep "NATIVE_SMOKE_DATA_LOCATIONS_RESOLVED" data-locations-output.log
 
   windows:
@@ -303,5 +314,5 @@ jobs:
             --ignored --exact core::tests::native_smoke_migration_prefers_new_location_when_both_are_populated \
             --nocapture
           echo "--- default suite: nothing written outside ARAMA_DATA_HOME, resolved locations logged ---"
-          cargo test -p arama --lib --locked -- --nocapture | tee data-locations-output.log
+          cargo test -p arama --lib --locked -- --nocapture 2>&1 | tee data-locations-output.log
           grep "NATIVE_SMOKE_DATA_LOCATIONS_RESOLVED" data-locations-output.log

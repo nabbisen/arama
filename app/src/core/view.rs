@@ -9,6 +9,8 @@ use lucide_icons::iced::{
 };
 use snora::{AppLayout, Dialog as SnoraDialog, ToastPosition, design::render};
 
+#[cfg(test)]
+use super::ARAMA_DATA_HOME_TEST_LOCK;
 use super::{App, Dialog, NavPage, message::Message, setup_complete};
 
 impl App {
@@ -209,6 +211,13 @@ mod tests {
         // actual platform config/data/cache directories - isolate to a
         // scratch dir instead, restoring any ambient value afterward so
         // this test does not leak state to others in the same binary.
+        //
+        // Task 023: `ARAMA_DATA_HOME` is process-global - hold the shared
+        // lock for the mutation window so this can never interleave with
+        // `core::tests`'s own `ARAMA_DATA_HOME`-mutating tests.
+        let _guard = ARAMA_DATA_HOME_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
         let scratch = std::env::temp_dir().join(format!(
             "arama-view-test-{}-setup-screen-toasts",
