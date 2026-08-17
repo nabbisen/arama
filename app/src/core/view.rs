@@ -13,6 +13,17 @@ use super::{App, Dialog, NavPage, message::Message, setup_complete};
 
 impl App {
     pub fn view(&self) -> Element<'_, Message> {
+        // RFC 041, RFC 017 Fatal-startup tier: no toast layer, no
+        // AppLayout skeleton, nothing dismissible - arama has nowhere to
+        // persist anything, so nothing behind this message is meaningful
+        // to show. This is the first real implementation of this tier;
+        // every previous "startup error" in this codebase was a
+        // Recoverable-action toast (StartupNotice::error), dismissible
+        // and overlaid on an otherwise-normal, otherwise-usable window.
+        if let Some(message) = &self.fatal_startup_error {
+            return fatal_startup_view(message);
+        }
+
         // Setup screen: bypass the main skeleton, but keep the shared
         // toast layer so startup notices remain visible before setup
         // finishes.
@@ -163,6 +174,28 @@ impl App {
     }
 }
 
+/// RFC 041, RFC 017 Fatal-startup tier: the whole window, nothing else -
+/// no side bar, no toast layer, no dismiss affordance. `message` is the
+/// specific resolution/creation failure (which location, which error),
+/// appended below the fixed, translated explanation so a user can act on
+/// it (or report it) without a debugger.
+fn fatal_startup_view(message: &str) -> Element<'_, Message> {
+    use iced::widget::{center, space};
+
+    center(
+        column![
+            text(t("startup.fatal_error.title")).size(20),
+            space().height(12),
+            text(t("startup.fatal_error.body")),
+            space().height(12),
+            text(message.to_owned()),
+        ]
+        .max_width(560)
+        .spacing(4),
+    )
+    .into()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -171,7 +204,29 @@ mod tests {
 
     #[test]
     fn setup_screen_layout_carries_startup_toasts() {
+        // RFC 041: App::new() now resolves and creates real data
+        // locations. Without this override it would touch this machine's
+        // actual platform config/data/cache directories - isolate to a
+        // scratch dir instead, restoring any ambient value afterward so
+        // this test does not leak state to others in the same binary.
+        let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
+        let scratch = std::env::temp_dir().join(format!(
+            "arama-view-test-{}-setup-screen-toasts",
+            std::process::id()
+        ));
+        unsafe {
+            std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
+        }
+
         let mut app = App::new().0;
+
+        unsafe {
+            match &previous {
+                Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
+                None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
+            }
+        }
+        let _ = std::fs::remove_dir_all(&scratch);
         let existing_toasts = app.toasts.len();
         app.toasts.push(Toast::new(
             99,

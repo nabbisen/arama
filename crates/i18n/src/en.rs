@@ -184,8 +184,12 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         }
 
         // Startup
-        "startup.local_setup_error.title" => "Startup setup check failed",
-        "startup.local_setup_error.body" => "arama could not prepare its local setup directory",
+        "startup.fatal_error.title" => "arama could not start",
+        "startup.fatal_error.body" => {
+            "arama could not create the location it needs to store its settings, models, or \
+             cache, and has nowhere to save anything. Check that arama has permission to write \
+             to its data directory, then restart."
+        }
         "startup.root_dir_unavailable.title" => "Startup folder unavailable",
         "startup.root_dir_unavailable.body" => {
             "The saved folder cannot be opened. Choose another folder to start indexing"

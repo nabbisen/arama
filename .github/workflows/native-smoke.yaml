@@ -112,6 +112,43 @@ jobs:
           echo "--- interpreting process-tree reaping result ---"
           grep "NATIVE_SMOKE_REAPING_" reaping-output.log
 
+      - name: RFC 041 - platform-correct data locations
+        # §7's four required checks, macOS half. `-p arama-env` covers the
+        # read-only "models/cache resolve under the conventional macOS
+        # locations, not collapsed onto the same folder" check by itself
+        # (env/src/dir.rs's `#[cfg(target_os = "macos")]` test) - no
+        # `--ignored` needed, it never touches the filesystem. The three
+        # `-p arama --lib` invocations are gated `#[ignore]` in
+        # app/src/core.rs because, unlike the arama-env check, they do
+        # touch a real directory: the one the test binary itself lives in
+        # (`.arama-local`/`.arama-cache` are unconditionally exe-relative
+        # in the pre-041 legacy path under test) - self-cleaning, but only
+        # something to do on an ephemeral runner. The final plain
+        # `cargo test -p arama --lib` run is the default suite, which
+        # includes `nothing_is_written_outside_arama_data_home` (safe
+        # everywhere: touches only an `ARAMA_DATA_HOME` scratch dir) and
+        # exercises `App::new()`'s own startup log line - `--nocapture`
+        # plus the grep below is what proves resolved locations are
+        # logged/discoverable, the fourth required check.
+        run: |
+          echo "--- read-only: models/cache resolve under the conventional macOS locations ---"
+          cargo test -p arama-env --locked
+          echo "--- settings path does not depend on the working directory arama was launched from ---"
+          cargo test -p arama --lib --locked -- \
+            --ignored --exact core::tests::native_smoke_settings_path_is_independent_of_working_directory \
+            --nocapture
+          echo "--- migration moves settings, models and cache from the legacy exe-relative layout ---"
+          cargo test -p arama --lib --locked -- \
+            --ignored --exact core::tests::native_smoke_migration_moves_settings_models_and_cache_from_the_legacy_layout \
+            --nocapture
+          echo "--- migration leaves an already-populated new location untouched (both-populated trap) ---"
+          cargo test -p arama --lib --locked -- \
+            --ignored --exact core::tests::native_smoke_migration_prefers_new_location_when_both_are_populated \
+            --nocapture
+          echo "--- default suite: nothing written outside ARAMA_DATA_HOME, resolved locations logged ---"
+          cargo test -p arama --lib --locked -- --nocapture | tee data-locations-output.log
+          grep "NATIVE_SMOKE_DATA_LOCATIONS_RESOLVED" data-locations-output.log
+
   windows:
     runs-on: windows-latest
     steps:
@@ -242,3 +279,29 @@ jobs:
             --nocapture | tee reaping-output.log
           echo "--- interpreting process-tree reaping result ---"
           grep "NATIVE_SMOKE_REAPING_" reaping-output.log
+
+      - name: RFC 041 - platform-correct data locations
+        # §7's four required checks, Windows half - see the macOS job's
+        # step of the same name for the full rationale (identical here,
+        # only the read-only arama-env check differs: this platform's is
+        # the %LOCALAPPDATA%-not-%APPDATA% split named directly in the
+        # handoff as "the mistake most likely to pass review and hurt
+        # users later").
+        run: |
+          echo "--- read-only: models/cache resolve under %LOCALAPPDATA%, not the roaming profile ---"
+          cargo test -p arama-env --locked
+          echo "--- settings path does not depend on the working directory arama was launched from ---"
+          cargo test -p arama --lib --locked -- \
+            --ignored --exact core::tests::native_smoke_settings_path_is_independent_of_working_directory \
+            --nocapture
+          echo "--- migration moves settings, models and cache from the legacy exe-relative layout ---"
+          cargo test -p arama --lib --locked -- \
+            --ignored --exact core::tests::native_smoke_migration_moves_settings_models_and_cache_from_the_legacy_layout \
+            --nocapture
+          echo "--- migration leaves an already-populated new location untouched (both-populated trap) ---"
+          cargo test -p arama --lib --locked -- \
+            --ignored --exact core::tests::native_smoke_migration_prefers_new_location_when_both_are_populated \
+            --nocapture
+          echo "--- default suite: nothing written outside ARAMA_DATA_HOME, resolved locations logged ---"
+          cargo test -p arama --lib --locked -- --nocapture | tee data-locations-output.log
+          grep "NATIVE_SMOKE_DATA_LOCATIONS_RESOLVED" data-locations-output.log

@@ -256,14 +256,21 @@ fn selected_ready_under_recheck_reaches_ready_terminal_not_stuck_checking() {
 // exercised as a dynamic test here. `handle_ffmpeg_discovery_event`'s
 // Terminal branch (see `ffmpeg.rs`) contains no `ConfigManager`/save call at
 // all for that route -- confirmed by reading the diff, not merely inferred
-// -- so there is no save path to invoke in the first place. Driving this
-// dynamically would require constructing a full `App` and exercising
-// `ConfigManager::at_current_dir()`, which resolves against the test
-// process's working directory; `cargo test` for this crate runs with that
-// directory set to `app/`, which is where the *real* `app/settings.json`
-// lives. No test in this suite constructs an `App` for exactly this reason.
-// This is the "if the current structure makes that unobservable, say so"
-// case task 005 anticipated.
+// -- so there is no save path to invoke in the first place. No test in this
+// suite constructs a full `App` for it, consistent with this file's own
+// scope (`FfmpegAuthority` and the free functions in `ffmpeg.rs`, not
+// `App::new()`'s wider startup sequence). This is the "if the current
+// structure makes that unobservable, say so" case task 005 anticipated.
+//
+// (RFC 041, historical note: this comment previously cited `App::new()`
+// resolving settings against the test process's CWD -- `app/`, where a
+// real `app/settings.json` could live -- as the specific reason to avoid
+// constructing an `App` here. That specific risk no longer applies:
+// `App::new()` no longer touches the CWD at all. `core::view::tests`
+// demonstrates constructing an `App` safely via the `ARAMA_DATA_HOME`
+// override. The absence of a dynamic test for this case is still correct,
+// just for the narrower, file-scope reason above, not the wider one this
+// comment used to give.)
 
 // Test 5 from task 005 §4 ("an invalid persisted Selected preference still
 // reports its typed failure") is a `Published`-event path, not

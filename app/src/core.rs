@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 
 use app_json_settings::{ConfigError, ConfigManager};
 use arama_env::{
-    IMAGE_EXTENSION_ALLOWLIST, Settings, VIDEO_EXTENSION_ALLOWLIST, local_dir,
-    target_media_type::TargetMediaType, validate_dir,
+    IMAGE_EXTENSION_ALLOWLIST, Settings, VIDEO_EXTENSION_ALLOWLIST,
+    target_media_type::TargetMediaType,
 };
 use arama_i18n::{set_locale, t};
 use arama_sidecar::media::video::video_engine::{
@@ -15,6 +15,7 @@ use arama_ui_widgets::{context_menu::ContextMenu, dialog};
 use iced::{Point, Task};
 use snora::{Toast, ToastIntent};
 
+mod data_locations;
 mod message;
 mod settings;
 mod subscription;
@@ -33,6 +34,18 @@ pub(crate) enum NavPage {
 }
 
 pub struct App {
+    /// RFC 041, RFC 017 Fatal-startup tier: set when arama could not
+    /// resolve or create even one of its three data locations (settings,
+    /// data, cache) and therefore has nowhere to persist anything.
+    /// `view()` renders only a blocking message when this is `Some` —
+    /// every other field below still gets its ordinary (degraded)
+    /// fallback value so construction never has to special-case around a
+    /// half-built `App`, but none of it is shown.
+    fatal_startup_error: Option<String>,
+    /// `None` only alongside `fatal_startup_error: Some(_)` - there is
+    /// nowhere to save to. `save_settings` no-ops in that case; `view()`
+    /// never renders anything that could call it.
+    settings_manager: Option<ConfigManager<Settings>>,
     setup: Setup,
     gallery: Gallery,
     header: Header,
@@ -93,26 +106,54 @@ impl App {
         let mut toast_id_counter: u64 = 0;
         let mut startup_notices: Vec<StartupNotice> = vec![];
 
-        if let Some(notice) = setup_validation_notice() {
-            startup_notices.push(notice);
+        // RFC 041, RFC 017 Fatal-startup tier: resolving and creating the
+        // three data locations is a startup precondition, checked before
+        // anything else runs. A failure here is fatal, not a toast the
+        // user might miss - arama has nowhere to persist anything. The
+        // rest of this function still runs on its existing degraded
+        // fallbacks (Settings::default(), Setup::fallback(), ...) so
+        // construction never has to special-case a half-built App; view()
+        // is what actually hides all of it behind the blocking message.
+        let (locations, fatal_startup_error) = match data_locations::resolve_and_prepare_locations()
+        {
+            Ok(locations) => (Some(locations), None),
+            Err(message) => (None, Some(message)),
+        };
+
+        // RFC 041 §7: resolved locations must be discoverable without a
+        // debugger - this is the only output a headless/CI run produces,
+        // so a failing migration or startup can still be diagnosed from
+        // captured stderr alone.
+        match &locations {
+            Some(locations) => eprintln!("{}", data_locations::describe_locations(locations)),
+            None => eprintln!(
+                "{}",
+                data_locations::describe_unresolved(
+                    fatal_startup_error.as_deref().unwrap_or("unknown error")
+                )
+            ),
         }
 
-        let settings = match ConfigManager::<Settings>::new()
-            .at_current_dir()
-            .load_or_default()
-        {
-            Ok(x) => x,
-            Err(err) => {
-                startup_notices.push(StartupNotice::warning(
-                    t("settings.load_error.title"),
-                    format!(
-                        "{}: {}",
-                        t("settings.load_error.body"),
-                        settings_error_message(&err)
-                    ),
-                ));
-                Settings::default()
-            }
+        if let Some(locations) = &locations {
+            startup_notices.extend(data_locations::migrate_application_data(locations));
+        }
+
+        let settings = match &locations {
+            Some(locations) => match locations.settings_manager.load_or_default() {
+                Ok(settings) => settings,
+                Err(err) => {
+                    startup_notices.push(StartupNotice::warning(
+                        t("settings.load_error.title"),
+                        format!(
+                            "{}: {}",
+                            t("settings.load_error.body"),
+                            settings_error_message(&err)
+                        ),
+                    ));
+                    Settings::default()
+                }
+            },
+            None => Settings::default(),
         };
         let ffmpeg_runtime = FfmpegDiscoveryRuntime::default();
         let setup = match Setup::default() {
@@ -208,6 +249,8 @@ impl App {
 
         (
             Self {
+                fatal_startup_error,
+                settings_manager: locations.map(|locations| locations.settings_manager),
                 setup,
                 gallery,
                 header,
@@ -234,7 +277,13 @@ impl App {
     }
 
     fn save_settings(&mut self) -> bool {
-        match ConfigManager::new().at_current_dir().save(&Settings {
+        // `None` only when startup hit the Fatal-startup path (RFC 041) -
+        // nothing in that state is ever shown to the user, so a silent
+        // no-op here is correct, not a swallowed error.
+        let Some(manager) = &self.settings_manager else {
+            return false;
+        };
+        match manager.save(&Settings {
             root_dir_path: self.settings.root_dir_path.to_owned(),
             target_media_type: self.settings.target_media_type.to_owned(),
             sub_dir_depth_limit: self.settings.sub_dir_depth_limit,
@@ -313,7 +362,7 @@ fn app_theme(_state: &App) -> iced::Theme {
     arama_theme::iced_theme()
 }
 
-struct StartupNotice {
+pub(crate) struct StartupNotice {
     intent: ToastIntent,
     title: String,
     body: String,
@@ -328,7 +377,7 @@ impl StartupNotice {
         }
     }
 
-    fn warning(title: impl Into<String>, body: impl Into<String>) -> Self {
+    pub(crate) fn warning(title: impl Into<String>, body: impl Into<String>) -> Self {
         Self {
             intent: ToastIntent::Warning,
             title: title.into(),
@@ -358,29 +407,6 @@ fn push_startup_notices(
             Message::ToastDismiss(id),
         ));
     }
-}
-
-fn setup_validation_notice() -> Option<StartupNotice> {
-    let local_dir = match local_dir() {
-        Ok(path) => path,
-        Err(err) => {
-            return Some(StartupNotice::error(
-                t("startup.local_setup_error.title"),
-                format!("{}: {err}", t("startup.local_setup_error.body")),
-            ));
-        }
-    };
-
-    validate_dir(&local_dir).err().map(|err| {
-        StartupNotice::warning(
-            t("startup.local_setup_error.title"),
-            format!(
-                "{}: {} ({err})",
-                t("startup.local_setup_error.body"),
-                local_dir.display()
-            ),
-        )
-    })
 }
 
 fn settings_error_message(err: &ConfigError) -> String {
@@ -553,7 +579,202 @@ mod tests {
 
     #[test]
     fn production_settings_manager_uses_atomic_replacement() {
-        let manager = ConfigManager::<Settings>::new().at_current_dir();
+        let manager = ConfigManager::<Settings>::new();
         assert_eq!(manager.save_mode(), SaveMode::Atomic);
+    }
+
+    // --- RFC 041 §7 verification --------------------------------------
+    //
+    // `nothing_is_written_outside_arama_data_home` runs everywhere: it only
+    // ever touches an `ARAMA_DATA_HOME` scratch directory, so it is exactly
+    // as safe as `core::view::tests`'s existing `App::new()` test.
+    //
+    // The other three are gated `#[ignore]` and meant for
+    // `native-smoke.yaml` only (`cargo test -p arama --lib --locked --
+    // --ignored --exact <name> --nocapture`, matching that workflow's own
+    // convention for every other environment-touching check). Even with
+    // `ARAMA_DATA_HOME` covering the *new* side of a migration, these still
+    // create `.arama-local`/`.arama-cache` next to the test binary itself
+    // (`legacy_local_dir`/`legacy_cache_dir` are unconditionally
+    // exe-relative, on purpose - that's the pre-041 behaviour under test)
+    // and briefly change the process's current directory. Both are
+    // self-cleaning on success, but only worth doing on an ephemeral CI
+    // runner, not a developer's own machine.
+
+    fn scratch_data_home(label: &str) -> PathBuf {
+        std::env::temp_dir().join(format!("arama-native-smoke-{}-{label}", std::process::id()))
+    }
+
+    #[test]
+    fn nothing_is_written_outside_arama_data_home() {
+        let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
+        let scratch = scratch_data_home("nothing-outside-data-home");
+        let exe_parent = std::env::current_exe()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf();
+        let before: std::collections::BTreeSet<_> = std::fs::read_dir(&exe_parent)
+            .unwrap()
+            .filter_map(|entry| entry.ok().map(|entry| entry.file_name()))
+            .collect();
+
+        unsafe {
+            std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
+        }
+        let mut app = App::new().0;
+        app.settings.root_dir_path = "native-smoke-marker".to_owned();
+        app.save_settings();
+        unsafe {
+            match &previous {
+                Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
+                None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
+            }
+        }
+        let _ = std::fs::remove_dir_all(&scratch);
+
+        let after: std::collections::BTreeSet<_> = std::fs::read_dir(&exe_parent)
+            .unwrap()
+            .filter_map(|entry| entry.ok().map(|entry| entry.file_name()))
+            .collect();
+        assert_eq!(
+            before, after,
+            "App::new()+save_settings() must not write anything next to the executable"
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn native_smoke_settings_path_is_independent_of_working_directory() {
+        // No ARAMA_DATA_HOME override: this deliberately exercises the real
+        // `ConfigManager::for_app` platform resolution, the thing §4.1
+        // fixed. The only real-machine effect is `mkdir -p` of the real
+        // settings *directory* (never settings.json itself, and never an
+        // overwrite) - resolving a location does not write the file.
+        let original_cwd = std::env::current_dir().unwrap();
+        let dir_a = scratch_data_home("cwd-independence-a");
+        let dir_b = scratch_data_home("cwd-independence-b");
+        std::fs::create_dir_all(&dir_a).unwrap();
+        std::fs::create_dir_all(&dir_b).unwrap();
+
+        std::env::set_current_dir(&dir_a).unwrap();
+        let path_a = data_locations::resolve_and_prepare_locations()
+            .unwrap()
+            .settings_manager
+            .path();
+        std::env::set_current_dir(&dir_b).unwrap();
+        let path_b = data_locations::resolve_and_prepare_locations()
+            .unwrap()
+            .settings_manager
+            .path();
+        std::env::set_current_dir(&original_cwd).unwrap();
+        let _ = std::fs::remove_dir_all(&dir_a);
+        let _ = std::fs::remove_dir_all(&dir_b);
+
+        assert_eq!(
+            path_a, path_b,
+            "settings must resolve to the same path regardless of the working directory \
+             arama was launched from (RFC 041 §4.1's defect)"
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn native_smoke_migration_moves_settings_models_and_cache_from_the_legacy_layout() {
+        let original_cwd = std::env::current_dir().unwrap();
+        let legacy_settings_cwd = scratch_data_home("migration-legacy-settings-cwd");
+        std::fs::create_dir_all(&legacy_settings_cwd).unwrap();
+        let data_home = scratch_data_home("migration-new-side");
+
+        let legacy_local = arama_env::legacy_local_dir().unwrap();
+        let legacy_cache = arama_env::legacy_cache_dir().unwrap();
+        let _ = std::fs::remove_dir_all(&legacy_local);
+        let _ = std::fs::remove_dir_all(&legacy_cache);
+        std::fs::create_dir_all(&legacy_local).unwrap();
+        std::fs::create_dir_all(&legacy_cache).unwrap();
+        std::fs::write(legacy_local.join("model.marker"), b"legacy-model").unwrap();
+        std::fs::write(legacy_cache.join("cache.marker"), b"legacy-cache").unwrap();
+
+        std::env::set_current_dir(&legacy_settings_cwd).unwrap();
+        ConfigManager::<Settings>::new()
+            .at_current_dir()
+            .save(&Settings {
+                root_dir_path: "native-smoke-legacy-marker".to_owned(),
+                ..Settings::default()
+            })
+            .unwrap();
+        unsafe {
+            std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &data_home);
+        }
+
+        let locations = data_locations::resolve_and_prepare_locations().unwrap();
+        let notices = data_locations::migrate_application_data(&locations);
+
+        unsafe {
+            std::env::remove_var(arama_env::DATA_HOME_ENV_VAR);
+        }
+        std::env::set_current_dir(&original_cwd).unwrap();
+        let _ = std::fs::remove_dir_all(&legacy_settings_cwd);
+
+        assert!(
+            notices.is_empty(),
+            "migration should succeed without warnings: {:?}",
+            notices.iter().map(|n| &n.title).collect::<Vec<_>>()
+        );
+        assert_eq!(
+            locations.settings_manager.load().unwrap().root_dir_path,
+            "native-smoke-legacy-marker"
+        );
+        assert_eq!(
+            std::fs::read(locations.local_dir.join("model.marker")).unwrap(),
+            b"legacy-model"
+        );
+        assert_eq!(
+            std::fs::read(locations.cache_dir.join("cache.marker")).unwrap(),
+            b"legacy-cache"
+        );
+        assert!(
+            !legacy_local.exists(),
+            "the legacy data directory must be moved, not left behind next to the executable"
+        );
+        assert!(
+            !legacy_cache.exists(),
+            "the legacy cache directory must be moved, not left behind next to the executable"
+        );
+
+        let _ = std::fs::remove_dir_all(&data_home);
+    }
+
+    #[test]
+    #[ignore]
+    fn native_smoke_migration_prefers_new_location_when_both_are_populated() {
+        let data_home = scratch_data_home("migration-both-populated");
+        let legacy_local = arama_env::legacy_local_dir().unwrap();
+        let _ = std::fs::remove_dir_all(&legacy_local);
+        std::fs::create_dir_all(&legacy_local).unwrap();
+        std::fs::write(legacy_local.join("old.marker"), b"old").unwrap();
+
+        unsafe {
+            std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &data_home);
+        }
+        let locations = data_locations::resolve_and_prepare_locations().unwrap();
+        std::fs::write(locations.local_dir.join("current.marker"), b"current").unwrap();
+
+        let notices = data_locations::migrate_application_data(&locations);
+
+        unsafe {
+            std::env::remove_var(arama_env::DATA_HOME_ENV_VAR);
+        }
+
+        assert!(notices.is_empty());
+        assert!(locations.local_dir.join("current.marker").exists());
+        assert!(!locations.local_dir.join("old.marker").exists());
+        assert!(
+            legacy_local.join("old.marker").exists(),
+            "the new location wins; the legacy directory must be left untouched, not deleted"
+        );
+
+        let _ = std::fs::remove_dir_all(&data_home);
+        let _ = std::fs::remove_dir_all(&legacy_local);
     }
 }

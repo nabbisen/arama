@@ -260,9 +260,9 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         }
 
         // Startup
-        "startup.local_setup_error.title" => "起動時のセットアップ確認に失敗しました",
-        "startup.local_setup_error.body" => {
-            "ローカルセットアップディレクトリを準備できませんでした"
+        "startup.fatal_error.title" => "aramaを起動できませんでした",
+        "startup.fatal_error.body" => {
+            "設定・モデル・キャッシュを保存する場所を作成できず、何も保存できません。aramaのデータディレクトリへの書き込み権限を確認し、再起動してください。"
         }
         "startup.root_dir_unavailable.title" => "起動時のフォルダーを開けません",
         "startup.root_dir_unavailable.body" => {

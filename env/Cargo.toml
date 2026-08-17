@@ -13,6 +13,7 @@ keywords.workspace     = true
 
 [dependencies]
 arama-i18n = { workspace = true }
+directories = { workspace = true }
 libc = { workspace = true }
 serde = { workspace = true }
 

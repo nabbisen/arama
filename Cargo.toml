@@ -40,6 +40,7 @@ snora               = { version = "0.33", default-features = false, features = [
 
 # app control
 app-json-settings   = "2"
+directories         = "6"
 disk-space          = "0"
 file-handle         = { version = "0", features = ["open", "show", "trash"] }
 iced-swdir-tree     = { version = "0.9", features = ["icons"] }

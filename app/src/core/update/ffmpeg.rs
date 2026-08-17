@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use app_json_settings::ConfigManager;
-use arama_env::ffmpeg_location::FfmpegLocationPreference;
+use app_json_settings::{ConfigError, ConfigManager};
+use arama_env::{Settings, ffmpeg_location::FfmpegLocationPreference};
 use arama_sidecar::media::video::video_engine::discovery::{
     FfmpegDiscoveryEvent, FfmpegDiscoveryFailure, FfmpegDiscoveryOutcome, FfmpegDiscoveryRuntime,
     FfmpegDiscoveryTicket, FilesystemIssue, PreferenceRetainReason, PreferenceTransition,
@@ -18,6 +18,21 @@ pub(crate) mod state;
 use state::{
     AuthorityStatus, AuthorityTerminal, FfmpegAuthority, RollbackAction, SelectionResolution,
 };
+
+/// `None` only alongside `App::fatal_startup_error: Some(_)` (RFC 041) - a
+/// state that blocks every user interaction that could reach here, so this
+/// branch exists for defensive correctness rather than a reachable path.
+fn save_with(
+    manager: &Option<ConfigManager<Settings>>,
+    settings: &Settings,
+) -> Result<(), ConfigError> {
+    match manager {
+        Some(manager) => manager.save(settings),
+        None => Err(ConfigError::Platform(
+            "no settings location available (fatal startup)".to_owned(),
+        )),
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum SelectionPickPlan {
@@ -101,9 +116,9 @@ impl App {
         let abandoned = self.ffmpeg_authority.abandon_selection();
         self.settings_page.set_ffmpeg_select_enabled(true);
         let current = self.settings.ffmpeg_location.clone();
-        let manager = ConfigManager::new().at_current_dir();
+        let manager = self.settings_manager.clone();
         match clear_selection(&mut self.settings, &current, |settings| {
-            manager.save(settings)
+            save_with(&manager, settings)
         }) {
             PreferenceTransition::PublishedAuto => {
                 self.request_current_ffmpeg(FfmpegRequestIntent::ClearToAuto)
@@ -200,14 +215,14 @@ impl App {
                         else {
                             return Task::none();
                         };
-                        let manager = ConfigManager::new().at_current_dir();
+                        let manager = self.settings_manager.clone();
                         let Some(transition) =
                             run_current_selection(&self.ffmpeg_authority, epoch, || {
                                 publish_validated_selection(
                                     &mut self.settings,
                                     &prior,
                                     validated,
-                                    |settings| manager.save(settings),
+                                    |settings| save_with(&manager, settings),
                                 )
                             })
                         else {

@@ -37,7 +37,7 @@ impl ThemePreset {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
     pub root_dir_path: String,
     pub target_media_type: TargetMediaType,
