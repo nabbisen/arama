@@ -1,0 +1,333 @@
+name: MSIX Capability Probe
+
+# Task 026: closes review 107's last open gate on RFC 042's route decision —
+# observing, rather than reasoning from documentation, whether a full-trust
+# MSIX package with no `broadFileSystemAccess` declared can read a directory
+# outside its package/app-data locations via plain `std::fs`.
+#
+# Not arama packaging (that is RFC 042's implementation and is not
+# authorised here) — this builds and packages a minimal, standalone probe
+# binary in the same trust shape arama would use, and answers exactly one
+# question. `workflow_dispatch` only: never runs on push, never touches the
+# release path, and is not meant to be permanent CI surface — remove once
+# Task 026's review records the answer.
+
+on:
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        shell: bash
+        run: bash .github/workflows/scripts/install-rust.sh stable
+
+      - name: Locate the Windows SDK's makeappx and signtool
+        id: sdk
+        run: |
+          $sdkRoot = "C:\Program Files (x86)\Windows Kits\10\bin"
+          $version = Get-ChildItem $sdkRoot -Directory |
+            Where-Object { $_.Name -match '^\d+\.\d+\.\d+\.\d+$' } |
+            Sort-Object { [Version]$_.Name } -Descending |
+            Select-Object -First 1
+          if (-not $version) {
+            Write-Error "No Windows SDK bin directory found under $sdkRoot"
+            exit 1
+          }
+          $toolsDir = Join-Path $version.FullName "x64"
+          $makeappx = Join-Path $toolsDir "makeappx.exe"
+          $signtool = Join-Path $toolsDir "signtool.exe"
+          if (-not (Test-Path $makeappx)) { Write-Error "makeappx.exe not found at $makeappx"; exit 1 }
+          if (-not (Test-Path $signtool)) { Write-Error "signtool.exe not found at $signtool"; exit 1 }
+          Write-Host "makeappx: $makeappx"
+          Write-Host "signtool: $signtool"
+          "makeappx=$makeappx" >> $env:GITHUB_OUTPUT
+          "signtool=$signtool" >> $env:GITHUB_OUTPUT
+
+      # RFC 042 review 107's own gap: sideloading a signed-but-untrusted
+      # package needs this enabled. Windows 10 2004+/11 client defaults it
+      # on; whether this GH-hosted windows-latest runner's Server-based
+      # image does too is itself part of what this probe is answering.
+      # Idempotent and harmless if already enabled.
+      - name: Ensure sideloading is allowed
+        run: |
+          $path = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"
+          $before = (Get-ItemProperty -Path $path -Name AllowAllTrustedApps -ErrorAction SilentlyContinue).AllowAllTrustedApps
+          Write-Host "AllowAllTrustedApps before: $before"
+          New-Item -Path $path -Force | Out-Null
+          Set-ItemProperty -Path $path -Name AllowAllTrustedApps -Value 1 -Type DWord
+          Write-Host "AllowAllTrustedApps after: $((Get-ItemProperty -Path $path -Name AllowAllTrustedApps).AllowAllTrustedApps)"
+
+      - name: Build the probe binary
+        run: |
+          New-Item -ItemType Directory -Force -Path probe | Out-Null
+          @'
+          use std::env;
+          use std::ffi::OsString;
+          use std::fs;
+          use std::os::windows::ffi::OsStringExt;
+
+          // Task 026 review 109: the result channel must not live inside
+          // the directory under test. If a full-trust package can read
+          // C:\probe-target but, for an unrelated ACL reason, cannot
+          // write there, writing the answer into that same directory
+          // would silently misreport a real "yes, read works" as
+          // "cannot be established" - the exact false negative flagged
+          // in review. LocalState is the package's own always-writable
+          // storage, independent of what is being read, so results land
+          // there instead - reached via the plain Win32
+          // GetCurrentPackageFamilyName (kernel32, not Windows.Storage),
+          // consistent with this probe never touching the WinRT surface
+          // broadFileSystemAccess governs.
+          #[link(name = "kernel32")]
+          extern "system" {
+              fn GetCurrentPackageFamilyName(
+                  package_family_name_length: *mut u32,
+                  package_family_name: *mut u16,
+              ) -> i32;
+          }
+
+          const ERROR_INSUFFICIENT_BUFFER: i32 = 122;
+
+          fn current_package_family_name() -> Result<String, i32> {
+              unsafe {
+                  let mut len: u32 = 0;
+                  let rc = GetCurrentPackageFamilyName(&mut len, std::ptr::null_mut());
+                  if rc != ERROR_INSUFFICIENT_BUFFER {
+                      return Err(rc);
+                  }
+                  let mut buf: Vec<u16> = vec![0u16; len as usize];
+                  let rc2 = GetCurrentPackageFamilyName(&mut len, buf.as_mut_ptr());
+                  if rc2 != 0 {
+                      return Err(rc2);
+                  }
+                  let end = buf.iter().position(|&c| c == 0).unwrap_or(buf.len());
+                  Ok(OsString::from_wide(&buf[..end]).to_string_lossy().into_owned())
+              }
+          }
+
+          // Task 026: the whole probe. Reads a marker file from an
+          // out-of-package, out-of-app-data directory and lists that
+          // directory's entries. Everything is prefixed MSIX_PROBE_ for
+          // easy grepping from the orchestrating workflow.
+          fn main() {
+              let target = env::var("PROBE_TARGET").unwrap_or_else(|_| r"C:\probe-target".to_string());
+              let mut out = String::new();
+              out.push_str(&format!("MSIX_PROBE_TARGET={target}\n"));
+
+              match fs::read_dir(&target) {
+                  Ok(entries) => {
+                      out.push_str("MSIX_PROBE_READ_DIR=Ok\n");
+                      let mut names: Vec<String> = entries
+                          .filter_map(|e| e.ok())
+                          .map(|e| e.file_name().to_string_lossy().into_owned())
+                          .collect();
+                      names.sort();
+                      for name in &names {
+                          out.push_str(&format!("MSIX_PROBE_ENTRY={name}\n"));
+                      }
+                  }
+                  Err(err) => {
+                      out.push_str("MSIX_PROBE_READ_DIR=Err\n");
+                      out.push_str(&format!("MSIX_PROBE_READ_DIR_ERROR={err}\n"));
+                  }
+              }
+
+              let marker_path = format!("{target}\\probe-marker.txt");
+              match fs::read_to_string(&marker_path) {
+                  Ok(content) => {
+                      out.push_str("MSIX_PROBE_READ_FILE=Ok\n");
+                      out.push_str(&format!("MSIX_PROBE_FILE_CONTENT={}\n", content.trim()));
+                  }
+                  Err(err) => {
+                      out.push_str("MSIX_PROBE_READ_FILE=Err\n");
+                      out.push_str(&format!("MSIX_PROBE_READ_FILE_ERROR={err}\n"));
+                  }
+              }
+
+              out.push_str("MSIX_PROBE_DONE=true\n");
+              print!("{out}");
+
+              match current_package_family_name() {
+                  Ok(pfn) => {
+                      let local_app_data = env::var("LOCALAPPDATA").unwrap_or_default();
+                      let local_state = format!("{local_app_data}\\Packages\\{pfn}\\LocalState");
+                      let _ = fs::create_dir_all(&local_state);
+                      let output_path = format!("{local_state}\\probe-output.txt");
+                      let _ = fs::write(&output_path, &out);
+                  }
+                  Err(rc) => {
+                      eprintln!("MSIX_PROBE_PACKAGE_FAMILY_NAME_ERROR={rc}");
+                  }
+              }
+          }
+          '@ | Set-Content -Path probe\main.rs -Encoding utf8
+
+          rustc --edition 2021 -O -o probe\probe.exe probe\main.rs
+          if (-not (Test-Path probe\probe.exe)) {
+            Write-Error "rustc did not produce probe.exe"
+            exit 1
+          }
+          Write-Host "Built probe\probe.exe"
+
+      - name: Prepare the target directory the probe will read — outside the package and app-data locations
+        run: |
+          New-Item -ItemType Directory -Force -Path C:\probe-target | Out-Null
+          Set-Content -Path C:\probe-target\probe-marker.txt -Value "msix-capability-probe-marker-value" -NoNewline
+          Get-ChildItem C:\probe-target
+
+      - name: Lay out the package directory
+        run: |
+          New-Item -ItemType Directory -Force -Path pkg\images | Out-Null
+          Copy-Item probe\probe.exe pkg\probe.exe
+
+          # Square150x150Logo/Square44x44Logo are required attributes
+          # referencing real image files — generated here rather than
+          # committed, so nothing binary lives in the repo for a
+          # throwaway probe.
+          Add-Type -AssemblyName System.Drawing
+          foreach ($spec in @(
+            @{ Name = 'Square44x44Logo.png'; Size = 44 },
+            @{ Name = 'Square150x150Logo.png'; Size = 150 }
+          )) {
+            $bmp = New-Object System.Drawing.Bitmap($spec.Size, $spec.Size)
+            $g = [System.Drawing.Graphics]::FromImage($bmp)
+            $g.Clear([System.Drawing.Color]::SlateGray)
+            $g.Dispose()
+            $bmp.Save("pkg\images\$($spec.Name)", [System.Drawing.Imaging.ImageFormat]::Png)
+            $bmp.Dispose()
+          }
+          Get-ChildItem pkg -Recurse
+
+      - name: Write the manifest — full trust, no broadFileSystemAccess declared
+        run: |
+          @'
+          <?xml version="1.0" encoding="utf-8"?>
+          <Package
+            xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+            xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+            xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+            xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
+            <Identity Name="MsixCapabilityProbe.Task026"
+                      Version="1.0.0.0"
+                      Publisher="CN=MsixCapabilityProbe"
+                      ProcessorArchitecture="x64" />
+            <Properties>
+              <DisplayName>MSIX Capability Probe</DisplayName>
+              <PublisherDisplayName>arama Task 026</PublisherDisplayName>
+              <Logo>images\Square150x150Logo.png</Logo>
+            </Properties>
+            <Resources>
+              <Resource Language="en-us" />
+            </Resources>
+            <Dependencies>
+              <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.22621.0" />
+            </Dependencies>
+            <Capabilities>
+              <rescap:Capability Name="runFullTrust" />
+            </Capabilities>
+            <Applications>
+              <Application Id="App" Executable="probe.exe"
+                uap10:RuntimeBehavior="packagedClassicApp"
+                uap10:TrustLevel="mediumIL">
+                <uap:VisualElements DisplayName="MSIX Capability Probe"
+                  Description="Task 026 probe: reads an out-of-package directory under full trust, no broadFileSystemAccess declared."
+                  BackgroundColor="#464646"
+                  Square150x150Logo="images\Square150x150Logo.png"
+                  Square44x44Logo="images\Square44x44Logo.png" />
+              </Application>
+            </Applications>
+          </Package>
+          '@ | Set-Content -Path pkg\AppxManifest.xml -Encoding utf8
+          Get-Content pkg\AppxManifest.xml
+
+      - name: Package with makeappx
+        run: |
+          & "${{ steps.sdk.outputs.makeappx }}" pack /d pkg /p probe.msix /nv /o
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "makeappx pack failed with exit code $LASTEXITCODE"
+            exit 1
+          }
+          Get-Item probe.msix
+
+      - name: Create and trust a self-signed certificate
+        run: |
+          $cert = New-SelfSignedCertificate -Type Custom `
+            -Subject "CN=MsixCapabilityProbe" `
+            -KeyUsage DigitalSignature `
+            -FriendlyName "Task 026 MSIX probe dev cert" `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+
+          $pwd = ConvertTo-SecureString -String "probe-dev-cert" -Force -AsPlainText
+          Export-PfxCertificate -Cert $cert -FilePath probe-cert.pfx -Password $pwd | Out-Null
+          Import-PfxCertificate -CertStoreLocation "Cert:\LocalMachine\TrustedPeople" -FilePath probe-cert.pfx -Password $pwd | Out-Null
+          Write-Host "Certificate thumbprint: $($cert.Thumbprint)"
+
+      - name: Sign the package
+        run: |
+          & "${{ steps.sdk.outputs.signtool }}" sign /fd SHA256 /a /f probe-cert.pfx /p "probe-dev-cert" probe.msix
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "signtool sign failed with exit code $LASTEXITCODE"
+            exit 1
+          }
+
+      - name: Install the package
+        id: install
+        run: |
+          Add-AppxPackage -Path probe.msix -Verbose
+          $pkg = Get-AppxPackage -Name "MsixCapabilityProbe.Task026"
+          if (-not $pkg) {
+            Write-Error "Package did not install — Get-AppxPackage found nothing"
+            exit 1
+          }
+          Write-Host "Installed: $($pkg.PackageFullName)"
+          "packagefamilyname=$($pkg.PackageFamilyName)" >> $env:GITHUB_OUTPUT
+
+      - name: Run the installed probe and capture its output
+        run: |
+          # Review 109: the result channel lives in the package's own
+          # LocalState, not C:\probe-target — so a read success is
+          # reportable independent of whether this full-trust package can
+          # also write to the directory under test (a separate, untested
+          # question). The probe computes this same path itself via
+          # GetCurrentPackageFamilyName; LOCALAPPDATA is not virtualised
+          # for full-trust apps, so it resolves identically here and there.
+          $famName = "${{ steps.install.outputs.packagefamilyname }}"
+          $resultPath = Join-Path $env:LOCALAPPDATA "Packages\$famName\LocalState\probe-output.txt"
+          Remove-Item -ErrorAction SilentlyContinue $resultPath
+
+          Write-Host "Launching shell:AppsFolder\$famName!App"
+          Write-Host "Polling for: $resultPath"
+          Start-Process "shell:AppsFolder\$famName!App"
+
+          # A flat, longer budget rather than a retry loop (Task 021):
+          # first launch of a freshly installed package includes
+          # registration/staging work, and a retry would mask that being
+          # slow-but-correct as opposed to actually failing.
+          $deadline = (Get-Date).AddSeconds(90)
+          while (-not (Test-Path $resultPath) -and (Get-Date) -lt $deadline) {
+            Start-Sleep -Seconds 2
+          }
+
+          if (-not (Test-Path $resultPath)) {
+            Write-Error "Probe did not produce $resultPath within 90s"
+            exit 1
+          }
+          Write-Host "--- MSIX_PROBE output ---"
+          Get-Content $resultPath
+          Write-Host "--- end MSIX_PROBE output ---"
+
+      - name: Uninstall the probe package
+        if: always()
+        run: |
+          Get-AppxPackage -Name "MsixCapabilityProbe.Task026" |
+            Remove-AppxPackage -ErrorAction SilentlyContinue
