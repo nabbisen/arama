@@ -108,9 +108,25 @@ application independently.
 
 **Status.** Agreed 2026-08-03. Follows theme A.
 
-Only the ELOC watch item remains open; everything else in this theme has
-shipped.
+Open: the ELOC watch item, and typography — **added 2026-08-17 at the owner's
+request**, the first user-facing item in this theme that did not come from a
+defect.
 
+- **Typography roles and prose readability
+  ([RFC 043](./rfcs/proposed/043-typography-roles-and-prose-readability.md)).**
+  *Proposed.* snora has carried a six-role text scale since its 0.20 and
+  documented it for the first time in 0.33.1; arama sets a text size at **6 of
+  its 108 `text(` call sites** and a line-height at **none**, so it renders
+  exactly the "flat, uniform text" snora predicted of consumers who never knew
+  the scale existed. **The prerequisite is already met and the API is verified
+  present in the `snora 0.33.0` already in `Cargo.lock`** — no upgrade, no
+  lockfile change, no dependency risk. Reading for it found one real defect:
+  the note explaining the high-contrast themes is the smallest, lowest-contrast
+  wrapping prose in the application.
+
+  *Placed here rather than under theme C* because readability is a quality of
+  what a user already does, not something they currently cannot do. **Theme C
+  remains open and unaddressed.**
 - **~~Similarity-dialog cache-error tier routing (RFC 035).~~** *Shipped.*
   Closed RFC 033's Part B deferral. Cache-read failures in both similarity
   dialogs now surface as one inline message per dialog open, with partial
