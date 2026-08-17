@@ -137,10 +137,56 @@ available" is a reasonable thing for a user to want to turn off.
 
 ### 3. What capability does the manifest declare?
 
-arama reads arbitrary user-chosen directories. On Windows that is
-`broadFileSystemAccess`, which Store review scrutinises. **This should be
-checked early** — a capability the reviewer rejects would invalidate the whole
-plan, and it is cheaper to learn now than after packaging work.
+> **Corrected 2026-08-17 (Task 024).** The paragraph below asserted that
+> arama's directory access requires `broadFileSystemAccess`. **That was a
+> trust-level assumption stated as a fact, and it is very likely wrong.**
+>
+> `broadFileSystemAccess` governs **partial-trust AppContainer** apps and the
+> `Windows.Storage` API surface. arama is a native Win32 binary that packages
+> **full-trust by default** via the MSIX Packaging Tool — the mechanism this RFC
+> already assumes — and never touches `Windows.Storage`: verified, no WinRT
+> dependency of any kind in `Cargo.toml`, 42 `std::fs` call sites, and `rfd`
+> 0.17 using the classic `IFileOpenDialog` COM path rather than the WinRT
+> picker.
+>
+> **The capability is therefore likely irrelevant rather than merely grantable**,
+> and should **not** be declared.
+>
+> *One gap, deliberately not closed by reasoning:* Microsoft's documentation
+> restates the full-trust exemption explicitly for COM, named pipes and shared
+> memory, but conveys the filesystem scope only via "works for APIs in the
+> `Windows.Storage` namespace". That implies the conclusion without stating it
+> for this mechanism. **A full-trust packaged build opening a user-picked folder
+> outside the package and app-data locations, with no capability declared, must
+> be observed before this is treated as settled** — that run gates the decision
+> rather than following it.
+>
+> *If AppContainer were ever adopted instead*, the fallback is token-based
+> access via `FutureAccessList`: the picker moves to the WinRT `FolderPicker`,
+> `Settings::root_dir_path` becomes a token re-derived per launch, and — the
+> expensive part — the cache's canonical-path-string keying would need
+> token-derived paths to canonicalize identically on every launch. Untested, and
+> the real cost of that route.
+
+*Original text, retained:* arama reads arbitrary user-chosen directories. On
+Windows that is `broadFileSystemAccess`, which Store review scrutinises. **This
+should be checked early** — a capability the reviewer rejects would invalidate
+the whole plan, and it is cheaper to learn now than after packaging work.
+
+### 4. The Store version scheme — settled
+
+Store packages require four parts, and the **fourth is reserved for Store use
+and must be zero at build time**. So `X.Y.Z` → `X.Y.Z.0` is the only correct
+mapping, not a convention to choose. Every tag in this repository is a bare
+`X.Y.Z`, so no case needs a decision about suffixes.
+
+Derive it at package-build time; store nothing new, which keeps RFC 034 Part F's
+single-source-of-truth intact. That check's comparison needs to append or strip
+`.0` symmetrically — a comparison change, not a second recorded version.
+
+Submission does **not** require monotonically increasing versions: the Store
+serves each device the highest *applicable* version and permits submissions in
+any order, with rollback as a documented use case.
 
 ## Testing and verification
 
@@ -161,8 +207,7 @@ plan, and it is cheaper to learn now than after packaging work.
 
 ## Open questions
 
-- Does the Store submission need its own version scheme? Store versioning is
-  four-part (`1.2.3.4`) and arama uses three-part `X.Y.Z`, with RFC 034 Part F
-  asserting the manifest must equal the tag. That interaction is unexamined.
+- ~~Does the Store submission need its own version scheme?~~ **Answered (Task
+  024)** — see design question 4. `X.Y.Z` → `X.Y.Z.0`, derived at build time.
 - Does packaging change what "arama" is called? The listing name, the executable
   name, and the RFC 030 asset naming are three different things today.
