@@ -196,6 +196,45 @@ available" is a reasonable thing for a user to want to turn off.
 > token-derived paths to canonicalize identically on every launch. Untested, and
 > the real cost of that route.
 
+> **Closed 2026-08-17 by execution, not inference (Task 026).** A minimal probe
+> packaged as a full-trust MSIX, **with no capability declared**, was signed,
+> sideloaded, installed and run on `windows-latest`. It read an out-of-package
+> directory *and the contents of a file inside it*:
+>
+> ```
+> MSIX_PROBE_READ_DIR=Ok
+> MSIX_PROBE_ENTRY=probe-marker.txt
+> MSIX_PROBE_READ_FILE=Ok
+> MSIX_PROBE_FILE_CONTENT=msix-capability-probe-marker-value
+> ```
+>
+> Read-directory and read-file are separable permissions; both succeeded, so the
+> result is unambiguous. **Do not declare `broadFileSystemAccess`.**
+>
+> Run 32009521205; probe workflow at commit `b72b09d`, since removed —
+> restore from history if it needs re-running.
+>
+> **Mechanics worth not rediscovering**, all proven in that run:
+>
+> - **`AllowAllTrustedApps` was unset on the runner** and had to be enabled
+>   (`HKLM:\…\AppModelUnlock`). The hosted Windows image does not default to
+>   client Windows 10/11 sideload behaviour — without this, `Add-AppxPackage`
+>   fails for policy reasons easily mistaken for a package defect.
+> - **Glob the SDK `bin` directory** for `makeappx`/`signtool` rather than
+>   hardcoding a build number; the runner had `10.0.26100.0`.
+> - **Launch via `shell:AppsFolder\<PackageFamilyName>!App`**, never the raw
+>   executable — a direct invocation runs *without package identity* and tests
+>   nothing while appearing to pass.
+> - **`uap10:TrustLevel="mediumIL"` + `rescap:runFullTrust`** requires
+>   `MinVersion="10.0.19041.0"`.
+> - The whole sequence ran **unattended in 39 seconds, first attempt** — so this
+>   class of Store verification does not need a Windows machine. GUI and picker
+>   interaction still might.
+>
+> **Still untested:** write and delete. arama ships `file-handle` with the
+> `trash` feature and can move a user's files to the recycle bin; whether that
+> works under packaging is a separate question this result does not cover.
+
 *Original text, retained:* arama reads arbitrary user-chosen directories. On
 Windows that is `broadFileSystemAccess`, which Store review scrutinises. **This
 should be checked early** — a capability the reviewer rejects would invalidate
