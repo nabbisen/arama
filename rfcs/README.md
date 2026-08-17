@@ -9,8 +9,8 @@ permanent; implemented and archived RFCs are never deleted.
 
 | ID | Title | Priority |
 |----|-------|----------|
-
-*None currently proposed.*
+| 041 | [Application data locations](./proposed/041-application-data-locations.md) | **High** — settings follow the working directory today |
+| 042 | [Windows Store distribution and the CPU/GPU binary](./proposed/042-windows-store-distribution.md) | Medium — blocked on 041 |
 
 ## Implemented
 
