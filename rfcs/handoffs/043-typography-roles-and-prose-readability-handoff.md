@@ -8,16 +8,20 @@ per [RFC 000](../done/000-rfc-lifecycle-policy.md).
 **Read the RFC first.** This handoff does not restate it; it settles what the
 RFC left open and names the traps.
 
-> **Sequencing amendment, 2026-08-18 — snora 0.34.0 through 0.36.1.** snora
-> 0.34.0 raises the `border` role's contrast in the `light` and `dark` presets,
-> which **changes what arama renders**. Their release notes name visual-regression baselines
+> **Sequencing amendment, 2026-08-18 — snora 0.34.0 through 0.37.0.** Two
+> rendered changes reach arama across that range: `border` contrast in the
+> `light` and `dark` presets (0.34.0), and the modal dim strengthened in **all
+> four** presets (0.37.0, `DIM_ALPHA` 0.40 → 0.44). Their release notes name visual-regression baselines
 > containing card or dialog borders as the thing to re-check — and this RFC's
 > deliverable is exactly such a baseline.
 >
-> **Do Task 028 (the 0.33 → 0.36.1 upgrade) first, alone, with its own captures.**
+> **Do Task 028 (the 0.33 → 0.37.0 upgrade) first, alone, with its own captures.**
 > If the upgrade lands during this work, every before/after pair carries a
-> typography change *and* a border change, and neither is attributable. That is
-> the failure RFC 040 §3.1 exists to prevent.
+> typography change *and* a border change *and* a dim change, none of them
+> attributable. That is the failure RFC 040 §3.1 exists to prevent.
+>
+> **The dim reaches §7's dialog-over-gallery capture in every preset**, so this
+> is not a light/dark-only concern for you.
 >
 > **§2 below is unchanged and still binding:** once Task 028 has landed, this
 > work makes no dependency change of its own. The lockfile it starts from is
@@ -42,7 +46,7 @@ RFC left open and names the traps.
 typography API is present and unchanged across this range** — verified at
 `snora-style-0.33.0/src/text.rs:27-57` (`body_size` … `display_size`) and
 `snora-design-0.33.0/src/typography.rs:32` (`Typography`). snora records no API
-break across 0.34 through 0.36.1, and RFC-036's additive-only covenant freezes
+break across 0.34 through 0.37.0, and RFC-036's additive-only covenant freezes
 `Typography` and `TextRole` by name.
 
 **Re-verify against whatever version Task 028 leaves resolved**, rather than
