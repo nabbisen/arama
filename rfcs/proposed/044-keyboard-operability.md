@@ -1,7 +1,10 @@
 # RFC 044: Keyboard operability
 
 **Status.** Proposed — **requested by the project owner 2026-08-18**, after
-snora 0.35.0 shipped the frame-level half of it.
+snora 0.35.0 shipped the frame-level half of it. **Revised the same day** on
+snora's review of the draft: Phase 0.2's blocking unknown is closed, three
+implementation constraints were added, and the F6 recommendation is weaker than
+it was. See §0.2, §2.2, §2.3, §3.1.
 **Tracks.** Make arama operable from the keyboard: dismiss modals, move between
 regions, and see where focus is.
 **Touches.** `app/src/core/subscription.rs`, `app/src/core.rs` state, `view.rs`
@@ -47,10 +50,12 @@ whether text can be *read*; this is whether arama can be *used*. The second is
 the larger gap, and it was invisible until snora 0.35.0 made the mechanism
 available and prompted the look.
 
-## Phase 0 — two questions, both answered by running, not reading. Blocking.
+## Phase 0 — answered by running, not reading. Partly closed.
 
-**Do not design past this section.** Both questions are cheap, and I have been
-wrong about the second one before in this exact project.
+**0.2 is closed and the answer was better than the question**; 0.1 and 0.2b
+remain. I was wrong about 0.2's premise — I framed it as "can we inject OS-level
+input", having been burned on exactly that in RFC 040, and the answer is that
+arama never needed to.
 
 ### 0.1 What does the keyboard do in arama today?
 
@@ -59,33 +64,89 @@ what iced 0.14 does on arama's behalf without being asked. `text_input` is
 focusable in iced, and whether Tab traverses anything by default is a property
 of the framework, not of arama's code.
 
-**Run arama and press keys.** Tab, Shift+Tab, Escape, Enter, arrows, F6. Record
-what each does on the gallery, in a dialog, and in the settings page. That
-observation is this RFC's baseline and there is no substitute for it — a
-reading-only answer would report "nothing happens" and might be wrong.
+**Press keys and record what happens.** Tab, Shift+Tab, Escape, Enter, arrows,
+F6 — on the gallery, in a dialog, and on the settings page. That observation is
+this RFC's baseline and a reading-only answer would report "nothing happens" and
+might be wrong.
 
-### 0.2 Can keyboard events be injected into arama at all?
+**0.2's answer makes this cheaper than written.** `Simulator::tap_key` returns
+an `iced::event::Status` — `Captured` or `Ignored` — so "does anything consume
+this key today?" is assertable in-process, per key, without running the
+application at all. Do that first; run the real application only for whatever it
+cannot answer.
 
-**This is the one that decides the shape of the work**, and this project already
-has a scar on it.
+### 0.2 ~~Can keyboard events be injected into arama at all?~~ — answered
 
-RFC 040 needed synthetic input. Native Wayland injection did not work; the
-Xwayland path was tried; **motion was delivered and button press/release was
-not** (review 096 addendum). I had asserted that path would work, having verified
-its preconditions rather than its capability. That was my error and it cost a
-cycle.
+> **Answered 2026-08-18 by snora's review, then verified against the crate.**
+> **The premise was wrong: no OS-level injection is needed.**
+>
+> `iced_test 0.14`'s `Simulator` drives keyboard events **in-process** — no
+> window, no compositor, no injection path to fail. Verified in
+> `iced_test-0.14.0/src/simulator.rs`, not taken on report:
+>
+> | API | Line | Purpose |
+> |---|---|---|
+> | `tap_key(impl Into<keyboard::Key>)` | `:164` | press + release |
+> | `press_key` / `release_key` | `:370` / `:390` | held modifiers |
+> | `typewrite(&str)` | `:172` | text entry |
+> | `snapshot(&Theme) -> Result<Snapshot, Error>` | `:199` | **renders to pixels** |
+> | `Snapshot::matches_image(path)` | `:265` | compare against a reference PNG |
+> | `Snapshot::matches_hash(path)` | `:307` | compare a SHA-256 of the RGBA |
+>
+> So the one thing §5 said needed a human — *the indicator appears, on the
+> right zone, and reads on all four presets* — is a loop over four snapshots.
+>
+> **snora flagged their own limits honestly:** they use the simulator for
+> composition assertions only and have **never used `snapshot`** (their
+> RFC-011-D chose semantic over pixel testing deliberately), their
+> `render_semantics` carries a *"CI hardware; may OOM locally"* note, and
+> reference images are a maintenance surface — their border repair and the
+> 0.37.0 dim change would each have invalidated ours.
 
-**Keys are a different code path from buttons.** `xdotool key` and `xdotool
-click` are not the same mechanism, and the bridge that dropped one may carry the
-other. **Nobody knows, and it is one command to find out.**
+**Two footguns neither of us knew about, found by reading the crate. Both make a
+snapshot suite pass while testing nothing.**
 
-- **If key injection works**, most of this RFC verifies automatically and the
-  evidence is cheap.
-- **If it does not**, every acceptance criterion below needs a human at a real
-  keyboard, and the scope should be cut accordingly — see §5.
+**(a) A missing reference auto-passes.** `matches_image` returns `Ok(true)` and
+*creates* the PNG when the path does not exist (`simulator.rs:265-306`;
+`matches_hash` does the same). A first run always passes. So does a run after
+someone deletes a reference — and whatever the code produces at that moment
+silently becomes the baseline, regression included.
 
-**Report the answer before implementing.** "Cannot be established" is a real
-result, exactly as it was for Task 026.
+**(b) The reference filename embeds the renderer.** `path()` builds
+`{stem}-{renderer}.{ext}` (`simulator.rs`, `fn path`). A `wgpu` reference and a
+`tiny-skia` reference are different files.
+
+**They compound.** A CI runner with no GPU falls back to `tiny-skia`, looks for
+a reference that does not exist under that name, creates it, and **passes**. The
+suite is green and inert, and nothing says so.
+
+**Required if the snapshot route is taken:** assert the reference existed. A
+test that cannot fail on a missing baseline is not a test, and this project has
+shipped one of those before — the 0.38.0 release published zero assets while
+every check was green.
+
+### 0.2b What is left to establish
+
+- **Does `snapshot` work at all here**, on this hardware, for a focus ring?
+  snora has never run it and wants the answer as much as we do.
+- **Which renderer** the run resolves, and whether it is stable between a
+  developer machine and CI.
+- **Whether a focus ring is even visible at snapshot resolution.** A 2 px ring
+  is a small signal; a pixel comparison will detect it, but *"reads correctly"*
+  is a human judgement a hash cannot make. Expect to keep one rendered capture
+  for the judgement and use snapshots for the regression guard.
+
+**The fallback, if the in-process route fails.** snora reports another adopter
+has working native-Wayland keyboard injection needing no root, no daemon and no
+`uinput`; details are pending that team's permission. They also passed on a trap
+worth recording whether or not we ever need it:
+
+> **Verify delivery by observing the client, not by triggering a compositor
+> keybinding.** A compositor can decline to act on its own binding while still
+> forwarding the key — so that test reports failure when delivery works.
+
+That is precisely the shape of RFC 040's Xwayland error: a negative result from
+the wrong observation point.
 
 ## 1. What snora supplies, and what it explicitly does not
 
@@ -135,9 +196,25 @@ re-decide.
 
 **2.2 Zone cycling.** `ZonePresence::none().side_bar(true).footer(true)` — arama
 composes its header into `body` (`app/src/core/view.rs:128`), so `Header` is
-absent by construction and the cycle is `SideBar → Body → Footer`. arama's
-`context_menu` is a **menu**, not a modal, so it does not suspend cycling; its
-`dialog` does.
+absent by construction and the cycle is `SideBar → Body → Footer`.
+
+snora confirmed both readings. `ZonePresence` describes **slot occupancy, not
+visual presence**, so "a header that exists visually but not as a slot" is the
+case the field was written for. And `next_zone` **deliberately ignores**
+`has_menu` — `let _ = has_menu;` in their source, with the reason in the doc
+comment — so arama's `context_menu` cannot suspend cycling by construction
+rather than by coincidence. Its `dialog` does.
+
+> **The consequence snora volunteered, which I had not asked about and should
+> have:** because arama's header lives inside `body`, **F6 will never stop on
+> the header.** Everything in it — including directory navigation — is reachable
+> only once focus is already in `Body`.
+>
+> Making the header its own stop means moving it into `AppLayout::header`. That
+> is a **layout** change, not a keyboard one. snora explicitly does not
+> recommend it and neither do I: it would reshape a working layout to serve a
+> cycle. **But it must be a decision rather than a discovery**, so it is recorded
+> as §3.5.
 
 Requires new App state: which zone holds focus.
 
@@ -151,14 +228,64 @@ iced cannot tell a style closure that a widget **iced** owns is focused. An
 application that owns focus as its own state can style it today — a `container`
 style closure is an arbitrary `Fn(&Theme) -> Style`, and anything arama knows is
 available inside it. arama owns the state from 2.2, so `FocusTokens` applies.
+snora confirmed this reading, and tekstide ships it today.
+
+**But `FocusTokens` does not map cleanly onto a container border, and this
+changes what the indicator looks like:**
+
+| `FocusTokens` | `iced::Border` | |
+|---|---|---|
+| `ring_color` | `color` | ✅ |
+| `ring_width` | `width` | ✅ |
+| **`ring_offset`** | — | ❌ **no equivalent** |
+
+`iced::Border` carries `color`, `width` and `radius` only. **A ring drawn
+*outside* the control's edge is not expressible**, so the indicator is an
+**inset** ring unless padding or a nested bordered container is added.
+
+Inset rings read differently against dense content — and arama's densest content
+is a thumbnail grid. **Decide this deliberately rather than discovering it**:
+honour colour and width and accept the inset, or add the structure. snora
+flagged it unprompted specifically so it would not be found mid-implementation.
+
+**Two channels, colour *and* width.** tekstide forbids a colour-only indicator
+and snora agrees; so do I. A colour-only ring fails for the users most likely to
+need it.
 
 ## 3. Design questions
 
-**3.1 Which key cycles zones?** snora recommends F6 / Shift+F6 and supplies
-`cycle_zones` for it, but takes a direction rather than a key, so the choice is
-arama's. F6 is the Windows convention and costs nothing; it is also a key many
-users have never pressed. **Recommendation: F6, and document it** — an
-undiscoverable binding is close to no binding.
+**3.1 Which key cycles zones, and how does anyone find out?**
+
+snora recommends F6 / Shift+F6, but `next_zone` takes a direction rather than a
+key, so the binding is entirely arama's.
+
+> **snora's recommendation is weaker than it reads, and they said so
+> unprompted:** it is **convention-based, not evidence-based** — chosen because
+> F6 is the desktop convention for pane cycling and because Tab was unavailable
+> to a framework, *not* because anyone knows users find it.
+>
+> **Nobody has shipped it.** orbok has not adopted zone navigation; apimokka
+> **declined** — two zones is a toggle, not worth a binding a user must learn;
+> tekstide uses Tab because they own their entire shell. arama would be first,
+> with no downstream data from anyone.
+>
+> They also said the discoverability concern is sound and they cannot refute it
+> with data.
+
+So this splits into two questions, and the second is the real one:
+
+- **Which key?** F6. No reason to diverge from the convention, and diverging
+  would be a second undiscoverable binding rather than a discoverable one.
+- **How does a user learn it exists?** Documentation is the floor and is close
+  to useless on its own — nobody reads a keyboard-shortcuts page for a photo
+  browser. snora invited an in-app affordance as a better answer than the
+  convention and asked to hear it.
+
+**Recommendation: F6, plus a visible affordance in the footer.** arama already
+has a footer that is a live zone. A hint costs one line and is seen by the
+people who need it, which a docs page is not. **This is a design question the
+owner may want to weigh in on**, since it puts text on a surface every user sees
+constantly.
 
 **3.2 Does Tab do anything?** Phase 0.1 answers what it does today. If iced
 provides no traversal, arama can call `operation::focus_next()`, which snora
@@ -177,6 +304,13 @@ snora, since they asked for exactly this input.
 on all four presets is a rendering question, not an assertion, and belongs in
 verification.
 
+**3.5 Should the header become a real slot?** §2.2's consequence: as composed
+today it can never be an F6 stop. **Recommendation: no, not in this RFC.**
+Reshaping a working layout to serve a cycle is the tail wagging the dog, and the
+header's contents stay reachable through `Body`. Recorded so that if a user
+reports the header as unreachable, the answer is a decision we made rather than
+one we never saw.
+
 ## 4. Non-goals
 
 - **Full keyboard control of the gallery grid.** Arrow-key navigation between
@@ -189,27 +323,47 @@ verification.
   currently make answerable, and pretending otherwise would be dishonest.
 - **RFC 043.** Concurrent, independent, and it precedes this.
 
-## 5. Verification, and its dependency on Phase 0.2
+## 5. Verification — three tiers, and only the last needs a person
 
-**Most of this RFC is verifiable without input injection**, because snora
-deliberately made the decision half pure:
+Phase 0.2 changed this section from "one thing needs a human" to "one *judgement*
+does". The work splits cleanly:
 
-- `next_zone`'s cycle order, wrapping, slot-skipping and modal suspension are
-  **unit tests over a pure function**. No renderer.
-- Escape routing through `dismiss_on_escape` is likewise pure.
-- `iced_test::Simulator` can drive widgets programmatically — not a substitute
-  for rendered evidence over a real gallery (review 096 established that), but
-  entirely adequate for *decision* logic.
+**Tier 1 — pure, no renderer.** `next_zone`'s cycle order, wrapping,
+slot-skipping and modal suspension; Escape routing through `dismiss_on_escape`.
+Unit tests over pure functions. snora made the decision half pure deliberately
+and it is the reason this RFC is cheap.
 
-**Exactly one thing needs a real key press: that the focus indicator appears,
-on the right zone, and is visible on all four presets.** That is a rendered
-capture with a focused state, and reaching it requires either working key
-injection (Phase 0.2) or a human.
+**Tier 2 — in-process, headless.** `Simulator::tap_key` + assert arama's own
+focus state: *F6 moved focus to the expected zone.* No window, no compositor,
+no injection. This is the tier that was thought impossible when the RFC was
+written.
 
-**If Phase 0.2 fails**, say so and reduce the claim rather than working around
-it: ship 2.1 and 2.2 with unit-test evidence, and mark 2.3's rendered evidence
-as manual and pending. **Do not assert a focus ring is visible on evidence that
-does not show it.**
+**Tier 3 — rendered.** `Simulator::snapshot(&theme)` per preset, as the
+regression guard, **subject to Phase 0.2b** and to the two footguns in 0.2:
+
+- **Assert the reference existed.** `matches_image` and `matches_hash` create a
+  missing reference and return `true`. A suite that cannot fail on a missing
+  baseline is not a suite.
+- **Pin or record the renderer.** References are named `{stem}-{renderer}`, so a
+  GPU-less runner silently starts a fresh, always-passing set.
+- Prefer `matches_hash` where a visual diff is not needed — a 64-byte digest
+  instead of a PNG answers snora's maintenance-surface objection, at the cost of
+  telling you nothing about *how* a failure differs. Use images where a human
+  will need to look.
+
+**What still needs a person: whether the ring *reads*.** A pixel comparison
+proves it is present and unchanged. It cannot say a 2 px inset ring is findable
+against a dense thumbnail grid on `high_contrast_dark`. **Keep one rendered
+capture per preset for that judgement** and let snapshots guard the regression.
+
+**If Tier 3 does not work here**, say so and reduce the claim: ship 2.1 and 2.2
+on Tier 1 and 2 evidence, and mark 2.3's rendered evidence manual and pending.
+**Do not assert a focus ring is visible on evidence that does not show it.**
+
+**snora wants Tier 3's answer.** They have never run `snapshot`, and if it works
+for a focus indicator they intend to document the route — crediting arama —
+"rather than let three teams each discover it separately." Whichever way it
+goes, it is worth reporting.
 
 ## 6. Risks
 
@@ -217,11 +371,17 @@ does not show it.**
   gates 2.2. A user who presses F6 and sees nothing has lost their place.
 - **Tab collision with text inputs.** arama has five. This is why snora refuses
   Tab and why arama should too, unless Phase 0.1 shows something surprising.
-- **The evidence method may not exist.** §5. Named as a risk rather than assumed
-  away, because the same assumption cost RFC 040 a cycle.
+- **A green snapshot suite that tests nothing.** Now the sharpest risk on this
+  list, and it replaces "the evidence method may not exist". Missing references
+  auto-pass and are auto-created; reference names embed the renderer. Together
+  they mean a GPU-less runner produces a fresh, always-passing set and reports
+  success. This project has shipped exactly this shape before — 0.38.0
+  published a release with zero assets while every check was green.
 - **The 0.35.0 API is unverified here.** §1. Everything quoted comes from
   release notes, and this project's standing instruction is to treat an upstream
-  claim as a claim.
+  claim as a claim. *(The `iced_test` claims in Phase 0.2 were treated that way
+  and verified against the crate — which is how the two footguns were found.
+  snora had not mentioned them because they had never run that path either.)*
 - **Scope creep toward grid navigation.** Arrow keys in the gallery will feel
   like the obvious next step while the code is open. It is a separate RFC.
 
