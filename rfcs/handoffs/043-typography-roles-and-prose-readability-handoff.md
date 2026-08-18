@@ -8,13 +8,13 @@ per [RFC 000](../done/000-rfc-lifecycle-policy.md).
 **Read the RFC first.** This handoff does not restate it; it settles what the
 RFC left open and names the traps.
 
-> **Sequencing amendment, 2026-08-18 — snora 0.35.0.** snora 0.34.0 raises the
-> `border` role's contrast in the `light` and `dark` presets, which **changes
-> what arama renders**. Their release notes name visual-regression baselines
+> **Sequencing amendment, 2026-08-18 — snora 0.34.0 through 0.36.1.** snora
+> 0.34.0 raises the `border` role's contrast in the `light` and `dark` presets,
+> which **changes what arama renders**. Their release notes name visual-regression baselines
 > containing card or dialog borders as the thing to re-check — and this RFC's
 > deliverable is exactly such a baseline.
 >
-> **Do Task 028 (the 0.33 → 0.35 upgrade) first, alone, with its own captures.**
+> **Do Task 028 (the 0.33 → 0.36.1 upgrade) first, alone, with its own captures.**
 > If the upgrade lands during this work, every before/after pair carries a
 > typography change *and* a border change, and neither is attributable. That is
 > the failure RFC 040 §3.1 exists to prevent.
@@ -41,8 +41,8 @@ RFC left open and names the traps.
 `snora` with `features = ["design"]` is already in `Cargo.toml`. **The
 typography API is present and unchanged across this range** — verified at
 `snora-style-0.33.0/src/text.rs:27-57` (`body_size` … `display_size`) and
-`snora-design-0.33.0/src/typography.rs:32` (`Typography`). snora's 0.34/0.35
-notes record no API break, and RFC-036's additive-only covenant freezes
+`snora-design-0.33.0/src/typography.rs:32` (`Typography`). snora records no API
+break across 0.34 through 0.36.1, and RFC-036's additive-only covenant freezes
 `Typography` and `TextRole` by name.
 
 **Re-verify against whatever version Task 028 leaves resolved**, rather than
