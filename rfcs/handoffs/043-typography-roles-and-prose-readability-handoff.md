@@ -8,14 +8,14 @@ per [RFC 000](../done/000-rfc-lifecycle-policy.md).
 **Read the RFC first.** This handoff does not restate it; it settles what the
 RFC left open and names the traps.
 
-> **Sequencing amendment, 2026-08-18 — snora 0.34.0 through 0.37.0.** Two
+> **Sequencing amendment, 2026-08-18 — snora 0.34.0 through 0.37.x.** Two
 > rendered changes reach arama across that range: `border` contrast in the
 > `light` and `dark` presets (0.34.0), and the modal dim strengthened in **all
-> four** presets (0.37.0, `DIM_ALPHA` 0.40 → 0.44). Their release notes name visual-regression baselines
-> containing card or dialog borders as the thing to re-check — and this RFC's
-> deliverable is exactly such a baseline.
+> four** presets (0.37.0, `DIM_ALPHA` 0.40 → 0.44). Their release notes name
+> visual-regression baselines containing card or dialog borders as the thing to
+> re-check — and this RFC's deliverable is exactly such a baseline.
 >
-> **Do Task 028 (the 0.33 → 0.37.0 upgrade) first, alone, with its own captures.**
+> **Do Task 028 (the 0.33 → 0.37.x upgrade) first, alone, with its own captures.**
 > If the upgrade lands during this work, every before/after pair carries a
 > typography change *and* a border change *and* a dim change, none of them
 > attributable. That is the failure RFC 040 §3.1 exists to prevent.
