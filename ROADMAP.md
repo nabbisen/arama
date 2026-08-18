@@ -118,15 +118,24 @@ defect.
   documented it for the first time in 0.33.1; arama sets a text size at **6 of
   its 108 `text(` call sites** and a line-height at **none**, so it renders
   exactly the "flat, uniform text" snora predicted of consumers who never knew
-  the scale existed. **The prerequisite is already met and the API is verified
-  present in the `snora 0.33.0` already in `Cargo.lock`** — no upgrade, no
-  lockfile change, no dependency risk. Reading for it found one real defect:
-  the note explaining the high-contrast themes is the smallest, lowest-contrast
-  wrapping prose in the application.
+  the scale existed. The API is already reachable — arama has carried the
+  `design` feature since 0.39.1. Reading for it found one real defect: the note
+  explaining the high-contrast themes is the smallest, lowest-contrast wrapping
+  prose in the application.
+
+  **Resequenced 2026-08-18 to follow the snora 0.35 upgrade below**, which
+  changes border contrast in the `light` and `dark` presets. This RFC's
+  deliverable is before/after captures of surfaces that include those borders;
+  landing both at once would have made neither attributable.
 
   *Placed here rather than under theme C* because readability is a quality of
-  what a user already does, not something they currently cannot do. **Theme C
-  remains open and unaddressed.**
+  what a user already does, not something they currently cannot do.
+- **snora 0.33 → 0.35.** *Task 028, authorized 2026-08-18.* Carries snora's
+  `border` contrast repair — 1.28:1 → 3.12:1 in `light`, 1.19:1 → 3.17:1 in
+  `dark`, against WCAG's 3:1 floor for non-text boundaries. A visible change,
+  so it ships alone with its own captures and the two high-contrast presets as
+  a byte-identical control. Reported to snora by **tekstide**, who evaluated
+  snora, declined to adopt, and sent their findings anyway.
 - **~~Similarity-dialog cache-error tier routing (RFC 035).~~** *Shipped.*
   Closed RFC 033's Part B deferral. Cache-read failures in both similarity
   dialogs now surface as one inline message per dialog open, with partial
@@ -158,18 +167,36 @@ defect.
 
 ### C — Product direction
 
-**Status.** Agreed as a theme 2026-08-03; **awaiting a problem statement from
-the project owner.**
+**Status.** Agreed as a theme 2026-08-03; **first candidate raised 2026-08-18**,
+and it came from looking rather than from inference.
+
+- **Keyboard operability
+  ([RFC 044](./rfcs/proposed/044-keyboard-operability.md)).** *Proposed.*
+  **arama has no keyboard interaction at all** — one subscription, snora's toast
+  sweep, and no `iced::keyboard::listen()` anywhere. `on_close_modals` is wired
+  only to the modal backdrop's *click* handler, so **Escape does not close a
+  dialog**, and `snora::keyboard::dismiss_on_escape` has been available since
+  0.25.0 without ever being called. 47 interactive controls, none deliberately
+  reachable from the keyboard.
+
+  *Placed here rather than under theme B* because this is a capability a user
+  does not have, not a quality of one they do — which is what this theme asked
+  for. It surfaced because snora 0.35.0 shipped the frame-level half and
+  prompted the check; nobody had looked before.
+
+**The original statement stands and is not discharged by the above.** One
+candidate is not a product direction. RFC 044 closes a gap rather than opening
+a direction — it makes arama usable by people who cannot use it at all today,
+which is a floor, not an ambition.
 
 Every other candidate on this roadmap is infrastructure, quality, or debt.
 arama has had no product theme proposed since the RFCs that built the current
-UI. This theme exists to correct that, and it is deliberately empty until the
-owner states what an arama user should be able to do that they currently
-cannot.
+UI. This theme exists to correct that, and it stays open until the owner states
+what an arama user should be able to *do* that they currently cannot.
 
-The architect does not populate this section. Requirements, options, and an RFC
-portfolio follow from the owner's problem statement, not from the architect's
-inference about what users might want.
+The architect still does not populate this section. RFC 044 is here because a
+check found something already broken, not because anyone inferred what users
+might want — and that distinction is the whole reason this section waits.
 
 ## Shipped
 
