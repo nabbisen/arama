@@ -7,6 +7,42 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+### Security
+
+- **arama stopped recognising its own old managed-ffmpeg folder, and 0.40.0 is
+  where that started.** Versions before 0.40.0 could download an
+  `ffmpeg`/`ffprobe` pair into `.arama-local/bin/` beside the executable. arama
+  no longer acquires ffmpeg itself, and it is supposed to refuse those old
+  downloads — both by never picking them up automatically and by telling you
+  plainly, if you point it at that folder, that it is an unsupported legacy
+  location rather than a normal choice.
+
+  Moving arama's data to standard per-user locations in 0.40.0 also moved the
+  path this check looked at, to a folder that has never contained an ffmpeg
+  pair. So between 0.40.0 and this release the refusal did not cover the folder
+  it exists for. If you upgraded from an earlier version and selected your old
+  managed folder, arama would have accepted that pair instead of explaining why
+  it should not — you lost the explanation, not just the refusal.
+
+  The check now covers the real folder again, regardless of where arama keeps
+  its data, and a test holds it there. **This does not delete anything.** Old
+  files stay where they are and remain yours to remove; after installing your
+  own ffmpeg pair you can delete them if you no longer want them.
+
+### Fixed
+
+- **The documentation still described where arama kept your files before
+  0.40.0.** Every user-facing page — installation, FAQ, cache, settings, and
+  the README — told you to look beside the executable for settings, models and
+  cache, which 0.40.0 had already stopped doing. Anyone trying to back up their
+  cache, reclaim the several hundred megabytes the models take, or find a
+  missing settings file was sent to a folder that no longer exists.
+
+  All of it now describes the real locations, per platform, with the one-time
+  first-run move documented where you would look for it. References to where
+  *older* versions kept things are kept and dated, because those files may still
+  be on your disk.
+
 ---
 
 ## [0.40.0]
