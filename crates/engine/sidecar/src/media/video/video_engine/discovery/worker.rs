@@ -4,7 +4,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use arama_env::{ffmpeg_location::FfmpegLocationPreference, local_bin_dir};
+use arama_env::{ffmpeg_location::FfmpegLocationPreference, legacy_local_bin_dir, local_bin_dir};
 
 use super::{
     CandidatePlanningStop, DiscoverySource, DiscoveryWork, FfmpegDiscoveryOutcome,
@@ -260,6 +260,14 @@ fn incomplete_pair_outcome(presence: [bool; 2]) -> Option<FfmpegDiscoveryOutcome
     }
 }
 
+/// Task 029: RFC 032 specifies excluding the *true* pre-0.40.0 managed
+/// location (`legacy_local_bin_dir()`, always exe-relative) from automatic
+/// discovery and explicit selection alike. `local_bin_dir()` - arama's own
+/// *current* data-directory `bin/` - is checked too, on the weaker "should
+/// stay out of automatic discovery regardless" reasoning, but it is not a
+/// substitute for the first check: post-RFC-041 the two resolve to
+/// different paths, and only the true legacy location is what RFC 032's
+/// guarantee is actually about.
 fn is_legacy_candidate(
     work: &DiscoveryWork,
     started: Instant,
@@ -267,17 +275,24 @@ fn is_legacy_candidate(
     lexical_candidate: &Path,
     canonical_candidate: &Path,
 ) -> Result<bool, FfmpegDiscoveryOutcome> {
-    let legacy = local_bin_dir().map_err(|error| filesystem_outcome(&error))?;
-    if lexical_candidate.starts_with(&legacy) {
-        return Ok(true);
+    let legacy_locations = [
+        legacy_local_bin_dir().map_err(|error| filesystem_outcome(&error))?,
+        local_bin_dir().map_err(|error| filesystem_outcome(&error))?,
+    ];
+    for legacy in legacy_locations {
+        if lexical_candidate.starts_with(&legacy) {
+            return Ok(true);
+        }
+        checkpoint(work, started, attempt_timeout).map_err(stop_outcome)?;
+        if let Some(canonical_legacy) =
+            canonicalize_legacy(&legacy, |path| std::fs::canonicalize(path))?
+            && canonical_candidate.starts_with(&canonical_legacy)
+        {
+            return Ok(true);
+        }
+        checkpoint(work, started, attempt_timeout).map_err(stop_outcome)?;
     }
-    checkpoint(work, started, attempt_timeout).map_err(stop_outcome)?;
-    let canonical_legacy = match canonicalize_legacy(&legacy, |path| std::fs::canonicalize(path))? {
-        Some(path) => path,
-        None => return Ok(false),
-    };
-    checkpoint(work, started, attempt_timeout).map_err(stop_outcome)?;
-    Ok(canonical_candidate.starts_with(canonical_legacy))
+    Ok(false)
 }
 
 fn canonicalize_legacy(

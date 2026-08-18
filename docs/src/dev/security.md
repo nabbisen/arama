@@ -42,17 +42,21 @@ cryptographic authentication of locally installed programs.
 ### Legacy managed sidecars
 
 Versions before 0.40.0 may have downloaded files into a `.arama-local/bin/`
-directory next to the executable.
+directory next to the executable (`legacy_local_bin_dir()`). Current
+discovery excludes this location from automatic candidates and from
+explicit selection on every platform, and never deletes it automatically.
+This prevents silent continued execution while leaving migration/removal
+under the user's control.
 
-**This guard's coverage of that exact directory is currently under review
-(Task 029).** RFC 041 changed `local_dir()`'s meaning without updating every
-consumer derived from it, and `local_bin_dir()` — the function
-`is_legacy_candidate` uses to identify this location — is one such
-consumer: it now resolves to the *new* platform data directory's `bin/`
-subfolder, not the exe-adjacent legacy directory named above. Whether the
-exe-adjacent legacy directory is still excluded from automatic discovery is
-not yet confirmed true; Task 029 tracks restoring and testing that property.
-Never deletes any legacy files automatically, regardless.
+**Task 029 (2026-08-18):** RFC 041 changed `local_dir()`'s meaning without
+updating every consumer derived from it, and `is_legacy_candidate`
+(`crates/engine/sidecar/.../discovery/worker.rs`) was one such consumer —
+between 0.40.0 and this fix, it checked only `local_bin_dir()` (arama's
+*current* data directory, which never held a legacy pair) and not the
+exe-adjacent directory this guarantee is actually about. Restored and
+covered by a regression test that pins the check to the true legacy
+location independent of `local_dir()`'s current meaning
+(`worker/tests.rs`).
 
 ## AI model trust boundary
 

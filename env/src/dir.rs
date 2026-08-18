@@ -49,11 +49,17 @@ fn project_dirs() -> Result<ProjectDirs> {
     })
 }
 
-/// Where CLIP/wav2vec2 models and the legacy ffmpeg `bin/` live, given an
-/// already-resolved override (or none). Pure - the other half of the same
-/// seam as [`data_home_override_from`]: [`local_dir`] supplies the real
-/// override via [`data_home_override`] at its one call site; tests supply
-/// an explicit value directly, without touching `ARAMA_DATA_HOME` at all.
+/// Where CLIP/wav2vec2 models live, given an already-resolved override (or
+/// none). Pure - the other half of the same seam as
+/// [`data_home_override_from`]: [`local_dir`] supplies the real override
+/// via [`data_home_override`] at its one call site; tests supply an
+/// explicit value directly, without touching `ARAMA_DATA_HOME` at all.
+///
+/// Task 029: this directory's own `bin/` subfolder (see [`local_bin_dir`])
+/// is *not* the legacy ffmpeg location - that is always exe-relative,
+/// [`legacy_local_dir`], regardless of this function's override. The two
+/// were conflated here before RFC 041 (when `local_dir` was itself
+/// exe-relative, so they were the same path); they no longer are.
 fn local_dir_with_override(data_home: Option<&Path>) -> Result<PathBuf> {
     if let Some(root) = data_home {
         return Ok(root.join(LOCAL_DIR));
@@ -70,6 +76,11 @@ pub fn local_dir() -> Result<PathBuf> {
     local_dir_with_override(data_home_override().as_deref())
 }
 
+/// The current models directory's own `bin/` subfolder - kept out of
+/// automatic ffmpeg discovery on the same reasoning as the true legacy
+/// location ([`legacy_local_bin_dir`]), not because anything is known to
+/// exist here. Nothing has ever written a managed ffmpeg pair to this
+/// path; it did not exist before RFC 041.
 pub fn local_bin_dir() -> Result<PathBuf> {
     Ok(local_dir()?.join(BIN_DIR))
 }
@@ -100,6 +111,18 @@ pub fn legacy_local_dir() -> Result<PathBuf> {
         .expect("failed to get exe parent directory")
         .join(LOCAL_DIR);
     Ok(path.to_path_buf())
+}
+
+/// Task 029: the true pre-0.40.0 managed-ffmpeg location, where a
+/// pre-RFC-032 install could actually have downloaded a pair -
+/// `legacy_local_dir()/bin`, always exe-relative regardless of
+/// `ARAMA_DATA_HOME`. RFC 032's ffmpeg discovery excludes this location
+/// from automatic candidates and rejects its explicit selection; it must
+/// resolve here, not to [`local_bin_dir`]'s current-data-directory path,
+/// or the exclusion silently stops covering the directory it exists to
+/// cover.
+pub fn legacy_local_bin_dir() -> Result<PathBuf> {
+    Ok(legacy_local_dir()?.join(BIN_DIR))
 }
 
 /// RFC 041 migration: the pre-041 location for the cache, always relative

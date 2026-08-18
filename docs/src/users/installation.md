@@ -146,13 +146,10 @@ and `thumbnail/` (generated 224×224 JPEG thumbnails).
 
 Older arama versions (before 0.40.0) may have left ffmpeg files in a
 `.arama-local/bin/` directory next to the executable — a different, older
-location than the `bin/` subfolder above. **Whether current versions still
-exclude that old location from automatic discovery is under review** — if
-you have files there and are not certain of their provenance, remove them
-manually rather than relying on them being ignored. Arama does not delete
-them automatically; after installing a
-user-managed pair, you may
-remove the legacy files manually if you no longer need them.
+location than the `bin/` subfolder above. Current versions exclude that
+location from automatic discovery and from explicit selection, and never
+delete those files automatically; after installing a user-managed pair, you
+may remove the legacy files manually if you no longer need them.
 
 ## Upgrading from a version before 0.40.0
 
