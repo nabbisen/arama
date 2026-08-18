@@ -135,7 +135,10 @@ not abort unrelated image or video indexing work.
 
 ## Cache design
 
-Two SQLite namespaces in one file (`.arama-cache/cache-v2.sqlite`):
+Two SQLite namespaces in one file, `cache-v2.sqlite`, inside arama's cache
+directory (`arama_env::cache_dir()` — the platform-standard cache location,
+RFC 041; see [Data locations](../users/installation.md#data-locations) for
+the per-platform paths):
 
 | Namespace | Key | Payload |
 |---|---|---|
@@ -147,5 +150,5 @@ Change detection uses `MetadataThenFullHash` (BLAKE3): metadata
 differs. As of localcache v0.20, mtime is stored at nanosecond
 precision.
 
-Thumbnail files are named `blake3(canonical_path)[..16].jpg` in
-`.arama-cache/thumbnail/`.
+Thumbnail files are named `blake3(canonical_path)[..16].jpg` in the
+`thumbnail/` subfolder of arama's cache directory.

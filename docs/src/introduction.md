@@ -14,7 +14,9 @@ When you select a directory, arama:
    produce a 512-dimensional feature vector.
 3. For video files, also samples frames and audio segments, encoding
    each through CLIP and **wav2vec2** (`wav2vec2-base-960h`).
-4. Stores everything in a local SQLite cache alongside the executable.
+4. Stores everything in a local SQLite cache in your operating system's
+   standard per-user cache location — see
+   [Data locations](./users/installation.md#data-locations).
 
 Similarity is the **cosine similarity** (dot product of unit-norm
 vectors) between two feature vectors. The default threshold is **0.86**:

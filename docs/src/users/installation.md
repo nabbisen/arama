@@ -11,7 +11,7 @@ with Cargo, or build a source release archive.
 | **Internet connection** | Required once for AI models |
 | **ffmpeg for video** | Install a user-managed `ffmpeg`/`ffprobe` pair before using video features |
 | **~750 MB disk space** | Both AI models and initial cache headroom |
-| **Writable executable directory** | arama stores settings, models, and cache data alongside its executable |
+| **Writable platform data/config/cache directories** | arama stores settings, models, and cache data in your operating system's standard per-user locations, not next to its executable — see [Data locations](#data-locations) |
 
 The Cargo-install and source-build routes also require a stable Rust toolchain
 from [rustup.rs](https://rustup.rs/). The workspace uses Rust 2024 edition and
@@ -68,8 +68,8 @@ arama
 ```
 
 The executable is normally installed in Cargo's binary directory (commonly
-`~/.cargo/bin`). That directory must be writable because arama creates its
-runtime data beside the executable.
+`~/.cargo/bin`). Runtime data does not need to live there — see
+[Data locations](#data-locations).
 
 ## Route 3: Build the source archive
 
@@ -124,24 +124,50 @@ available without ffmpeg.
 
 ## Data locations
 
-All runtime data lives next to the executable selected by the installation
-route:
+Runtime data lives in your operating system's standard per-user locations —
+never next to the executable, and independent of which installation route you
+used or where you extracted it:
 
-| Path | Contents |
-|---|---|
-| `.arama-local/` | AI models |
-| `.arama-local/bin/` | Legacy managed ffmpeg location; never trusted for discovery |
-| `.arama-cache/` | SQLite embedding cache and thumbnails |
-| `.arama-cache/cache-v2.sqlite` | Embedding and thumbnail metadata |
-| `.arama-cache/thumbnail/` | Generated 224×224 JPEG thumbnails |
+| Platform | Settings | Models | Cache |
+|---|---|---|---|
+| Windows | `%APPDATA%\arama` | `%LOCALAPPDATA%\arama\data` | `%LOCALAPPDATA%\arama\cache` |
+| macOS | `~/Library/Application Support/arama` | `~/Library/Application Support/arama` | `~/Library/Caches/arama` |
+| Linux | `$XDG_CONFIG_HOME/arama` (or `~/.config/arama`) | `$XDG_DATA_HOME/arama` (or `~/.local/share/arama`) | `$XDG_CACHE_HOME/arama` (or `~/.cache/arama`) |
 
-The application settings file (`settings.json`, managed by
-`app-json-settings`) is also written relative to the executable directory.
+Models and cache deliberately use the **local**, non-roaming location on
+Windows — a several-hundred-megabyte model should never synchronise into a
+roaming profile. Settings use the roaming location, since a small JSON file
+following you between machines on the same domain is the desired behaviour.
 
-Older arama versions may have left ffmpeg files in `.arama-local/bin/`.
-Current versions deliberately ignore those legacy files. Arama does not
-delete them; after installing a user-managed pair, you may remove the legacy
-files manually if you no longer need them.
+Within the models directory: model weight files directly, and a `bin/`
+subfolder that ffmpeg discovery excludes from automatic candidates. Within
+the cache directory: `cache-v2.sqlite` (the embedding/thumbnail database)
+and `thumbnail/` (generated 224×224 JPEG thumbnails).
+
+Older arama versions (before 0.40.0) may have left ffmpeg files in a
+`.arama-local/bin/` directory next to the executable — a different, older
+location than the `bin/` subfolder above. **Whether current versions still
+exclude that old location from automatic discovery is under review** — if
+you have files there and are not certain of their provenance, remove them
+manually rather than relying on them being ignored. Arama does not delete
+them automatically; after installing a
+user-managed pair, you may
+remove the legacy files manually if you no longer need them.
+
+## Upgrading from a version before 0.40.0
+
+Versions before 0.40.0 stored settings, models and cache next to the
+executable instead of in the locations above. **On first launch after
+upgrading, arama moves your existing settings, models and cache to the new
+locations automatically — nothing is discarded and no re-indexing is
+required.** If you had been launching arama from more than one directory
+before upgrading, note that settings previously followed whichever directory
+you launched from; after upgrading there is a single configuration, and the
+one adopted is whichever the migration finds first.
+
+If a relocation cannot be completed (for example, because the new location
+cannot be created), arama tells you rather than starting with your data
+silently left behind.
 
 ## Updating
 
@@ -151,7 +177,10 @@ files manually if you no longer need them.
 - **Source archive:** extract the new archive into a fresh destination and
   rebuild it.
 
-The `.arama-cache/` directory from a current v2-cache version can be reused.
-Old v1 cache databases are no longer imported; thumbnails and embeddings are
-rebuildable, so the application creates current cache entries lazily as
-directories are indexed.
+Because settings, models and cache all live outside the executable's own
+directory, they are automatically shared across every installation on the
+same machine — extracting a new asset into a fresh directory does not start
+with an empty cache. The v2 cache database is reused as-is. Old v1 cache
+databases are no longer imported; thumbnails and embeddings are rebuildable,
+so the application creates current cache entries lazily as directories are
+indexed.

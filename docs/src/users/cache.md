@@ -4,8 +4,9 @@ Click the **🗃** icon in the side nav to open the Cache page. It gives
 per-directory visibility and control over the embedding/thumbnail
 cache.
 
-Current arama versions use the v2 `localcache` database at
-`.arama-cache/cache-v2.sqlite`. Legacy v1 cache databases are ignored
+Current arama versions use the v2 `localcache` database
+(`cache-v2.sqlite`, inside arama's cache directory — see
+[Data locations](installation.md#data-locations)). Legacy v1 cache databases are ignored
 rather than imported; cached thumbnails and embeddings are rebuildable
 when directories are indexed again.
 
@@ -27,8 +28,8 @@ totals over **all** rows, regardless of the filter.
 ## Cache footprint and pruning
 
 The Cache page also shows the actual cache footprint: the v2 SQLite
-database, SQLite sidecar files, and generated thumbnails under
-`.arama-cache/thumbnail/`. This is different from the table's media
+database, SQLite sidecar files, and generated thumbnails under the
+`thumbnail/` subfolder of arama's cache directory. This is different from the table's media
 size column, which describes source files rather than disk space used by
 arama's cache.
 

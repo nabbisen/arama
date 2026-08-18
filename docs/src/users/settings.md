@@ -39,15 +39,15 @@ Wav2vec2 and ffmpeg are optional for image-only use. A compatible pair must
 contain both `ffmpeg` and `ffprobe` in one candidate directory and both must
 report the same release/build token.
 
-This tab is useful after a clean install or if the `.arama-local/`
-directory was moved or deleted.
+This tab is useful after a clean install or if arama's models directory (see
+[Data locations](installation.md#data-locations)) was moved or deleted.
 
 ## File system
 
 | Item | Description |
 |---|---|
-| **Disk usage** | Available / total disk space on the volume containing the executable |
-| **Cache delete** | Remove the entire `.arama-cache/` directory (thumbnails + embeddings). The next directory selection will re-index from scratch. |
+| **Disk usage** | Available / total disk space on the volume containing arama's models directory |
+| **Cache delete** | Remove arama's entire cache directory (thumbnails + embeddings). The next directory selection will re-index from scratch. |
 
 The Cache delete button is disabled when the cache directory does not
 exist.

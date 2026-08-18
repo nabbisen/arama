@@ -69,9 +69,12 @@ The first launch opens a setup wizard that downloads the AI models:
 - `openai/clip-vit-base-patch32` — CLIP model for image similarity
 - `facebook/wav2vec2-base-960h` — audio model for video similarity
 
-They are stored alongside the executable under `.arama-local/`. CLIP alone
-completes setup, so you can start using image similarity immediately. Once the
-models are in place, no further network access is required.
+They are stored in your operating system's standard per-user data location —
+never next to the executable, see the
+[installation guide's Data locations](./docs/src/users/installation.md#data-locations)
+for the exact path per platform. CLIP alone completes setup, so you can start
+using image similarity immediately. Once the models are in place, no further
+network access is required.
 
 ### ffmpeg for video
 

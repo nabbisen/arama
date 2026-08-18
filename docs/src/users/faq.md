@@ -17,10 +17,11 @@ Support for additional formats is tracked in the issue tracker.
 
 **How much disk space does arama use?**
 
-Around 700 MB for both AI models in `.arama-local/`. The external
-ffmpeg/ffprobe installation is outside arama's storage. The cache database and
-thumbnails grow with your library — roughly 50–100 KB per file, depending on
-whether embeddings have been computed.
+Around 700 MB for both AI models, in your platform's standard local data
+directory (see [Data locations](installation.md#data-locations)). The
+external ffmpeg/ffprobe installation is outside arama's storage. The cache
+database and thumbnails grow with your library — roughly 50–100 KB per
+file, depending on whether embeddings have been computed.
 
 ---
 
@@ -92,18 +93,23 @@ keeps that path visible, shows a startup warning, and opens the shell without
 starting the cache pipeline. Choose another folder from the header to resume
 indexing.
 
-**arama warns about local setup on startup.**
+**arama shows "arama could not start" and nothing else opens.**
 
-arama prepares `.arama-local/` next to the executable for AI models. ffmpeg
-remains external on every platform. If that directory cannot be created or
-used, arama opens with a warning so you can fix permissions or move the
-executable to a writable location.
+On every launch, arama needs to resolve or create its settings, models and
+cache locations (see [Data locations](installation.md#data-locations))
+before anything else runs. If any one of them cannot be created — for
+example, a permissions problem on your platform's standard data directory —
+arama shows this message instead of opening normally, since it has nowhere
+to save that data. Check that you have write permission to your user data
+directory, then restart. ffmpeg remains external on every platform
+regardless.
 
 **The app crashes on launch with a database error.**
 
-The most common cause is a missing `.arama-cache/` directory. This
-directory is created automatically; if it fails, check that the
-executable has write permission in its containing folder.
+The most common cause is a problem with arama's cache directory (see
+[Data locations](installation.md#data-locations)). This directory is
+created automatically; if it fails, check that you have write permission to
+your platform's standard cache location.
 
 **"ffmpeg not found" or "external ffmpeg required" after setup.**
 
@@ -115,8 +121,9 @@ brew install ffmpeg
 ```
 
 Arama accepts a compatible `ffmpeg`/`ffprobe` pair found together on `PATH` or
-in a directory selected in Settings. Legacy files in `.arama-local/bin/` are
-ignored and are not deleted automatically.
+in a directory selected in Settings. Legacy files left by versions before
+0.40.0 in a `.arama-local/bin/` directory next to the executable are ignored
+and are not deleted automatically.
 
 **Setup downloads stall or fail.**
 

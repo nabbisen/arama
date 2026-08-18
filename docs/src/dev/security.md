@@ -41,10 +41,18 @@ cryptographic authentication of locally installed programs.
 
 ### Legacy managed sidecars
 
-Older versions may have downloaded files into `.arama-local/bin/`. Current
-discovery ignores this location on every platform and never deletes it
-automatically. This prevents silent continued execution while leaving
-migration/removal under the user's control.
+Versions before 0.40.0 may have downloaded files into a `.arama-local/bin/`
+directory next to the executable.
+
+**This guard's coverage of that exact directory is currently under review
+(Task 029).** RFC 041 changed `local_dir()`'s meaning without updating every
+consumer derived from it, and `local_bin_dir()` — the function
+`is_legacy_candidate` uses to identify this location — is one such
+consumer: it now resolves to the *new* platform data directory's `bin/`
+subfolder, not the exe-adjacent legacy directory named above. Whether the
+exe-adjacent legacy directory is still excluded from automatic discovery is
+not yet confirmed true; Task 029 tracks restoring and testing that property.
+Never deletes any legacy files automatically, regardless.
 
 ## AI model trust boundary
 

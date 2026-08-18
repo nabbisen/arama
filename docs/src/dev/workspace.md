@@ -136,7 +136,9 @@ it for button styling.
 ### `env`
 
 Shared constants and path helpers used across all crates:
-- Directory paths (`.arama-local/`, `.arama-cache/`)
+- Directory paths — platform config/data/cache locations (RFC 041,
+  `env/src/dir.rs`), plus the `ARAMA_DATA_HOME` test-isolation override and
+  the legacy pre-0.40.0 exe-relative paths used only for first-run migration
 - Media extension allowlists
 - Similarity thresholds and UI size limits
 - Settings model (`Settings` struct, `CacheLookupStrategy`)

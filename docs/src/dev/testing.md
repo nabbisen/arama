@@ -91,11 +91,15 @@ workflows, not an exhaustive exploratory QA script.
   `cargo run -p arama --release`.
 - Use a small fixture directory with at least a few images and, when video
   behavior is in scope, one short video.
-- The normal smoke pass may use the owner's existing `.arama-local/` and
-  `.arama-cache/` state.
-- Clean first-run checks require a temporary profile or intentionally moved
-  local state. Do not delete the owner's real cache/settings unless that is
-  the explicit test.
+- The normal smoke pass may use the owner's existing settings/models/cache
+  state at its real platform locations (RFC 041; see
+  [installation.md's Data locations](../users/installation.md#data-locations)).
+- Clean first-run checks need an isolated profile, not the owner's real
+  state. Set `ARAMA_DATA_HOME` (`env/src/dir.rs:24`) to a scratch directory
+  before launching — it scopes settings, models and cache under that one
+  root, replacing the CWD/exe-relative isolation trick RFC 036/040 used
+  before RFC 041 removed the anchors that trick relied on. Do not delete the
+  owner's real cache/settings unless that is the explicit test.
 - Model download checks require network access and available upstream
   artifacts. In offline/headless environments, record them as not run rather
   than blocking automated gate evidence. ffmpeg re-check is local-only.
