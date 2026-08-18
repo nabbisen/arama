@@ -8,6 +8,21 @@ per [RFC 000](../done/000-rfc-lifecycle-policy.md).
 **Read the RFC first.** This handoff does not restate it; it settles what the
 RFC left open and names the traps.
 
+> **Sequencing amendment, 2026-08-18 — snora 0.35.0.** snora 0.34.0 raises the
+> `border` role's contrast in the `light` and `dark` presets, which **changes
+> what arama renders**. Their release notes name visual-regression baselines
+> containing card or dialog borders as the thing to re-check — and this RFC's
+> deliverable is exactly such a baseline.
+>
+> **Do Task 028 (the 0.33 → 0.35 upgrade) first, alone, with its own captures.**
+> If the upgrade lands during this work, every before/after pair carries a
+> typography change *and* a border change, and neither is attributable. That is
+> the failure RFC 040 §3.1 exists to prevent.
+>
+> **§2 below is unchanged and still binding:** once Task 028 has landed, this
+> work makes no dependency change of its own. The lockfile it starts from is
+> the one Task 028 produced.
+
 ## 1. Design authority
 
 1. [RFC 043](../proposed/043-typography-roles-and-prose-readability.md);
@@ -23,20 +38,22 @@ RFC left open and names the traps.
 
 ## 2. There is no dependency change. Do not make one.
 
-`snora = "0.33"` with `features = ["design"]` is already in `Cargo.toml`, and
-`Cargo.lock` already resolves `snora 0.33.0`. **The typography API is present in
-that exact version** — verified at `snora-style-0.33.0/src/text.rs:27-57`
-(`body_size` … `display_size`) and `snora-design-0.33.0/src/typography.rs:32`
-(`Typography`).
+`snora` with `features = ["design"]` is already in `Cargo.toml`. **The
+typography API is present and unchanged across this range** — verified at
+`snora-style-0.33.0/src/text.rs:27-57` (`body_size` … `display_size`) and
+`snora-design-0.33.0/src/typography.rs:32` (`Typography`). snora's 0.34/0.35
+notes record no API break, and RFC-036's additive-only covenant freezes
+`Typography` and `TextRole` by name.
 
-snora 0.33.1 is documentation-only. Bumping to it is harmless and buys nothing.
+**Re-verify against whatever version Task 028 leaves resolved**, rather than
+against the 0.33.0 figures above. If the API is not reachable as described,
+stop and report it — that would mean my verification was wrong, and it is a
+better outcome than working around it.
+
 **Do not bundle a dependency change into a visual-change diff** — it costs the
 one property that makes this work easy to review, which is that every rendered
-difference has a line of arama's own code behind it.
-
-If you find the API is *not* reachable as described, stop and report it. That
-would mean my verification was wrong, and it is a better outcome than working
-around it.
+difference has a line of arama's own code behind it. That is the whole reason
+the snora upgrade was split out into Task 028 rather than folded in here.
 
 ## 3. The settled scope decision — departures only
 
