@@ -7,6 +7,15 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+---
+
+## [0.40.1]
+
+A fix-only release. Nothing changes compatibility with existing cache,
+settings, or media data, and no action is required when upgrading — though if
+you have old files in a `.arama-local/bin/` folder beside an arama executable
+from before 0.40.0, the Security note below concerns you.
+
 ### Changed
 
 - **Dialog edges and the dimmed background behind them are easier to see.**

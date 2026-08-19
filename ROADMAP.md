@@ -123,19 +123,29 @@ defect.
   explaining the high-contrast themes is the smallest, lowest-contrast wrapping
   prose in the application.
 
-  **Resequenced 2026-08-18 to follow the snora 0.35 upgrade below**, which
-  changes border contrast in the `light` and `dark` presets. This RFC's
-  deliverable is before/after captures of surfaces that include those borders;
-  landing both at once would have made neither attributable.
+  **Was sequenced behind the snora upgrade below**, which changed border
+  contrast and the modal dim; this RFC's deliverable is before/after captures
+  of surfaces that include both, and landing them together would have made
+  neither attributable. **That upgrade shipped in 0.40.1, so this is now
+  unblocked** and starts from its lockfile.
 
   *Placed here rather than under theme C* because readability is a quality of
   what a user already does, not something they currently cannot do.
-- **snora 0.33 → 0.35.** *Task 028, authorized 2026-08-18.* Carries snora's
-  `border` contrast repair — 1.28:1 → 3.12:1 in `light`, 1.19:1 → 3.17:1 in
-  `dark`, against WCAG's 3:1 floor for non-text boundaries. A visible change,
-  so it ships alone with its own captures and the two high-contrast presets as
-  a byte-identical control. Reported to snora by **tekstide**, who evaluated
-  snora, declined to adopt, and sent their findings anyway.
+- **~~snora 0.33 → 0.38.~~** *Shipped in 0.40.1.* Carries snora's `border`
+  contrast repair and its stronger modal dim, both accessibility fixes against
+  WCAG's 3:1 floor for non-text boundaries. Reported to snora by **tekstide**,
+  who evaluated snora, declined to adopt, and sent their findings anyway.
+
+  **arama's captures answered a question snora's own suite structurally cannot**
+  — see [`dialog-card-edge-contrast-measured`](./rfcs/notes/dialog-card-edge-contrast-measured.md).
+  The 1 px border is invisible against the dim (1.02:1 light, 1.23:1 dark);
+  what outlines the card is the dim-to-surface step at 3.46:1 and 3.89:1. That
+  confirms the fill route snora's 0.37.0 change targeted, and means the border
+  repair does its work at the card's *inner* edge rather than the outline.
+
+  **The cost:** three capture attempts, two of which produced plausible wrong
+  answers from pixels that were not the thing being measured. Both notes
+  record the guard that would have caught either.
 - **~~Similarity-dialog cache-error tier routing (RFC 035).~~** *Shipped.*
   Closed RFC 033's Part B deferral. Cache-read failures in both similarity
   dialogs now surface as one inline message per dialog open, with partial
