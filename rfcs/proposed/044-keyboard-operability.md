@@ -9,7 +9,8 @@ it was. See §0.2, §2.2, §2.3, §3.1.
 regions, and see where focus is.
 **Touches.** `app/src/core/subscription.rs`, `app/src/core.rs` state, `view.rs`
 styling. Possibly `crates/theme`. No product logic, no engine, no cache.
-**Depends on.** Task 028 (snora 0.33 → 0.35). Nothing else.
+**Depends on.** Task 028 (snora 0.33 → 0.38), shipped in 0.40.1. Nothing else.
+**Handoff:** [044 handoff](../handoffs/044-keyboard-operability-handoff.md).
 
 ## Summary
 
