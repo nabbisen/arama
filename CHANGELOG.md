@@ -7,6 +7,23 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+### Changed
+
+- **Dialog edges and the dimmed background behind them are easier to see.**
+  arama's design system raised the contrast of the line around dialog cards, and
+  strengthened the shading drawn over the gallery while a dialog is open. Both
+  are accessibility repairs: the old dialog edge sat below the level a boundary
+  needs to be reliably visible, and on the light theme a dialog card was close
+  to indistinguishable from the shading behind it.
+
+  You will notice this most on the light and dark themes. **The two
+  high-contrast themes are unchanged** apart from the shading, which is
+  slightly stronger everywhere — they already drew their edges well above the
+  threshold.
+
+  Nothing else about arama's appearance changes, and nothing you have stored is
+  affected.
+
 ### Security
 
 - **arama stopped recognising its own old managed-ffmpeg folder, and 0.40.0 is
