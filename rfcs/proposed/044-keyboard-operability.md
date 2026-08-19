@@ -136,6 +136,23 @@ every check was green.
   is a human judgement a hash cannot make. Expect to keep one rendered capture
   for the judgement and use snapshots for the regression guard.
 
+> **Second route confirmed 2026-08-19, and it was not asked for.** Driving arama
+> under forced XWayland (`env -u WAYLAND_DISPLAY DISPLAY=:1`, arama itself as
+> the launched process) delivers **both pointer and keyboard** events to the
+> real application — verified across packages 116 and 117, including typed text
+> and `Return`. Renders identically to native Wayland at the same size.
+>
+> So **0.1 is now runnable against the real application**, not only through
+> `iced_test`; **Tier 3's focus-indicator captures have a second viable route**;
+> and once this RFC ships, **Escape and F6 become directly testable the same
+> way.** Two captures of the same state from independent launches came back
+> md5-identical, so this route supports pixel controls rather than only
+> eyeballing.
+>
+> The earlier negative — pointer motion but no buttons — was a *different
+> configuration*: arama running native-Wayland while `xdotool` talked to
+> XWayland, which cannot work because XTEST delivers only to X clients.
+
 **The fallback, if the in-process route fails.** snora reports another adopter
 has working native-Wayland keyboard injection needing no root, no daemon and no
 `uinput`; details are pending that team's permission. They also passed on a trap
