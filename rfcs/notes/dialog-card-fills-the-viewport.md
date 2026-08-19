@@ -1,17 +1,15 @@
-# A large image makes the media dialog cover the whole viewport
+# The media dialog's card fills the viewport, by arama's own choice
 
-**Found:** 2026-08-20, while reviewing Task 028's captures. The finding is
-incidental to that work and independent of it.
-**Status:** recorded, not scheduled. Needs one measurement before it can be
-called a defect.
+**Found:** 2026-08-20, while reviewing Task 028's captures. Cause established
+from source the same day, after a first pass that guessed at it.
+**Status:** understood, not a defect, and not scheduled. Recorded because it
+changes what evidence a dialog capture can produce.
 
-## What was observed
+## What happens
 
-In every Task 028 capture with the Media Focus dialog open over a gallery of
-real photographs, the dialog card **spans the entire screen**. Its border sits
-on the screen edge.
-
-Row scan at `y=700` of `after-0.38/light-dialog-bright.png`:
+With the Media Focus dialog open, the dialog card **spans the entire screen**
+and its border sits on the screen edge. Row scan at `y=700` of a light-preset
+capture:
 
 ```text
 x=0     #898C8F   ← the dialog card's border
@@ -19,45 +17,60 @@ x=2..   #FFFFFF   ← the card's own surface
 x=2559  #898C8F   ← the border again
 ```
 
-The same holds in `dark` (`#69717D` at `x=0`, `#1F242B` surface) and vertically
-— a sample at `y=1430` is still card surface.
+Same in `dark` (`#69717D` border, `#1F242B` surface), and vertically too.
 
-**The card sizes to its content**, and the fixture images are full-resolution
-phone photographs.
+## Why — and it is neither the window size nor the image
 
-## Why it may matter
+snora sizes the card **from its content**
+(`snora-0.38.0/src/overlay/dialog.rs:39-46`): `center(container(dialog.content)
+.padding(...))`. A `container` with no explicit width shrinks to its child, so
+the card is exactly as large as the application makes its content.
 
-RFC 036 gave the similarity dialogs their absence states. Their text was legible
-only where it happened to land on neutral background, because snora's overlay
-drew no card — reported upstream, fixed upstream, and adopted in RFC 040.
-snora then went further: 0.34.0 raised the card border's contrast and 0.37.0
-strengthened the modal dim, both because a modal must be distinguishable from
-what is behind it.
+arama's content asks for all of it —
+`crates/ui/widgets/src/dialog/media_focus_dialog/view.rs:33-47`:
 
-**If the card covers everything, none of that carries information.** There is
-nothing behind to be dimmed, and no edge to see the border against. That is
-close to the defect RFC 040 fixed — *"a modal has no modality signal at all"* —
-arriving by a different route: not because the dim is invisible, but because
-there is no visible backdrop for it to act on.
+```rust
+scrollable(container(img).width(Fill).center(Fill))
+    .width(Fill)
+    .height(Fill)
+```
 
-It also means arama currently **cannot answer the question snora asked** — does
-a 3.1:1 border read over photographic content — because in these captures there
-is no photographic content visible outside the card.
+`Fill` expands to the full available space, so the card covers the viewport at
+**any** window size and for **any** image.
 
-## What is not yet known, and it is the whole question
+The first version of this note said a smaller window would settle whether this
+was an artifact. It would not have — that guess is corrected here rather than
+quietly replaced.
 
-**Whether this happens at ordinary window sizes with ordinary images.** The
-captures were taken fullscreen at 2560×1440 with large photographs. Both of
-those push the card outward, and neither is necessarily what a user has.
+## This is not a defect
 
-Task 028's §5 retake — the same two captures at a smaller window — will show
-this directly, at no extra cost. **Wait for it.** If the dim is visible there,
-this is an artifact of the capture setup and the note can be closed. If the card
-still fills the viewport, it is a real sizing question worth an RFC.
+A full-viewport image viewer is a reasonable design for looking at a photograph,
+and nothing about it is broken.
 
-## What not to do yet
+**What it does mean:** snora's card, border and dim contribute **nothing** to
+the Media Focus dialog. There is no visible backdrop for the dim to act on and
+no field for the border to be seen against. arama adopted RFC 040's card and
+0.34.0's border repair and 0.37.0's stronger dim, and **none of them changes
+what this dialog looks like.**
 
-Do not cap the dialog's size, or change how the image is fitted, on the strength
-of this note. Both would be reasonable-sounding fixes to a problem that has not
-been shown to affect a user, and the measurement that settles it is already
-scheduled.
+Worth holding deliberately rather than assuming those upstream repairs improved
+every modal.
+
+## The consequence that actually cost something
+
+Task 028 §5 asks — because snora asked, and their own suite structurally cannot
+— whether a 3.1:1 border reads over photographic content. That is a question
+about a card **with a dimmed gallery behind it**.
+
+**The Media Focus dialog cannot answer it**, and a full capture pass was spent
+before anyone noticed. The Similar Pairs dialog can: it sets no `Fill` and its
+thumbnails are fixed at `MAX_THUMBNAIL_SIZE`, so its card is content-sized and
+the dim stays visible around it — and it is the dialog RFC 036 and RFC 040 were
+actually about.
+
+## Left open
+
+Whether any other arama dialog is greedy in the same way. Only two exist today
+(`MediaFocusDialog`, `SimilarPairsDialog`) and the settings surface is a page
+now, so the answer is currently "no" — but the next dialog added will not
+inherit that automatically, and nothing checks it.
