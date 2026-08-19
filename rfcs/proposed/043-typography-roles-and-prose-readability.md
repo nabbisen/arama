@@ -29,9 +29,15 @@ typography API is **verified present in the exact version already in
 `Cargo.lock`** — `snora-style-0.33.0/src/text.rs:27-57` defines all six size
 helpers, `snora-design-0.33.0/src/typography.rs:32` defines `Typography`.
 
-0.33.1 is documentation-only and the existing `"0.33"` requirement already
-admits it. **This RFC requires no upgrade, no lockfile change, and carries no
-dependency risk** — which is not true of any other RFC in this portfolio.
+**This RFC still makes no dependency change of its own** — but the version it
+builds on is no longer the one in `Cargo.lock` when this was written. snora has
+since shipped 0.34 through 0.38, two of them with rendered changes arama must
+photograph separately, so the upgrade was split into **Task 028** and sequenced
+ahead of this work. The typography API is unchanged across that range and 0.38
+adds line-height helpers this RFC uses (§5.2).
+
+The point the paragraph above made still holds: nothing here is blocked on
+snora, and the scale was reachable the whole time.
 
 ## The honest caveat, stated first
 
