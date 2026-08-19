@@ -196,6 +196,20 @@ mechanism, and it should be written in the code, not left for someone to find.
 must be touched individually** — there is no global lever. That is the ~13
 strings ≥60 characters and a judgement call on the ~51 ≥30, not all 108.
 
+> **snora 0.38.0 (RFC-068) adds six line-height helpers to
+> `snora-style::text`**, one per role, alongside the existing size helpers.
+> Purely additive, no rendered change.
+>
+> **This does not change the design** — there is still no global lever and every
+> prose site is still touched individually. It changes the *call*: read the
+> multiplier through the helper rather than reaching into
+> `tokens.typography.<role>.line_height` directly, matching how sizes are
+> already read. **Verify the helper names against the crate**; they are not
+> quoted here because I have not seen them.
+>
+> Task 028 lands 0.38 for this reason, so this work needs no dependency change
+> of its own.
+
 **5.3 Departures get an explicit role.** Titles, headings, secondary metadata,
 and the six literals in §1. Ordinary single-line body text is left alone.
 
