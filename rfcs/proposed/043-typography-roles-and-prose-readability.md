@@ -207,13 +207,25 @@ strings ≥60 characters and a judgement call on the ~51 ≥30, not all 108.
 > Purely additive, no rendered change.
 >
 > **This does not change the design** — there is still no global lever and every
-> prose site is still touched individually. It changes the *call*: read the
-> multiplier through the helper rather than reaching into
-> `tokens.typography.<role>.line_height` directly, matching how sizes are
-> already read. **Verify the helper names against the crate**; they are not
-> quoted here because I have not seen them.
+> prose site is still touched individually. It changes the *call*, and by more
+> than expected: **the helpers return `iced::widget::text::LineHeight` directly,
+> not a bare multiplier**, so no `LineHeight::Relative(..)` wrapping is needed.
 >
-> Task 028 lands 0.38 for this reason, so this work needs no dependency change
+> Verified in `snora-style-0.38.0/src/text.rs` — six helpers, one per role,
+> `body_line_height` (`:45`), `body_small_line_height` (`:57`),
+> `label_line_height` (`:69`), `title_line_height` (`:81`),
+> `heading_line_height` (`:93`), `display_line_height` (`:105`), each
+> `fn(&Tokens) -> LineHeight`.
+>
+> So a prose site becomes:
+>
+> ```rust
+> text(t("…"))
+>     .size(body_size(&tokens))
+>     .line_height(body_line_height(&tokens))
+> ```
+>
+> Task 028 landed 0.38 for this reason, so this work needs no dependency change
 > of its own.
 
 **5.3 Departures get an explicit role.** Titles, headings, secondary metadata,

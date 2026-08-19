@@ -84,12 +84,23 @@ remains" is an acceptance criterion and it is checkable by grep.
 `LineHeight::default()` is a fixed `Relative(1.3)` in iced 0.14 with no settings
 hook. Per-site or nothing.
 
-snora 0.38.0 adds **six line-height helpers** to `snora-style::text`, one per
-role, mirroring the size helpers. Use them rather than reaching into
-`tokens.typography.<role>.line_height` directly — but **confirm the names
-against the crate**, since I am relaying them from a release note rather than
-from the source. Task 028 lands 0.38 precisely so this work needs no dependency
-change of its own.
+snora 0.38.0 adds **six line-height helpers**, one per role, mirroring the size
+helpers. Names verified in `snora-style-0.38.0/src/text.rs`:
+`body_line_height`, `body_small_line_height`, `label_line_height`,
+`title_line_height`, `heading_line_height`, `display_line_height` — each
+`fn(&Tokens) -> LineHeight`.
+
+**They return `LineHeight`, not a multiplier**, so there is no
+`LineHeight::Relative(..)` to wrap:
+
+```rust
+text(t("…"))
+    .size(body_size(&tokens))
+    .line_height(body_line_height(&tokens))
+```
+
+Task 028 landed 0.38 precisely so this work needs no dependency change of its
+own.
 
 **3.4 Real hierarchy where hierarchy exists.** Dialog titles, page headings, the
 fatal-startup title. Do not invent hierarchy that is not there — a screen with
