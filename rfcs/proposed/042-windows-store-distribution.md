@@ -10,9 +10,9 @@ No reply is expected and none is needed: Option A delivers the single Store
 listing regardless. **Waiting costs only time; it buys the single-binary
 outcome if the upstream change lands.** Revisit when candle replies, or when
 the Store becomes a priority.
-**Blocked on [RFC 041](../done/041-application-data-locations.md).** A packaged arama
-cannot write to its own install directory, so it cannot run until data locations
-move. Nothing here is actionable before that ships.
+**RFC 041's prerequisite is met** — it shipped in 0.40.0. A packaged arama
+cannot write to its own install directory; data locations moved, so that no
+longer blocks anything here.
 **Tracks.** Publish arama to the Microsoft Store as a single listing, and decide
 whether the CPU and CUDA builds can become one executable.
 **Touches.** Packaging and the release workflow. Possibly `crates/ai`'s CUDA
