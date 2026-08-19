@@ -2,6 +2,14 @@
 
 **Status.** Proposed — **accepted for implementation by the project owner
 2026-08-16**. Remains in `rfcs/proposed/` until the work ships, per RFC 000.
+**Deliberately waiting, owner's decision 2026-08-20.** Both blocking inputs
+closed on 2026-08-17 — the capability question by execution, Phase 0 by
+building — so this is a choice to wait on
+[candle#3900](https://github.com/huggingface/candle/issues/3900), not a block.
+No reply is expected and none is needed: Option A delivers the single Store
+listing regardless. **Waiting costs only time; it buys the single-binary
+outcome if the upstream change lands.** Revisit when candle replies, or when
+the Store becomes a priority.
 **Blocked on [RFC 041](../done/041-application-data-locations.md).** A packaged arama
 cannot write to its own install directory, so it cannot run until data locations
 move. Nothing here is actionable before that ships.

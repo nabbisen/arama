@@ -300,9 +300,21 @@ So this splits into two questions, and the second is the real one:
 
 **Recommendation: F6, plus a visible affordance in the footer.** arama already
 has a footer that is a live zone. A hint costs one line and is seen by the
-people who need it, which a docs page is not. **This is a design question the
-owner may want to weigh in on**, since it puts text on a surface every user sees
-constantly.
+people who need it, which a docs page is not.
+
+> **Settled 2026-08-20 — owner accepted.** F6 / Shift+F6, **with a hint in the
+> footer.** So the binding is discoverable in the application rather than only
+> in documentation, and arama becomes the first consumer to ship zone
+> navigation with an affordance rather than a convention alone.
+>
+> Two things the implementation must decide, and neither is settled here:
+> **what the hint says** — it is competing for space in a footer that already
+> carries the thumbnail slider and a file count — and **whether it is
+> permanent or appears on first focus movement.** Both are cheap to try and
+> should be decided against a rendered capture, not in prose.
+>
+> This is also the piece snora asked to hear about: they have no downstream
+> data on F6 from anyone, and said so.
 
 **3.2 Does Tab do anything?** Phase 0.1 answers what it does today. If iced
 provides no traversal, arama can call `operation::focus_next()`, which snora
