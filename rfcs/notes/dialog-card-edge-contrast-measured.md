@@ -51,6 +51,39 @@ content. Not at the outline. That is not where a reader would assume, and it is
 worth knowing before anyone treats "border contrast repaired" as "the card
 outline is now stronger".
 
+## Confirmed and generalised upstream, 2026-08-20
+
+snora re-derived the figure before believing it — the dim over light content
+composites to `0.56 × content`, and `border` is `0.537`, so from pure white it
+is **1.04:1** against our measured 1.02. **Arithmetic, not an artefact of one
+gallery.**
+
+They then swept the full greyscale content range for all four presets:
+
+| preset | `border ǀ dim` minimum | `dim ǀ fill` range |
+|---|---|---|
+| `light` | **1.00** | 3.24 – 21.00 |
+| `dark` | **1.00** | 3.16 – 15.61 |
+| `high_contrast_light` | **1.00** | 3.24 – 21.00 |
+| `high_contrast_dark` | **1.00** | 4.01 – 19.80 |
+
+**The border reaches 1.00:1 against the dim in every preset** — only the content
+that does it differs. They expected the high-contrast presets to invert the
+finding; they do not.
+
+**They withdrew the rationale, not the repair.** Their RFC-058 had justified the
+border change with *"a border is that boundary for the dialog card"* — against
+the dim it is not. The repair stays necessary because it works at the card's
+inner edge (3.38:1 and 3.17:1 against fill), which is where it always did.
+**Nothing in the palette changed:** no value, no `DIM_ALPHA`, no assertion. Only
+the explanation was wrong.
+
+*Their sheet surface, measured because arama's report prompted it, is not
+token-styled at all — it takes iced's `extended_palette()`, so its border does
+1.02–1.35:1 against its own fill and is carried entirely by the fill-versus-dim
+route. arama uses no sheets; recorded because it is the same finding one surface
+over.*
+
 ## A detail that dissolves the original question
 
 **No arama dialog puts the border directly against raw photo pixels.** Both
