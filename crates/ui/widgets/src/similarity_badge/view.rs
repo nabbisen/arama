@@ -14,7 +14,12 @@ impl SimilarityBadge {
         Message: 'a,
     {
         let s = format!("{:.1} %", self.similarity * 100.0);
-        let label = container(text(s).size(12)).width(60);
+        // RFC 043: `body_small` tried here first per the scale, but this
+        // is the one site the handoff flagged as possibly needing to stay
+        // a literal - the container is a fixed 60px and the worst case
+        // ("100.0 %") is tight even at 12px. No `.line_height()`: single
+        // line, fixed content, nothing to wrap.
+        let label = container(text(s).size(arama_theme::body_small_size())).width(60);
 
         let bar = progress_bar(MIN_SIMILARITY_RANGE..=MAX_SIMILARITY_RANGE, self.similarity).style(
             move |theme: &Theme| {

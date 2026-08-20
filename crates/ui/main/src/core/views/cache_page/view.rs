@@ -70,7 +70,12 @@ impl CachePage {
                 } else {
                     t("cache.load_error.stale")
                 };
-                text(format!("{prefix}: {message}")).into()
+                // Arbitrary-length underlying error, same reasoning as
+                // the other dynamic error sites in this RFC's pass.
+                text(format!("{prefix}: {message}"))
+                    .size(arama_theme::body_size())
+                    .line_height(arama_theme::body_line_height())
+                    .into()
             })
             .unwrap_or_else(|| text("").into());
 
@@ -172,8 +177,17 @@ impl CachePage {
                 )))
             });
 
+        // RFC 043: a path is the one string where a misread character
+        // changes the meaning - `body_small` over the old 13px literal,
+        // with a line-height since a long path can still wrap in this
+        // fixed-portion column.
         row![
-            container(text(&r.dir_path).size(13)).width(FillPortion(5)),
+            container(
+                text(&r.dir_path)
+                    .size(arama_theme::body_small_size())
+                    .line_height(arama_theme::body_small_line_height())
+            )
+            .width(FillPortion(5)),
             container(text(r.file_count)).width(FillPortion(1)),
             container(text(human_size(r.total_size))).width(FillPortion(1)),
             container(cached_at_col).width(FillPortion(2)),

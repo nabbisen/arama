@@ -54,7 +54,12 @@ pub fn status_line<Message: 'static>(
     if sentences.is_empty() {
         container(space()).into()
     } else {
-        text(sentences.join(" ")).into()
+        // RFC 043: up to two joined sentences - genuinely wrapping prose
+        // in either dialog this is shared by.
+        text(sentences.join(" "))
+            .size(arama_theme::body_size())
+            .line_height(arama_theme::body_line_height())
+            .into()
     }
 }
 
@@ -72,7 +77,10 @@ pub fn absence_message_key(nothing_indexed: bool) -> &'static str {
 
 /// Renders [`absence_message_key`] as a single element.
 pub fn absence_message<Message: 'static>(nothing_indexed: bool) -> Element<'static, Message> {
-    text(t(absence_message_key(nothing_indexed))).into()
+    text(t(absence_message_key(nothing_indexed)))
+        .size(arama_theme::body_size())
+        .line_height(arama_theme::body_line_height())
+        .into()
 }
 
 #[cfg(test)]

@@ -14,7 +14,9 @@ impl AiSettings {
             text(t("settings.ai.clip_ready")).into()
         } else {
             column![
-                text(t("settings.ai.clip_missing")),
+                text(t("settings.ai.clip_missing"))
+                    .size(arama_theme::body_size())
+                    .line_height(arama_theme::body_line_height()),
                 button(text(t("settings.ai.clip_load"))).on_press(Message::LoadStart),
             ]
             .into()
@@ -34,7 +36,9 @@ impl AiSettings {
             }
             FfmpegState::Ready => text(t("settings.ai.ffmpeg_ready")).into(),
             FfmpegState::Missing => column![
-                text(t("settings.ai.ffmpeg_external")),
+                text(t("settings.ai.ffmpeg_external"))
+                    .size(arama_theme::body_size())
+                    .line_height(arama_theme::body_line_height()),
                 button(text(t("settings.ai.ffmpeg_recheck"))).on_press(Message::CheckFfmpeg),
             ]
             .into(),
@@ -42,7 +46,9 @@ impl AiSettings {
                 text(ffmpeg_failure_message(
                     state,
                     matches!(self.ffmpeg_preference, FfmpegLocationPreference::Auto)
-                )),
+                ))
+                .size(arama_theme::body_size())
+                .line_height(arama_theme::body_line_height()),
                 button(text(t("settings.ai.ffmpeg_recheck"))).on_press(Message::CheckFfmpeg),
             ]
             .into(),
@@ -67,6 +73,8 @@ impl AiSettings {
                         // so is_auto is always false here.
                         ffmpeg_failure_message(*state, false)
                     ))
+                    .size(arama_theme::body_size())
+                    .line_height(arama_theme::body_line_height())
                     .into()
                 }
             } else {
@@ -96,14 +104,24 @@ impl AiSettings {
             .into(),
             ModelCapabilityState::Downloading => text(t("settings.ai.wav2vec2_downloading")).into(),
             ModelCapabilityState::Errored(error) => column![
-                text(format!("{}: {error}", t("settings.ai.wav2vec2_error"))),
+                text(format!("{}: {error}", t("settings.ai.wav2vec2_error")))
+                    .size(arama_theme::body_size())
+                    .line_height(arama_theme::body_line_height()),
                 button(text(t("settings.ai.wav2vec2_retry"))).on_press(Message::GetWav2vec2Start),
             ]
             .into(),
         };
 
+        // Arbitrary-length status/error text (download progress, model
+        // load failures) - same reasoning as the errored-wav2vec2 branch
+        // above: length isn't known ahead of time, so it gets a role
+        // rather than staying at the implicit default.
         let message = if !self.message.is_empty() {
-            container(text(self.message.to_owned()))
+            container(
+                text(self.message.to_owned())
+                    .size(arama_theme::body_size())
+                    .line_height(arama_theme::body_line_height()),
+            )
         } else {
             container(space())
         };

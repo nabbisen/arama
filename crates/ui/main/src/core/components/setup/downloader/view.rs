@@ -51,11 +51,19 @@ impl Downloader {
                         format!("{} ({} MB)", state_name(&state.config), size_str)
                     };
 
-                    let mut item =
-                        column![text(format!("{} : {}", name, status)).size(14)].spacing(5);
+                    let mut item = column![
+                        text(format!("{} : {}", name, status))
+                            .size(arama_theme::body_small_size())
+                            .line_height(arama_theme::body_small_line_height())
+                    ]
+                    .spacing(5);
                     if state.download_state == DownloadState::ExternalRequired {
                         item = item
-                            .push(text(t("setup.ffmpeg.external_help")).size(14))
+                            .push(
+                                text(t("setup.ffmpeg.external_help"))
+                                    .size(arama_theme::body_size())
+                                    .line_height(arama_theme::body_line_height()),
+                            )
                             .push(
                                 row![
                                     button(text(t("setup.ffmpeg.recheck")))

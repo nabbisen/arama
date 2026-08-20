@@ -186,11 +186,17 @@ fn fatal_startup_view(message: &str) -> Element<'_, Message> {
 
     center(
         column![
-            text(t("startup.fatal_error.title")).size(20),
+            text(t("startup.fatal_error.title"))
+                .size(arama_theme::title_size())
+                .line_height(arama_theme::title_line_height()),
             space().height(12),
-            text(t("startup.fatal_error.body")),
+            text(t("startup.fatal_error.body"))
+                .size(arama_theme::body_size())
+                .line_height(arama_theme::body_line_height()),
             space().height(12),
-            text(message.to_owned()),
+            text(message.to_owned())
+                .size(arama_theme::body_size())
+                .line_height(arama_theme::body_line_height()),
         ]
         .max_width(560)
         .spacing(4),

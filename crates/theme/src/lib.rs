@@ -134,6 +134,76 @@ pub fn danger(_theme: &Theme, status: button::Status) -> button::Style {
     snora::design::style::button::danger(&tokens(), status)
 }
 
+// ---------------------------------------------------------------------------
+// Text role functions (RFC 043) — the six-role type scale, resolved against
+// the active preset with no argument, same shape as the button functions
+// above. Kept here rather than importing `snora` into every UI crate that
+// wants a role: this is the only crate the workspace wires to `snora`
+// directly (besides `app`), so this is the seam.
+// ---------------------------------------------------------------------------
+
+use iced::{Pixels, widget::text::LineHeight};
+
+/// `body` text size — ordinary explanatory text.
+pub fn body_size() -> Pixels {
+    snora::design::style::text::body_size(&tokens())
+}
+
+/// `body` line height.
+pub fn body_line_height() -> LineHeight {
+    snora::design::style::text::body_line_height(&tokens())
+}
+
+/// `body_small` text size — secondary metadata, compact help.
+pub fn body_small_size() -> Pixels {
+    snora::design::style::text::body_small_size(&tokens())
+}
+
+/// `body_small` line height.
+pub fn body_small_line_height() -> LineHeight {
+    snora::design::style::text::body_small_line_height(&tokens())
+}
+
+/// `label` text size — button, field and chip labels.
+pub fn label_size() -> Pixels {
+    snora::design::style::text::label_size(&tokens())
+}
+
+/// `label` line height.
+pub fn label_line_height() -> LineHeight {
+    snora::design::style::text::label_line_height(&tokens())
+}
+
+/// `title` text size — card / dialog / notice title.
+pub fn title_size() -> Pixels {
+    snora::design::style::text::title_size(&tokens())
+}
+
+/// `title` line height.
+pub fn title_line_height() -> LineHeight {
+    snora::design::style::text::title_line_height(&tokens())
+}
+
+/// `heading` text size — page or section heading.
+pub fn heading_size() -> Pixels {
+    snora::design::style::text::heading_size(&tokens())
+}
+
+/// `heading` line height.
+pub fn heading_line_height() -> LineHeight {
+    snora::design::style::text::heading_line_height(&tokens())
+}
+
+/// `display` text size — rare major page title.
+pub fn display_size() -> Pixels {
+    snora::design::style::text::display_size(&tokens())
+}
+
+/// `display` line height.
+pub fn display_line_height() -> LineHeight {
+    snora::design::style::text::display_line_height(&tokens())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

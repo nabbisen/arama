@@ -7,6 +7,24 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+### Changed
+
+- **Text you read has a shape now.** arama drew almost everything at one size:
+  a dialog's title looked the same as the paragraph under it, and nothing set
+  line spacing anywhere, so wrapped sentences sat closer together than they
+  should. Titles, ordinary prose and small secondary text are now distinct, and
+  anything that wraps has room to breathe between lines.
+
+  **Most text is unchanged in size** — arama's default already matched what the
+  design system asks for. What changes is the difference *between* kinds of
+  text, and the spacing inside paragraphs. That difference is larger in Japanese
+  than in English, because the characters are denser.
+
+- **The note explaining the high-contrast themes is readable.** It was the
+  smallest text in the application and also the faintest — a paragraph about an
+  accessibility feature, set below the size and contrast that feature exists to
+  provide. It is now ordinary size at full contrast.
+
 ---
 
 ## [0.40.1]

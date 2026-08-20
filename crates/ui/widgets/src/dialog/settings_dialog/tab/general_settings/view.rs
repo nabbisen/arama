@@ -101,9 +101,14 @@ impl GeneralSettings {
             },
         );
 
+        // RFC 043 §2: this note explains the high-contrast themes, so
+        // rendering it at 12px with reduced contrast worked against the
+        // accessibility feature it describes. `body_small` fits its role
+        // (secondary, skimmable help text) without compounding that with
+        // `text::secondary`'s own contrast reduction on top.
         let theme_note = text(t("settings.general.theme.hc_note"))
-            .size(12)
-            .style(text::secondary);
+            .size(arama_theme::body_small_size())
+            .line_height(arama_theme::body_small_line_height());
 
         container(
             column![
