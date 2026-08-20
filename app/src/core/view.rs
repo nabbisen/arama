@@ -8,12 +8,21 @@ use lucide_icons::iced::{
     icon_database, icon_folder, icon_panel_left_close, icon_panel_left_open, icon_settings,
 };
 use snora::{AppLayout, Dialog as SnoraDialog, ToastPosition, design::render};
+use snora_core::focus::FocusZone;
 
 #[cfg(test)]
 use super::ARAMA_DATA_HOME_TEST_LOCK;
 use super::{App, Dialog, NavPage, message::Message, setup_complete};
 
 impl App {
+    /// RFC 044 §2.3: whether `zone`'s focus ring should render - both
+    /// that it is the current zone *and* that cycling has actually run
+    /// at least once (`focus_visible`), so a mouse-only session never
+    /// sees a ring around `Body` from first launch.
+    fn is_zone_focused(&self, zone: FocusZone) -> bool {
+        self.focus_visible && self.focus_zone == zone
+    }
+
     pub fn view(&self) -> Element<'_, Message> {
         // RFC 041, RFC 017 Fatal-startup tier: no toast layer, no
         // AppLayout skeleton, nothing dismissible - arama has nowhere to
@@ -72,9 +81,10 @@ impl App {
                 tooltip::Position::Right,
             );
 
-            column![explorer, cache, settings]
-                .spacing(4)
-                .padding(8)
+            container(column![explorer, cache, settings].spacing(4).padding(8))
+                .style(arama_theme::focus_ring_style(
+                    self.is_zone_focused(FocusZone::SideBar),
+                ))
                 .into()
         };
 
@@ -136,9 +146,20 @@ impl App {
             .padding(20)
             .into(),
         };
+        let body: Element<Message> = container(body)
+            .width(Fill)
+            .height(Fill)
+            .style(arama_theme::focus_ring_style(
+                self.is_zone_focused(FocusZone::Body),
+            ))
+            .into();
 
         // ── AppLayout skeleton ────────────────────────────────────────
-        let footer = self.footer.view().map(Message::FooterMessage);
+        let footer: Element<Message> = container(self.footer.view().map(Message::FooterMessage))
+            .style(arama_theme::focus_ring_style(
+                self.is_zone_focused(FocusZone::Footer),
+            ))
+            .into();
 
         let mut layout = self
             .toast_layout(body)

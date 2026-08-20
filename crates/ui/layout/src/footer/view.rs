@@ -1,3 +1,4 @@
+use arama_i18n::t;
 use iced::{
     Element,
     Length::{Fill, FillPortion},
@@ -38,6 +39,16 @@ impl Footer {
                                 .style(text::secondary),
                             text(format!("({} {} scanned)", self.dirs_count, dirs_label))
                                 .style(text::secondary),
+                            // RFC 044 §3.1: F6/Shift+F6 zone cycling has no
+                            // other discoverable affordance - documentation
+                            // alone is close to no binding at all, per
+                            // snora's own review. Permanent rather than
+                            // shown only on first movement: the footer is
+                            // already one of the three zones this hint
+                            // explains how to reach, so hiding it after one
+                            // use would remove the explanation from the
+                            // exact place someone re-orients from.
+                            text(t("footer.f6_hint")).style(text::secondary),
                         ]
                         .spacing(10)
                     ]

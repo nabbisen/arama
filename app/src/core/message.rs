@@ -62,4 +62,16 @@ pub enum Message {
     ToastDismiss(u64),
     ToastSweep,
     CursorMove(Point),
+    /// RFC 044: every key press, routed through `snora::keyboard`'s pure
+    /// helpers (`dismiss_on_escape`, `cycle_zones`) in `update` - this
+    /// variant carries the raw event rather than a pre-decided intent so
+    /// arama installs exactly one keyboard subscription for everything
+    /// this RFC adds.
+    KeyPressed(iced::keyboard::Key, iced::keyboard::Modifiers),
+    /// The keyboard subscription's fallback for events this RFC does not
+    /// use (`KeyReleased`, `ModifiersChanged`) - `Subscription::map`
+    /// requires producing a `Message` for every event on the stream, and
+    /// reusing an unrelated variant for "nothing happened" would be
+    /// misleading at every call site that matches on it.
+    NoOp,
 }

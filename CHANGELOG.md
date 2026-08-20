@@ -7,6 +7,25 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+### Added
+
+- **arama can now be used from the keyboard.** Previously nothing installed a
+  keyboard subscription at all: a dialog could only be closed with the mouse,
+  and there was no way to move between the side rail, the main area and the
+  footer without clicking into them.
+
+  - **Escape** closes an open dialog, or a context menu if one is open instead.
+  - **F6** (**Shift+F6** to go backward) moves between the side rail, the main
+    area and the footer, wrapping around. A hint in the footer ("F6 switches
+    panels") says so, since nothing else in the application would.
+  - Wherever focus currently is, a coloured border marks it — both colour and
+    thickness change with the current theme, including both high-contrast
+    presets, so the indicator does not rely on colour alone.
+
+  Arrow-key movement inside the photo grid, and keyboard shortcuts for actions
+  like delete or prune, are not part of this — this is about being able to
+  reach every part of the window, not about being fast once you're there.
+
 ### Changed
 
 - **Text you read has a shape now.** arama drew almost everything at one size:

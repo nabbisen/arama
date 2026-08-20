@@ -27,7 +27,10 @@
 use std::sync::atomic::{AtomicU8, Ordering};
 
 use arama_env::ThemePreset;
-use iced::{Theme, theme, widget::button};
+use iced::{
+    Border, Theme, theme,
+    widget::{button, container},
+};
 use snora::design::{Tokens, style::color::to_iced_color};
 
 // ---------------------------------------------------------------------------
@@ -202,6 +205,43 @@ pub fn display_size() -> Pixels {
 /// `display` line height.
 pub fn display_line_height() -> LineHeight {
     snora::design::style::text::display_line_height(&tokens())
+}
+
+// ---------------------------------------------------------------------------
+// Focus ring (RFC 044 §2.3) — the visible indicator for arama's own
+// zone-focus state, which iced 0.14 has no way to know about on its own.
+// ---------------------------------------------------------------------------
+
+/// A `container` style closure that draws `FocusTokens` as a border when
+/// `is_focused` is true, and nothing otherwise.
+///
+/// **Inset, not offset, deliberately.** `iced::Border` carries `color`,
+/// `width` and `radius` only — there is no equivalent of
+/// `FocusTokens::ring_offset`, so a ring drawn *outside* the zone's edge
+/// is not expressible as a container border. Accepted rather than adding
+/// a nested container for the offset: arama's zones are already large,
+/// low-density regions (the side rail, the footer, the whole body), not
+/// small controls in a dense grid, so an inset ring has room to read.
+///
+/// **Two channels, not one:** colour *and* width both come from the
+/// active preset's tokens, so the indicator does not rely on colour
+/// alone.
+pub fn focus_ring_style(is_focused: bool) -> impl Fn(&Theme) -> container::Style {
+    move |_theme: &Theme| {
+        if !is_focused {
+            return container::Style::default();
+        }
+
+        let focus = tokens().focus;
+        container::Style {
+            border: Border {
+                color: to_iced_color(focus.ring_color),
+                width: focus.ring_width,
+                radius: 0.0.into(),
+            },
+            ..container::Style::default()
+        }
+    }
 }
 
 #[cfg(test)]

@@ -121,6 +121,9 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "nav.cache" => "Cache",
         "nav.settings" => "Settings",
 
+        // Footer (RFC 044 §3.1)
+        "footer.f6_hint" => "F6 switches panels",
+
         // Setup wizard
         "setup.download" => "Download",
         "setup.skip" => "Skip",

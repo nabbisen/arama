@@ -173,6 +173,9 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "nav.cache" => "\u{30ad}\u{30e3}\u{30c3}\u{30b7}\u{30e5}", // キャッシュ
         "nav.settings" => "\u{8a2d}\u{5b9a}",                      // 設定
 
+        // Footer (RFC 044 §3.1)
+        "footer.f6_hint" => "F6 でパネルを切り替え",
+
         // Setup wizard
         "setup.download" => "\u{30c0}\u{30a6}\u{30f3}\u{30ed}\u{30fc}\u{30c9}", // ダウンロード
         "setup.skip" => "\u{30b9}\u{30ad}\u{30c3}\u{30d7}",                     // スキップ

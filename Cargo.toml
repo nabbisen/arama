@@ -37,6 +37,10 @@ arama-ui-widgets    = { version = "0", path = "crates/ui/widgets" }
 # UI
 iced                = { version = "0.14", features = ["image-without-codecs", "tokio"] }
 snora               = { version = "0.38", default-features = false, features = ["design"] }
+# RFC 044: frame-level zone navigation (`FocusZone`, `Cycle`, `ZonePresence`,
+# `next_zone`) - not re-exported through the `snora` facade, so this is a
+# direct edge to the same version already resolved transitively.
+snora-core          = { version = "0.38", default-features = false }
 
 # app control
 app-json-settings   = "2"

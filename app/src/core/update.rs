@@ -1,6 +1,7 @@
 mod cache;
 mod component;
 pub(super) mod ffmpeg;
+mod keyboard;
 mod ui;
 
 use iced::Task;
@@ -52,6 +53,10 @@ impl App {
             Message::ToastDismiss(id) => self.handle_toast_dismiss(id),
             Message::ToastSweep => self.handle_toast_sweep(),
             Message::CursorMove(point) => self.handle_cursor_move(point),
+
+            // --- keyboard (RFC 044) ---
+            Message::KeyPressed(key, modifiers) => self.handle_key_pressed(key, modifiers),
+            Message::NoOp => Task::none(),
         }
     }
 }

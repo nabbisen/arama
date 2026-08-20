@@ -76,6 +76,20 @@ pub struct App {
     /// Closed by default so the gallery has full width on startup.
     /// Session-only: not persisted across restarts.
     aside_open: bool,
+    /// RFC 044 §2.2: which skeleton zone F6 / Shift+F6 cycling currently
+    /// treats as focused. arama's own state, not iced's - `next_zone` is
+    /// pure and knows nothing about widgets. Drives 2.3's visible ring,
+    /// gated by `focus_visible` below. Session-only, like `aside_open`: a
+    /// page switch does not change which zones exist, so this
+    /// deliberately does not reset on `NavTo`.
+    focus_zone: snora_core::focus::FocusZone,
+    /// RFC 044 §2.3: whether the ring should render at all. `focus_zone`
+    /// defaults to `Body` before any key is pressed - rendering its ring
+    /// unconditionally would draw a permanent border around the whole
+    /// gallery for every mouse-only user from first launch, which is not
+    /// what "focus must be visible when it *moves*" means. Set `true` the
+    /// first time zone cycling actually runs; never reset afterward.
+    focus_visible: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -271,9 +285,24 @@ impl App {
                 settings_page,
                 cache_page: CachePage::default(),
                 aside_open: false,
+                focus_zone: snora_core::focus::FocusZone::Body,
+                focus_visible: false,
             },
             task,
         )
+    }
+
+    /// RFC 044 §2.2: which skeleton slots arama's layout populates, in
+    /// `next_zone`'s vocabulary. `ZonePresence` describes slot
+    /// *occupancy* (`AppLayout::header`/`side_bar`/`footer` being
+    /// `Some`), not visual presence - arama composes its header into
+    /// `body` (`view.rs`), so it never populates the `header` slot and
+    /// `next_zone` will never stop there, by construction. Static for
+    /// arama's layout today, so this takes no argument.
+    pub(crate) fn zone_presence() -> snora_core::focus::ZonePresence {
+        snora_core::focus::ZonePresence::none()
+            .side_bar(true)
+            .footer(true)
     }
 
     fn save_settings(&mut self) -> bool {
@@ -804,5 +833,258 @@ mod tests {
 
         let _ = std::fs::remove_dir_all(&data_home);
         let _ = std::fs::remove_dir_all(&legacy_local);
+    }
+
+    // --- RFC 044 Phase 0.1: what does the keyboard do in arama today? --
+    //
+    // Answered by running, not reading (handoff §4): `Simulator::tap_key`
+    // returns `event::Status::{Captured, Ignored}`, so "does anything
+    // consume this key today" is assertable in-process, per key, without
+    // a window or a compositor. arama installs no keyboard subscription
+    // and no focus operation anywhere (`subscription.rs` carries only the
+    // toast sweep), so the expectation is `Ignored` everywhere except
+    // wherever iced's own widgets already claim a key on arama's behalf -
+    // this test exists to find out where that is, not to assert a
+    // pre-decided answer.
+    #[test]
+    fn phase_0_1_keyboard_baseline_on_gallery_and_settings() {
+        use iced::keyboard::{Key, key::Named};
+
+        let _guard = ARAMA_DATA_HOME_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
+        let scratch = scratch_data_home("phase-0-1-keyboard-baseline");
+        unsafe {
+            std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
+        }
+
+        let mut app = App::new().0;
+        // Setup is not finished in a scratch profile (no CLIP model), so
+        // `view()` would render the setup wizard rather than the gallery.
+        // Phase 0.1 asks about the gallery and settings screens
+        // specifically (handoff §4) - force setup complete the same way
+        // `Message::Skip` would, without depending on that message's
+        // other side effects.
+        app.setup.finished = true;
+
+        let keys = [
+            ("Tab", Key::Named(Named::Tab)),
+            ("Escape", Key::Named(Named::Escape)),
+            ("Enter", Key::Named(Named::Enter)),
+            ("ArrowDown", Key::Named(Named::ArrowDown)),
+            ("F6", Key::Named(Named::F6)),
+        ];
+
+        eprintln!("=== Phase 0.1 keyboard baseline (RFC 044) ===");
+        for (screen, nav) in [("gallery", None), ("settings", Some(NavPage::Settings))] {
+            if let Some(nav) = nav {
+                let _ = app.update(Message::NavTo(nav));
+            }
+            let element = app.view();
+            let mut simulator = iced_test::Simulator::new(element);
+            for (name, key) in &keys {
+                let status = simulator.tap_key(key.clone());
+                eprintln!("{screen:9} {name:10} -> {status:?}");
+            }
+        }
+
+        unsafe {
+            match &previous {
+                Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
+                None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
+            }
+        }
+        let _ = std::fs::remove_dir_all(&scratch);
+    }
+
+    // --- RFC 044 Tier 2: in-process, headless, on real App state -------
+    //
+    // Phase 0.1 (above) already proved F6 is `Ignored` by every widget on
+    // the gallery and settings screens - so in the real application it
+    // reaches `subscription.rs`'s keyboard listener and becomes
+    // `Message::KeyPressed`. This test drives that exact message through
+    // `App::update` (not `Simulator`, which only exercises the widget
+    // tree, not `update`) and asserts the zone this RFC's own state
+    // actually moved to - no window, no compositor, no rendering.
+    #[test]
+    fn tier_2_f6_moves_focus_zone_through_real_app_update() {
+        use iced::keyboard::{Key, Modifiers, key::Named};
+
+        let _guard = ARAMA_DATA_HOME_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
+        let scratch = scratch_data_home("tier-2-f6-focus-zone");
+        unsafe {
+            std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
+        }
+
+        let mut app = App::new().0;
+        assert_eq!(
+            app.focus_zone,
+            snora_core::focus::FocusZone::Body,
+            "starting zone, before any cycling"
+        );
+        assert!(
+            !app.focus_visible,
+            "the ring must not render before a keyboard user is known to exist"
+        );
+
+        let f6 = Key::Named(Named::F6);
+        let _ = app.update(Message::KeyPressed(f6.clone(), Modifiers::default()));
+        assert_eq!(
+            app.focus_zone,
+            snora_core::focus::FocusZone::Footer,
+            "forward from Body skips the never-present Header and lands on Footer"
+        );
+        assert!(
+            app.focus_visible,
+            "the first real cycle must turn the ring on"
+        );
+
+        let _ = app.update(Message::KeyPressed(f6.clone(), Modifiers::default()));
+        assert_eq!(
+            app.focus_zone,
+            snora_core::focus::FocusZone::SideBar,
+            "forward from Footer wraps past Header to SideBar"
+        );
+
+        let _ = app.update(Message::KeyPressed(f6, Modifiers::SHIFT));
+        assert_eq!(
+            app.focus_zone,
+            snora_core::focus::FocusZone::Footer,
+            "Shift+F6 from SideBar goes backward, past Header, to Footer"
+        );
+
+        unsafe {
+            match &previous {
+                Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
+                None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
+            }
+        }
+        let _ = std::fs::remove_dir_all(&scratch);
+    }
+
+    #[test]
+    fn tier_2_escape_closes_a_real_open_dialog() {
+        let _guard = ARAMA_DATA_HOME_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
+        let scratch = scratch_data_home("tier-2-escape-closes-dialog");
+        unsafe {
+            std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
+        }
+
+        let mut app = App::new().0;
+        let _ = app.update(Message::KeyPressed(
+            iced::keyboard::Key::Named(iced::keyboard::key::Named::Escape),
+            iced::keyboard::Modifiers::default(),
+        ));
+        // Nothing open yet - Escape must not panic or synthesize a close.
+        assert!(app.dialog.is_none());
+
+        app.dialog = Some(Dialog::MediaFocusDialog(
+            dialog::media_focus_dialog::MediaFocusDialog::new(
+                PathBuf::from("/does/not/need/to/exist.jpg"),
+                arama_env::cache_lookup_strategy::CacheLookupStrategy::CurrentDirOnly,
+                0.86,
+                None,
+            ),
+        ));
+        assert!(app.dialog.is_some());
+
+        let _ = app.update(Message::KeyPressed(
+            iced::keyboard::Key::Named(iced::keyboard::key::Named::Escape),
+            iced::keyboard::Modifiers::default(),
+        ));
+        assert!(
+            app.dialog.is_none(),
+            "Escape must close the real dialog through the real update path"
+        );
+
+        unsafe {
+            match &previous {
+                Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
+                None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
+            }
+        }
+        let _ = std::fs::remove_dir_all(&scratch);
+    }
+
+    // --- RFC 044 §0.2b: does `Simulator::snapshot` work here at all? ---
+    //
+    // snora has never run this path (RFC-011-D chose semantic over pixel
+    // testing) and asked to hear whether it works for a focus indicator.
+    // This is that experiment, not a permanent regression suite - Tier
+    // 3's own footgun (`matches_image`/`matches_hash` auto-create *and*
+    // auto-pass on a missing reference) means a real regression suite
+    // needs checked-in reference files and a documented regeneration
+    // process, which is a separate decision from "does the mechanism
+    // work." Reported in the review package either way.
+    #[test]
+    fn phase_0_2b_does_simulator_snapshot_render_here() {
+        use iced::keyboard::{Key, Modifiers, key::Named};
+
+        let _guard = ARAMA_DATA_HOME_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
+        let scratch = scratch_data_home("phase-0-2b-snapshot-experiment");
+        unsafe {
+            std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
+        }
+
+        let mut app = App::new().0;
+        app.setup.finished = true;
+        // Move focus so the ring is actually present in the frame this
+        // snapshots - a snapshot of the pre-`focus_visible` state would
+        // prove nothing about the indicator.
+        let _ = app.update(Message::KeyPressed(
+            Key::Named(Named::F6),
+            Modifiers::default(),
+        ));
+        assert!(app.focus_visible);
+
+        let element = app.view();
+        let mut simulator = iced_test::Simulator::new(element);
+        let theme = arama_theme::iced_theme();
+        let result = simulator.snapshot(&theme);
+
+        eprintln!(
+            "=== Phase 0.2b: Simulator::snapshot result: {:?} ===",
+            result.as_ref().map(|_| "Ok")
+        );
+        let snapshot = result.expect(
+            "Simulator::snapshot must at least render successfully on this hardware \
+             for Tier 3 to be a real option",
+        );
+
+        // Exercise the actual comparison codepath too, not just draw +
+        // screenshot - on a scratch path so this run's baseline is
+        // thrown away rather than becoming a permanent reference nobody
+        // reviewed.
+        let hash_path = scratch.join("phase-0-2b-snapshot");
+        let first_call = snapshot
+            .matches_hash(&hash_path)
+            .expect("hashing the rendered frame must not fail");
+        assert!(first_call, "a freshly created reference must match itself");
+        let second_call = snapshot
+            .matches_hash(&hash_path)
+            .expect("hashing the rendered frame must not fail");
+        assert!(
+            second_call,
+            "the same App state must render identically across two snapshot calls"
+        );
+        eprintln!("=== Phase 0.2b: matches_hash round-trip succeeded ===");
+
+        unsafe {
+            match &previous {
+                Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
+                None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
+            }
+        }
+        let _ = std::fs::remove_dir_all(&scratch);
     }
 }

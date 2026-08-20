@@ -32,3 +32,7 @@ rfd                         = { workspace = true }
 rayon                       = { workspace = true }
 swdir                       = { workspace = true }
 snora                       = { workspace = true }
+snora-core                  = { workspace = true }
+
+[dev-dependencies]
+iced_test                   = "0.14"
