@@ -1087,4 +1087,183 @@ mod tests {
         }
         let _ = std::fs::remove_dir_all(&scratch);
     }
+
+    /// Task 032: the RFC 044 Tier 2 tests above only ever check
+    /// `App::focus_zone`, arama's own enum - if `view.rs` wrapped the
+    /// wrong container in `focus_ring_style`, every one of them would
+    /// still pass. This asserts against snora's own compatibility-surface
+    /// identifiers instead (`docs/src/reference/rendered-surface-identifiers.md`,
+    /// `snora-0.39.1/src/identifiers.rs`: `HEADER_REGION`/`SIDEBAR_REGION`/
+    /// `BODY_REGION`/`FOOTER_REGION`, `"snora-header"`/`"snora-sidebar"`/
+    /// `"snora-body"`/`"snora-footer"`) - the region snora itself thinks a
+    /// zone is, not just the label arama gives that zone internally.
+    ///
+    /// `iced_selector::Selector for widget::Id` is confirmed present at
+    /// `iced_selector-0.14.0/src/lib.rs:99,146` and reachable through the
+    /// `iced_test` dev-dependency already added for RFC 044 - no new
+    /// dependency.
+    ///
+    /// What this can and cannot prove: `Simulator::find` returns a
+    /// `Target::Container { id, bounds, visible_bounds }` -
+    /// `iced_selector-0.14.0/src/target.rs:11-15` - bounds only, no style.
+    /// It cannot see the ring's own border colour or width; snora's
+    /// region container is the *outer* wrapper, arama's ring-styled
+    /// container is nested one level inside it (`app/src/core/view.rs`'s
+    /// `side_bar`/`body`/`footer` locals are handed to snora's
+    /// `AppLayout::side_bar`/`body`/`footer`, which wraps each in its own
+    /// `.id(...)`-carrying container). So this test proves the slot
+    /// snora considers "the sidebar"/"the body"/"the footer" exists and
+    /// is where arama's own `FocusZone` enum says it should be, and that
+    /// snora's `header` region is correctly absent (arama sets no
+    /// `AppLayout::header`) - it does not and cannot reach into whether
+    /// the ring is actually drawn there.
+    #[test]
+    fn tier_2_focus_ring_zones_resolve_to_snoras_own_region_ids() {
+        use iced::keyboard::{Key, Modifiers, key::Named};
+        use iced_test::selector::id;
+
+        let _guard = ARAMA_DATA_HOME_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
+        let scratch = scratch_data_home("tier-2-focus-ring-snora-slot");
+        unsafe {
+            std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
+        }
+
+        let mut app = App::new().0;
+        app.setup.finished = true;
+
+        // Every skeleton slot arama populates is present regardless of
+        // which zone currently holds focus - `side_bar`/`body`/`footer`
+        // are unconditional in `view.rs`. Checked once, before any F6
+        // press, so the presence assertion is not entangled with the
+        // focus-cycling assertions below.
+        {
+            let mut simulator = iced_test::Simulator::new(app.view());
+            assert!(
+                simulator
+                    .find(id(iced::widget::Id::new("snora-sidebar")))
+                    .is_ok(),
+                "snora's sidebar region must exist"
+            );
+            assert!(
+                simulator
+                    .find(id(iced::widget::Id::new("snora-body")))
+                    .is_ok(),
+                "snora's body region must exist"
+            );
+            assert!(
+                simulator
+                    .find(id(iced::widget::Id::new("snora-footer")))
+                    .is_ok(),
+                "snora's footer region must exist"
+            );
+            // arama never populates `AppLayout::header` - confirms the
+            // Tier 1 `header_never_appears_because_it_is_never_present`
+            // assumption holds at the snora-region level too, not just
+            // in `ZonePresence`.
+            assert!(
+                simulator
+                    .find(id(iced::widget::Id::new("snora-header")))
+                    .is_err(),
+                "snora's header region must be absent - arama sets no AppLayout::header"
+            );
+        }
+
+        // F6 from the Body start zone lands on Footer first (RFC 044:
+        // Header is skipped because `ZonePresence` reports it absent).
+        let f6 = Key::Named(Named::F6);
+        let _ = app.update(Message::KeyPressed(f6.clone(), Modifiers::default()));
+        assert_eq!(app.focus_zone, snora::focus::FocusZone::Footer);
+        {
+            let mut simulator = iced_test::Simulator::new(app.view());
+            assert!(
+                simulator
+                    .find(id(iced::widget::Id::new("snora-footer")))
+                    .is_ok(),
+                "snora-footer must resolve while arama's own state says Footer is focused"
+            );
+        }
+
+        let _ = app.update(Message::KeyPressed(f6.clone(), Modifiers::default()));
+        assert_eq!(app.focus_zone, snora::focus::FocusZone::SideBar);
+        {
+            let mut simulator = iced_test::Simulator::new(app.view());
+            assert!(
+                simulator
+                    .find(id(iced::widget::Id::new("snora-sidebar")))
+                    .is_ok(),
+                "snora-sidebar must resolve while arama's own state says SideBar is focused"
+            );
+        }
+
+        let _ = app.update(Message::KeyPressed(f6, Modifiers::default()));
+        assert_eq!(app.focus_zone, snora::focus::FocusZone::Body);
+        {
+            let mut simulator = iced_test::Simulator::new(app.view());
+            assert!(
+                simulator
+                    .find(id(iced::widget::Id::new("snora-body")))
+                    .is_ok(),
+                "snora-body must resolve while arama's own state says Body is focused"
+            );
+        }
+
+        unsafe {
+            match &previous {
+                Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
+                None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
+            }
+        }
+        let _ = std::fs::remove_dir_all(&scratch);
+    }
+
+    /// The `is_focused()` alternative the review for package 122 raised
+    /// (`iced_selector-0.14.0/src/lib.rs:154`) - tried and rejected, with
+    /// evidence rather than assumption. It matches `Candidate::Focusable`,
+    /// which only iced's own keyboard-focusable widgets (`text_input` and
+    /// similar) produce. arama's ring is a plain styled `container` with
+    /// no `Focusable` state of its own - F6 zone cycling is arama's own
+    /// enum, entirely outside iced's native focus system - so this must
+    /// find nothing, on every zone, confirming `id(...)` (above) is the
+    /// only one of the two that can reach these containers at all.
+    #[test]
+    fn is_focused_selector_cannot_see_aramas_zone_ring_containers() {
+        use iced::keyboard::{Key, Modifiers, key::Named};
+        use iced_test::selector::is_focused;
+
+        let _guard = ARAMA_DATA_HOME_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
+        let scratch = scratch_data_home("is-focused-selector-experiment");
+        unsafe {
+            std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
+        }
+
+        let mut app = App::new().0;
+        app.setup.finished = true;
+        let _ = app.update(Message::KeyPressed(
+            Key::Named(Named::F6),
+            Modifiers::default(),
+        ));
+        assert!(app.focus_visible);
+
+        let mut simulator = iced_test::Simulator::new(app.view());
+        let result = simulator.find(is_focused());
+        assert!(
+            result.is_err(),
+            "is_focused() must not see arama's ring containers - they carry no \
+             iced-native Focusable state, only app-level FocusZone/style; got {result:?}"
+        );
+
+        unsafe {
+            match &previous {
+                Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
+                None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
+            }
+        }
+        let _ = std::fs::remove_dir_all(&scratch);
+    }
 }
