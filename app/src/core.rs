@@ -82,7 +82,7 @@ pub struct App {
     /// gated by `focus_visible` below. Session-only, like `aside_open`: a
     /// page switch does not change which zones exist, so this
     /// deliberately does not reset on `NavTo`.
-    focus_zone: snora_core::focus::FocusZone,
+    focus_zone: snora::focus::FocusZone,
     /// RFC 044 §2.3: whether the ring should render at all. `focus_zone`
     /// defaults to `Body` before any key is pressed - rendering its ring
     /// unconditionally would draw a permanent border around the whole
@@ -285,7 +285,7 @@ impl App {
                 settings_page,
                 cache_page: CachePage::default(),
                 aside_open: false,
-                focus_zone: snora_core::focus::FocusZone::Body,
+                focus_zone: snora::focus::FocusZone::Body,
                 focus_visible: false,
             },
             task,
@@ -299,8 +299,8 @@ impl App {
     /// `body` (`view.rs`), so it never populates the `header` slot and
     /// `next_zone` will never stop there, by construction. Static for
     /// arama's layout today, so this takes no argument.
-    pub(crate) fn zone_presence() -> snora_core::focus::ZonePresence {
-        snora_core::focus::ZonePresence::none()
+    pub(crate) fn zone_presence() -> snora::focus::ZonePresence {
+        snora::focus::ZonePresence::none()
             .side_bar(true)
             .footer(true)
     }
@@ -923,7 +923,7 @@ mod tests {
         let mut app = App::new().0;
         assert_eq!(
             app.focus_zone,
-            snora_core::focus::FocusZone::Body,
+            snora::focus::FocusZone::Body,
             "starting zone, before any cycling"
         );
         assert!(
@@ -935,7 +935,7 @@ mod tests {
         let _ = app.update(Message::KeyPressed(f6.clone(), Modifiers::default()));
         assert_eq!(
             app.focus_zone,
-            snora_core::focus::FocusZone::Footer,
+            snora::focus::FocusZone::Footer,
             "forward from Body skips the never-present Header and lands on Footer"
         );
         assert!(
@@ -946,14 +946,14 @@ mod tests {
         let _ = app.update(Message::KeyPressed(f6.clone(), Modifiers::default()));
         assert_eq!(
             app.focus_zone,
-            snora_core::focus::FocusZone::SideBar,
+            snora::focus::FocusZone::SideBar,
             "forward from Footer wraps past Header to SideBar"
         );
 
         let _ = app.update(Message::KeyPressed(f6, Modifiers::SHIFT));
         assert_eq!(
             app.focus_zone,
-            snora_core::focus::FocusZone::Footer,
+            snora::focus::FocusZone::Footer,
             "Shift+F6 from SideBar goes backward, past Header, to Footer"
         );
 

@@ -1,6 +1,6 @@
 use iced::Task;
 use iced::keyboard::{Key, Modifiers};
-use snora_core::focus::{Cycle, FocusZone};
+use snora::focus::{Cycle, FocusZone};
 
 use super::super::{App, message::Message};
 
@@ -14,7 +14,7 @@ pub(crate) fn zone_after_cycle(
     has_modal: bool,
     has_menu: bool,
 ) -> Option<FocusZone> {
-    snora_core::focus::next_zone(current, cycle, App::zone_presence(), has_modal, has_menu)
+    snora::focus::next_zone(current, cycle, App::zone_presence(), has_modal, has_menu)
 }
 
 impl App {
@@ -61,7 +61,7 @@ mod tests {
         // SideBar and Footer are always populated.
         assert_eq!(
             App::zone_presence(),
-            snora_core::focus::ZonePresence::none()
+            snora::focus::ZonePresence::none()
                 .side_bar(true)
                 .footer(true)
         );

@@ -7,8 +7,8 @@ use iced::{
 use lucide_icons::iced::{
     icon_database, icon_folder, icon_panel_left_close, icon_panel_left_open, icon_settings,
 };
+use snora::focus::FocusZone;
 use snora::{AppLayout, Dialog as SnoraDialog, ToastPosition, design::render};
-use snora_core::focus::FocusZone;
 
 #[cfg(test)]
 use super::ARAMA_DATA_HOME_TEST_LOCK;

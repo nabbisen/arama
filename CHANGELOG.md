@@ -44,6 +44,13 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
   accessibility feature, set below the size and contrast that feature exists to
   provide. It is now ordinary size at full contrast.
 
+- **snora 0.38.0 → 0.39.1.** `snora-design`'s presets, surfaces and palette
+  are byte-identical across the range; the only source difference is a
+  doc-comment on `Typography::title_line_height`. Drop-in. The direct
+  `snora-core` dependency added for RFC 044's frame-level focus navigation is
+  removed — `FocusZone`, `Cycle`, `ZonePresence` and `next_zone` now resolve
+  through `snora::focus`, which 0.39.0 re-exports.
+
 ---
 
 ## [0.40.1]
