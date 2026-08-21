@@ -175,6 +175,10 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
 
         // Footer (RFC 044 §3.1)
         "footer.f6_hint" => "F6 でパネルを切り替え",
+        // Footer (Task 031)
+        "footer.thumbnail_size" => "サムネイルサイズ",
+        "footer.files_count" => "ファイル",
+        "footer.dirs_scanned" => "ディレクトリをスキャン済み",
 
         // Setup wizard
         "setup.download" => "\u{30c0}\u{30a6}\u{30f3}\u{30ed}\u{30fc}\u{30c9}", // ダウンロード

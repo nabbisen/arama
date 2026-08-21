@@ -51,6 +51,24 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
   removed — `FocusZone`, `Cycle`, `ZonePresence` and `next_zone` now resolve
   through `snora::focus`, which 0.39.0 re-exports.
 
+### Fixed
+
+- **The footer's thumbnail-size label and file/directory counts are now
+  translated.** In Japanese, "Thumbnail size" and the "N files (N dirs
+  scanned)" text stayed in English no matter what — the one part of the
+  window that is always visible was also the one part never localized.
+
+- **The footer's directory count no longer reads the file count.** Whether
+  it said "dir" or "dirs" was decided by how many *files* were found, not
+  how many directories were — so a single directory holding more than one
+  file always reported "dirs" for itself, and several directories holding
+  one file between them reported "dir". The label is now derived only from
+  the directory count and, matching how arama already reports counts
+  elsewhere (the cache page), no longer varies by singular/plural at all —
+  in either language. The exact wording most people would have seen (a
+  handful of files in one directory) is unchanged; what's fixed is that the
+  count shown next to "dir(s)" can no longer come from the wrong number.
+
 ---
 
 ## [0.40.1]

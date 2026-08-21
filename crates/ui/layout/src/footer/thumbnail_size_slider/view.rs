@@ -1,5 +1,6 @@
 use arama_env::MAX_THUMBNAIL_SIZE;
 use arama_env::MIN_THUMBNAIL_SIZE;
+use arama_i18n::t;
 use iced::Element;
 use iced::widget::row;
 use iced::widget::slider;
@@ -13,7 +14,7 @@ use super::message::Message;
 impl ThumbnailSizeSlider {
     pub fn view(&self) -> Element<'_, Message> {
         row![
-            text("Thumbnail size"),
+            text(t("footer.thumbnail_size")),
             slider(
                 MIN_THUMBNAIL_SIZE..=MAX_THUMBNAIL_SIZE,
                 self.value,

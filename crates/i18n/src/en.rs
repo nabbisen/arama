@@ -123,6 +123,10 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
 
         // Footer (RFC 044 §3.1)
         "footer.f6_hint" => "F6 switches panels",
+        // Footer (Task 031)
+        "footer.thumbnail_size" => "Thumbnail size",
+        "footer.files_count" => "files",
+        "footer.dirs_scanned" => "dirs scanned",
 
         // Setup wizard
         "setup.download" => "Download",
