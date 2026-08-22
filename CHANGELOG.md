@@ -51,6 +51,19 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
   removed — `FocusZone`, `Cycle`, `ZonePresence` and `next_zone` now resolve
   through `snora::focus`, which 0.39.0 re-exports.
 
+- **Clippy is clean again, and CI now runs it.** A lint that ships in a
+  newer Rust release than this project's minimum (`chunks_exact_to_as_chunks`,
+  Rust 1.98) had sat undetected against a stale per-crate cache for two
+  days despite being required by every review's own gate check —
+  `crates/ai`'s raw-PCM-to-`f32` decode now uses `as_chunks` (verified
+  byte-identical output for every input length, including one not a
+  multiple of the chunk size). A new CI workflow now runs
+  `cargo clippy --workspace --all-targets --locked -- -D warnings` on
+  every push and pull request, deliberately on a moving stable toolchain
+  rather than the pinned minimum-supported-Rust-version baseline, so a
+  lint introduced after that baseline is caught in review instead of
+  accumulating silently on a developer machine.
+
 ### Fixed
 
 - **The footer's thumbnail-size label and file/directory counts are now

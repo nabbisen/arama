@@ -1,0 +1,89 @@
+name: Clippy
+
+# Task 033: `cargo clippy --workspace --all-targets --locked -- -D warnings`
+# was required by every task's acceptance criteria and by
+# `docs/src/dev/release.md`'s release checklist, but nothing in CI ran it -
+# msrv.yaml runs `cargo check`/`cargo test` on the pinned MSRV toolchain,
+# native-smoke.yaml and release-executable.yaml build and run targeted
+# tests. A lint enforced only on developer machines, against a per-crate
+# cache clippy keeps between runs, can sit latent indefinitely while every
+# report says clean - which is exactly what happened: a lint that ships in
+# a newer Rust release sat undetected on an unrelated crate for two days
+# until an unrelated workspace-manifest change (Task 030's `snora` bump)
+# invalidated that crate's cached pass and finally surfaced it.
+#
+# Deliberately a SEPARATE workflow from msrv.yaml (same precedent
+# native-smoke.yaml's own header cites: "msrv.yaml is the precedent for a
+# narrow, separately-scoped job living outside the release path"), not a
+# step added there. msrv.yaml's own header says so explicitly ("Format,
+# Clippy, cargo audit, feature-matrix, and cross-target verification are
+# out of scope for this job") and pins the exact MSRV toolchain (1.91) on
+# purpose, to prove the floor still builds. A clippy job pinned to that
+# same floor would never have caught this: the lint that broke ships in
+# 1.98, three minors past MSRV. This job therefore deliberately runs on
+# **stable**, not the pinned baseline - a moving target on purpose.
+#
+# The trade-off this accepts: stable is not pinned, so a new Rust release
+# can turn this workflow red with no arama change at all - a new lint
+# firing on existing, previously-clean code. That is the accepted cost,
+# not a bug in this workflow: the alternative (pinning clippy to MSRV,
+# same as the check job) is the exact configuration that let this task's
+# own lint sit undetected. If a future run goes red on a stable-toolchain
+# bump, that is this job doing its job, not a reason to delete it - fix
+# the lint (or record a deliberate `#[allow]`), the same way Task 033 did.
+#
+# `cargo fmt` is not run anywhere in CI, in this workflow or any other -
+# noted here rather than silently left absent (Task 033 §5), and not
+# added: it was out of that task's scope and is not brought into this one
+# either.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # Registry/git caching only, same rationale as msrv.yaml: `target/`
+      # is deliberately excluded, since this workspace's clean debug build
+      # (candle, iced/wgpu/naga, bundled SQLite) is multiple gigabytes,
+      # comfortably capable of exhausting GitHub Actions' cache allowance
+      # and the runner's free disk for a reason unrelated to the lint this
+      # job exists to catch.
+      - name: Cache cargo registry
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: clippy-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            clippy-${{ runner.os }}-cargo-
+
+      - name: Install Rust stable
+        run: bash .github/workflows/scripts/install-rust.sh stable
+
+      # install-rust.sh sets `rustup set profile minimal`, which is rustc,
+      # rust-std and cargo - it does NOT include clippy, and the script never
+      # adds it. GitHub's ubuntu-latest image happens to ship a preinstalled
+      # stable toolchain that has clippy, and `rustup update` preserves
+      # already-installed components, so this would probably work without the
+      # line below. "Probably" is the exact standard this whole workflow exists
+      # to replace. Added here rather than in install-rust.sh, which is shared
+      # with msrv.yaml, native-smoke.yaml and release-executable.yaml - none of
+      # which needs clippy. A no-op when the component is already present.
+      - name: Ensure the clippy component is installed
+        run: rustup component add clippy --toolchain=stable
+
+      - name: cargo clippy --workspace --all-targets --locked -- -D warnings
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
