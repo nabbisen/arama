@@ -7,6 +7,20 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+---
+
+## [0.41.0]
+
+**arama can be used from the keyboard.** That is the release in one line, and
+it was not true before: Escape did not close a dialog, no key moved focus
+anywhere, and every one of arama's controls was reachable by mouse alone.
+
+Text also has a shape now, and — if you read arama in Japanese — the parts of it
+that were still English are not any more.
+
+Nothing changes compatibility with existing cache, settings, or media data, and
+no action is required when upgrading.
+
 ### Added
 
 - **arama can now be used from the keyboard.** Previously nothing installed a

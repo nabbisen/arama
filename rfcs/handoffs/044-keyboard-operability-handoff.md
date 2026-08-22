@@ -1,10 +1,10 @@
 # RFC 044 Handoff — Keyboard operability
 
-Companion to [RFC 044](../proposed/044-keyboard-operability.md), requested by
-the project owner 2026-08-18. It stays in `rfcs/proposed/` until it ships, per
-[RFC 000](../done/000-rfc-lifecycle-policy.md).
+Companion to [RFC 044](../done/044-keyboard-operability.md), requested by
+the project owner 2026-08-18 and **shipped in 0.41.0**, moved to `rfcs/done/`
+with that cut per [RFC 000](../done/000-rfc-lifecycle-policy.md).
 
-**Do [RFC 043](../proposed/043-typography-roles-and-prose-readability.md)
+**Do [RFC 043](../done/043-typography-roles-and-prose-readability.md)
 first.** Both are visual-evidence work and running them together puts two sets
 of captures in flight at once. Neither blocks the other technically.
 
@@ -13,7 +13,7 @@ traps.
 
 ## 1. Design authority
 
-1. [RFC 044](../proposed/044-keyboard-operability.md);
+1. [RFC 044](../done/044-keyboard-operability.md);
 2. **snora's own review of that RFC**, `.git-exclude/tmp/review-arama-rfc044/`
    — they answered five questions and volunteered a consequence we had not
    asked about. Read it; it is shorter than the RFC;

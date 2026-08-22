@@ -1,8 +1,21 @@
 # RFC 043: Typography roles and prose readability
 
-**Status.** Proposed — requested by the project owner 2026-08-17 and
-**accepted for implementation the same day**. Remains in `rfcs/proposed/` until
-the work ships, per RFC 000. Not blocked on anything.
+**Status.** Implemented (0.41.0). Requested by the project owner 2026-08-17 and
+accepted the same day.
+
+*As built, two departures worth recording.* The handoff had every call site
+importing `snora` directly; three of the crates that needed it have no `snora`
+dependency, so the implementation added twelve zero-argument wrappers to
+`crates/theme` instead — keeping `snora` behind the seam RFC 010 and RFC 011
+built, and leaving the dependency graph untouched. And the high-contrast note
+lost `text::secondary` as well as its literal size: a paragraph explaining an
+accessibility feature was set below the contrast that feature provides, which is
+a defect of intent rather than of styling. Scoped to that one site.
+
+*Three of the six roles were never reached.* `heading`, `display` and `label`
+went unused because arama's text has no second-level section heading and no
+label needing departure from `body` — the failure mode §3.4 named was inventing
+hierarchy that is not there.
 **Handoff:** [043 handoff](../handoffs/043-typography-roles-and-prose-readability-handoff.md).
 **Tracks.** Adopt snora's six-role text scale, and give wrapping prose a
 line-height, for the text arama renders itself.

@@ -108,13 +108,13 @@ application independently.
 
 **Status.** Agreed 2026-08-03. Follows theme A.
 
-Open: the ELOC watch item, and typography — **added 2026-08-17 at the owner's
-request**, the first user-facing item in this theme that did not come from a
-defect.
+**Only the ELOC watch item remains open.** Typography was added 2026-08-17 at
+the owner's request — the first user-facing item in this theme that did not come
+from a defect — and shipped in 0.41.0.
 
-- **Typography roles and prose readability
-  ([RFC 043](./rfcs/proposed/043-typography-roles-and-prose-readability.md)).**
-  *Proposed.* snora has carried a six-role text scale since its 0.20 and
+- **~~Typography roles and prose readability
+  ([RFC 043](./rfcs/done/043-typography-roles-and-prose-readability.md)).~~**
+  *Shipped in 0.41.0.* snora has carried a six-role text scale since its 0.20 and
   documented it for the first time in 0.33.1; arama sets a text size at **6 of
   its 108 `text(` call sites** and a line-height at **none**, so it renders
   exactly the "flat, uniform text" snora predicted of consumers who never knew
@@ -123,11 +123,11 @@ defect.
   explaining the high-contrast themes is the smallest, lowest-contrast wrapping
   prose in the application.
 
-  **Was sequenced behind the snora upgrade below**, which changed border
-  contrast and the modal dim; this RFC's deliverable is before/after captures
-  of surfaces that include both, and landing them together would have made
-  neither attributable. **That upgrade shipped in 0.40.1, so this is now
-  unblocked** and starts from its lockfile.
+  **It was sequenced behind the snora upgrade below**, which changed border
+  contrast and the modal dim: this RFC's deliverable was before/after captures
+  of surfaces including both, and landing them together would have made neither
+  attributable. That split held — the upgrade shipped in 0.40.1 and this in
+  0.41.0.
 
   *Placed here rather than under theme C* because readability is a quality of
   what a user already does, not something they currently cannot do.
@@ -177,11 +177,12 @@ defect.
 
 ### C — Product direction
 
-**Status.** Agreed as a theme 2026-08-03; **first candidate raised 2026-08-18**,
-and it came from looking rather than from inference.
+**Status.** Agreed as a theme 2026-08-03. **Its first candidate shipped in
+0.41.0** — and the theme is no less empty for it, because closing a gap is not
+the same as choosing a direction.
 
-- **Keyboard operability
-  ([RFC 044](./rfcs/proposed/044-keyboard-operability.md)).** *Proposed.*
+- **~~Keyboard operability
+  ([RFC 044](./rfcs/done/044-keyboard-operability.md)).~~** *Shipped in 0.41.0.*
   **arama has no keyboard interaction at all** — one subscription, snora's toast
   sweep, and no `iced::keyboard::listen()` anywhere. `on_close_modals` is wired
   only to the modal backdrop's *click* handler, so **Escape does not close a

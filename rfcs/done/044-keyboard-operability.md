@@ -1,10 +1,19 @@
 # RFC 044: Keyboard operability
 
-**Status.** Proposed — **requested by the project owner 2026-08-18**, after
-snora 0.35.0 shipped the frame-level half of it. **Revised the same day** on
-snora's review of the draft: Phase 0.2's blocking unknown is closed, three
-implementation constraints were added, and the F6 recommendation is weaker than
-it was. See §0.2, §2.2, §2.3, §3.1.
+**Status.** Implemented (0.41.0). Requested by the project owner 2026-08-18,
+after snora 0.35.0 shipped the frame-level half of it, and revised the same day
+on snora's review of the draft.
+
+*As built, one piece of state this RFC did not anticipate.* `focus_zone`
+defaults to `Body`, so an early build drew a permanent ring around the entire
+gallery from the first frame, before any key had been pressed — found by
+capturing and looking, not by review. A second field, `focus_visible`, starts
+`false` and is set once when cycling first runs.
+
+*One thing this RFC caused upstream.* `snora::keyboard::cycle_zones` returned a
+type the `snora` facade did not re-export, so the implementation needed a direct
+`snora-core` dependency. Reported; snora closed the gap in 0.39.0 and credited
+arama, and Task 030 removed the edge in this same release.
 **Tracks.** Make arama operable from the keyboard: dismiss modals, move between
 regions, and see where focus is.
 **Touches.** `app/src/core/subscription.rs`, `app/src/core.rs` state, `view.rs`

@@ -56,6 +56,8 @@ permanent; implemented and archived RFCs are never deleted.
 | 039 | [Windows `PATH` search reachability](./done/039-windows-path-search-reachability.md) | 0.39.1 |
 | 040 | [snora 0.29 upgrade and dialog surface](./done/040-snora-0.29-upgrade-and-dialog-surface.md) | 0.39.1 |
 | 041 | [Application data locations](./done/041-application-data-locations.md) | 0.40.0 |
+| 043 | [Typography roles and prose readability](./done/043-typography-roles-and-prose-readability.md) | 0.41.0 |
+| 044 | [Keyboard operability](./done/044-keyboard-operability.md) | 0.41.0 |
 
 ## Archive
 

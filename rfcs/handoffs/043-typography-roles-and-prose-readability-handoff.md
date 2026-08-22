@@ -1,9 +1,9 @@
 # RFC 043 Handoff — Typography roles and prose readability
 
 Companion to
-[RFC 043](../proposed/043-typography-roles-and-prose-readability.md), accepted
-by the project owner 2026-08-17. It stays in `rfcs/proposed/` until it ships,
-per [RFC 000](../done/000-rfc-lifecycle-policy.md).
+[RFC 043](../done/043-typography-roles-and-prose-readability.md), accepted
+by the project owner 2026-08-17 and **shipped in 0.41.0**, moved to
+`rfcs/done/` with that cut per [RFC 000](../done/000-rfc-lifecycle-policy.md).
 
 **Read the RFC first.** This handoff does not restate it; it settles what the
 RFC left open and names the traps.
@@ -29,7 +29,7 @@ RFC left open and names the traps.
 
 ## 1. Design authority
 
-1. [RFC 043](../proposed/043-typography-roles-and-prose-readability.md);
+1. [RFC 043](../done/043-typography-roles-and-prose-readability.md);
 2. `.git-exclude/tmp/release-0.33.1/docs/src/design/typography.md` and
    `.../guides/readability.md` — snora's own vocabulary and role-selection
    guidance. **Read both.** The role table is not the interesting part; the
