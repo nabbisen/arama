@@ -1,4 +1,4 @@
-use arama_i18n::set_locale;
+use arama_i18n::{set_locale, t};
 use arama_ui_layout::{aside, footer, header};
 use arama_ui_main::{components::gallery::image_cell, views::gallery};
 use arama_ui_widgets::dialog::{media_focus_dialog, settings_dialog, similar_pairs_dialog};
@@ -132,8 +132,8 @@ impl App {
                 header::message::Event::SimilarPairsDialogOpen => {
                     let Some(dir_node) = self.dir_node.clone() else {
                         self.push_error_toast(
-                            "Similarity pairs",
-                            "Select a directory first.".to_owned(),
+                            t("toast.similarity_pairs.title"),
+                            t("toast.similarity_pairs.select_dir_first.body"),
                         );
                         return task;
                     };

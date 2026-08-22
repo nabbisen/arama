@@ -1,6 +1,7 @@
+use arama_i18n::t;
 use iced::{
     Element,
-    widget::{button, column, container, row, space},
+    widget::{button, column, container, row, space, text},
 };
 
 use super::{ContextMenu, ContextMenuState, message::Message};
@@ -13,9 +14,9 @@ impl ContextMenu {
                 row![
                     space().width(self.point.x),
                     column![
-                        button("open with default app")
+                        button(text(t("context_menu.open_with_default")))
                             .on_press(Message::OpenWithDefault(path.to_path_buf())),
-                        button("file manager")
+                        button(text(t("context_menu.file_manager")))
                             .on_press(Message::FileManagerShow(path.to_path_buf())),
                     ]
                     .width(self.thumbnail_size as f32)

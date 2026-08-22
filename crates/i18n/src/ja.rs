@@ -245,6 +245,7 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
 
         // Header
         "header.folder" => "\u{30d5}\u{30a9}\u{30eb}\u{30c0}\u{30fc}", // フォルダー
+        "header.dir_nav.folder_select_title" => "フォルダーを選択",
 
         // Gallery
         "gallery.empty" => {
@@ -277,6 +278,87 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         }
         "startup.root_scan_warning.title" => "フォルダーのスキャンが一部失敗しました",
         "startup.root_scan_warning.body" => "起動時に一部のフォルダーを読み取れませんでした",
+        "startup.scan_errors_total" => "スキャンエラー合計 {count} 件",
+
+        // Startup — fatal data-location failures (Task 034)
+        "startup.location_error.settings_resolve" => "設定の保存場所を解決できませんでした",
+        "startup.location_error.settings_create" => "設定の保存場所を作成できませんでした",
+        "startup.location_error.data_resolve" => "データの保存場所を解決できませんでした",
+        "startup.location_error.data_create" => "データの保存場所を作成できませんでした",
+        "startup.location_error.cache_resolve" => "キャッシュの保存場所を解決できませんでした",
+        "startup.location_error.cache_create" => "キャッシュの保存場所を作成できませんでした",
+
+        // Notices (Task 034)
+        "notice.settings_migration_failed.title" => "設定の移行に失敗しました",
+        "notice.settings_migration_failed.write_error.body" => {
+            "旧設定ファイルが見つかりましたが、新しい保存先（{path}）へ書き込めませんでした: {err}。デフォルト設定で開始します。旧設定ファイルはそのまま残されています。"
+        }
+        "notice.settings_migration_failed.read_error.body" => {
+            "旧設定ファイルが見つかりましたが、読み込めませんでした: {err}。デフォルト設定で開始します。旧ファイルはそのまま残されています。"
+        }
+        "notice.data_migration_failed.title" => "データの移行に失敗しました",
+        "notice.cache_migration_failed.title" => "キャッシュの移行に失敗しました",
+        "notice.migration_failed.body" => {
+            "旧保存先に{kind}が見つかりましたが、新しい保存先（{new}）へ移動できませんでした: {err}（旧保存先: {legacy}）。新しい保存先で新規に開始します。旧{kind}はそのまま残っており、手動で移動できます。"
+        }
+        "notice.migration.kind_data" => "データ",
+        "notice.migration.kind_cache" => "キャッシュ",
+        "notice.setup_init_failed.title" => "セットアップの初期化に失敗しました",
+        "notice.setup_init_failed.body" => "セットアップウィザードを初期化できませんでした",
+
+        // Toasts (Task 034)
+        "toast.ffmpeg_settings.title" => "FFmpeg 設定",
+        "toast.ffmpeg_settings.folder_unsafe.body" => {
+            "選択したフォルダーを安全に保存できません。有効な絶対パスのフォルダーを選択してください。"
+        }
+        "toast.ffmpeg_settings.auto_save_failed.body" => "自動検出の設定を保存できませんでした。",
+        "toast.ffmpeg_settings.validated_save_failed.body" => {
+            "検証済みの FFmpeg フォルダーを保存できませんでした。"
+        }
+        "toast.ffmpeg_settings.worker_stopped.body" => {
+            "FFmpeg の検証処理が予期せず停止しました。設定を再確認してください。"
+        }
+        "toast.similarity_pairs.title" => "類似ペア",
+        "toast.similarity_pairs.select_dir_first.body" => "先にディレクトリを選択してください。",
+        "toast.cache_error.title" => "キャッシュエラー",
+        "toast.cache_reload_failed.title" => "キャッシュの再読み込みに失敗しました",
+        "toast.cache_reload_failed.image_reader.body" => "画像キャッシュを開けませんでした",
+        "toast.cache_reload_failed.video_reader.body" => "動画キャッシュを開けませんでした",
+        "toast.cache_reload_failed.storage_path.body" => {
+            "キャッシュの保存場所を解決できませんでした"
+        }
+        "toast.indexed_with_warnings.title" => "警告付きでインデックスしました",
+        "toast.embedding_error.title" => "埋め込みエラー",
+        "toast.embedding_error.body" => "埋め込みを計算できませんでした",
+        "toast.cache_clear_failed.title" => "キャッシュの削除に失敗しました",
+        "toast.cache_prune_complete.title" => "キャッシュの整理が完了しました",
+        "toast.cache_prune_complete.body" => {
+            "{count} 件のエントリを削除しました。キャッシュの使用容量は現在 {size} です。"
+        }
+        "toast.cache_prune_partial.title" => "キャッシュの整理が一部完了しました",
+        "toast.cache_prune_partial.body" => {
+            "{count} 件のエントリを削除しました。{size} は回収対象外として残っています。"
+        }
+        "toast.cache_prune_failed.title" => "キャッシュの整理に失敗しました",
+        "toast.invalid_directory.title" => "無効なディレクトリ",
+        "toast.invalid_directory.body" => "存在しないディレクトリです",
+
+        // Cache indexing summary (Task 034)
+        "cache.summary_report.files_skipped" => "件のファイルをスキップしました",
+        "cache.summary_report.cache_writes_failed" => "件のキャッシュ書き込みに失敗しました",
+        "cache.summary_report.files_indexed" => "件のファイルをインデックスしました",
+
+        // Settings errors (Task 034)
+        "settings.error.io" => "I/O エラー",
+        "settings.error.serialize" => "JSON シリアライズエラー",
+        "settings.error.deserialize" => "JSON デシリアライズエラー",
+        "settings.error.invalid_path_component" => "無効な設定パスの構成要素です",
+        "settings.error.platform" => "設定のプラットフォームエラー",
+        "settings.error.generic" => "設定エラー",
+
+        // Context menu (Task 034)
+        "context_menu.open_with_default" => "既定のアプリで開く",
+        "context_menu.file_manager" => "ファイルマネージャー",
 
         _ => return None,
     })

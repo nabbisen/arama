@@ -82,6 +82,27 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
   handful of files in one directory) is unchanged; what's fixed is that the
   count shown next to "dir(s)" can no longer come from the wrong number.
 
+- **Every toast, startup notice, context-menu label, and the folder-picker
+  dialog title are now translated.** In Japanese, every error, warning and
+  success message arama reports — a failed cache reload, a completed cache
+  prune, an unreachable settings location, an interrupted first-run data
+  migration — stayed in English no matter what, because the footer was the
+  only part of the window anyone had checked. Toasts and startup notices
+  are transient, so this was invisible to a screenshot the way the footer's
+  own gap was not, but a Japanese-locale user was seeing English for every
+  error the application ever reported.
+
+  Values that carry no meaningful translation — a filesystem path, another
+  library's own error text — still appear as themselves inside the
+  translated sentence around them. `arama_i18n::t_with` is new
+  supporting infrastructure for this: a translation can place a supplied
+  value anywhere its own word order calls for, rather than the call site
+  always appending it at the end.
+
+  `crates/ui/layout/src/footer/model_loader.rs`, an untranslated,
+  unreferenced leftover file that could not have been reached by any
+  build, is deleted.
+
 ---
 
 ## [0.40.1]

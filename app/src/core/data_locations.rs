@@ -25,6 +25,7 @@ use arama_env::{
     DATA_HOME_ENV_VAR, Settings, cache_dir, legacy_cache_dir, legacy_local_dir, local_dir,
     validate_dir,
 };
+use arama_i18n::{t, t_with};
 
 use super::StartupNotice;
 
@@ -63,29 +64,32 @@ pub(crate) fn resolve_and_prepare_locations() -> Result<ResolvedLocations, Strin
     let settings_manager = match std::env::var_os(DATA_HOME_ENV_VAR) {
         Some(root) => ConfigManager::new().with_root_dir(PathBuf::from(root)),
         None => ConfigManager::for_app("arama")
-            .map_err(|err| format!("could not resolve the settings location: {err}"))?,
+            .map_err(|err| format!("{}: {err}", t("startup.location_error.settings_resolve")))?,
     };
     validate_dir(settings_manager.folder_path()).map_err(|err| {
         format!(
-            "could not create the settings location ({}): {err}",
+            "{} ({}): {err}",
+            t("startup.location_error.settings_create"),
             settings_manager.folder_path().display()
         )
     })?;
 
-    let local_dir =
-        local_dir().map_err(|err| format!("could not resolve the data location: {err}"))?;
+    let local_dir = local_dir()
+        .map_err(|err| format!("{}: {err}", t("startup.location_error.data_resolve")))?;
     validate_dir(&local_dir).map_err(|err| {
         format!(
-            "could not create the data location ({}): {err}",
+            "{} ({}): {err}",
+            t("startup.location_error.data_create"),
             local_dir.display()
         )
     })?;
 
-    let cache_dir =
-        cache_dir().map_err(|err| format!("could not resolve the cache location: {err}"))?;
+    let cache_dir = cache_dir()
+        .map_err(|err| format!("{}: {err}", t("startup.location_error.cache_resolve")))?;
     validate_dir(&cache_dir).map_err(|err| {
         format!(
-            "could not create the cache location ({}): {err}",
+            "{} ({}): {err}",
+            t("startup.location_error.cache_create"),
             cache_dir.display()
         )
     })?;
@@ -113,19 +117,44 @@ pub(crate) fn migrate_application_data(locations: &ResolvedLocations) -> Vec<Sta
 
     migrate_settings(&locations.settings_manager, &mut notices);
     migrate_directory(
-        "data",
+        MigrationKind::Data,
         legacy_local_dir(),
         &locations.local_dir,
         &mut notices,
     );
     migrate_directory(
-        "cache",
+        MigrationKind::Cache,
         legacy_cache_dir(),
         &locations.cache_dir,
         &mut notices,
     );
 
     notices
+}
+
+/// Which of the two migrated directories `migrate_directory` is handling -
+/// carries both the notice title and the translated noun used inside its
+/// body (Task 034; previously a bare `&str`, translated via `capitalize`).
+#[derive(Clone, Copy, Debug)]
+enum MigrationKind {
+    Data,
+    Cache,
+}
+
+impl MigrationKind {
+    fn title_key(self) -> &'static str {
+        match self {
+            MigrationKind::Data => "notice.data_migration_failed.title",
+            MigrationKind::Cache => "notice.cache_migration_failed.title",
+        }
+    }
+
+    fn noun(self) -> String {
+        match self {
+            MigrationKind::Data => t("notice.migration.kind_data"),
+            MigrationKind::Cache => t("notice.migration.kind_cache"),
+        }
+    }
 }
 
 fn migrate_settings(new_manager: &ConfigManager<Settings>, notices: &mut Vec<StartupNotice>) {
@@ -140,22 +169,23 @@ fn migrate_settings(new_manager: &ConfigManager<Settings>, notices: &mut Vec<Sta
         Ok(settings) => {
             if let Err(err) = new_manager.save(&settings) {
                 notices.push(StartupNotice::warning(
-                    "Settings migration failed",
-                    format!(
-                        "Found settings at the old location but could not write them to the \
-                         new one ({}): {err}. Starting with defaults; the old settings file is \
-                         untouched.",
-                        new_manager.path().display()
+                    t("notice.settings_migration_failed.title"),
+                    t_with(
+                        "notice.settings_migration_failed.write_error.body",
+                        &[
+                            ("{path}", &new_manager.path().display().to_string()),
+                            ("{err}", &err.to_string()),
+                        ],
                     ),
                 ));
             }
         }
         Err(err) => {
             notices.push(StartupNotice::warning(
-                "Settings migration failed",
-                format!(
-                    "Found a settings file at the old location but could not read it: {err}. \
-                     Starting with defaults; the old file is untouched."
+                t("notice.settings_migration_failed.title"),
+                t_with(
+                    "notice.settings_migration_failed.read_error.body",
+                    &[("{err}", &err.to_string())],
                 ),
             ));
         }
@@ -163,7 +193,7 @@ fn migrate_settings(new_manager: &ConfigManager<Settings>, notices: &mut Vec<Sta
 }
 
 fn migrate_directory(
-    kind: &str,
+    kind: MigrationKind,
     legacy_dir: io::Result<PathBuf>,
     new_dir: &Path,
     notices: &mut Vec<StartupNotice>,
@@ -179,14 +209,17 @@ fn migrate_directory(
         return; // new wins; old is left untouched
     }
     if let Err(err) = move_or_copy_dir(&legacy_dir, new_dir) {
+        let noun = kind.noun();
         notices.push(StartupNotice::warning(
-            format!("{kind} migration failed", kind = capitalize(kind)),
-            format!(
-                "Found {kind} at the old location ({}) but could not move it to the new one \
-                 ({}): {err}. Starting fresh at the new location; the old {kind} is untouched \
-                 and can be moved manually.",
-                legacy_dir.display(),
-                new_dir.display()
+            t(kind.title_key()),
+            t_with(
+                "notice.migration_failed.body",
+                &[
+                    ("{kind}", &noun),
+                    ("{legacy}", &legacy_dir.display().to_string()),
+                    ("{new}", &new_dir.display().to_string()),
+                    ("{err}", &err.to_string()),
+                ],
             ),
         ));
     }
@@ -194,14 +227,6 @@ fn migrate_directory(
 
 fn directory_has_entries(path: &Path) -> bool {
     fs::read_dir(path).is_ok_and(|mut entries| entries.next().is_some())
-}
-
-fn capitalize(word: &str) -> String {
-    let mut chars = word.chars();
-    match chars.next() {
-        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
-        None => String::new(),
-    }
 }
 
 /// Moves `from` to `to`, preferring an atomic rename (instant, and safe
@@ -334,7 +359,7 @@ mod tests {
         fs::write(new.join("current.txt"), b"current").unwrap();
 
         let mut notices = Vec::new();
-        migrate_directory("data", Ok(legacy.clone()), &new, &mut notices);
+        migrate_directory(MigrationKind::Data, Ok(legacy.clone()), &new, &mut notices);
 
         // New wins: untouched, and the legacy directory is left alone too.
         assert!(new.join("current.txt").exists());
@@ -358,11 +383,74 @@ mod tests {
         fs::create_dir_all(&new).unwrap(); // exists, but empty
 
         let mut notices = Vec::new();
-        migrate_directory("data", Ok(legacy.clone()), &new, &mut notices);
+        migrate_directory(MigrationKind::Data, Ok(legacy.clone()), &new, &mut notices);
 
         assert!(new.join("model.bin").exists());
         assert!(!legacy.exists());
         assert!(notices.is_empty());
         fs::remove_dir_all(&root).unwrap();
+    }
+
+    /// Forces `move_or_copy_dir` to fail (the new location's parent is a
+    /// *file*, so nothing can be created under it) and checks the
+    /// resulting notice, for both `MigrationKind`s: no leftover
+    /// `{placeholder}` token, and both paths actually present in the
+    /// body, not just that it compiles.
+    ///
+    /// English-only, deliberately: `app`'s test binary runs 60+ tests in
+    /// parallel, most of which assert exact English text without
+    /// expecting `arama_i18n`'s global locale to move under them. An
+    /// earlier version of this test looped over both locales; the same
+    /// change elsewhere in this crate (`core.rs`, `update/cache.rs`) was
+    /// found to race those tests when the full workspace suite ran
+    /// repeatedly, so this one was written English-only from the start.
+    /// `notice.migration_failed.body` (the key this reaches through
+    /// `migrate_directory`) is verified in both locales in
+    /// `arama-i18n`'s own, much smaller test binary instead
+    /// (`crates/i18n/src/lib.rs`'s `task_034_*` tests).
+    #[test]
+    fn migrate_directory_failure_notice_reads_correctly_in_english() {
+        for kind in [MigrationKind::Data, MigrationKind::Cache] {
+            let root = std::env::temp_dir().join(format!(
+                "arama-migrate-test-{}-failure-{kind:?}",
+                std::process::id(),
+            ));
+            let _ = fs::remove_dir_all(&root);
+            let legacy = root.join("legacy");
+            fs::create_dir_all(&legacy).unwrap();
+            fs::write(legacy.join("a.txt"), b"a").unwrap();
+
+            let blocker = root.join("blocker");
+            fs::write(&blocker, b"not a directory").unwrap();
+            let new = blocker.join("new");
+
+            let mut notices = Vec::new();
+            migrate_directory(kind, Ok(legacy.clone()), &new, &mut notices);
+
+            assert_eq!(
+                notices.len(),
+                1,
+                "{kind:?}: expected exactly one failure notice"
+            );
+            let notice = &notices[0];
+            assert!(!notice.title.is_empty(), "{kind:?}");
+            assert!(
+                !notice.body.contains('{'),
+                "{kind:?}: leftover placeholder in {}",
+                notice.body
+            );
+            assert!(
+                notice.body.contains(&legacy.display().to_string()),
+                "{kind:?}: legacy path missing from {}",
+                notice.body
+            );
+            assert!(
+                notice.body.contains(&new.display().to_string()),
+                "{kind:?}: new path missing from {}",
+                notice.body
+            );
+
+            fs::remove_dir_all(&root).unwrap();
+        }
     }
 }

@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use arama_i18n::t;
 use iced::Task;
 
 use super::DirNav;
@@ -23,12 +24,9 @@ impl DirNav {
                         }
                     }
                     Internal::RfdOpen => {
+                        let title = t("header.dir_nav.folder_select_title");
                         return Task::perform(
-                            async {
-                                rfd::FileDialog::new()
-                                    .set_title("Folder select")
-                                    .pick_folder()
-                            },
+                            async move { rfd::FileDialog::new().set_title(title).pick_folder() },
                             |path| Message::Internal(Internal::RfdClose(path)),
                         );
                     }

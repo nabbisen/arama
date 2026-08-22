@@ -16,6 +16,7 @@ use arama_env::{
     IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path,
     cache_thumbnail_dir_path,
 };
+use arama_i18n::{t, t_with};
 use arama_ui_main::views::cache_page;
 use iced::{Task, wgpu::naga::FastHashMap};
 use swdir::{DirNode, FilterRule, Recurse, Swdir};
@@ -71,7 +72,7 @@ impl App {
                 .map(|x| format!("{:?}", x.1))
                 .collect::<Vec<_>>()
                 .join(", ");
-            self.push_error_toast("Cache error", detail);
+            self.push_error_toast(t("toast.cache_error.title"), detail);
         }
 
         if let Some(dir_node) = &self.dir_node {
@@ -97,22 +98,31 @@ impl App {
                         }
                         (Err(err), _) => {
                             self.push_error_toast(
-                                "Cache reload failed",
-                                format!("failed to get image cache reader: {err}"),
+                                t("toast.cache_reload_failed.title"),
+                                format!(
+                                    "{}: {err}",
+                                    t("toast.cache_reload_failed.image_reader.body")
+                                ),
                             );
                         }
                         (_, Err(err)) => {
                             self.push_error_toast(
-                                "Cache reload failed",
-                                format!("failed to get video cache reader: {err}"),
+                                t("toast.cache_reload_failed.title"),
+                                format!(
+                                    "{}: {err}",
+                                    t("toast.cache_reload_failed.video_reader.body")
+                                ),
                             );
                         }
                     }
                 }
                 Err(err) => {
                     self.push_error_toast(
-                        "Cache reload failed",
-                        format!("failed to get cache storage path: {err}"),
+                        t("toast.cache_reload_failed.title"),
+                        format!(
+                            "{}: {err}",
+                            t("toast.cache_reload_failed.storage_path.body")
+                        ),
                     );
                 }
             }
@@ -124,7 +134,7 @@ impl App {
                 async move {
                     image_embedding(ret.into_iter().map(|x| x.0).collect(), ffmpeg_toolchain)
                         .await
-                        .map_err(|err| format!("failed to get embedding: {err}"))
+                        .map_err(|err| format!("{}: {err}", t("toast.embedding_error.body")))
                 },
                 Message::EmbeddingCacheFinished,
             )
@@ -144,11 +154,14 @@ impl App {
     ) -> Task<Message> {
         match result {
             Ok(report) if report.has_warnings() => {
-                self.push_warning_toast("Indexed with warnings", embedding_report_summary(&report));
+                self.push_warning_toast(
+                    t("toast.indexed_with_warnings.title"),
+                    embedding_report_summary(&report),
+                );
             }
             Ok(_) => (),
             Err(err) => {
-                self.push_error_toast("Embedding error", err);
+                self.push_error_toast(t("toast.embedding_error.title"), err);
             }
         }
 
@@ -198,7 +211,7 @@ impl App {
         result: Result<usize, String>,
     ) -> Task<Message> {
         if let Err(err) = result {
-            self.push_error_toast("Cache clear failed", err);
+            self.push_error_toast(t("toast.cache_clear_failed.title"), err);
         }
         // Reload so partial deletions are shown truthfully.
         self.cache_page.load_task().map(Message::CachePageMessage)
@@ -213,27 +226,25 @@ impl App {
                 self.cache_page.prune_finished(Some(report));
                 if report.target_reached {
                     self.push_success_toast(
-                        "Cache prune complete",
-                        format!(
-                            "Removed {} entries; cache footprint is now {}.",
+                        t("toast.cache_prune_complete.title"),
+                        cache_prune_complete_body(
                             report.removed_entries,
-                            human_size(report.after.total_bytes)
+                            &human_size(report.after.total_bytes),
                         ),
                     );
                 } else {
                     self.push_warning_toast(
-                        "Cache prune partial",
-                        format!(
-                            "Removed {} entries; {} remains outside the reclaimable scope.",
+                        t("toast.cache_prune_partial.title"),
+                        cache_prune_partial_body(
                             report.removed_entries,
-                            human_size(report.unreclaimable_bytes)
+                            &human_size(report.unreclaimable_bytes),
                         ),
                     );
                 }
             }
             Err(err) => {
                 self.cache_page.prune_finished(None);
-                self.push_error_toast("Cache prune failed", err);
+                self.push_error_toast(t("toast.cache_prune_failed.title"), err);
             }
         }
         self.cache_page.load_task().map(Message::CachePageMessage)
@@ -280,8 +291,8 @@ impl App {
     fn on_cache_page_request(&mut self, path: PathBuf) -> Task<Message> {
         if !path.is_dir() {
             self.push_error_toast(
-                "Invalid directory",
-                format!("Not an existing directory: {}", path.display()),
+                t("toast.invalid_directory.title"),
+                format!("{}: {}", t("toast.invalid_directory.body"), path.display()),
             );
             return Task::none();
         }
@@ -389,19 +400,48 @@ fn human_size(bytes: u64) -> String {
     }
 }
 
+fn cache_prune_complete_body(removed_entries: usize, after_size: &str) -> String {
+    t_with(
+        "toast.cache_prune_complete.body",
+        &[
+            ("{count}", &removed_entries.to_string()),
+            ("{size}", after_size),
+        ],
+    )
+}
+
+fn cache_prune_partial_body(removed_entries: usize, unreclaimable_size: &str) -> String {
+    t_with(
+        "toast.cache_prune_partial.body",
+        &[
+            ("{count}", &removed_entries.to_string()),
+            ("{size}", unreclaimable_size),
+        ],
+    )
+}
+
 fn embedding_report_summary(report: &EmbeddingRunReport) -> String {
     let mut parts = Vec::new();
     if !report.skipped.is_empty() {
-        parts.push(format!("{} files skipped", report.skipped.len()));
+        parts.push(format!(
+            "{} {}",
+            report.skipped.len(),
+            t("cache.summary_report.files_skipped")
+        ));
     }
     if !report.cache_write_failures.is_empty() {
         parts.push(format!(
-            "{} cache writes failed",
-            report.cache_write_failures.len()
+            "{} {}",
+            report.cache_write_failures.len(),
+            t("cache.summary_report.cache_writes_failed")
         ));
     }
     if parts.is_empty() {
-        format!("{} files indexed", report.processed)
+        format!(
+            "{} {}",
+            report.processed,
+            t("cache.summary_report.files_indexed")
+        )
     } else {
         parts.join(", ")
     }
@@ -460,4 +500,62 @@ fn dir_path_thumbnail_path_map(
     }
 
     ret
+}
+
+#[cfg(test)]
+mod tests {
+    use arama_ai::pipeline::encode::image::embeddings::EmbeddingFileIssue;
+
+    use super::{
+        EmbeddingRunReport, cache_prune_complete_body, cache_prune_partial_body,
+        embedding_report_summary,
+    };
+
+    /// English-only, deliberately: this crate's own binary shares the
+    /// `app` crate's much larger test suite, most of which asserts exact
+    /// English text without expecting `arama_i18n`'s global locale to
+    /// move under it. An earlier version of this test looped over both
+    /// locales and was found to race those tests when the full workspace
+    /// suite ran repeatedly. `toast.cache_prune_complete.body` and
+    /// `toast.cache_prune_partial.body` - the two keys these functions
+    /// call `t_with` on - are verified in both locales in
+    /// `arama-i18n`'s own, much smaller test binary instead
+    /// (`crates/i18n/src/lib.rs`'s `task_034_*` tests), where mutating
+    /// the global locale is safe.
+    #[test]
+    fn cache_prune_bodies_substitute_correctly_in_english() {
+        let complete = cache_prune_complete_body(42, "1.2 GB");
+        assert!(complete.contains("42"), "{complete}");
+        assert!(complete.contains("1.2 GB"), "{complete}");
+        assert!(!complete.contains('{'), "{complete}");
+
+        let partial = cache_prune_partial_body(7, "300.0 MB");
+        assert!(partial.contains('7'), "{partial}");
+        assert!(partial.contains("300.0 MB"), "{partial}");
+        assert!(!partial.contains('{'), "{partial}");
+    }
+
+    #[test]
+    fn embedding_report_summary_reads_correctly_in_english() {
+        let skipped_only = EmbeddingRunReport {
+            processed: 0,
+            skipped: vec![EmbeddingFileIssue {
+                path: "a.jpg".into(),
+                message: "unreadable".to_owned(),
+            }],
+            cache_write_failures: vec![],
+        };
+        let summary = embedding_report_summary(&skipped_only);
+        assert!(summary.starts_with('1'), "{summary}");
+        assert!(!summary.contains('{'), "{summary}");
+
+        let indexed_only = EmbeddingRunReport {
+            processed: 5,
+            skipped: vec![],
+            cache_write_failures: vec![],
+        };
+        let summary = embedding_report_summary(&indexed_only);
+        assert!(summary.starts_with('5'), "{summary}");
+        assert!(!summary.contains('{'), "{summary}");
+    }
 }

@@ -5,7 +5,7 @@ use arama_env::{
     IMAGE_EXTENSION_ALLOWLIST, Settings, VIDEO_EXTENSION_ALLOWLIST,
     target_media_type::TargetMediaType,
 };
-use arama_i18n::{set_locale, t};
+use arama_i18n::{set_locale, t, t_with};
 use arama_sidecar::media::video::video_engine::{
     FfmpegToolchain, discovery::FfmpegDiscoveryRuntime,
 };
@@ -174,8 +174,8 @@ impl App {
             Ok(s) => s,
             Err(err) => {
                 startup_notices.push(StartupNotice::error(
-                    "Setup initialization failed",
-                    format!("The setup wizard could not be initialized: {err}"),
+                    t("notice.setup_init_failed.title"),
+                    format!("{}: {err}", t("notice.setup_init_failed.body")),
                 ));
                 Setup::fallback()
             }
@@ -440,20 +440,23 @@ fn push_startup_notices(
 
 fn settings_error_message(err: &ConfigError) -> String {
     match err {
-        ConfigError::Io(err) => format!("I/O error: {err}"),
-        ConfigError::Serialize(err) => format!("JSON serialization error: {err}"),
-        ConfigError::Deserialize(err) => format!("JSON deserialization error: {err}"),
+        ConfigError::Io(err) => format!("{}: {err}", t("settings.error.io")),
+        ConfigError::Serialize(err) => format!("{}: {err}", t("settings.error.serialize")),
+        ConfigError::Deserialize(err) => format!("{}: {err}", t("settings.error.deserialize")),
         ConfigError::InvalidPathComponent(component) => {
-            format!("Invalid settings path component: {component}")
+            format!(
+                "{}: {component}",
+                t("settings.error.invalid_path_component")
+            )
         }
-        ConfigError::Platform(error) => format!("Settings platform error: {error}"),
+        ConfigError::Platform(error) => format!("{}: {error}", t("settings.error.platform")),
         // ConfigError is not #[non_exhaustive]; upstream has already added a
         // variant in each of two prior minor releases without one. Keep the
         // specific arms above for better messages, but this arm is what
         // stops the next such minor from breaking this build. Unreachable
         // today, by construction — that's the insurance, not a mistake.
         #[allow(unreachable_patterns)]
-        _ => format!("Settings error: {err}"),
+        _ => format!("{}: {err}", t("settings.error.generic")),
     }
 }
 
@@ -535,7 +538,13 @@ fn walk_errors_summary(errors: &[WalkError]) -> String {
     if errors.len() == 1 {
         first
     } else {
-        format!("{first}; {} total scan errors", errors.len())
+        format!(
+            "{first}; {}",
+            t_with(
+                "startup.scan_errors_total",
+                &[("{count}", &errors.len().to_string())]
+            )
+        )
     }
 }
 
@@ -608,6 +617,37 @@ mod tests {
 
         assert!(summary.contains("not-readable"));
         assert!(summary.contains("2 total scan errors"));
+    }
+
+    /// Task 034: each `ConfigError` variant's translated label must
+    /// actually appear alongside the passed-through error text.
+    ///
+    /// English-only, deliberately: `app`'s test binary runs 60+ tests in
+    /// parallel and most of them - like the two above - assert exact
+    /// English text without expecting the global locale
+    /// (`arama_i18n::set_locale`) to move under them. An earlier version
+    /// of this test looped over `Locale::all()`, and intermittently made
+    /// `walk_error_summary_includes_error_count_for_multiple_errors`
+    /// above observe Japanese output mid-flight and fail - a real race,
+    /// reproduced by running the full workspace suite repeatedly, not a
+    /// one-off. Japanese-locale correctness for these same keys is
+    /// verified in `arama-i18n`'s own, much smaller test binary instead
+    /// (`crates/i18n/src/lib.rs`'s `task_034_*` tests), where mutating
+    /// the global locale is safe because nothing else in that binary
+    /// assumes a fixed one.
+    #[test]
+    fn settings_error_message_reads_correctly_in_english() {
+        let cases: Vec<ConfigError> = vec![
+            ConfigError::Io(std::io::Error::other("disk full")),
+            ConfigError::InvalidPathComponent("..".to_owned()),
+            ConfigError::Platform("no home dir".to_owned()),
+        ];
+
+        for err in &cases {
+            let message = settings_error_message(err);
+            assert!(!message.is_empty(), "empty for {err:?}");
+            assert!(!message.contains('{'), "leftover placeholder in {message}");
+        }
     }
 
     #[test]

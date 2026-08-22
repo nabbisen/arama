@@ -1,0 +1,45 @@
+name: Untranslated strings
+
+# Task 034 §3.2: two sweeps in a week (package 124's footer sweep, then
+# this task, working through its own ~28-item backlog) found hardcoded
+# English strings that reached the user with no translated counterpart.
+# Nothing stopped a third. This runs `scripts/check-untranslated-strings.sh`
+# on every push and pull request - a narrow, repeatable pattern check,
+# not a rewrite of `t()`/`arama-i18n` (Task 034's own non-scope).
+#
+# Deliberately its own workflow, not a step folded into clippy.yaml
+# (Task 033) - same reasoning Task 033 itself gave for splitting from
+# msrv.yaml: this check is conceptually a different concern (a
+# repository-text convention, not a Rust lint) and needs no Rust
+# toolchain at all, so tying its result to clippy's job would only add
+# an unrelated failure mode to each.
+#
+# What this cannot do, recorded here rather than implied by a clean run:
+# the script's own header lists exactly what it catches (a bare string
+# literal passed directly to `text(`/`button(`/`text_input(`/`tooltip(`/
+# `.set_title(`) and what it does not (a literal built via `format!(...)`,
+# assigned to a `let` first, or reaching any other call). Most of Task
+# 034's own ~28 findings were exactly the shapes this script cannot see -
+# it is a narrow net for the one shape that recurred, not a replacement
+# for a human sweep. A red run here is real; a clean run is not proof
+# nothing was missed.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: scripts/check-untranslated-strings.sh
+        run: bash scripts/check-untranslated-strings.sh

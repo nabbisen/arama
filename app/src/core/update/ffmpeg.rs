@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use app_json_settings::{ConfigError, ConfigManager};
 use arama_env::{Settings, ffmpeg_location::FfmpegLocationPreference};
+use arama_i18n::t;
 use arama_sidecar::media::video::video_engine::discovery::{
     FfmpegDiscoveryEvent, FfmpegDiscoveryFailure, FfmpegDiscoveryOutcome, FfmpegDiscoveryRuntime,
     FfmpegDiscoveryTicket, FilesystemIssue, PreferenceRetainReason, PreferenceTransition,
@@ -101,9 +102,8 @@ impl App {
                 self.settings_page
                     .set_ffmpeg_candidate_failure(&preference, &outcome);
                 self.push_error_toast(
-                    "FFmpeg settings",
-                    "The selected folder cannot be stored safely. Choose a valid absolute folder."
-                        .to_owned(),
+                    t("toast.ffmpeg_settings.title"),
+                    t("toast.ffmpeg_settings.folder_unsafe.body"),
                 );
                 Task::none()
             }
@@ -131,8 +131,8 @@ impl App {
                     Task::none()
                 };
                 self.push_error_toast(
-                    "FFmpeg settings",
-                    "The automatic-discovery setting could not be saved.".to_owned(),
+                    t("toast.ffmpeg_settings.title"),
+                    t("toast.ffmpeg_settings.auto_save_failed.body"),
                 );
                 resume
             }
@@ -248,8 +248,8 @@ impl App {
                                 self.publish_ffmpeg_authority();
                                 self.settings_page.set_ffmpeg_select_enabled(true);
                                 self.push_error_toast(
-                                    "FFmpeg settings",
-                                    "The validated FFmpeg folder could not be saved.".to_owned(),
+                                    t("toast.ffmpeg_settings.title"),
+                                    t("toast.ffmpeg_settings.validated_save_failed.body"),
                                 );
                                 self.resume_after_rollback(resolution)
                             }
@@ -348,8 +348,8 @@ impl App {
             Task::none()
         };
         self.push_error_toast(
-            "FFmpeg settings",
-            "The FFmpeg validation worker stopped unexpectedly. Re-check the setting.".to_owned(),
+            t("toast.ffmpeg_settings.title"),
+            t("toast.ffmpeg_settings.worker_stopped.body"),
         );
         task
     }

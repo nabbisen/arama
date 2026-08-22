@@ -171,6 +171,7 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
 
         // Header
         "header.folder" => "Folder",
+        "header.dir_nav.folder_select_title" => "Folder select",
 
         // Gallery
         "gallery.empty" => "No file to render.",
@@ -203,6 +204,103 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         }
         "startup.root_scan_warning.title" => "Folder scan incomplete",
         "startup.root_scan_warning.body" => "Some folders could not be read during startup",
+        // Task 034: `{count}` is substituted via `arama_i18n::t_with`.
+        "startup.scan_errors_total" => "{count} total scan errors",
+
+        // Startup — fatal data-location failures (Task 034). Each is
+        // combined with a trailing `: {err}` (resolve) or ` ({path}): {err}`
+        // (create) composed in Rust, not in the translation, since `path`
+        // and `err` are a filesystem path and a library error string
+        // respectively - neither is meaningfully translatable.
+        "startup.location_error.settings_resolve" => "could not resolve the settings location",
+        "startup.location_error.settings_create" => "could not create the settings location",
+        "startup.location_error.data_resolve" => "could not resolve the data location",
+        "startup.location_error.data_create" => "could not create the data location",
+        "startup.location_error.cache_resolve" => "could not resolve the cache location",
+        "startup.location_error.cache_create" => "could not create the cache location",
+
+        // Notices (Task 034)
+        "notice.settings_migration_failed.title" => "Settings migration failed",
+        "notice.settings_migration_failed.write_error.body" => {
+            "Found settings at the old location but could not write them to the new one \
+             ({path}): {err}. Starting with defaults; the old settings file is untouched."
+        }
+        "notice.settings_migration_failed.read_error.body" => {
+            "Found a settings file at the old location but could not read it: {err}. \
+             Starting with defaults; the old file is untouched."
+        }
+        "notice.data_migration_failed.title" => "Data migration failed",
+        "notice.cache_migration_failed.title" => "Cache migration failed",
+        "notice.migration_failed.body" => {
+            "Found {kind} at the old location ({legacy}) but could not move it to the new one \
+             ({new}): {err}. Starting fresh at the new location; the old {kind} is untouched \
+             and can be moved manually."
+        }
+        "notice.migration.kind_data" => "data",
+        "notice.migration.kind_cache" => "cache",
+        "notice.setup_init_failed.title" => "Setup initialization failed",
+        "notice.setup_init_failed.body" => "The setup wizard could not be initialized",
+
+        // Toasts (Task 034)
+        "toast.ffmpeg_settings.title" => "FFmpeg settings",
+        "toast.ffmpeg_settings.folder_unsafe.body" => {
+            "The selected folder cannot be stored safely. Choose a valid absolute folder."
+        }
+        "toast.ffmpeg_settings.auto_save_failed.body" => {
+            "The automatic-discovery setting could not be saved."
+        }
+        "toast.ffmpeg_settings.validated_save_failed.body" => {
+            "The validated FFmpeg folder could not be saved."
+        }
+        "toast.ffmpeg_settings.worker_stopped.body" => {
+            "The FFmpeg validation worker stopped unexpectedly. Re-check the setting."
+        }
+        "toast.similarity_pairs.title" => "Similarity pairs",
+        "toast.similarity_pairs.select_dir_first.body" => "Select a directory first.",
+        "toast.cache_error.title" => "Cache error",
+        "toast.cache_reload_failed.title" => "Cache reload failed",
+        "toast.cache_reload_failed.image_reader.body" => "Could not open the image cache",
+        "toast.cache_reload_failed.video_reader.body" => "Could not open the video cache",
+        "toast.cache_reload_failed.storage_path.body" => {
+            "Could not resolve the cache storage location"
+        }
+        "toast.indexed_with_warnings.title" => "Indexed with warnings",
+        "toast.embedding_error.title" => "Embedding error",
+        "toast.embedding_error.body" => "Could not compute embeddings",
+        "toast.cache_clear_failed.title" => "Cache clear failed",
+        "toast.cache_prune_complete.title" => "Cache prune complete",
+        "toast.cache_prune_complete.body" => {
+            "Removed {count} entries; cache footprint is now {size}."
+        }
+        "toast.cache_prune_partial.title" => "Cache prune partial",
+        "toast.cache_prune_partial.body" => {
+            "Removed {count} entries; {size} remains outside the reclaimable scope."
+        }
+        "toast.cache_prune_failed.title" => "Cache prune failed",
+        "toast.invalid_directory.title" => "Invalid directory",
+        "toast.invalid_directory.body" => "Not an existing directory",
+
+        // Cache indexing summary (Task 034) - `{}` count comes first,
+        // matching the existing `cache.summary.*` shape
+        // (`crates/ui/main/src/core/views/cache_page/view.rs`).
+        "cache.summary_report.files_skipped" => "files skipped",
+        "cache.summary_report.cache_writes_failed" => "cache writes failed",
+        "cache.summary_report.files_indexed" => "files indexed",
+
+        // Settings errors (Task 034) - each combined with a trailing
+        // `: {err}` composed in Rust; `err`/`component` are not
+        // meaningfully translatable (library error text / a raw path
+        // segment).
+        "settings.error.io" => "I/O error",
+        "settings.error.serialize" => "JSON serialization error",
+        "settings.error.deserialize" => "JSON deserialization error",
+        "settings.error.invalid_path_component" => "Invalid settings path component",
+        "settings.error.platform" => "Settings platform error",
+        "settings.error.generic" => "Settings error",
+
+        // Context menu (Task 034)
+        "context_menu.open_with_default" => "open with default app",
+        "context_menu.file_manager" => "file manager",
 
         _ => return None,
     })
