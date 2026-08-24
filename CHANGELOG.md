@@ -7,6 +7,15 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+---
+
+## [0.41.1]
+
+A fix-only release, and the fix is the first thing a new user sees.
+
+Nothing changes compatibility with existing cache, settings, or media data, and
+no action is required when upgrading.
+
 ### Fixed
 
 - **The setup wizard's model download progress bar now moves.** Previously it
