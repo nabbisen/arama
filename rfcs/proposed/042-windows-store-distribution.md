@@ -248,6 +248,33 @@ Windows that is `broadFileSystemAccess`, which Store review scrutinises. **This
 should be checked early** — a capability the reviewer rejects would invalidate
 the whole plan, and it is cheaper to learn now than after packaging work.
 
+### 3b. Which releases go to the Store — settled, and reversible
+
+> **Settled 2026-08-20 by the project owner: every GitHub release also goes to
+> the Store — "for now".**
+>
+> The qualifier is load-bearing and is recorded as part of the decision. This is
+> a **default**, chosen because it keeps the two channels from visibly diverging
+> and because nothing yet argues for the alternative. It is not a commitment,
+> and reversing it costs an `if:` condition plus whatever mechanism selects
+> releases.
+>
+> **The consequence, stated plainly because it is now live:** Store review is an
+> external gate on a schedule this project does not control, and **nothing in
+> this repository watches Store review status.** So a rejected or slow review
+> sits behind the next tag push, and the only way anyone learns is by checking
+> Partner Center by hand.
+>
+> **That is a real gap, not a theoretical one**, and it is the same shape as the
+> failure RFC 034 exists for: a channel that silently produces nothing, with the
+> operator unable to distinguish it from success. It does not block phase one —
+> nothing submits yet — but **whoever builds the submission step must say how a
+> failed or pending review surfaces**, and "someone will notice" is not an
+> answer.
+>
+> Revisit if a review is ever rejected, or if the Store listing lagging GitHub
+> starts to matter.
+
 ### 4. The Store version scheme — settled
 
 Store packages require four parts, and the **fourth is reserved for Store use

@@ -75,7 +75,19 @@ ship arama to arama's users.
 **If any of this cannot be satisfied, stop and report it.** A working submission
 pipeline built on a credential handled loosely is worse than no pipeline.
 
-## 4. The question the owner must answer before submission is wired
+## 4. ~~The question the owner must answer~~ — answered
+
+> **Settled 2026-08-20: every GitHub release also goes to the Store, "for
+> now".** Recorded in RFC 042 §3b, including that the qualifier is part of the
+> decision — this is a reversible default, not a commitment.
+>
+> **What follows for the submission step**, and it is not optional: nothing in
+> this repository watches Store review status, so a rejected or slow review sits
+> behind the next tag with no signal. **The submission step must say how that
+> surfaces.** "Someone will notice" is the 0.37.0 failure shape wearing a new
+> hat.
+
+*Original text, retained:*
 
 **Does every GitHub release also go to the Store, or only some?**
 
