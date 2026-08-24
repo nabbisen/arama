@@ -17,6 +17,12 @@ mod specification;
 mod transfer;
 pub mod wav2vec2;
 
+// Task 036: `lifecycle` is private (its other items are implementation
+// detail, reached only through `ModelContainer`'s own methods), but
+// `DownloadProgress` is part of `download_with_progress`'s public
+// return type and must be nameable from outside this crate.
+pub use lifecycle::DownloadProgress;
+
 const GENERATION_MANIFEST: &str = ".arama-model-generation";
 const OPERATION_METADATA: &str = ".arama-model-operation";
 

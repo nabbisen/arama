@@ -270,6 +270,217 @@ fn model_and_config_publish_as_one_complete_generation() {
     cleanup_model(&model);
 }
 
+/// Task 036: the progress path must emit more than one value for a
+/// multi-chunk transfer - the defect this task fixes is that
+/// `DownloadProgress::Downloading` was never constructed at all, so
+/// "it changed more than once" is the actual claim under test, not
+/// merely "it reached the end."
+#[test]
+fn download_with_progress_emits_more_than_one_value_for_a_multi_chunk_transfer() {
+    let chunks: [&[u8]; 4] = [b"one-", b"two-", b"three", b"-four"];
+    let body_len: usize = chunks.iter().map(|c| c.len()).sum();
+    let header =
+        format!("HTTP/1.1 200 OK\r\nContent-Length: {body_len}\r\nConnection: close\r\n\r\n");
+    let url = serve_chunked_response(&header, &chunks, Duration::from_millis(20));
+    let full_body: Vec<u8> = chunks.concat();
+    let model = single_file_model(unique_model_name("progress-multi-chunk"), url, &full_body);
+
+    let (observed, result) = test_runtime().block_on(async {
+        let (mut progress, download) = model.download_with_progress().expect("progress handle");
+        let worker = tokio::task::spawn(download);
+
+        let mut observed = vec![*progress.borrow()];
+        while progress.changed().await.is_ok() {
+            observed.push(*progress.borrow());
+            if observed.last().unwrap().downloaded as usize >= body_len {
+                break;
+            }
+        }
+        (observed, worker.await.expect("download task"))
+    });
+
+    result.expect("chunked download succeeds");
+
+    let distinct_byte_counts: std::collections::BTreeSet<u64> =
+        observed.iter().map(|p| p.downloaded).collect();
+    assert!(
+        distinct_byte_counts.len() > 1,
+        "expected more than one distinct progress value, got {observed:?}"
+    );
+    assert_eq!(
+        observed.last().expect("at least one value").downloaded,
+        body_len as u64,
+        "the final observed value must be the real total, not a partial one"
+    );
+    // Real bytes, monotonically non-decreasing - never a value invented
+    // to look like animation (Task 036 §4).
+    for pair in observed.windows(2) {
+        assert!(pair[0].downloaded <= pair[1].downloaded, "{observed:?}");
+    }
+    // The very first read can legitimately predate the worker even
+    // starting (the channel's own initial default, `(0, None)`, set
+    // before anything has run) - the real claim is that once a file's
+    // response headers have arrived, its declared length is known and
+    // stays known for the rest of the transfer.
+    assert!(
+        observed
+            .iter()
+            .skip_while(|p| p.total.is_none())
+            .all(|p| p.total == Some(body_len as u64)),
+        "content-length was declared, so once known it must stay the real total throughout: {observed:?}"
+    );
+    cleanup_model(&model);
+}
+
+/// Task 036 §3: a response with no `Content-Length` at all must not
+/// produce a fake percentage - `total` stays `None` for every
+/// observation, and the caller is left to show real bytes downloaded
+/// instead of dividing by an assumed bound.
+#[test]
+fn download_with_progress_reports_no_total_when_content_length_is_absent() {
+    let body = b"no declared length at all, read until connection close";
+    let url = serve_chunked_response(
+        "HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n",
+        &[body],
+        Duration::ZERO,
+    );
+    let model = single_file_model(unique_model_name("progress-no-length"), url, body);
+
+    let (observed, result) = test_runtime().block_on(async {
+        let (mut progress, download) = model.download_with_progress().expect("progress handle");
+        let worker = tokio::task::spawn(download);
+
+        let mut observed = vec![*progress.borrow()];
+        while progress.changed().await.is_ok() {
+            observed.push(*progress.borrow());
+        }
+        (observed, worker.await.expect("download task"))
+    });
+
+    result.expect("length-less download succeeds");
+
+    assert!(
+        observed.iter().all(|p| p.total.is_none()),
+        "no file in this generation ever reported a length, so total must stay None throughout: {observed:?}"
+    );
+    assert_eq!(
+        observed.last().expect("at least one value").downloaded,
+        body.len() as u64,
+        "bytes-so-far must still be the real count even with no known total"
+    );
+    cleanup_model(&model);
+}
+
+/// Task 036 §3: a joiner subscribing to an already-partway-through
+/// generation must see the current progress immediately, never 0 -
+/// `watch::Receiver` semantics (`subscribe()` replays the latest value)
+/// is what makes this true by construction, verified here rather than
+/// assumed.
+#[test]
+fn joiner_observes_current_progress_not_zero() {
+    let chunks: [&[u8]; 3] = [b"aaaa", b"bbbb", b"cccc"];
+    let body_len: usize = chunks.iter().map(|c| c.len()).sum();
+    let header =
+        format!("HTTP/1.1 200 OK\r\nContent-Length: {body_len}\r\nConnection: close\r\n\r\n");
+    let url = serve_chunked_response(&header, &chunks, Duration::from_millis(40));
+    let full_body: Vec<u8> = chunks.concat();
+    let model = single_file_model(unique_model_name("progress-joiner"), url, &full_body);
+    let joiner_model = model.clone();
+
+    let (joined_at, result) = test_runtime().block_on(async {
+        let (mut progress, download) = model.download_with_progress().expect("starting handle");
+        let worker = tokio::task::spawn(download);
+
+        // Let at least the first chunk land before the joiner arrives.
+        while progress.borrow().downloaded == 0 {
+            progress.changed().await.expect("progress channel open");
+        }
+
+        let (joiner_progress, _joiner_future) = joiner_model
+            .download_with_progress()
+            .expect("joining handle");
+        let joined_at = *joiner_progress.borrow();
+
+        (joined_at, worker.await.expect("download task"))
+    });
+
+    result.expect("joined download succeeds");
+    assert!(
+        joined_at.downloaded > 0,
+        "a joiner arriving mid-transfer must not observe 0 bytes: {joined_at:?}"
+    );
+    cleanup_model(&model);
+}
+
+/// Task 036 §3: a generation is more than one file for
+/// `ModelSafetensorsConfigJson` sources. `downloaded` must never go
+/// backwards across the model-file-to-config-file transition - a
+/// percentage that resets to 0% mid-download is explicitly worse than
+/// none. The chosen aggregation (§3, recorded in `GenerationProgress`'s
+/// own doc comment) grows the known `total` once the config's own
+/// response headers arrive rather than assuming it upfront, so `total`
+/// is allowed to *increase* once during the transition - checked here
+/// too, so the growth is asserted rather than merely not-decreasing.
+#[test]
+fn download_with_progress_does_not_reset_across_model_and_config_files() {
+    let model_body = b"the model file, larger";
+    let config_body = b"{}";
+    let (url, _requests) = serve_responses(
+        vec![
+            response("200 OK", model_body),
+            response("200 OK", config_body),
+        ],
+        Duration::ZERO,
+    );
+    let model = ModelContainer {
+        name: unique_model_name("progress-two-files"),
+        source_url: SourceUrl::ModelSafetensorsConfigJson((url.clone(), url)),
+        expected_sha256: leaked_digest(model_body),
+        config_expected_sha256: Some(leaked_digest(config_body)),
+        max_model_bytes: 1024,
+        max_config_bytes: Some(1024),
+    };
+
+    let (observed, result) = test_runtime().block_on(async {
+        let (mut progress, download) = model.download_with_progress().expect("progress handle");
+        let worker = tokio::task::spawn(download);
+
+        let mut observed = vec![*progress.borrow()];
+        let full_total = (model_body.len() + config_body.len()) as u64;
+        while progress.changed().await.is_ok() {
+            observed.push(*progress.borrow());
+            if observed.last().unwrap().downloaded >= full_total {
+                break;
+            }
+        }
+        (observed, worker.await.expect("download task"))
+    });
+
+    result.expect("two-file download succeeds");
+
+    for pair in observed.windows(2) {
+        assert!(
+            pair[0].downloaded <= pair[1].downloaded,
+            "downloaded must never go backwards across files: {observed:?}"
+        );
+    }
+    assert_eq!(
+        observed.last().expect("at least one value").downloaded,
+        (model_body.len() + config_body.len()) as u64,
+        "final count must be the sum of both files, not just the model file"
+    );
+    let totals: Vec<Option<u64>> = observed.iter().map(|p| p.total).collect();
+    assert!(
+        totals.contains(&Some(model_body.len() as u64)),
+        "total must reflect the model-only figure while only its headers are known: {totals:?}"
+    );
+    assert!(
+        totals.contains(&Some((model_body.len() + config_body.len()) as u64)),
+        "total must grow to include the config file once its own headers arrive: {totals:?}"
+    );
+    cleanup_model(&model);
+}
+
 #[test]
 fn failed_generation_can_be_retried_without_stale_state() {
     let body = b"retry model";

@@ -135,7 +135,7 @@ mod tests {
         Downloader,
         config::DownloaderConfig,
         message::Message,
-        state::{DownloadProgress, DownloadState, DownloaderState},
+        state::{DownloadBytes, DownloadProgress, DownloadState, DownloaderState},
     };
 
     fn test_model_config() -> DownloaderConfig {
@@ -168,7 +168,11 @@ mod tests {
 
     #[test]
     fn ai_progress_error_records_error_and_stops_when_all_done() {
-        let mut downloader = downloader_with_states(vec![DownloadState::Downloading(42.0)]);
+        let mut downloader =
+            downloader_with_states(vec![DownloadState::Downloading(DownloadBytes {
+                downloaded: 42,
+                total: Some(100),
+            })]);
 
         let _ = downloader.update(Message::AiModelProgressUpdated(
             0,
@@ -184,8 +188,10 @@ mod tests {
 
     #[test]
     fn ai_progress_keeps_downloading_until_every_state_is_done() {
-        let mut downloader =
-            downloader_with_states(vec![DownloadState::Downloading(0.0), DownloadState::Idle]);
+        let mut downloader = downloader_with_states(vec![
+            DownloadState::Downloading(DownloadBytes::default()),
+            DownloadState::Idle,
+        ]);
 
         let _ = downloader.update(Message::AiModelProgressUpdated(
             0,

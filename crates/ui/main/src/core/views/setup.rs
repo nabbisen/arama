@@ -75,7 +75,7 @@ mod tests {
         Downloader,
         config::DownloaderConfig,
         message as downloader_message,
-        state::{DownloadProgress, DownloadState},
+        state::{DownloadBytes, DownloadProgress, DownloadState},
     };
 
     use super::{Setup, message::Message, setup_configs};
@@ -136,8 +136,14 @@ mod tests {
 
     #[test]
     fn failed_required_clip_download_remains_in_setup() {
-        let mut setup =
-            external_ffmpeg_setup(DownloadState::Downloading(10.0), DownloadState::Idle, true);
+        let mut setup = external_ffmpeg_setup(
+            DownloadState::Downloading(DownloadBytes {
+                downloaded: 10,
+                total: Some(100),
+            }),
+            DownloadState::Idle,
+            true,
+        );
 
         let _ = setup.update(Message::DownloaderMessage(
             downloader_message::Message::AiModelProgressUpdated(
@@ -152,8 +158,14 @@ mod tests {
 
     #[test]
     fn successful_clip_download_completes_setup_without_audio_or_video() {
-        let mut setup =
-            external_ffmpeg_setup(DownloadState::Downloading(90.0), DownloadState::Idle, true);
+        let mut setup = external_ffmpeg_setup(
+            DownloadState::Downloading(DownloadBytes {
+                downloaded: 90,
+                total: Some(100),
+            }),
+            DownloadState::Idle,
+            true,
+        );
 
         let _ = setup.update(Message::DownloaderMessage(
             downloader_message::Message::AiModelProgressUpdated(
@@ -168,8 +180,14 @@ mod tests {
 
     #[test]
     fn ready_clip_with_housekeeping_warning_still_completes_setup() {
-        let mut setup =
-            external_ffmpeg_setup(DownloadState::Downloading(90.0), DownloadState::Idle, true);
+        let mut setup = external_ffmpeg_setup(
+            DownloadState::Downloading(DownloadBytes {
+                downloaded: 90,
+                total: Some(100),
+            }),
+            DownloadState::Idle,
+            true,
+        );
 
         let _ = setup.update(Message::DownloaderMessage(
             downloader_message::Message::AiModelProgressUpdated(
@@ -185,7 +203,10 @@ mod tests {
     #[test]
     fn optional_audio_failure_does_not_block_successful_clip_completion() {
         let mut setup = external_ffmpeg_setup(
-            DownloadState::Downloading(90.0),
+            DownloadState::Downloading(DownloadBytes {
+                downloaded: 90,
+                total: Some(100),
+            }),
             DownloadState::Errored("optional download failed".to_owned()),
             true,
         );

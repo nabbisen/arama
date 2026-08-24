@@ -7,7 +7,11 @@ use iced::{Element, Length, alignment};
 
 use crate::components::setup::downloader::config::DownloaderConfig;
 
-use super::{Downloader, message::Message, state::DownloadState};
+use super::{
+    Downloader,
+    message::Message,
+    state::{DownloadBytes, DownloadState},
+};
 
 impl Downloader {
     pub fn view(&self) -> Element<'_, Message> {
@@ -21,22 +25,28 @@ impl Downloader {
                     .max_width(400)
                     .spacing(10),
                 |col, (id, state)| {
-                    let (status, progress) = match &state.download_state {
-                        DownloadState::Idle => (t("setup.status.missing"), 0.0),
-                        DownloadState::Checking => (t("setup.status.checking"), 0.0),
+                    // Task 036: `progress` is `None` whenever a real
+                    // percentage cannot be shown honestly - before the
+                    // very first byte, and for any state that is not
+                    // "currently downloading with a known total". A
+                    // `progress_bar` is only rendered when this is
+                    // `Some`; an animated bar with no real proportional
+                    // meaning would misrepresent the transfer, which is
+                    // worse than showing no bar at all (§4).
+                    let (status, progress): (String, Option<f32>) = match &state.download_state {
+                        DownloadState::Idle => (t("setup.status.missing"), None),
+                        DownloadState::Checking => (t("setup.status.checking"), None),
                         DownloadState::WorkerDraining => {
-                            (t("setup.status.ffmpeg_worker_draining"), 0.0)
+                            (t("setup.status.ffmpeg_worker_draining"), None)
                         }
-                        DownloadState::Downloading(p) => {
-                            (format!("{} {:.1}%", t("setup.status.downloading"), *p), *p)
-                        }
-                        DownloadState::Finished => (t("setup.status.ready"), 100.0),
+                        DownloadState::Downloading(bytes) => downloading_status(*bytes),
+                        DownloadState::Finished => (t("setup.status.ready"), Some(100.0)),
                         DownloadState::Errored(e) => {
-                            (format!("{}: {}", t("setup.status.error"), e), 0.0)
+                            (format!("{}: {}", t("setup.status.error"), e), None)
                         }
                         DownloadState::NotRequired => unreachable!(),
                         DownloadState::ExternalRequired => {
-                            (t("setup.status.external_required"), 0.0)
+                            (t("setup.status.external_required"), None)
                         }
                     };
 
@@ -73,8 +83,8 @@ impl Downloader {
                                 ]
                                 .spacing(10),
                             );
-                    } else {
-                        item = item.push(container(progress_bar(0.0..=100.0, progress)).height(12));
+                    } else if let Some(percent) = progress {
+                        item = item.push(container(progress_bar(0.0..=100.0, percent)).height(12));
                     }
                     col.push(item)
                 },
@@ -144,6 +154,25 @@ fn disk_info_view<'a>() -> Column<'a, Message> {
         ))
     ]
     .spacing(5)
+}
+
+/// Task 036: a percentage only when a real total is known; otherwise
+/// real bytes downloaded so far, never a fabricated percentage. `total
+/// == Some(0)` is treated the same as "unknown" - a server reporting a
+/// zero-byte length is not a total worth dividing by, and the division
+/// would produce `NaN`/`inf` rather than a meaningful number.
+fn downloading_status(bytes: DownloadBytes) -> (String, Option<f32>) {
+    let prefix = t("setup.status.downloading");
+    match bytes.total {
+        Some(total) if total > 0 => {
+            let percent = (bytes.downloaded as f64 / total as f64 * 100.0).min(100.0) as f32;
+            (format!("{prefix} {percent:.1}%"), Some(percent))
+        }
+        _ => {
+            let mb = bytes.downloaded as f64 / 1024.0 / 1024.0;
+            (format!("{prefix} ({mb:.1} MB)"), None)
+        }
+    }
 }
 
 fn state_name(config: &DownloaderConfig) -> String {

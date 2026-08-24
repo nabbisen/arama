@@ -1,12 +1,14 @@
 use std::time::Duration;
 
+use arama_ai::model::model_container::DownloadProgress as ModelDownloadProgress;
 use iced::Task;
 use reqwest::header::CONTENT_LENGTH;
+use tokio_stream::wrappers::WatchStream;
 
 use super::{
     Downloader, DownloaderConfig,
     message::Message,
-    state::{DownloadProgress, DownloadState},
+    state::{DownloadBytes, DownloadProgress, DownloadState},
 };
 
 const METADATA_TIMEOUT: Duration = Duration::from_secs(5);
@@ -60,18 +62,67 @@ impl Downloader {
 
                     match &state.config {
                         DownloaderConfig::AiModel(model_container) => {
-                            state.download_state = DownloadState::Downloading(0.0);
+                            state.download_state =
+                                DownloadState::Downloading(DownloadBytes::default());
                             let model = model_container.clone();
                             let config = state.config.clone();
-                            Task::perform(
+
+                            // Task 036: `download_with_progress` is a
+                            // second entry point beside `download`
+                            // (untouched, still called by `ensure` and
+                            // every other of its 21 sites) - it returns
+                            // a live progress receiver alongside the
+                            // same future `download` itself awaits, so
+                            // both pieces observe the exact same
+                            // generation. The one new failure mode this
+                            // introduces relative to `download` (a
+                            // synchronous `Result` instead of an
+                            // always-`Ok` call) is the same identity-
+                            // conflict error `download` would otherwise
+                            // have surfaced asynchronously - reported
+                            // here immediately instead.
+                            let Ok((progress_rx, download)) = model.download_with_progress() else {
+                                return Task::perform(
+                                    async {
+                                        DownloadProgress::Errored(
+                                            "model name already registered with a different \
+                                             specification"
+                                                .to_owned(),
+                                        )
+                                    },
+                                    move |progress| Message::AiModelProgressUpdated(id, progress),
+                                );
+                            };
+
+                            // A joiner's stream starts at whatever the
+                            // generation's current progress already is
+                            // (`watch::Receiver` semantics), never 0 -
+                            // if another download for the same model is
+                            // already partway through, this reflects
+                            // that immediately rather than restarting
+                            // the bar.
+                            let progress_task = Task::run(
+                                WatchStream::new(progress_rx),
+                                move |p: ModelDownloadProgress| {
+                                    Message::AiModelProgressUpdated(
+                                        id,
+                                        DownloadProgress::Downloading(DownloadBytes {
+                                            downloaded: p.downloaded,
+                                            total: p.total,
+                                        }),
+                                    )
+                                },
+                            );
+                            let result_task = Task::perform(
                                 async move {
-                                    match model.download().await {
+                                    match download.await {
                                         Ok(()) => DownloadProgress::Finished(config),
                                         Err(error) => DownloadProgress::Errored(error.to_string()),
                                     }
                                 },
                                 move |progress| Message::AiModelProgressUpdated(id, progress),
-                            )
+                            );
+                            Task::batch([progress_task, result_task])
                         }
                         DownloaderConfig::Ffmepg => {
                             state.download_state = DownloadState::Checking;
@@ -82,8 +133,25 @@ impl Downloader {
                 Task::batch(tasks)
             }
             Message::AiModelProgressUpdated(id, progress) => {
+                // Task 036: the progress stream and the final-result
+                // future are two independently-scheduled tasks racing
+                // on the same generation (batched above) - the
+                // generation's `watch::Sender` is only dropped shortly
+                // *after* the result is sent, so one last stray
+                // `Downloading` message can arrive after `Finished`/
+                // `Errored` already did. Once terminal, stay terminal:
+                // a state going back to "Downloading 100%" after
+                // showing "Ready" would be exactly the kind of
+                // regressed-looking number this task exists to remove.
+                let already_terminal = matches!(
+                    self.states[id].download_state,
+                    DownloadState::Finished | DownloadState::Errored(_)
+                );
+                if already_terminal && matches!(progress, DownloadProgress::Downloading(_)) {
+                    return Task::none();
+                }
                 self.states[id].download_state = match progress {
-                    DownloadProgress::Downloading(percent) => DownloadState::Downloading(percent),
+                    DownloadProgress::Downloading(bytes) => DownloadState::Downloading(bytes),
                     DownloadProgress::Finished(_) => DownloadState::Finished,
                     DownloadProgress::Errored(error) => DownloadState::Errored(error),
                 };

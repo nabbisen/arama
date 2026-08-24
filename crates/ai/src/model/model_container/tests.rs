@@ -124,6 +124,41 @@ fn serve_responses(responses: Vec<Vec<u8>>, first_delay: Duration) -> (String, A
     (format!("http://{address}"), requests)
 }
 
+/// Task 036: writes one HTTP response across several separate socket
+/// writes with a delay between each, rather than one `write_all` -
+/// `serve_responses`' single write lets the kernel/TLS layer coalesce a
+/// small body into one `reqwest` chunk, which cannot exercise "more than
+/// one progress value for a multi-chunk transfer" reliably. Serves
+/// exactly one request, once.
+fn serve_chunked_response(header: &str, body_chunks: &[&[u8]], between: Duration) -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind loopback fixture");
+    let address = listener.local_addr().expect("fixture address");
+    let header = header.to_owned();
+    let chunks: Vec<Vec<u8>> = body_chunks.iter().map(|chunk| chunk.to_vec()).collect();
+    thread::spawn(move || {
+        let (mut stream, _) = listener.accept().expect("accept fixture request");
+        let mut request = Vec::new();
+        let mut buffer = [0_u8; 512];
+        while !request.windows(4).any(|window| window == b"\r\n\r\n") {
+            let read = stream.read(&mut buffer).expect("read fixture request");
+            if read == 0 {
+                break;
+            }
+            request.extend_from_slice(&buffer[..read]);
+        }
+        stream
+            .write_all(header.as_bytes())
+            .expect("write fixture header");
+        stream.flush().expect("flush fixture header");
+        for chunk in &chunks {
+            thread::sleep(between);
+            stream.write_all(chunk).expect("write fixture chunk");
+            stream.flush().expect("flush fixture chunk");
+        }
+    });
+    format!("http://{address}")
+}
+
 fn test_runtime() -> tokio::runtime::Runtime {
     tokio::runtime::Builder::new_current_thread()
         .enable_all()

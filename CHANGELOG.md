@@ -7,6 +7,17 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The setup wizard's model download progress bar now moves.** Previously it
+  showed "Downloading 0.0%" for the entire transfer (the CLIP model is about
+  577 MB) and then jumped straight to "Ready" — the UI only ever learned
+  about a download's start and its end, never anything in between. It now
+  receives live byte counts as the transfer proceeds and the bar advances
+  with them. When a download's real size can't be determined up front, the
+  bar is not shown at all and the bytes downloaded so far are reported
+  instead, rather than a fabricated percentage.
+
 ---
 
 ## [0.41.0]

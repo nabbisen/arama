@@ -5,12 +5,29 @@ use arama_env::validate_dir;
 use sha2::{Digest, Sha256};
 use tokio::{fs, io::AsyncWriteExt};
 
+/// One file's transfer progress, reported to the caller as it changes.
+/// Task 036: this is the plumbing hook - `download_authenticated_file`
+/// already counted every byte before this existed
+/// (`downloaded.saturating_add(...)`, below); nothing here changes what
+/// is downloaded, only exposes what was already known.
+pub(super) enum FileProgress {
+    /// Emitted once, as soon as the response headers arrive - before any
+    /// body bytes. `None` means the server did not report a length for
+    /// this file (Task 036 constraint 3: callers must not assume a
+    /// total when this is `None`).
+    Started(Option<u64>),
+    /// Emitted after every chunk, carrying the running total for *this*
+    /// file (not the generation - the caller aggregates across files).
+    Bytes(u64),
+}
+
 pub(super) async fn download_authenticated_file(
     client: &reqwest::Client,
     url: &str,
     destination: &Path,
     expected_sha256: &str,
     max_bytes: u64,
+    mut on_progress: impl FnMut(FileProgress),
 ) -> anyhow::Result<()> {
     let parent = destination
         .parent()
@@ -32,6 +49,8 @@ pub(super) async fn download_authenticated_file(
     {
         bail!("model response exceeds trusted size bound");
     }
+    on_progress(FileProgress::Started(response.content_length()));
+
     let mut file = fs::File::create(destination)
         .await
         .with_context(|| format!("failed to create {}", destination.display()))?;
@@ -50,6 +69,7 @@ pub(super) async fn download_authenticated_file(
                 .context("failed to write model")?;
             hasher.update(&chunk);
             downloaded = downloaded.saturating_add(chunk.len() as u64);
+            on_progress(FileProgress::Bytes(downloaded));
             if downloaded > max_bytes {
                 bail!("model response exceeds trusted size bound");
             }

@@ -312,7 +312,10 @@ impl App {
 #[cfg(test)]
 mod tests {
     use arama_ui_main::{
-        components::setup::downloader::{message as downloader_message, state::DownloadProgress},
+        components::setup::downloader::{
+            message as downloader_message,
+            state::{DownloadBytes, DownloadProgress},
+        },
         views::setup::message::Message as SetupMessage,
     };
 
@@ -323,7 +326,10 @@ mod tests {
         let message =
             SetupMessage::DownloaderMessage(downloader_message::Message::AiModelProgressUpdated(
                 1,
-                DownloadProgress::Downloading(50.0),
+                DownloadProgress::Downloading(DownloadBytes {
+                    downloaded: 50,
+                    total: Some(100),
+                }),
             ));
 
         assert!(setup_message_refreshes_ai(&message));

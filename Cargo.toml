@@ -61,6 +61,12 @@ serde_json          = "1"
 sha2                = "0.10"
 thiserror           = "2"
 tokio               = { version = "1.49", default-features = false, features = ["fs", "sync"] }
+# Task 036: adapts `ModelContainer::download_with_progress`'s
+# `tokio::sync::watch::Receiver` into a `Stream` for `iced::Task::run` -
+# not a new dependency tree, `tokio-stream` is a thin, official Tokio
+# crate with no transitive additions beyond `tokio`/`futures-core`,
+# both already present.
+tokio-stream        = { version = "0.1", default-features = false, features = ["sync"] }
 
 # ai
 # candle series is defined in sub-crate because virtual manifest doesn't support [target] (os-specific) sections
