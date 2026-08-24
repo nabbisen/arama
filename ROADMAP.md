@@ -43,7 +43,10 @@ Running it also surfaced two real defects on Windows —
 unreachable "install ffmpeg" message — neither of which any amount of reading
 had found.
 
-**Remaining in this theme:** Windows process-tree reaping, above. Nothing else.
+**This theme is finished.** Windows process-tree reaping was discharged by
+Task 021 — `crates/engine/sidecar/tests/process_tree_reaping.rs`, a
+grandchild-spawning stub with a negative control. *(The paragraph above predates
+that task and is left as written; this line corrects it, 2026-08-22.)*
 
 **Why this theme existed.** 0.37.0 released with its source archive and **no
 executable assets, and no workflow run queued at all** — with no explanation
@@ -108,9 +111,15 @@ application independently.
 
 **Status.** Agreed 2026-08-03. Follows theme A.
 
-**Only the ELOC watch item remains open.** Typography was added 2026-08-17 at
-the owner's request — the first user-facing item in this theme that did not come
-from a defect — and shipped in 0.41.0.
+**This theme is finished too, as of 2026-08-22.** Typography was added
+2026-08-17 at the owner's request — the first user-facing item here that did not
+come from a defect — and shipped in 0.41.0. The ELOC watch closed on
+measurement rather than on work.
+
+**One item carried out of it:** the measurement that closed the ELOC watch found
+40 files breaking the ruleset's testing guideline. The rule gained a 150-line
+threshold and Task 035 fixes the seven files above it — housekeeping arising
+from this theme rather than a new one.
 
 - **~~Typography roles and prose readability
   ([RFC 043](./rfcs/done/043-typography-roles-and-prose-readability.md)).~~**
@@ -161,7 +170,20 @@ from a defect — and shipped in 0.41.0.
   [RFC 040](./rfcs/done/040-snora-0.29-upgrade-and-dialog-surface.md) — which
   also closed a live accessibility defect the report surfaced: modals had **no
   modality signal at all** on the high-contrast dark preset.
-- **ELOC remeasurement.** Nothing currently exceeds the 500-ELOC "strongly
+- **~~ELOC remeasurement.~~** *Closed on evidence 2026-08-22.* This item
+  predicted `app/src/core.rs` "will cross on its next material growth". RFC 044
+  added 282 lines to that file and it measures **436 implementation ELOC** —
+  still under 500, and under 300 once tests are counted separately. The
+  prediction was reasonable and did not happen.
+
+  **What the measurement found instead** is that the file is 1309 raw lines,
+  742 of them an inline test module, and that 40 files broke the ruleset's
+  testing guideline. See
+  [`inline-test-modules-versus-the-rule`](./rfcs/notes/inline-test-modules-versus-the-rule.md);
+  the rule gained a 150-line threshold and Task 035 fixes the seven files above
+  it.
+
+  *Original text, retained:* Nothing currently exceeds the 500-ELOC "strongly
   recommended" threshold. Measured 2026-08-03: `app/src/core.rs` raw 552 /
   ELOC ≈474, `app/src/core/update/cache.rs` 463, `app/src/core/update/ffmpeg.rs`
   450, `video_engine.rs` raw 355 / ELOC ≈307. `app/src/core.rs` is the one to
