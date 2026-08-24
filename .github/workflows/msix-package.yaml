@@ -1,0 +1,360 @@
+name: MSIX Package (phase one)
+
+# RFC 042 handoff (rfcs/handoffs/042-windows-store-distribution-handoff.md),
+# §5 phase one: builds arama as a full-trust MSIX package, verifies its
+# manifest declares no capability, and proves the packaged application
+# installs and launches via shell activation.
+#
+# Deliberately NOT wired into release-executable.yaml (§5.2: "do not extend
+# release-executable.yaml on your first attempt"). This is a separate,
+# workflow_dispatch-only job whose sole purpose is to prove packaging works
+# before proposing integration with the release path as its own step and
+# its own review. It never runs on push and never touches a tag.
+#
+# Deliberately carries no Store credential of any kind (§3, §6: "actually
+# submitting anything to the Store" is out of scope for phase one). If a
+# future task wires submission, that step's own workflow must satisfy §3 in
+# full before referencing any secret — GitHub Actions encrypted secrets
+# only, never echoed, minimally scoped permissions, tag-only trigger, and a
+# recorded answer for what happens when the credential expires. None of
+# that applies here because nothing here submits anything.
+#
+# Reuses the mechanics Task 026's now-removed capability-probe workflow
+# proved on this exact runner image (commit b72b09d, RFC 042 §3): the SDK
+# `bin` directory must be globbed rather than a build number hardcoded,
+# `AllowAllTrustedApps` is unset by default on windows-latest and must be
+# enabled before sideloading works, and the packaged application must be
+# launched via `shell:AppsFolder\<PackageFamilyName>!App` — a direct
+# `Start-Process` on the raw executable runs without package identity and
+# would prove nothing about MSIX packaging while appearing to pass.
+#
+# Package contents (§5.3): one Windows executable, the CPU variant, matching
+# release-executable.yaml's `Windows-x64-cpu` leg exactly (same target, no
+# `--features cuda`). RFC 042's route (one adaptive binary vs Option A's
+# two-binary bundle with a selector) is still undecided and not this
+# workflow's business — see the "Under Option A" comment on the packaging
+# step below for exactly what would have to change if Option A is chosen.
+
+on:
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: pwsh
+
+env:
+  PRODUCT_BASENAME: arama
+  # Placeholder identity (self-signed dev shape, same convention Task 026's
+  # probe used) - NOT the real Store identity. §5.1: the real Publisher,
+  # Package Family Name and Identity Name are Partner Center account
+  # values that only exist once the owner reserves the listing name; this
+  # workflow cannot produce or guess them. See the review package's §5.1
+  # findings for what those values need to look like once they exist.
+  PACKAGE_IDENTITY_NAME: 'Arama.PhaseOnePackagingProbe'
+  PACKAGE_PUBLISHER: 'CN=AramaPhaseOnePackagingProbe'
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Derive the four-part Store version from the workspace version
+        id: version
+        run: |
+          # RFC 042 design question 4: Store packages require four parts and
+          # the fourth is reserved for Store use, so it must be zero at
+          # build time. Derived here, stored nowhere - RFC 034 Part F's
+          # single-source-of-truth principle extended to this fourth part
+          # rather than recording a second version anywhere.
+          $manifestVersion = (Select-String -Path Cargo.toml -Pattern '^version\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+          if (-not $manifestVersion) {
+            Write-Error "could not read [workspace.package].version from Cargo.toml"
+            exit 1
+          }
+          $storeVersion = "$manifestVersion.0"
+          Write-Host "Workspace version: $manifestVersion"
+          Write-Host "Store version (X.Y.Z -> X.Y.Z.0): $storeVersion"
+          "manifest_version=$manifestVersion" >> $env:GITHUB_OUTPUT
+          "store_version=$storeVersion" >> $env:GITHUB_OUTPUT
+
+      - name: Locate the Windows SDK's makeappx and signtool
+        id: sdk
+        run: |
+          # Task 026: glob the SDK bin directory rather than hardcoding a
+          # build number - this runner had 10.0.26100.0, and SDK point
+          # releases move.
+          $sdkRoot = "C:\Program Files (x86)\Windows Kits\10\bin"
+          $version = Get-ChildItem $sdkRoot -Directory |
+            Where-Object { $_.Name -match '^\d+\.\d+\.\d+\.\d+$' } |
+            Sort-Object { [Version]$_.Name } -Descending |
+            Select-Object -First 1
+          if (-not $version) {
+            Write-Error "No Windows SDK bin directory found under $sdkRoot"
+            exit 1
+          }
+          $toolsDir = Join-Path $version.FullName "x64"
+          $makeappx = Join-Path $toolsDir "makeappx.exe"
+          $signtool = Join-Path $toolsDir "signtool.exe"
+          if (-not (Test-Path $makeappx)) { Write-Error "makeappx.exe not found at $makeappx"; exit 1 }
+          if (-not (Test-Path $signtool)) { Write-Error "signtool.exe not found at $signtool"; exit 1 }
+          Write-Host "makeappx: $makeappx"
+          Write-Host "signtool: $signtool"
+          "makeappx=$makeappx" >> $env:GITHUB_OUTPUT
+          "signtool=$signtool" >> $env:GITHUB_OUTPUT
+
+      # Task 026's own finding: sideloading a signed-but-untrusted package
+      # needs this enabled, and the hosted windows-latest image does not
+      # default it on the way client Windows 10 2004+/11 does. Idempotent.
+      - name: Ensure sideloading is allowed
+        run: |
+          $path = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"
+          $before = (Get-ItemProperty -Path $path -Name AllowAllTrustedApps -ErrorAction SilentlyContinue).AllowAllTrustedApps
+          Write-Host "AllowAllTrustedApps before: $before"
+          New-Item -Path $path -Force | Out-Null
+          Set-ItemProperty -Path $path -Name AllowAllTrustedApps -Value 1 -Type DWord
+          Write-Host "AllowAllTrustedApps after: $((Get-ItemProperty -Path $path -Name AllowAllTrustedApps).AllowAllTrustedApps)"
+
+      - name: Cache cargo dependencies and build
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: msix-package-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            msix-package-${{ runner.os }}-cargo-
+
+      - name: Install Rust
+        shell: bash
+        run: bash .github/workflows/scripts/install-rust.sh stable x86_64-pc-windows-msvc
+
+      # Package contents (§5.3): one CPU-variant executable, matching
+      # release-executable.yaml's `Windows-x64-cpu` leg (same target, no
+      # `--features cuda`). Under Option A (RFC 042, if candle#3900 is not
+      # accepted) this step would instead build both the CPU and CUDA
+      # variants and this job's packaging step below would copy both into
+      # `pkg\` plus a small selector shim as the manifest's `Executable`,
+      # rather than `arama.exe` directly - a contents change to this one
+      # step and the manifest's `Application` element, not a rewrite of
+      # anything else in this workflow.
+      - name: Build the CPU-variant Windows executable
+        shell: bash
+        run: |
+          cargo build --release --target x86_64-pc-windows-msvc --bin ${{ env.PRODUCT_BASENAME }} --locked
+
+      - name: Lay out the package directory
+        run: |
+          New-Item -ItemType Directory -Force -Path pkg\images | Out-Null
+          Copy-Item target\x86_64-pc-windows-msvc\release\${{ env.PRODUCT_BASENAME }}.exe pkg\${{ env.PRODUCT_BASENAME }}.exe
+
+          # Square150x150Logo/Square44x44Logo are required manifest
+          # attributes referencing real image files. arama carries no
+          # packaged-application icon today (crates/ui uses lucide-icons
+          # for in-app UI only, not an .ico/.png asset) - generated
+          # placeholders here, same as Task 026's probe, so nothing binary
+          # lives in the repo for a phase-one proof. §5.1: a real Store
+          # listing needs real icon assets from the owner; not produced or
+          # guessed here.
+          Add-Type -AssemblyName System.Drawing
+          foreach ($spec in @(
+            @{ Name = 'Square44x44Logo.png'; Size = 44 },
+            @{ Name = 'Square150x150Logo.png'; Size = 150 }
+          )) {
+            $bmp = New-Object System.Drawing.Bitmap($spec.Size, $spec.Size)
+            $g = [System.Drawing.Graphics]::FromImage($bmp)
+            $g.Clear([System.Drawing.Color]::SlateGray)
+            $g.Dispose()
+            $bmp.Save("pkg\images\$($spec.Name)", [System.Drawing.Imaging.ImageFormat]::Png)
+            $bmp.Dispose()
+          }
+          Get-ChildItem pkg -Recurse
+
+      - name: Write the manifest — full trust, no capability declared
+        run: |
+          # RFC 042 §3/handoff §2: uap10:TrustLevel="mediumIL" +
+          # rescap:runFullTrust, requiring MinVersion 10.0.19041.0. No
+          # capability beyond runFullTrust is declared - specifically,
+          # never broadFileSystemAccess: Task 026 proved on this same
+          # runner image that a full-trust MSIX with none declared reads
+          # arbitrary out-of-package directories and files via plain
+          # std::fs (review 110, run 32009521205).
+          @"
+          <?xml version="1.0" encoding="utf-8"?>
+          <Package
+            xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+            xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+            xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+            xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
+            <Identity Name="${{ env.PACKAGE_IDENTITY_NAME }}"
+                      Version="${{ steps.version.outputs.store_version }}"
+                      Publisher="${{ env.PACKAGE_PUBLISHER }}"
+                      ProcessorArchitecture="x64" />
+            <Properties>
+              <DisplayName>arama</DisplayName>
+              <PublisherDisplayName>arama (phase-one packaging proof, not a Store submission)</PublisherDisplayName>
+              <Logo>images\Square150x150Logo.png</Logo>
+            </Properties>
+            <Resources>
+              <Resource Language="en-us" />
+            </Resources>
+            <Dependencies>
+              <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.22621.0" />
+            </Dependencies>
+            <Capabilities>
+              <rescap:Capability Name="runFullTrust" />
+            </Capabilities>
+            <Applications>
+              <Application Id="App" Executable="${{ env.PRODUCT_BASENAME }}.exe"
+                uap10:RuntimeBehavior="packagedClassicApp"
+                uap10:TrustLevel="mediumIL">
+                <uap:VisualElements DisplayName="arama"
+                  Description="Image / video viewer and similarity finder powered by offline AI (RFC 042 phase-one packaging proof)"
+                  BackgroundColor="#464646"
+                  Square150x150Logo="images\Square150x150Logo.png"
+                  Square44x44Logo="images\Square44x44Logo.png" />
+              </Application>
+            </Applications>
+          </Package>
+          "@ | Set-Content -Path pkg\AppxManifest.xml -Encoding utf8
+          Get-Content pkg\AppxManifest.xml
+
+      - name: Verify the manifest declares no capability beyond runFullTrust
+        run: |
+          # Acceptance criterion, verified by grep of the generated
+          # manifest, not by intent: this must find nothing, especially
+          # not broadFileSystemAccess.
+          $capabilityLines = Select-String -Path pkg\AppxManifest.xml -Pattern '<rescap:Capability|<uap:Capability|<Capability '
+          $capabilityLines | ForEach-Object { Write-Host $_.Line }
+          $unexpected = $capabilityLines | Where-Object { $_.Line -notmatch 'Name="runFullTrust"' }
+          if ($unexpected) {
+            Write-Error "Manifest declares a capability beyond runFullTrust:`n$($unexpected | Out-String)"
+            exit 1
+          }
+          if (Select-String -Path pkg\AppxManifest.xml -Pattern 'broadFileSystemAccess' -Quiet) {
+            Write-Error "Manifest declares broadFileSystemAccess - RFC 042 §3/Task 026 says this must not be declared"
+            exit 1
+          }
+          Write-Host "Confirmed: only runFullTrust is declared."
+
+      - name: Verify the four-part Store version, symmetrically
+        run: |
+          # RFC 042 design question 4: "RFC 034 Part F's manifest-equals-
+          # tag check gains a symmetric append-or-strip of .0" - checked
+          # both directions here rather than only the append direction the
+          # write step already performed, so this step is an independent
+          # verification rather than restating the same computation.
+          $manifestXml = [xml](Get-Content pkg\AppxManifest.xml)
+          $packagedVersion = $manifestXml.Package.Identity.Version
+          $sourceVersion = "${{ steps.version.outputs.manifest_version }}"
+
+          $appended = "$sourceVersion.0"
+          if ($packagedVersion -ne $appended) {
+            Write-Error "append check failed: expected $appended, package manifest has $packagedVersion"
+            exit 1
+          }
+
+          $stripped = $packagedVersion -replace '\.0$', ''
+          if ($stripped -ne $sourceVersion) {
+            Write-Error "strip check failed: expected $sourceVersion, stripping trailing .0 from $packagedVersion gave $stripped"
+            exit 1
+          }
+          Write-Host "Confirmed both directions: $sourceVersion <-> $packagedVersion"
+
+      - name: Package with makeappx
+        run: |
+          & "${{ steps.sdk.outputs.makeappx }}" pack /d pkg /p arama.msix /nv /o
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "makeappx pack failed with exit code $LASTEXITCODE"
+            exit 1
+          }
+          Get-Item arama.msix
+
+      # Phase-one verification signing only. The real Store submission is
+      # signed by Microsoft at ingestion (§6: submission is out of scope
+      # here); this throwaway cert exists only so this workflow can
+      # sideload-install and prove the package runs.
+      - name: Create and trust a self-signed certificate
+        run: |
+          $cert = New-SelfSignedCertificate -Type Custom `
+            -Subject "${{ env.PACKAGE_PUBLISHER }}" `
+            -KeyUsage DigitalSignature `
+            -FriendlyName "RFC 042 phase-one packaging proof dev cert" `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+
+          $pwd = ConvertTo-SecureString -String "phase-one-dev-cert" -Force -AsPlainText
+          Export-PfxCertificate -Cert $cert -FilePath package-cert.pfx -Password $pwd | Out-Null
+          Import-PfxCertificate -CertStoreLocation "Cert:\LocalMachine\TrustedPeople" -FilePath package-cert.pfx -Password $pwd | Out-Null
+          Write-Host "Certificate thumbprint: $($cert.Thumbprint)"
+
+      - name: Sign the package
+        run: |
+          & "${{ steps.sdk.outputs.signtool }}" sign /fd SHA256 /a /f package-cert.pfx /p "phase-one-dev-cert" arama.msix
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "signtool sign failed with exit code $LASTEXITCODE"
+            exit 1
+          }
+
+      - name: Install the package
+        id: install
+        run: |
+          Add-AppxPackage -Path arama.msix -Verbose
+          $pkg = Get-AppxPackage -Name "${{ env.PACKAGE_IDENTITY_NAME }}"
+          if (-not $pkg) {
+            Write-Error "Package did not install — Get-AppxPackage found nothing"
+            exit 1
+          }
+          Write-Host "Installed: $($pkg.PackageFullName)"
+          "packagefamilyname=$($pkg.PackageFamilyName)" >> $env:GITHUB_OUTPUT
+
+      - name: Launch via shell activation and confirm the process starts and survives
+        run: |
+          # Task 026: launch via shell:AppsFolder\<PackageFamilyName>!App,
+          # never the raw executable - a direct invocation runs without
+          # package identity and proves nothing about MSIX packaging while
+          # appearing to pass.
+          #
+          # arama is a full GUI application with no probe-style
+          # write-and-exit hook, so "it runs" is verified the way §5.4
+          # asks: launch, confirm the process appears, then confirm it is
+          # STILL running after a further wait - ruling out a
+          # packaging-specific crash-on-startup (e.g. RFC 041's own
+          # concern: a packaged app that cannot resolve/create its data
+          # locations) that a bare "process existed for an instant" check
+          # would miss.
+          $famName = "${{ steps.install.outputs.packagefamilyname }}"
+          Write-Host "Launching shell:AppsFolder\$famName!App"
+          Start-Process "shell:AppsFolder\$famName!App"
+
+          $deadline = (Get-Date).AddSeconds(60)
+          $proc = $null
+          while (-not $proc -and (Get-Date) -lt $deadline) {
+            Start-Sleep -Seconds 2
+            $proc = Get-Process -Name "${{ env.PRODUCT_BASENAME }}" -ErrorAction SilentlyContinue
+          }
+          if (-not $proc) {
+            Write-Error "arama.exe did not appear in the process list within 60s of shell activation"
+            exit 1
+          }
+          Write-Host "Process appeared: Id=$($proc.Id) StartTime=$($proc.StartTime)"
+
+          # Survival check: still running 15s later, not just present for
+          # an instant.
+          Start-Sleep -Seconds 15
+          $stillRunning = Get-Process -Id $proc.Id -ErrorAction SilentlyContinue
+          if (-not $stillRunning) {
+            Write-Error "arama.exe (PID $($proc.Id)) exited within 15s of starting - packaging-specific startup failure"
+            exit 1
+          }
+          Write-Host "Confirmed still running 15s later: Id=$($stillRunning.Id) ProcessName=$($stillRunning.ProcessName) StartTime=$($stillRunning.StartTime) WorkingSet=$($stillRunning.WorkingSet64)"
+
+          Stop-Process -Id $stillRunning.Id -Force
+
+      - name: Uninstall the package
+        if: always()
+        run: |
+          Get-AppxPackage -Name "${{ env.PACKAGE_IDENTITY_NAME }}" |
+            Remove-AppxPackage -ErrorAction SilentlyContinue
