@@ -7,6 +7,17 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The Windows build no longer opens a console window behind arama.** Every
+  Windows release arama has ever published was, technically, a console
+  application with a GUI drawn on top of it — Windows showed an empty black
+  window alongside it on every launch. A release build's window is now the
+  only thing that opens; a debug build keeps its console, where it is still
+  wanted. Startup and error diagnostics that used to rely on that console on
+  Windows are now written to a `diagnostic.log` file in arama's data
+  directory instead, so they remain discoverable without one.
+
 ---
 
 ## [0.41.1]

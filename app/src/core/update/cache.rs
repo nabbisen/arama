@@ -14,7 +14,7 @@ use arama_cache::{
 };
 use arama_env::{
     IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path,
-    cache_thumbnail_dir_path,
+    cache_thumbnail_dir_path, diagnostic,
 };
 use arama_i18n::{t, t_with};
 use arama_ui_main::views::cache_page;
@@ -342,7 +342,7 @@ fn build_dir_node(path: &Path, settings: &arama_env::Settings) -> DirNode {
     let scanner = match FilterRule::extension_allowlist(extension_allowlist.iter().copied()) {
         Ok(filter) => scanner.filter(filter),
         Err(err) => {
-            eprintln!("failed to set extension allowlist: {err}");
+            diagnostic(&format!("failed to set extension allowlist: {err}"));
             scanner
         }
     };

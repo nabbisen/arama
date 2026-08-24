@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use app_json_settings::{ConfigError, ConfigManager};
 use arama_env::{
-    IMAGE_EXTENSION_ALLOWLIST, Settings, VIDEO_EXTENSION_ALLOWLIST,
+    IMAGE_EXTENSION_ALLOWLIST, Settings, VIDEO_EXTENSION_ALLOWLIST, diagnostic,
     target_media_type::TargetMediaType,
 };
 use arama_i18n::{set_locale, t, t_with};
@@ -139,13 +139,10 @@ impl App {
         // so a failing migration or startup can still be diagnosed from
         // captured stderr alone.
         match &locations {
-            Some(locations) => eprintln!("{}", data_locations::describe_locations(locations)),
-            None => eprintln!(
-                "{}",
-                data_locations::describe_unresolved(
-                    fatal_startup_error.as_deref().unwrap_or("unknown error")
-                )
-            ),
+            Some(locations) => diagnostic(&data_locations::describe_locations(locations)),
+            None => diagnostic(&data_locations::describe_unresolved(
+                fatal_startup_error.as_deref().unwrap_or("unknown error"),
+            )),
         }
 
         if let Some(locations) = &locations {
@@ -525,7 +522,9 @@ fn dir_node(
     let scanner = match FilterRule::extension_allowlist(extension_allowlist.iter().copied()) {
         Ok(filter) => scanner.filter(filter),
         Err(err) => {
-            eprintln!("extension allowlist error (walking without filter): {err}");
+            diagnostic(&format!(
+                "extension allowlist error (walking without filter): {err}"
+            ));
             scanner
         }
     };

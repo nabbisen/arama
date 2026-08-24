@@ -1,4 +1,4 @@
-use arama_env::local_dir;
+use arama_env::{diagnostic, local_dir};
 use arama_i18n::t;
 use disk_space::DiskSpace;
 use iced::Length::Fill;
@@ -192,10 +192,10 @@ fn state_name(config: &DownloaderConfig) -> String {
             } else if parent_name.contains("wav2vec2") {
                 t("setup.item.wav2vec2")
             } else {
-                eprintln!(
+                diagnostic(&format!(
                     "state_name: unknown AI model config at {}",
                     safetensors_path.display()
-                );
+                ));
                 t("setup.item.clip") // degrade gracefully instead of panicking
             }
         }

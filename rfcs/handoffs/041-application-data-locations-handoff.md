@@ -115,6 +115,14 @@ Required:
 - The resolved locations are **logged or otherwise discoverable**, so a failing
   run can be diagnosed without a debugger.
 
+  **Update (Task 037, 2026-08-24):** a Windows *release* build now carries
+  `windows_subsystem = "windows"` (fixing the console-window defect Task 037
+  addressed), which removes the console `eprintln!` relied on. "Otherwise
+  discoverable" is now met by `arama_env::diagnostic` writing to
+  `local_dir()/diagnostic.log` on that one configuration instead of stderr —
+  still satisfying this bullet as written, not walking it back. Debug builds,
+  Linux and macOS are unaffected and still log to stderr.
+
 **Not required here:** the packaged-Windows question. That is RFC 042's Phase 0
 and needs a packaged build to answer.
 
