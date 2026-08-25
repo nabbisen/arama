@@ -10,6 +10,7 @@ permanent; implemented and archived RFCs are never deleted.
 | ID | Title | Priority |
 |----|-------|----------|
 | 042 | [Windows Store distribution and the CPU/GPU binary](./proposed/042-windows-store-distribution.md) | Medium — Phase 0 answered; route undecided |
+| 045 | [Automated Microsoft Store submission](./proposed/045-automated-store-submission.md) | Medium — owner requested 2026-08-25; blocked on credentials + gating decision |
 
 ## Implemented
 
