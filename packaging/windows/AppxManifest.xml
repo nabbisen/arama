@@ -8,7 +8,7 @@
             Publisher="CN=C4BA37E8-8670-4C82-8365-5ECB57373921" 
             Version="0.41.1.0" />
   <Properties>
-    <DisplayName>arama</DisplayName>
+    <DisplayName>arama-ai</DisplayName>
     <PublisherDisplayName>nabbisen</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
