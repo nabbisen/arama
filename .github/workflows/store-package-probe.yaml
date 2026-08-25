@@ -54,7 +54,7 @@ jobs:
         run: |
           cargo build --release --target x86_64-pc-windows-msvc --bin arama --locked
 
-      - name: Determine the package version (probe: no real tag, use a fixed test value)
+      - name: Determine the package version (probe run — no real tag, a fixed test value)
         run: |
           $pkgVersion = "0.0.1.0"
           Write-Host "PACKAGE_VERSION=$pkgVersion"
