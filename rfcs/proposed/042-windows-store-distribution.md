@@ -129,6 +129,53 @@ pointless.
 > **The route decision therefore stays where the owner put it: waiting.** What
 > changed is that there is now something to check back on, rather than a silence
 > to assume.
+>
+> **2026-08-25 — there is now a PR, and the route still does not change.**
+> [huggingface/candle#3916](https://github.com/huggingface/candle/pull/3916),
+> opened by the same volunteer: 4 files, +59/-50, one commit, not a draft.
+>
+> **What it does:** removes `dynamic-linking` from the workspace `cudarc`
+> dependency, gates `candle-kernels`' static MoE compilation and its
+> `cargo:rustc-link-lib=dylib=cudart` line behind a new `cuda-moe` feature, and
+> points `candle-core`'s `cuda` feature at `cudarc/dynamic-loading`. That is
+> both changes Phase 0 identified, in one diff.
+>
+> **Why it is not yet an answer, on four counts, none of them fatal:**
+>
+> 1. **No maintainer has reviewed it, commented on it, or responded to the
+>    issue.** Author association is still `NONE`. This is unchanged since
+>    2026-08-17 and remains the whole blocker.
+> 2. **No CI has reported on the head commit** and `mergeable_state` is
+>    `unstable`.
+> 3. **The PR contradicts the plan announced 37 minutes before it.** That
+>    comment proposed `cuda` retain current behaviour with an opt-in
+>    `cuda-dynamic-loading`; the PR makes dynamic loading the default for `cuda`
+>    and link-time binding the opt-in. The first shape is far likelier to merge
+>    — it is additive for existing consumers — so **the change that eventually
+>    lands may not have the shape being tested now.**
+> 4. **`cuda-dynamic-linking = ["cuda", "cudarc/dynamic-linking"]` enables both
+>    cudarc modes simultaneously**, since `cuda` now implies `dynamic-loading`.
+>    If cudarc treats them as exclusive, that path is broken. The same
+>    additivity trap the author correctly named one comment earlier.
+>
+> **A Windows fact this project should record, because the thread does not have
+> it and it changes which half of the PR matters to us.** The shipped
+> `arama@Windows-x64-gpu-cuda-0.41.2` binary imports **`cublas64_13.dll` and
+> `curand64_10.dll`** — normal import table, empty delay-import directory — and
+> imports **no `cudart64_*.dll` at all**.
+>
+> So on Windows the MoE/`cudart` gate, which is what the issue was filed about,
+> is **not** the binding constraint. Only the `cudarc/dynamic-loading` switch
+> can remove arama's hard CUDA imports. Whether `dynamic-loading` covers the
+> cuBLAS and cuRAND sub-libraries is therefore *the* question for arama, and it
+> is not demonstrated by the PR's evidence: a `readelf -d` with no `libcudart`
+> is equally consistent with a build that had CUDA disabled. Phase 0's own
+> answer avoided that trap by pairing absence-from-`DT_NEEDED` with a real GPU
+> `matmul`.
+>
+> **Consequence for RFC 045 §2: none.** The Store package is built from the CPU
+> variant, and stays that way until a candle release — not a PR — removes those
+> two imports.
 
 ## Options, if Phase 0 says no
 
