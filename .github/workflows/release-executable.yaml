@@ -43,10 +43,11 @@ env:
   CUDA_VERSION: '13.2.2'
   CUDA_COMPUTE_CAPS: 86
   # 5 executable variants (the build matrix) + 1 contract-compliant source
-  # archive (the source-archive job). Part D: "all variants built" and "all
-  # assets attached" are different claims, so this is checked explicitly
-  # after upload rather than inferred from job success.
-  EXPECTED_ASSET_COUNT: 6
+  # archive (the source-archive job) + 1 Store package (the package-msix
+  # job, RFC 045 Half A). Part D: "all variants built" and "all assets
+  # attached" are different claims, so this is checked explicitly after
+  # upload rather than inferred from job success.
+  EXPECTED_ASSET_COUNT: 7
 
 jobs:
   build:
@@ -230,6 +231,221 @@ jobs:
           name: ${{ env.PRODUCT_BASENAME }}-${{ matrix.name }}-${{ env.TAG }}
           path: target/${{ matrix.target }}/release/${{ env.PRODUCT_BASENAME }}${{ matrix.bin-ext }}
 
+  package-msix:
+    # RFC 045 Half A: build and verify the Microsoft Store package, from
+    # the CPU Windows variant only (handoff §3 — the CUDA build hard-
+    # imports cublas64_13.dll/curand64_10.dll and cannot start without a
+    # CUDA Toolkit install). Runs unconditionally, like `build` itself,
+    # so `workflow_dispatch` proves packaging before an irreversible tag
+    # push (Part C) — only the `release` job's own tag gate decides
+    # whether the built .msix is ever attached to anything.
+    needs: build
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Verify AppxManifest committed version is the 0.0.0.0 placeholder
+        # RFC 045 §4.1: the guard is the deliverable, not the substitution.
+        # A committed value other than the placeholder means the version
+        # went stale again (exactly how 0.41.1.0 sat two releases behind) -
+        # fail before packaging rather than ship a wrong number.
+        run: |
+          [xml]$xml = Get-Content packaging/windows/AppxManifest.xml
+          $committed = $xml.Package.Identity.Version
+          Write-Host "Committed AppxManifest Version: $committed"
+          if ($committed -ne '0.0.0.0') {
+            Write-Error "AppxManifest Version must stay 0.0.0.0 in the repository; CI derives it. Found: $committed"
+            exit 1
+          }
+
+      - name: Download the Windows CPU binary
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ env.PRODUCT_BASENAME }}-Windows-x64-cpu-${{ env.TAG }}
+          path: msix-input
+
+      - name: Determine the package version
+        run: |
+          # A real tag derives the Store-required X.Y.Z.0 from it (RFC 042
+          # §4). Under workflow_dispatch against a branch, env.TAG is the
+          # branch name, not a version - a fixed placeholder keeps the
+          # packaging/install/launch steps exercisable (Part C) without
+          # producing a value the Store scheme could ever accept for real.
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $pkgVersion = "${{ env.TAG }}.0"
+          } else {
+            $pkgVersion = "0.0.1.0"
+          }
+          Write-Host "PACKAGE_VERSION=$pkgVersion"
+          "PACKAGE_VERSION=$pkgVersion" >> $env:GITHUB_ENV
+
+      - name: Stage the MSIX payload
+        run: |
+          New-Item -ItemType Directory -Force -Path msix-staging | Out-Null
+          Copy-Item packaging/windows/Assets -Destination msix-staging/Assets -Recurse
+          Copy-Item msix-input/${{ env.PRODUCT_BASENAME }}.exe -Destination msix-staging/${{ env.PRODUCT_BASENAME }}.exe
+          [xml]$xml = Get-Content packaging/windows/AppxManifest.xml
+          $xml.Package.Identity.Version = $env:PACKAGE_VERSION
+          $xml.Save((Join-Path (Resolve-Path msix-staging) "AppxManifest.xml"))
+          Get-Content msix-staging/AppxManifest.xml
+
+      - name: Verify the staged manifest version matches the derived version
+        run: |
+          [xml]$xml = Get-Content msix-staging/AppxManifest.xml
+          $staged = $xml.Package.Identity.Version
+          if ($staged -ne $env:PACKAGE_VERSION) {
+            Write-Error "Staged AppxManifest Version ($staged) does not match derived version ($env:PACKAGE_VERSION)"
+            exit 1
+          }
+          Write-Host "Staged AppxManifest Version matches: $staged"
+
+      - name: RFC 034 Part F — Appx version matches the tag, .0 handled symmetrically
+        if: github.ref_type == 'tag'
+        run: |
+          [xml]$xml = Get-Content msix-staging/AppxManifest.xml
+          $appxVersion = $xml.Package.Identity.Version
+          $expectedAppend = "${{ env.TAG }}.0"
+          if ($appxVersion -ne $expectedAppend) {
+            Write-Error "AppxManifest version ($appxVersion) does not match tag-derived version ($expectedAppend)"
+            exit 1
+          }
+          $stripped = $appxVersion -replace '\.0$', ''
+          if ($stripped -ne "${{ env.TAG }}") {
+            Write-Error "Stripped AppxManifest version ($stripped) does not match tag (${{ env.TAG }})"
+            exit 1
+          }
+          Write-Host "Appx version ($appxVersion) matches tag (${{ env.TAG }}) in both directions."
+
+      - name: RFC 032 check — no ffmpeg/ffprobe in the staged payload
+        run: |
+          $found = Get-ChildItem -Recurse msix-staging |
+            Where-Object { $_.Name -match '(?i)ffmpeg|ffprobe' }
+          if ($found) {
+            Write-Error "ffmpeg/ffprobe present in staged MSIX payload: $($found.FullName -join ', ')"
+            exit 1
+          }
+          Write-Host "RFC 032: no ffmpeg/ffprobe in staged payload — confirmed."
+
+      - name: Task 037 check — PE subsystem of the staged binary
+        run: |
+          $bytes = [System.IO.File]::ReadAllBytes("msix-staging/${{ env.PRODUCT_BASENAME }}.exe")
+          $peOffset = [BitConverter]::ToInt32($bytes, 0x3C)
+          $subsystemOffset = $peOffset + 24 + 68
+          $subsystem = [BitConverter]::ToUInt16($bytes, $subsystemOffset)
+          Write-Host ("Subsystem: 0x{0:X8} ({1})" -f $subsystem, $(if ($subsystem -eq 2) {"Windows GUI"} elseif ($subsystem -eq 3) {"Windows CUI"} else {"other"}))
+          if ($subsystem -ne 2) {
+            Write-Error "Expected PE subsystem 2 (Windows GUI) on the staged binary, found $subsystem"
+            exit 1
+          }
+
+      - name: Locate the Windows SDK's makeappx and signtool
+        id: sdk
+        # Glob the SDK bin directory rather than hardcoding a build number
+        # (RFC 042 §3 / handoff §6 — the proving run had 10.0.26100.0).
+        run: |
+          $sdkRoot = "C:\Program Files (x86)\Windows Kits\10\bin"
+          $version = Get-ChildItem $sdkRoot -Directory |
+            Where-Object { $_.Name -match '^\d+\.\d+\.\d+\.\d+$' } |
+            Sort-Object { [Version]$_.Name } -Descending |
+            Select-Object -First 1
+          if (-not $version) { Write-Error "No Windows SDK bin directory found under $sdkRoot"; exit 1 }
+          $toolsDir = Join-Path $version.FullName "x64"
+          $makeappx = Join-Path $toolsDir "makeappx.exe"
+          $signtool = Join-Path $toolsDir "signtool.exe"
+          if (-not (Test-Path $makeappx)) { Write-Error "makeappx.exe not found at $makeappx"; exit 1 }
+          if (-not (Test-Path $signtool)) { Write-Error "signtool.exe not found at $signtool"; exit 1 }
+          "makeappx=$makeappx" >> $env:GITHUB_OUTPUT
+          "signtool=$signtool" >> $env:GITHUB_OUTPUT
+
+      - name: Package with makeappx
+        run: |
+          & "${{ steps.sdk.outputs.makeappx }}" pack /d msix-staging /p ${{ env.PRODUCT_BASENAME }}-unsigned.msix /nv /o
+          if ($LASTEXITCODE -ne 0) { Write-Error "makeappx pack failed with exit code $LASTEXITCODE"; exit 1 }
+          Get-Item ${{ env.PRODUCT_BASENAME }}-unsigned.msix
+          # The package attached to the release is this one, unsigned - the
+          # Store re-signs it. Copy before the smoke-test signing below
+          # mutates the file in place.
+          Copy-Item ${{ env.PRODUCT_BASENAME }}-unsigned.msix ${{ env.PRODUCT_BASENAME }}-${{ env.TAG }}.msix
+
+      - name: Create and trust a throwaway self-signed certificate
+        # For this job's own install-and-launch smoke test only. Never
+        # leaves this runner - the file attached to the release is the
+        # unsigned copy made above.
+        run: |
+          $cert = New-SelfSignedCertificate -Type Custom `
+            -Subject "CN=C4BA37E8-8670-4C82-8365-5ECB57373921" `
+            -KeyUsage DigitalSignature `
+            -FriendlyName "arama CI packaging smoke-test cert" `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+          $pwd = ConvertTo-SecureString -String "ci-smoke-test" -Force -AsPlainText
+          Export-PfxCertificate -Cert $cert -FilePath smoke-test-cert.pfx -Password $pwd | Out-Null
+          Import-PfxCertificate -CertStoreLocation "Cert:\LocalMachine\TrustedPeople" -FilePath smoke-test-cert.pfx -Password $pwd | Out-Null
+
+      - name: Sign the smoke-test copy
+        run: |
+          & "${{ steps.sdk.outputs.signtool }}" sign /fd SHA256 /a /f smoke-test-cert.pfx /p "ci-smoke-test" ${{ env.PRODUCT_BASENAME }}-unsigned.msix
+          if ($LASTEXITCODE -ne 0) { Write-Error "signtool sign failed with exit code $LASTEXITCODE"; exit 1 }
+
+      - name: Ensure sideloading is allowed
+        # Unset by default on hosted runners (handoff §6) - policy failure
+        # reads like a package defect if this is skipped.
+        run: |
+          $path = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"
+          New-Item -Path $path -Force | Out-Null
+          Set-ItemProperty -Path $path -Name AllowAllTrustedApps -Value 1 -Type DWord
+
+      - name: Install the package
+        id: install
+        run: |
+          Add-AppxPackage -Path ${{ env.PRODUCT_BASENAME }}-unsigned.msix -Verbose
+          $pkg = Get-AppxPackage -Name "nabbisen.arama-ai"
+          if (-not $pkg) { Write-Error "Package did not install — Get-AppxPackage found nothing"; exit 1 }
+          Write-Host "Installed: $($pkg.PackageFullName)"
+          "packagefamilyname=$($pkg.PackageFamilyName)" >> $env:GITHUB_OUTPUT
+
+      - name: Launch via AppsFolder and observe RFC 041 data-location evidence
+        # Never the raw .exe (handoff §6) - that runs without package
+        # identity and would silently report the unpackaged answer.
+        run: |
+          $famName = "${{ steps.install.outputs.packagefamilyname }}"
+          Write-Host "Launching shell:AppsFolder\$famName!App"
+          Start-Process "shell:AppsFolder\$famName!App"
+
+          $deadline = (Get-Date).AddSeconds(60)
+          $found = $null
+          while (-not $found -and (Get-Date) -lt $deadline) {
+            Start-Sleep -Seconds 3
+            $found = Get-ChildItem -Path $env:LOCALAPPDATA -Recurse -Filter "diagnostic.log" -ErrorAction SilentlyContinue |
+              Select-Object -First 1
+          }
+
+          if (-not $found) {
+            Write-Host "No diagnostic.log found under $env:LOCALAPPDATA within 60s."
+            Get-ChildItem -Path $env:LOCALAPPDATA -Recurse -Filter "*arama*" -ErrorAction SilentlyContinue |
+              Select-Object -First 40 FullName
+            Write-Error "RFC 041 evidence not found — see listing above."
+            exit 1
+          }
+
+          Write-Host "Found: $($found.FullName)"
+          Get-Content $found.FullName
+
+      - name: Uninstall the smoke-test package
+        if: always()
+        run: |
+          Get-AppxPackage -Name "nabbisen.arama-ai" | Remove-AppxPackage -ErrorAction SilentlyContinue
+
+      - name: Upload the unsigned .msix as a release asset
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-asset-msix
+          path: ${{ env.PRODUCT_BASENAME }}-${{ env.TAG }}.msix
+
   source-archive:
     # Independent of the build matrix's OS/target, so it runs once.
     # Gated the same as `release`: this is packaging, not the asset-variant
@@ -295,7 +511,7 @@ jobs:
     # attempt to upload (§4.5): `github.ref_name` under dispatch is the
     # branch name, not a release-worthy tag.
     if: github.ref_type == 'tag'
-    needs: [build, source-archive]
+    needs: [build, source-archive, package-msix]
     runs-on: ubuntu-latest
     steps:
       # Checkout must precede the artifact download: actions/checkout
