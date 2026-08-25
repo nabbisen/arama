@@ -103,6 +103,12 @@ jobs:
             exit 1
           }
 
+      - name: Report the runner's actual OS build (for MaxVersionTested)
+        run: |
+          $v = [System.Environment]::OSVersion.Version
+          Write-Host "Runner OS build: $($v.Major).$($v.Minor).$($v.Build).0"
+          Get-ComputerInfo | Select-Object WindowsVersion, OsBuildNumber, OsVersion
+
       - name: Locate the Windows SDK's makeappx and signtool
         id: sdk
         run: |
