@@ -7,6 +7,16 @@ Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+---
+
+## [0.41.2]
+
+A fix-only release for Windows users, and the fix is one every Windows user has
+seen since arama first shipped a Windows build.
+
+Nothing changes compatibility with existing cache, settings, or media data, and
+no action is required when upgrading.
+
 ### Fixed
 
 - **The Windows build no longer opens a console window behind arama.** Every
