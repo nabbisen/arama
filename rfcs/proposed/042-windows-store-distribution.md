@@ -107,6 +107,28 @@ pointless.
 > If accepted, the single binary costs nothing ongoing. **Nothing here blocks on
 > a reply** — Option A delivers the single Store listing regardless, and no
 > reply is the default assumption.
+>
+> **A reply arrived 2026-08-24, and it changes less than it looks.** A community
+> contributor volunteered to implement it, proposing exactly the two changes
+> Phase 0 identified — gate `candle-kernels`' MoE build and its unconditional
+> `cudart` link, and expose a `candle-core` feature forwarding to
+> `cudarc/dynamic-loading`.
+>
+> **What has not happened:** no maintainer has responded, the issue is still
+> open, and the volunteer asked to be *assigned* — which arama cannot do, being
+> the reporter rather than a maintainer. **A correct plan from someone without
+> merge rights is not an upstream change.**
+>
+> **One substantive question was raised in reply:** if the MoE feature is
+> on by default, a default CUDA build still links `cudart` and consumers are
+> back where they started — and `candle-core` does not today forward arbitrary
+> `candle-kernels` features, so "CUDA without MoE" may not be expressible from a
+> dependent crate at all. That is the detail that decides whether the change
+> reaches arama, and it was raised before the PR is written rather than after.
+>
+> **The route decision therefore stays where the owner put it: waiting.** What
+> changed is that there is now something to check back on, rather than a silence
+> to assume.
 
 ## Options, if Phase 0 says no
 
