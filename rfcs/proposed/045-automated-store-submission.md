@@ -1,6 +1,7 @@
 # RFC 045: Automated Microsoft Store submission
 
-**Status:** Proposed
+**Status:** **Accepted by the project owner, 2026-08-25.** §12's gating
+question remains open and is refined in §5.1.
 **Depends on:** [RFC 042](./042-windows-store-distribution.md) (phase one — shipped
 manually), [RFC 034](../done/034-release-workflow-reliability.md),
 [RFC 037](../done/037-release-publication-atomicity.md),
@@ -230,12 +231,66 @@ secret would be readable by all five existing workflows. **Use environment
 secrets, not repository secrets**, and this is a security decision rather than a
 stylistic one.
 
+### 5.1 Gating is a repository setting, not a code path
+
+The owner asked whether gating is "a bit far from automation". It is worth
+being exact about what it costs, because the answer is smaller than it looks
+and the choice is cheaper to change than a design decision usually is.
+
+**Every mechanical step is automated either way** — selecting the CPU artifact,
+deriving the version, packaging, signing, installing, launching, the three
+contract checks, attaching the asset, authenticating to Entra, uploading,
+submitting. What a gate adds is one approval click on a run the owner is already
+watching, because tagging is already an attended operation in this project.
+
+**And the two forms are the same workflow.** `environment: microsoft-store` must
+stay regardless — it is what scopes the Entra secret to the one job that may
+read it. The gate is the environment's *required-reviewer protection rule*, set
+in repository settings. Turning it off is a checkbox; nothing in
+`.github/workflows/` changes, and no release is re-cut to switch.
+
+**So this need not be settled once and for all.** The argument for gating the
+first submissions is not caution in principle — it is that the credentials have
+never authenticated, the failure shapes are unknown, and §6's certification
+blind spot is real. Those are all conditions that expire. **Recommended: gate
+the first two or three submissions, then drop the protection rule** once the
+channel has demonstrably worked, leaving the scoped secret in place.
+
+There is also a genuine argument for automatic from the start, and it deserves
+recording rather than dismissing: the tag push is already the authorization for
+the GitHub release, which goes fully public with no second click. By that
+precedent the Store submission is downstream of an authorization that has
+already been given. The distinction is that a Store submission consumes an
+external review cycle and is harder to retract — which is a reason to watch the
+first few, not a reason to click forever.
+
 **Recommendation: the gated form.** If the owner prefers fully automatic
 submission with no click, that is theirs to decide and it is a deliberate
 narrowing of the standing rule — but it should be said explicitly and recorded
 here, not arrived at by my writing a workflow that assumes it.
 
 ## 6. How a failed or pending review surfaces — RFC 042 §3b's requirement
+
+**What "certification" means here, stated plainly.** Sending a package to the
+Store is two events, not one, and only the first is ours:
+
+1. **Submission.** `msstore publish` uploads the package and Microsoft accepts
+   it into the queue. This is what returns success to the workflow, and it means
+   *received*, not *approved*.
+2. **Certification.** Microsoft then scans and reviews the package — malware
+   checks, manifest validation, policy compliance, sometimes a human. It takes
+   hours to days, on Microsoft's schedule. It ends in the update going live, or
+   in a **rejection with reasons**.
+
+**Nothing in this repository observes the second event.** So a rejected
+certification looks exactly like a successful release from inside arama: the
+workflow is green, the tag exists, the GitHub release is published, the
+CHANGELOG says shipped — and the Store quietly keeps serving the previous
+version. The only way anyone finds out is by opening Partner Center and looking.
+
+That is the same shape as the failure RFC 034 was written for: a channel that
+silently produces nothing while presenting as success. It is why this section
+exists, and why it is the part of the design I am least satisfied with.
 
 RFC 042 §3b named this and refused "someone will notice" as an answer. It is
 still the weakest part of the design and the honest position is that **this RFC
@@ -344,8 +399,12 @@ a result, which is why it belongs in Half A rather than in a review comment.
 
 ## 12. Open questions — owner-reserved
 
-- **§5: gated submission, or fully automatic?** Recommended: gated. This is the
-  standing-directive conflict and it is the owner's to settle.
+- **§5: gated submission, or fully automatic?** Recommended: **gated for the
+  first two or three submissions, then flip.** Per §5.1 this is a repository
+  setting rather than a code path, so it is reversible at any time without
+  touching the workflow or re-cutting a release. Still the owner's to settle,
+  and still the standing-directive conflict — but not a decision that has to
+  hold forever.
 - **Does the Store listing lag matter enough to submit on every tag?** RFC 042
   §3b said yes "for now"; the gate makes reversing it free, since not approving
   is the same as not submitting.
