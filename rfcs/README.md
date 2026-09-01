@@ -11,6 +11,9 @@ permanent; implemented and archived RFCs are never deleted.
 |----|-------|----------|
 | 042 | [Windows Store distribution and the CPU/GPU binary](./proposed/042-windows-store-distribution.md) | Medium — Phase 0 answered; route undecided |
 | 045 | [Automated Microsoft Store submission](./proposed/045-automated-store-submission.md) | Medium — owner requested 2026-08-25; blocked on credentials + gating decision |
+| 046 | [Audio model fidelity, and the gap that let it survive](./proposed/046-audio-model-fidelity.md) | **Critical** — external audit 2026-09-01; route decision owner-reserved |
+| 047 | [Indexing that can be stopped, and async that actually awaits](./proposed/047-indexing-cancellation.md) | High — external audit 2026-09-01 |
+| 048 | [Library scale — rendering cost, ordering, and silent truncation](./proposed/048-library-scale.md) | High — external audit 2026-09-01; deliberately not theme C |
 
 ## Implemented
 
