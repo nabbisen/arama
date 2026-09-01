@@ -222,6 +222,98 @@ inert weights.
   right *interim* step — the documentation must be true regardless — but it
   should no longer be read as a place to stop.
 
+### 3.2 Settled 2026-09-01 — the mandate, and the design it implies
+
+> **The project owner, on choosing between the routes:**
+>
+> *"We can revise specs and switch models if it becomes better. I want 'finally
+> clean, safe and secure, and robust and sophisticated design'."*
+
+**This is a stronger instruction than picking a route, and it reframes the
+question.** If specs and models are revisable, then the thing to get right is not
+*which model* but **what seam makes the model a decision we can revisit cheaply**.
+A route chosen today under that mandate must not be a route that has to be
+unpicked tomorrow.
+
+#### The root cause is narrower than §2a said, and that is good news
+
+`crates/ai/src/pipeline/encode/audio.rs:8-16` — the `AudioEncoder` trait's own
+doc comment:
+
+> *"Returns one embedding vector per segment **instead of collapsing all
+> segments into one vector**. Callers can then compute cross-max similarity,
+> which is robust to opening cuts, ending cuts, and timeline offsets."*
+
+**The encoder already does the right thing.** `encode_segments` returns
+`Vec<Vec<f32>>` — the full sequence, one vector per segment, exactly as designed.
+
+The collapse happens downstream, and the reason is the **cache payload shape**:
+
+```rust
+// crates/cache/src/core/payload.rs:29
+pub(crate) struct VideoPayload {
+    pub thumbnail_path: Option<String>,
+    pub clip_vector: Option<Vec<f32>>,        // frame-averaged
+    pub wav2vec2_vector: Option<Vec<f32>>,    // scene-averaged
+}
+```
+
+**There is nowhere to put a sequence, so `mean_embeddings` averages one to fit.**
+
+So the design intent is recorded in *three* places — the trait doc,
+`cross_max_similarity`'s doc, and the commented-out `compare` — and defeated in
+*one*: a payload field that can hold a single vector. The pipeline is not
+wrongly designed; it is **truncated by its storage.**
+
+#### The design that follows
+
+1. **Store the sequence.** `VideoPayload` holds per-segment embeddings rather
+   than a mean. `VIDEO_PAYLOAD_VERSION` (`engine.rs:38`, currently `1`) bumps to
+   `2`, which is the migration mechanism this project already built and already
+   uses — a version bump purges stale entries rather than misreading them.
+2. **Compare sets, not means.** `cross_max_similarity` already exists, is
+   already tested, and its threshold is already a config field
+   (`cross_max_similarity_threshold`). This is wiring, not invention.
+3. **Mirror the seam on the image side.** `AudioEncoder` is a trait; CLIP is
+   concrete. An `ImageEncoder` trait makes both halves swappable, which is
+   precisely what *"switch models if it becomes better"* requires.
+4. **Then the model choice is cheap and empirical.** With the seam in place,
+   Route A and Route B stop being a fork and become experiments that can be run
+   and compared on real libraries.
+
+**This is why the mandate narrows §3 without answering it.** The question
+*"fingerprinting or embeddings?"* (§2a) no longer has to be answered before
+committing — it becomes a swap behind a trait, which is exactly the outcome the
+owner asked for.
+
+#### What "sophisticated" must not become
+
+This project's own ruleset warns against the failure mode:
+
+> *"Strike a balance between feature-specific tuning and general-purpose
+> flexibility. Avoid creating rigid structures tied too closely to specific
+> features, but also avoid vague definitions resulting from over-pursuing
+> abstraction."*
+
+**The guard, stated concretely.** Add `ImageEncoder` because a second
+implementation is genuinely in prospect and the audio side already proves the
+shape. **Do not** build a plugin registry, a runtime-configurable metric, a
+generic "similarity strategy" abstraction, or a trait with one implementation
+and no candidate second one. Two implementations justify a trait; one does not.
+
+**And "clean" has a cost here that should be said out loud:** storing per-segment
+embeddings makes the video cache larger — segments are 20 s, so a long video
+holds many vectors where it held one. That is a real trade against RFC 016's
+cache capacity work, and it needs measuring rather than assuming.
+
+#### Sequencing
+
+The mandate does not change what happens first. §2's two defects, §3.1's
+documentation, and §4's gate are all prerequisites — they cost little, and every
+one of them makes the larger design verifiable rather than hopeful. **The gate
+especially: none of the above can be evaluated without a way to see that an
+encoder loads what it claims to.**
+
 ### 3.1 The documentation is corrected now, under every route
 
 `README.md`, `docs/src/dev/architecture.md` and `docs/src/users/faq.md` claim
@@ -289,6 +381,8 @@ falsifier this project has been offered.
 - No document claims wav2vec2 embeddings unless the encoder runs.
 - §3's route chosen by the owner and recorded here as a dated decision block,
   in the form RFC 042 §3b uses.
+- §3.2's design measured, not assumed: the cache-size cost of storing per-segment
+  embeddings reported against a real library before the payload version bumps.
 
 ## 7. Open questions
 
@@ -299,6 +393,8 @@ falsifier this project has been offered.
   yes.** See §2a, which also records the two defects and the one new question
   the answer exposes.
 - **Is the job "the same audio, re-encoded" or "similar audio content"?** §2a.
-  This can eliminate two of §3's three routes and should be answered first.
+  **No longer needs answering first** — §3.2's seam turns it into a swap rather
+  than a commitment. Still worth answering, because it decides which experiment
+  to run first.
 - **Does the comparison move to per-segment cross-max?** §2a. Independent of the
   model choice, and `cross_max_similarity` already exists.
