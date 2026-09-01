@@ -97,6 +97,82 @@ produce an honest absence rather than a zero vector. RFC 035/036 built
 `SimilarityReadOutcome` for exactly this distinction; this is the same problem
 one layer down.
 
+## 2a. Settled 2026-09-01 — the audio modality earns its cost
+
+> **The project owner, asked whether the audio modality is worth its cost:**
+>
+> *"In my opinion, yes, it does. Video similarity can not effectively calculated
+> only with their visual because similar image can exist. The voice can be
+> another unique characteristics at this point."*
+
+**This closes §7's second open question and narrows §3.** Audio stays. What
+follows from it is more interesting than the answer itself, because the stated
+job is **discrimination** — telling apart videos that look alike — and that is a
+harder requirement than "produce an audio vector".
+
+### It exposes a second defect, independent of A1 and A2
+
+**The pipeline mean-pools twice.**
+
+1. `encode_one` averages over the time axis *within* each segment
+   (`projected.mean(1)`).
+2. `mean_embeddings`
+   (`pipeline_manager/video_similarity_pipeline.rs:250`) then averages those
+   per-segment vectors *across* the whole video.
+
+Segments are 20 seconds (`audio_segment_duration_secs: 20.0`). So a
+forty-minute video collapses to **one 768-float vector describing its average
+acoustic texture.**
+
+That is close to the worst possible representation for the owner's stated job.
+Two unrelated videos that are both "a person speaking indoors" average to
+similar textures; the very cases audio is supposed to disambiguate are the ones
+mean-pooling erases. **This holds even if the transformer encoder is
+implemented perfectly** — Route A alone does not fix it.
+
+### The project already built the right comparison, and it is dead code
+
+`pipeline/score/similarity/video/video_similarity_calculator.rs:114`,
+`cross_max_similarity`, is a bidirectional thresholded max-match over **sets** of
+segment embeddings. Its own doc comment states the rationale:
+
+> *"This keeps scores stable when videos have opening/ending cuts, inserted
+> silence or dark frames, while unrelated videos stay low because every pair has
+> a low score."*
+
+Above it, commented out, sits `compare` — the intended design, applying
+cross-max to per-segment **image and audio** embeddings and combining them with
+`image_weight` / `audio_weight`.
+
+**So the discriminating comparison the owner just described was designed, written
+and then bypassed.** It is dead only because the pipeline collapses to a mean
+before it can be used.
+
+### The route question is therefore two questions
+
+| | Question | Where it lives |
+|---|---|---|
+| **Representation** | Does the encoder produce contextual embeddings, or CNN texture? | §3, A1 |
+| **Comparison** | Are segments compared as a set, or averaged into one vector? | here, and it is independent |
+
+**Choosing a better model while keeping double mean-pooling would waste most of
+the gain.** Either can be done first; neither substitutes for the other.
+
+### One question the owner's answer opens
+
+**Is the job "the same audio, re-encoded" or "similar audio content"?** They are
+different problems with different right answers:
+
+- **Same audio** — a re-upload, a different resolution, a remux. **Audio
+  fingerprinting** (Chromaprint-style) is built for exactly this, is far more
+  accurate at it than any embedding, and needs no 377 MB model.
+- **Similar content** — different recordings of similar material. That is what
+  learned embeddings are for, and fingerprinting cannot do it at all.
+
+"Similar image can exist" reads like the first, but it is not stated, and the two
+lead to different models and different costs. **This should be answered before
+§3's route is chosen**, because it can eliminate two of the three routes.
+
 ## 3. The decision — owner-reserved
 
 **This is the part I am not deciding.** Three routes, with what each actually
@@ -141,6 +217,10 @@ inert weights.
 - **This is the only route that removes the Critical from the user's view this
   week**, and it composes with A and B rather than competing: §3.1 happens
   regardless.
+- **Weakened by §2a.** Route C as a *terminal* answer means accepting a weak
+  discriminator for a capability the owner has now said matters. It remains the
+  right *interim* step — the documentation must be true regardless — but it
+  should no longer be read as a place to stop.
 
 ### 3.1 The documentation is corrected now, under every route
 
@@ -215,6 +295,10 @@ falsifier this project has been offered.
 - **§3's route.** Owner-reserved.
 - **If Route C: is downloading 359 MB of unread weights acceptable as an interim
   state, and for how long?** It should be time-boxed rather than left.
-- **Does the audio modality earn its cost at all?** Nobody has asked. The
-  feature was built because it was interesting; whether users want "find this
-  video by its audio" is unmeasured, and Route B's sizing depends on the answer.
+- ~~**Does the audio modality earn its cost at all?**~~ **Answered 2026-09-01 —
+  yes.** See §2a, which also records the two defects and the one new question
+  the answer exposes.
+- **Is the job "the same audio, re-encoded" or "similar audio content"?** §2a.
+  This can eliminate two of §3's three routes and should be answered first.
+- **Does the comparison move to per-segment cross-max?** §2a. Independent of the
+  model choice, and `cross_max_similarity` already exists.
