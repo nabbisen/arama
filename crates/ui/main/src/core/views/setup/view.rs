@@ -1,5 +1,5 @@
 use arama_env::{MIN_SETUP_DISKSPACE_MB, local_dir};
-use arama_i18n::t;
+use arama_i18n::{t, t_with};
 use disk_space::DiskSpace;
 use iced::{
     Alignment::{self, Center},
@@ -88,6 +88,11 @@ fn setup_disk_status<'a>() -> SetupDiskStatus<'a> {
     let disk_space_ok = (MIN_SETUP_DISKSPACE_MB as f64) < disk_space.as_mb().available;
     SetupDiskStatus {
         can_download: disk_space_ok,
-        message: (!disk_space_ok).then(|| text(t("setup.no_space"))),
+        message: (!disk_space_ok).then(|| {
+            text(t_with(
+                "setup.no_space",
+                &[("{mb}", &MIN_SETUP_DISKSPACE_MB.to_string())],
+            ))
+        }),
     }
 }

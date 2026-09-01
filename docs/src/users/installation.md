@@ -10,7 +10,7 @@ with Cargo, or build a source release archive.
 |---|---|
 | **Internet connection** | Required once for AI models |
 | **ffmpeg for video** | Install a user-managed `ffmpeg`/`ffprobe` pair before using video features |
-| **~750 MB disk space** | Both AI models and initial cache headroom |
+| **~3 GB disk space** | Enforced by the setup wizard; the two AI models themselves total ~938 MB, the rest is headroom for the download-in-progress and initial cache |
 | **Writable platform data/config/cache directories** | arama stores settings, models, and cache data in your operating system's standard per-user locations, not next to its executable — see [Data locations](#data-locations) |
 
 The Cargo-install and source-build routes also require a stable Rust toolchain

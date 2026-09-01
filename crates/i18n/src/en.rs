@@ -131,7 +131,13 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         // Setup wizard
         "setup.download" => "Download",
         "setup.skip" => "Skip",
-        "setup.no_space" => "Not enough space on device for download.",
+        // {mb}: substituted via `arama_i18n::t_with` with
+        // `arama_env::MIN_SETUP_DISKSPACE_MB`, the single source for the
+        // requirement (Task 041 - keeps this message from drifting the
+        // way the documented figures had).
+        "setup.no_space" => {
+            "Not enough space on device for download. At least {mb} MB is required."
+        }
         "setup.item.clip" => "Image analysis AI model (CLIP)",
         "setup.item.wav2vec2" => "Audio analysis AI model (wav2vec2)",
         "setup.item.ffmpeg" => "Video manipulator (ffmpeg)",

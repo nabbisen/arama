@@ -8,10 +8,10 @@ wizard** before opening the main interface.
 
 | Item | Source | Size (approx.) |
 |---|---|---|
-| CLIP model (`clip-vit-base-patch32`) | HuggingFace (`openai/`) | ~350 MB |
-| wav2vec2 model (`wav2vec2-base-960h`) | HuggingFace (`facebook/`) | ~360 MB |
+| CLIP model (`clip-vit-base-patch32`) | HuggingFace (`openai/`) | ~578 MB |
+| wav2vec2 model (`wav2vec2-base-960h`) | HuggingFace (`facebook/`) | ~361 MB |
 
-Model downloads may run in parallel. The total model data is roughly 700 MB
+Model downloads may run in parallel. The total model data is roughly 938 MB
 when both CLIP and wav2vec2 are installed. Subsequent runs reuse authenticated
 complete model generations.
 

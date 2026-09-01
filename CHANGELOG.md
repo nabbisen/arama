@@ -1,7 +1,7 @@
 # Changelog
 
 All notable changes to arama are documented here.
-Releases follow the archive naming `arama-vX.Y.Z.tar.gz`.
+Releases follow the archive naming `arama-X.Y.Z.tar.gz`.
 
 ---
 

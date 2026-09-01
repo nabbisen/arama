@@ -79,7 +79,10 @@ While the run is active:
 - The directory's row shows **⏳ caching…** alongside a **◉ Stop**
   button in the Cached at column (a placeholder row appears if the
   directory had no cache yet).
-- Pressing **◉ Stop** aborts the run immediately.
+- Pressing **◉ Stop** aborts the AI embedding phase immediately. If a
+  thumbnail-generation pass is already under way, it keeps running to
+  completion in the background rather than stopping mid-file; its
+  results are cached for later use.
 - The add and clear buttons are disabled (one run at a time).
 
 When the run finishes, the table reloads and the row shows final

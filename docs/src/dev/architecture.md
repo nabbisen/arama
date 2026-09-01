@@ -19,7 +19,7 @@
 │  │  images ──► CLIP encoder ──────────────────► vec[512]  │ │
 │  │                                                        │ │
 │  │  videos ──► frame sampler ──► CLIP encoder ► vec[512]  │ │
-│  │         └──► audio sampler ──► wav2vec2 ──► vec[768]   │ │
+│  │         └──► audio sampler ──► wav2vec2 CNN ─► vec[768]│ │
 │  │                                                        │ │
 │  │  similarity = dot(normalize(a), normalize(b))          │ │
 │  └────────────────────────┬───────────────────────────────┘ │
@@ -86,7 +86,16 @@ similar_images() / similar_videos()
 | Model | Purpose | Source |
 |---|---|---|
 | `clip-vit-base-patch32` | 512-dim image/frame embeddings | HuggingFace `openai/` |
-| `wav2vec2-base-960h` | 768-dim audio embeddings | HuggingFace `facebook/` |
+| `wav2vec2-base-960h` | 768-dim acoustic-texture feature (see note below) | HuggingFace `facebook/` |
+
+**wav2vec2 note:** arama loads the wav2vec2 weights but does not run the
+transformer encoder — only the convolutional feature extractor and the
+linear projection that follow it, mean-pooled over the segment and
+L2-normalized. This is a real acoustic-texture representation (captures
+spectral/timbral content), not a contextual wav2vec2 embedding. See
+[RFC 046](../../rfcs/proposed/046-audio-model-fidelity.md) §1 for the
+measurement and `crates/ai/src/pipeline/encode/audio/wav2vec2_encoder.rs`
+for the implementation.
 
 Both models run on CPU via [candle](https://github.com/huggingface/candle).
 Model weight files are memory-mapped through Candle's SafeTensors loader.
@@ -118,7 +127,7 @@ typically 14 sample points per video.
 
 The final video similarity score is:
 ```
-score = 0.60 * clip_similarity + 0.40 * wav2vec2_similarity
+score = 0.60 * clip_similarity + 0.40 * audio_similarity
 ```
 
 RFC 018 makes partial video entries explicit. When both entries have

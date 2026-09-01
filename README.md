@@ -17,7 +17,10 @@ There is no cloud service, no account, and no data leaves your device.
 
 - **Images** are compared by CLIP visual embeddings (cosine similarity).
 - **Videos** are compared by a weighted combination of CLIP frame
-  embeddings and wav2vec2 audio embeddings.
+  embeddings and the audio track's acoustic texture — a convolutional
+  feature representation extracted from the wav2vec2 model's early
+  layers and mean-pooled over the segment, not a full wav2vec2
+  embedding.
 
 Embeddings and thumbnails are cached in a local SQLite database so each
 directory only needs to be indexed once.
@@ -30,7 +33,7 @@ directory only needs to be indexed once.
 |---|---|
 | Deduplicate a photo library | Surface near-duplicate pairs across a folder |
 | Find all shots of the same scene | Browse visually similar images from a gallery click |
-| Locate a video by its audio content | Match audio via wav2vec2 embedding similarity |
+| Locate a video by its audio content | Match audio via acoustic-texture similarity |
 | Keep AI processing private | Run everything locally — no API key, no upload |
 
 arama works best with a reasonably modern desktop (an Apple Silicon Mac
@@ -45,7 +48,7 @@ a discrete GPU is not required.
 
 - [Rust toolchain](https://rustup.rs/) (stable, 2024 edition)
 - An internet connection for the one-time AI model download
-  (a few hundred MB)
+  (roughly 938 MB for both models; CLIP alone is 578 MB)
 - For **video** only: a matching `ffmpeg` and `ffprobe` pair that you install
   yourself — see [ffmpeg for video](#ffmpeg-for-video) below
 

@@ -25,7 +25,9 @@ areas:
 - ⚙ Settings
 
 **Header bar** — directory path input and the **Similarity Pairs**
-button (the pairs button is enabled only after indexing completes).
+button (the pairs button enables once the gallery has cached
+thumbnails to compare, which happens before AI embeddings are
+computed — it does not wait for the full indexing pass to finish).
 
 **Directory tree** (left panel) — shows the folder hierarchy. Click
 any folder to select it and start indexing its contents.
@@ -43,15 +45,20 @@ Click any folder in the directory tree. arama immediately:
 
 1. Loads the directory structure.
 2. Starts a background indexing pass: generates thumbnails for any
-   file not yet cached, then computes CLIP (and wav2vec2 for video)
-   embeddings for files that don't have them yet.
+   file not yet cached, then computes CLIP embeddings (and, for video,
+   an audio acoustic-texture feature derived from the wav2vec2 model)
+   for files that don't have them yet.
 
 The spinning indicators on folder icons in the tree show that indexing
-is in progress. The Similarity Pairs button is greyed out until
-indexing finishes.
+is in progress. The Similarity Pairs button becomes enabled once
+thumbnails are cached for more than one file — this happens while
+embeddings are still being computed, not after indexing fully finishes.
 
-**Switching directories mid-index** is safe: the running indexing task
-is cancelled automatically and a fresh one starts for the new selection.
+**Switching directories mid-index** starts a fresh pass for the new
+selection. The previous directory's embedding computation is cancelled;
+a thumbnail-generation pass already under way for it keeps running to
+completion in the background (its results are simply cached for later
+use, and it does not block or interfere with the new directory).
 
 ## Browsing the gallery
 
@@ -96,4 +103,6 @@ dialog. This scans every pair of indexed files and surfaces those
 whose similarity exceeds the threshold, grouped by score. Use this
 to find near-duplicate images or videos across a large library.
 
-The scan runs asynchronously; results appear progressively.
+The scan runs asynchronously and does not block the rest of the
+interface; results appear all at once when the full scan completes, not
+progressively.

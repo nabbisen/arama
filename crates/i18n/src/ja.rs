@@ -183,9 +183,10 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         // Setup wizard
         "setup.download" => "\u{30c0}\u{30a6}\u{30f3}\u{30ed}\u{30fc}\u{30c9}", // ダウンロード
         "setup.skip" => "\u{30b9}\u{30ad}\u{30c3}\u{30d7}",                     // スキップ
+        // {mb}: `arama_i18n::t_with` に置換される（Task 041）。
         "setup.no_space" => {
-            "\u{30c0}\u{30a6}\u{30f3}\u{30ed}\u{30fc}\u{30c9}\u{306b}\u{5341}\u{5206}\u{306a}\u{30c7}\u{30a3}\u{30b9}\u{30af}\u{7a7a}\u{304d}\u{5bb9}\u{91cf}\u{304c}\u{3042}\u{308a}\u{307e}\u{305b}\u{3093}\u{3002}"
-        } // ダウンロードに十分なディスク空き容量がありません。
+            "ダウンロードに十分なディスク空き容量がありません。少なくとも{mb} MBが必要です。"
+        }
         "setup.item.clip" => {
             "\u{753b}\u{50cf}\u{89e3}\u{6790}AI\u{30e2}\u{30c7}\u{30eb}\u{ff08}CLIP\u{ff09}"
         } // 画像解析AIモデル（CLIP）
@@ -195,8 +196,8 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "setup.item.ffmpeg" => {
             "\u{52d5}\u{753b}\u{51e6}\u{7406}\u{30bd}\u{30d5}\u{30c8}\u{ff08}ffmpeg\u{ff09}"
         } // 動画処理ソフト（ffmpeg）
-        "setup.item.size_unknown" => "\u{ff08}\u{4e0d}\u{660e}\u{ff09}",        // （不明）
-        "setup.status.missing" => "\u{672a}\u{53d6}\u{5f97}",                   // 未取得
+        "setup.item.size_unknown" => "\u{ff08}\u{4e0d}\u{660e}\u{ff09}", // （不明）
+        "setup.status.missing" => "\u{672a}\u{53d6}\u{5f97}",            // 未取得
         "setup.status.checking" => "\u{78ba}\u{8a8d}\u{4e2d}\u{2026}",
         "setup.status.ffmpeg_worker_draining" => {
             "\u{524d}\u{306e}FFmpeg\u{78ba}\u{8a8d}\u{306e}\u{505c}\u{6b62}\u{5f85}\u{3061}\u{2026}"

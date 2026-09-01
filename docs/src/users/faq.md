@@ -17,9 +17,10 @@ Support for additional formats is tracked in the issue tracker.
 
 **How much disk space does arama use?**
 
-Around 700 MB for both AI models, in your platform's standard local data
-directory (see [Data locations](installation.md#data-locations)). The
-external ffmpeg/ffprobe installation is outside arama's storage. The cache
+Around 938 MB for both AI models (CLIP 578 MB + wav2vec2 361 MB), in your
+platform's standard local data directory (see
+[Data locations](installation.md#data-locations)). The external
+ffmpeg/ffprobe installation is outside arama's storage. The cache
 database and thumbnails grow with your library — roughly 50–100 KB per
 file, depending on whether embeddings have been computed.
 
@@ -77,10 +78,12 @@ to a human eye. This is a known characteristic of CLIP-based search.
 **Video similarity is not finding obvious duplicates.**
 
 Video similarity is a weighted average of CLIP frame embeddings (60%)
-and wav2vec2 audio embeddings (40%). If two videos have identical
-visuals but different audio tracks (or vice versa), the combined score
-may fall below the threshold. Re-encoded or colour-graded versions of
-the same video will typically still match.
+and the audio track's acoustic texture (40%) — a convolutional feature
+representation extracted from the wav2vec2 model's early layers, not a
+full wav2vec2 embedding. If two videos have identical visuals but
+different audio tracks (or vice versa), the combined score may fall
+below the threshold. Re-encoded or colour-graded versions of the same
+video will typically still match.
 
 ---
 

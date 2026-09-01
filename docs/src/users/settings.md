@@ -8,7 +8,7 @@ has four tabs.
 | Setting | Description | Default |
 |---|---|---|
 | **Include image** | Index image files (png, jpg, jpeg, webp, gif, bmp) | On |
-| **Include video** | Index video files (mp4) | On |
+| **Include video** | Index video files (mp4) | Off |
 | **Sub-dir depth** | How many subdirectory levels to scan (0 = current directory only, 1 = one level deep, 2 = two levels) | 0 |
 | **Similarity** | Cosine-similarity threshold used by the focus view and the similarity pairs finder. Range 0.50–1.00; higher = stricter (fewer, more exact matches). | 0.86 |
 | **Language** | Display language. EN (English) or 日本語 (Japanese). Takes effect immediately with no restart. | EN |
