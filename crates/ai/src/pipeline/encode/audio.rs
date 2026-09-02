@@ -12,7 +12,17 @@ use crate::pipeline::extract::video_extractor::audio_segment::AudioSegmentView;
 pub trait AudioEncoder: Send + Sync {
     /// Encode each segment independently and return a vector sequence.
     ///
-    /// Return shape: `[N_segments x feature_dim]`; each vector is L2-normalized.
+    /// One entry per segment that encoded successfully - a segment whose
+    /// encoding fails is *excluded*, not replaced with a zero vector
+    /// (Task 042 / audit A10): a zero vector is not a neutral element of
+    /// a mean, and it is not unit-length. The returned length can
+    /// therefore be shorter than `segments.len()`, down to and including
+    /// empty when every segment failed - the caller derives the failure
+    /// count from `segments.len() - result.len()` and must fold it into
+    /// whatever failure count already reaches its own caller, or a
+    /// partial encode failure becomes invisible again one level up.
+    ///
+    /// Each returned vector is L2-normalized.
     fn encode_segments(&self, segments: &[AudioSegmentView<'_>]) -> Vec<Vec<f32>>;
 
     /// Output vector dimension.

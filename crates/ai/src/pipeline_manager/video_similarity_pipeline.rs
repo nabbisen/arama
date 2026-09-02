@@ -179,7 +179,7 @@ impl VideoSimilarityPipeline {
                     self.cfg.audio_segment_duration_secs,
                     sr,
                 );
-                let failures = segments.failures;
+                let extraction_failures = segments.failures;
                 let views: Vec<AudioSegmentView> = segments
                     .segments
                     .iter()
@@ -189,8 +189,20 @@ impl VideoSimilarityPipeline {
                         samples: &s.samples,
                     })
                     .collect();
+                let segment_count = views.len();
                 let audio_raw_embeddings = encoder.encode_segments(&views);
-                (mean_embeddings(&audio_raw_embeddings), failures)
+                // Task 042 (audit A10): `encode_segments` excludes any
+                // segment it could not encode rather than returning a
+                // zero vector for it (see the trait's own doc comment) -
+                // the gap between segments sent in and vectors returned
+                // is exactly that count, and it did not exist before this
+                // fix: an encode failure that was not also an
+                // *extraction* failure was counted nowhere.
+                let encode_failures = segment_count.saturating_sub(audio_raw_embeddings.len());
+                (
+                    mean_embeddings(&audio_raw_embeddings),
+                    extraction_failures + encode_failures,
+                )
             }
             None => (vec![], 0),
         };
@@ -224,8 +236,12 @@ impl VideoSimilarityPipeline {
         if let Some(err) = &self.audio_setup_error {
             reasons.push(format!("audio modality unavailable: {err}"));
         } else if audio_failures > 0 {
+            // Task 042: "processing", not "extraction" - this count is
+            // now extraction failures plus encode failures folded
+            // together (see extract_features's own comment), so
+            // "extraction" alone would be inaccurate for the latter.
             reasons.push(format!(
-                "audio extraction failed at {audio_failures} sample points"
+                "audio processing failed at {audio_failures} sample points"
             ));
         }
         if reasons.is_empty() {
