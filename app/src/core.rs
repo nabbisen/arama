@@ -96,6 +96,8 @@ pub struct App {
 enum Dialog {
     MediaFocusDialog(dialog::media_focus_dialog::MediaFocusDialog),
     SimilarPairsDialog(dialog::similar_pairs_dialog::SimilarPairsDialog),
+    /// Task 039: arama's first destructive-action confirmation surface.
+    Confirm(dialog::confirm_dialog::ConfirmDialog),
 }
 
 fn setup_complete(finished: bool, ready: bool) -> bool {

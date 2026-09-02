@@ -7,7 +7,7 @@ use arama_ui_layout::{aside, footer, header};
 use arama_ui_main::views::{cache_page, gallery, setup};
 use arama_ui_widgets::{
     context_menu,
-    dialog::{media_focus_dialog, settings_dialog, similar_pairs_dialog},
+    dialog::{confirm_dialog, media_focus_dialog, settings_dialog, similar_pairs_dialog},
 };
 use iced::Point;
 
@@ -46,6 +46,10 @@ pub enum Message {
     MediaFocusDialogMessage(media_focus_dialog::message::Message),
     SimilarPairsDialogMessage(similar_pairs_dialog::message::Message),
     SettingsDialogMessage(settings_dialog::message::Message),
+    ConfirmDialogMessage(confirm_dialog::message::Message),
+    /// Task 039: async cache-contents delete finished, or the error from
+    /// the first entry that failed to remove.
+    CacheDeleteFinished(Result<(), String>),
     FfmpegDiscoveryEvent {
         epoch: u64,
         ticket: FfmpegDiscoveryTicket,

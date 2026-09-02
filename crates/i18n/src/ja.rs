@@ -111,6 +111,14 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
             "\u{30c7}\u{30a3}\u{30b9}\u{30af}\u{5bb9}\u{91cf}\u{3092}\u{53d6}\u{5f97}\u{3067}\u{304d}\u{307e}\u{305b}\u{3093}"
         } // ディスク容量を取得できません
 
+        // Confirm dialog (Task 039)
+        "confirm.cancel" => "キャンセル",
+        "confirm.cache_delete.title" => "キャッシュを削除しますか?",
+        "confirm.cache_delete.body" => {
+            "キャッシュされたすべてのサムネイルとインデックスデータが完全に削除されます。元のファイルには影響しません。この操作は元に戻せません。"
+        }
+        "confirm.cache_delete.confirm" => "削除",
+
         // Settings — About tab
         "settings.about.repository" => "\u{30ea}\u{30dd}\u{30b8}\u{30c8}\u{30ea}\u{ff1a}", // リポジトリ：
 
@@ -341,6 +349,12 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
             "{count} 件のエントリを削除しました。{size} は回収対象外として残っています。"
         }
         "toast.cache_prune_failed.title" => "キャッシュの整理に失敗しました",
+        // Task 039
+        "toast.cache_delete_complete.title" => "キャッシュを削除しました",
+        "toast.cache_delete_complete.body" => {
+            "キャッシュされたすべてのサムネイルとインデックスデータが削除されました。"
+        }
+        "toast.cache_delete_failed.title" => "キャッシュの削除に失敗しました",
         "toast.invalid_directory.title" => "無効なディレクトリ",
         "toast.invalid_directory.body" => "存在しないディレクトリです",
 

@@ -30,11 +30,13 @@ impl FileSystemSettings {
         };
 
         let cache_exists = cache_dir().is_ok_and(|path| path.exists());
-        let button = button(text(t("settings.fs.cache_delete"))).on_press_maybe(if cache_exists {
-            Some(Message::CacheDelete)
-        } else {
-            None
-        });
+        let button = button(text(t("settings.fs.cache_delete")))
+            .style(arama_theme::danger)
+            .on_press_maybe(if cache_exists {
+                Some(Message::CacheDeleteRequested)
+            } else {
+                None
+            });
 
         column![fs_info, button].into()
     }

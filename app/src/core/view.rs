@@ -174,12 +174,13 @@ impl App {
             layout = layout.context_menu(self.context_menu.view().map(Message::ContextMenuMessage));
         }
 
-        // Modal dialogs (MediaFocus, SimilarPairs only — Settings is a
-        // page now).
+        // Modal dialogs (MediaFocus, SimilarPairs, Confirm — Settings is
+        // a page now).
         if let Some(dialog) = &self.dialog {
             let elem: Element<'_, Message> = match dialog {
                 Dialog::MediaFocusDialog(x) => x.view().map(Message::MediaFocusDialogMessage),
                 Dialog::SimilarPairsDialog(x) => x.view().map(Message::SimilarPairsDialogMessage),
+                Dialog::Confirm(x) => x.view().map(Message::ConfirmDialogMessage),
             };
             layout = layout.dialog(SnoraDialog::new(elem));
         }

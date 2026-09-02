@@ -35,6 +35,8 @@ impl App {
                 self.handle_similar_pairs_dialog_message(message)
             }
             Message::SettingsDialogMessage(message) => self.handle_settings_dialog_message(message),
+            Message::ConfirmDialogMessage(message) => self.handle_confirm_dialog_message(message),
+            Message::CacheDeleteFinished(result) => self.handle_cache_delete_finished(result),
             Message::FfmpegDiscoveryEvent {
                 epoch,
                 ticket,

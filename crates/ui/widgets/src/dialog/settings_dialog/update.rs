@@ -14,7 +14,8 @@ impl SettingsDialog {
             | Message::ThemeChanged(_)
             | Message::FfmpegRecheckRequested
             | Message::FfmpegSelectRequested
-            | Message::FfmpegClearRequested => Task::none(),
+            | Message::FfmpegClearRequested
+            | Message::CacheDeleteRequested => Task::none(),
             Message::RefreshAiCapabilities => self
                 .ai_settings
                 .update(super::tab::ai_settings::message::Message::RefreshCapabilities)
@@ -86,10 +87,22 @@ impl SettingsDialog {
                     task
                 }
             }
-            Message::FileSystemSettingsTabMessage(message) => self
-                .file_system_settings
-                .update(message)
-                .map(Message::FileSystemSettingsTabMessage),
+            Message::FileSystemSettingsTabMessage(message) => {
+                let event = matches!(
+                    message,
+                    super::tab::file_system_settings::message::Message::CacheDeleteRequested
+                )
+                .then_some(Message::CacheDeleteRequested);
+                let task = self
+                    .file_system_settings
+                    .update(message)
+                    .map(Message::FileSystemSettingsTabMessage);
+                if let Some(event) = event {
+                    Task::batch([task, Task::done(event)])
+                } else {
+                    task
+                }
+            }
             Message::AboutTabMessage(message) => {
                 self.about.update(message).map(Message::AboutTabMessage)
             }

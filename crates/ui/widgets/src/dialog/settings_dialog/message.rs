@@ -18,6 +18,9 @@ pub enum Message {
     FfmpegRecheckRequested,
     FfmpegSelectRequested,
     FfmpegClearRequested,
+    /// Task 039: bubbled up so the app can open the confirmation dialog -
+    /// the tab itself never deletes anything.
+    CacheDeleteRequested,
     TabSelect(Tab),
     GeneralSettingsTabMessage(general_settings::message::Message),
     AiSettingsTabMessage(ai_settings::message::Message),

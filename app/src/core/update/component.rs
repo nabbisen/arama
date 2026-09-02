@@ -1,7 +1,9 @@
 use arama_i18n::{set_locale, t};
 use arama_ui_layout::{aside, footer, header};
 use arama_ui_main::{components::gallery::image_cell, views::gallery};
-use arama_ui_widgets::dialog::{media_focus_dialog, settings_dialog, similar_pairs_dialog};
+use arama_ui_widgets::dialog::{
+    confirm_dialog, media_focus_dialog, settings_dialog, similar_pairs_dialog,
+};
 use iced::Task;
 
 use super::super::{
@@ -258,6 +260,14 @@ impl App {
             settings_dialog::message::Message::FfmpegClearRequested => {
                 return self.clear_ffmpeg_selection();
             }
+            settings_dialog::message::Message::CacheDeleteRequested => {
+                self.dialog = Some(Dialog::Confirm(confirm_dialog::ConfirmDialog::new(
+                    t("confirm.cache_delete.title"),
+                    t("confirm.cache_delete.body"),
+                    t("confirm.cache_delete.confirm"),
+                )));
+                return Task::none();
+            }
             _ => {}
         }
         let task = self
@@ -306,6 +316,19 @@ impl App {
         }
 
         task
+    }
+
+    /// Task 039: the confirm dialog only ever reports `Confirm`/`Cancel` -
+    /// both close it; `Confirm` additionally starts the delete.
+    pub(super) fn handle_confirm_dialog_message(
+        &mut self,
+        message: confirm_dialog::message::Message,
+    ) -> Task<Message> {
+        self.dialog = None;
+        match message {
+            confirm_dialog::message::Message::Cancel => Task::none(),
+            confirm_dialog::message::Message::Confirm => super::cache::delete_cache_task(),
+        }
     }
 }
 

@@ -71,6 +71,16 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "settings.fs.cache_delete" => "Cache delete",
         "settings.fs.disk_unavailable" => "Disk space unavailable",
 
+        // Confirm dialog (Task 039) - generic across whatever destructive
+        // action opens it; "confirm.cancel" in particular is shared by
+        // every use, not cache-delete-specific.
+        "confirm.cancel" => "Cancel",
+        "confirm.cache_delete.title" => "Delete cache?",
+        "confirm.cache_delete.body" => {
+            "This permanently deletes all cached thumbnails and index data. Your original files are not affected. This cannot be undone."
+        }
+        "confirm.cache_delete.confirm" => "Delete",
+
         // Settings — About tab
         "settings.about.repository" => "Repository:",
 
@@ -283,6 +293,10 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
             "Removed {count} entries; {size} remains outside the reclaimable scope."
         }
         "toast.cache_prune_failed.title" => "Cache prune failed",
+        // Task 039
+        "toast.cache_delete_complete.title" => "Cache deleted",
+        "toast.cache_delete_complete.body" => "All cached thumbnails and index data were removed.",
+        "toast.cache_delete_failed.title" => "Cache delete failed",
         "toast.invalid_directory.title" => "Invalid directory",
         "toast.invalid_directory.body" => "Not an existing directory",
 

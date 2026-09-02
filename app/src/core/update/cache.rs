@@ -13,7 +13,7 @@ use arama_cache::{
     LookupResult, UpsertImageRequest, VideoCacheReader,
 };
 use arama_env::{
-    IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST, cache_storage_path,
+    IMAGE_EXTENSION_ALLOWLIST, VIDEO_EXTENSION_ALLOWLIST, cache_dir, cache_storage_path,
     cache_thumbnail_dir_path, diagnostic,
 };
 use arama_i18n::{t, t_with};
@@ -250,6 +250,27 @@ impl App {
         self.cache_page.load_task().map(Message::CachePageMessage)
     }
 
+    /// Task 039: the confirm dialog is already closed by the time this
+    /// runs (`handle_confirm_dialog_message`) - this only reports the
+    /// outcome. Unlike clear/prune, nothing here reloads the Cache page
+    /// or the Explorer gallery: this task's own scope is the Settings
+    /// page, whose "Delete cache" button already re-evaluates whether the
+    /// cache directory exists on every render, with no stored state to
+    /// go stale.
+    pub(super) fn handle_cache_delete_finished(
+        &mut self,
+        result: Result<(), String>,
+    ) -> Task<Message> {
+        match result {
+            Ok(()) => self.push_success_toast(
+                t("toast.cache_delete_complete.title"),
+                t("toast.cache_delete_complete.body"),
+            ),
+            Err(err) => self.push_error_toast(t("toast.cache_delete_failed.title"), err),
+        }
+        Task::none()
+    }
+
     /// Switch to a new directory from the Explorer: update settings, rebuild
     /// the dir-node, reset gallery filter, abort any in-flight task, and start
     /// the cache pipeline.
@@ -385,6 +406,58 @@ pub(super) fn prune_task(max_bytes: u64) -> Task<Message> {
     )
 }
 
+/// Task 039: deletes the cache directory's *contents*, not the directory
+/// itself - the directory must still exist afterwards (audit finding 4),
+/// and re-indexing recreates whatever it needs inside it. Every entry is
+/// attempted even if an earlier one fails, so one locked file (Windows,
+/// most likely) does not leave the rest of a stale cache behind; the
+/// first failure is what reaches the user as the outcome toast, and
+/// every failure is also recorded via `arama_env::diagnostic` so a
+/// Windows release build (Task 037) does not lose the detail silently.
+pub(super) fn delete_cache_task() -> Task<Message> {
+    Task::perform(
+        async move {
+            let path = cache_dir().map_err(|e| e.to_string())?;
+            delete_dir_contents(&path)
+        },
+        Message::CacheDeleteFinished,
+    )
+}
+
+/// The pure half of [`delete_cache_task`] - same seam this project uses
+/// elsewhere (e.g. `env/src/dir.rs`'s `local_dir_with_override`): the
+/// real caller resolves `cache_dir()` and calls this with the result,
+/// tests supply an arbitrary temp directory directly.
+fn delete_dir_contents(path: &Path) -> Result<(), String> {
+    let entries = std::fs::read_dir(path).map_err(|e| e.to_string())?;
+    let mut first_err: Option<String> = None;
+    for entry in entries {
+        let entry = match entry {
+            Ok(entry) => entry,
+            Err(err) => {
+                diagnostic(&format!("failed to read cache directory entry: {err}"));
+                first_err.get_or_insert_with(|| err.to_string());
+                continue;
+            }
+        };
+        let entry_path = entry.path();
+        let is_dir = entry.file_type().map(|t| t.is_dir()).unwrap_or(false);
+        let result = if is_dir {
+            std::fs::remove_dir_all(&entry_path)
+        } else {
+            std::fs::remove_file(&entry_path)
+        };
+        if let Err(err) = result {
+            diagnostic(&format!(
+                "failed to remove cache entry {}: {err}",
+                entry_path.display()
+            ));
+            first_err.get_or_insert_with(|| err.to_string());
+        }
+    }
+    first_err.map_or(Ok(()), Err)
+}
+
 fn human_size(bytes: u64) -> String {
     const UNITS: [&str; 5] = ["B", "KB", "MB", "GB", "TB"];
     let mut value = bytes as f64;
@@ -508,8 +581,85 @@ mod tests {
 
     use super::{
         EmbeddingRunReport, cache_prune_complete_body, cache_prune_partial_body,
-        embedding_report_summary,
+        delete_dir_contents, embedding_report_summary,
     };
+
+    /// Task 039 acceptance criterion 4: the directory itself must survive.
+    #[test]
+    fn delete_dir_contents_removes_entries_but_keeps_the_directory_itself() {
+        let dir = std::env::temp_dir().join(format!(
+            "arama-cache-delete-test-{}-contents",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("thumbnail")).unwrap();
+        std::fs::write(dir.join("thumbnail/a.jpg"), b"x").unwrap();
+        std::fs::write(dir.join("cache-v2.sqlite"), b"x").unwrap();
+
+        let result = delete_dir_contents(&dir);
+
+        assert_eq!(result, Ok(()));
+        assert!(dir.exists(), "the directory itself must still exist");
+        assert_eq!(
+            std::fs::read_dir(&dir).unwrap().count(),
+            0,
+            "every entry inside it must be gone"
+        );
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn delete_dir_contents_on_an_already_empty_directory_succeeds() {
+        let dir = std::env::temp_dir().join(format!(
+            "arama-cache-delete-test-{}-empty",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+
+        assert_eq!(delete_dir_contents(&dir), Ok(()));
+        assert!(dir.exists());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// Task 039: "one locked file does not leave the rest of a stale
+    /// cache behind" - a real permission failure on one entry must not
+    /// stop the others from being removed. Unix-only: a 000-mode
+    /// subdirectory is not a portable way to force this on every
+    /// platform this project ships for, and this exact path was already
+    /// verified live, once, in the review package (a real "Permission
+    /// denied (os error 13)" toast).
+    #[cfg(unix)]
+    #[test]
+    fn delete_dir_contents_removes_every_entry_it_can_even_when_one_entry_fails() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = std::env::temp_dir().join(format!(
+            "arama-cache-delete-test-{}-partial-failure",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("removable.txt"), b"x").unwrap();
+        let locked = dir.join("locked");
+        std::fs::create_dir_all(locked.join("inner")).unwrap();
+        std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o000)).unwrap();
+
+        let result = delete_dir_contents(&dir);
+
+        assert!(result.is_err(), "the locked entry's failure must surface");
+        assert!(
+            !dir.join("removable.txt").exists(),
+            "the removable entry must not be left behind by the locked one's failure"
+        );
+        assert!(
+            locked.exists(),
+            "the locked entry itself is the one that could not be removed"
+        );
+
+        std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 
     /// English-only, deliberately: this crate's own binary shares the
     /// `app` crate's much larger test suite, most of which asserts exact
