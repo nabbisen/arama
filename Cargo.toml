@@ -36,7 +36,7 @@ arama-ui-widgets    = { version = "0", path = "crates/ui/widgets" }
 
 # UI
 iced                = { version = "0.14", features = ["image-without-codecs", "tokio"] }
-snora               = { version = "0.39", default-features = false, features = ["design"] }
+snora               = { version = "0.42", default-features = false, features = ["design"] }
 
 # app control
 app-json-settings   = "2"
