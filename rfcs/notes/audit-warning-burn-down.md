@@ -179,6 +179,33 @@ enter through the same renderer and share that revisit condition.
 Not previously listed because the advisory postdates this ledger's last
 refresh; surfaced by the 0.39.1 release gate.
 
+## Resolved by the snora 0.42.0 upgrade — 2026-09-03
+
+**RUSTSEC-2026-0206, `rustybuzz` 0.20.1 — resolved by removal, not by a patch.**
+
+The entry below recorded that `rustybuzz` reached arama only through
+`usvg <- resvg <- iced_tiny_skia / iced_wgpu <- iced`, and set the revisit
+condition as *"when the iced rendering stack next updates, alongside `ttf-parser`,
+which enters through the same renderer."*
+
+**That condition was met by Task 047** (`f248676`, snora 0.39.1 → 0.42.0). snora
+0.42.0 stopped enabling `iced`'s `svg` feature transitively, which dropped
+`resvg` and `usvg` from the graph — and `rustybuzz` with them. **It is no longer
+in `Cargo.lock` at all** (verified: zero occurrences), so there is nothing left
+to track.
+
+`cargo audit` accordingly reports **four** allowed warnings, not five:
+`bincode`, `paste`, `ttf-parser`, `lru`.
+
+**`ttf-parser` did *not* go with it**, despite sharing the revisit condition — it
+still enters through `fontdb`, `cosmic-text`, `ab_glyph` and `owned_ttf_parser`,
+which are font paths independent of SVG. The shared revisit condition was
+correct as a trigger and wrong as a prediction that both would resolve together.
+
+*Noticed 2026-09-03 while preparing Task 044, not during Task 047's own review —
+the upgrade's dependency reduction was reported in that package as a binary-size
+benefit, and its effect on the advisory ledger went unremarked by both sides.*
+
 ## Resolved during a release gate — 2026-08-15
 
 **RUSTSEC-2026-0257, `webbrowser` 1.2.1 — vulnerability, not a warning.**
