@@ -58,12 +58,7 @@ impl VideoExtractor {
             .output()?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
-        let duration: f64 = stdout
-            .trim()
-            .parse()
-            .with_context(|| format!("Failed to parse duration: '{}'", stdout.trim()))?;
-
-        Ok(duration)
+        parse_duration(stdout.trim())
     }
 
     // Video frames.
@@ -133,7 +128,12 @@ impl VideoExtractor {
 
         let data: Vec<u8> = output.stdout;
 
-        if data.is_empty() {
+        // Task 040 (audit A4): a truncated pipe is not empty, but it is
+        // still not a usable frame - `frames_to_tensor` indexes on the
+        // assumption that `data.len() == size * size * 3`, so anything
+        // else is rejected here, at the point the invariant is created,
+        // and counted as a failure exactly as an empty read already is.
+        if data.is_empty() || data.len() != size * size * 3 {
             return Ok(None);
         }
 
@@ -233,5 +233,56 @@ impl VideoExtractor {
             sample_rate,
             samples,
         })
+    }
+}
+
+/// Parses ffprobe's duration output, rejecting anything that is not a
+/// finite, positive number of seconds.
+///
+/// Task 040 (audit A3): `f64::from_str` accepts `nan`, `inf` and `-inf`
+/// without error, and a `nan` duration reaching
+/// `VideoSimilarityConfig::compute_sample_timestamps`'s `partial_cmp(...).unwrap()`
+/// panics - inside the indexing task, on a path fed by a user-nominated
+/// ffprobe binary (RFC 032). The guard stops the bad value at this
+/// boundary, before it can reach any caller; a separate fix switches that
+/// sort to `f64::total_cmp`, which stops the same panic class regardless
+/// of how a non-finite value might reach it in the future.
+fn parse_duration(raw: &str) -> anyhow::Result<f64> {
+    let duration: f64 = raw
+        .parse()
+        .with_context(|| format!("Failed to parse duration: '{raw}'"))?;
+    if !duration.is_finite() || duration <= 0.0 {
+        anyhow::bail!("ffprobe returned a non-finite or non-positive duration: '{raw}'");
+    }
+    Ok(duration)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_duration_rejects_non_finite_values() {
+        for raw in ["nan", "NaN", "inf", "-inf", "infinity"] {
+            assert!(
+                parse_duration(raw).is_err(),
+                "'{raw}' should be rejected as non-finite"
+            );
+        }
+    }
+
+    #[test]
+    fn parse_duration_rejects_non_positive_values() {
+        for raw in ["0", "0.0", "-1.5"] {
+            assert!(
+                parse_duration(raw).is_err(),
+                "'{raw}' should be rejected as non-positive"
+            );
+        }
+    }
+
+    #[test]
+    fn parse_duration_accepts_a_normal_value() {
+        assert_eq!(parse_duration("123.45").unwrap(), 123.45);
     }
 }

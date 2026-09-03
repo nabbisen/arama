@@ -113,23 +113,7 @@ impl ClipEncoder {
 
     /// Converts RGB24 HWC frames to CLIP input tensor shape [B, 3, H, W].
     fn frames_to_tensor(&self, frames: &[RawVideoFrame]) -> anyhow::Result<Tensor> {
-        let size = frames[0].width as usize;
-        let mut data: Vec<f32> = Vec::with_capacity(frames.len() * 3 * size * size);
-
-        for frame in frames {
-            // HWC -> CHW plus CLIP normalization.
-            for c in 0..3usize {
-                let mean = CLIP_MEAN[c];
-                let std = CLIP_STD[c];
-                for hw in 0..(size * size) {
-                    let raw = frame.data[hw * 3 + c] as f32 / 255.0;
-                    data.push((raw - mean) / std);
-                }
-            }
-        }
-
-        Tensor::from_vec(data, (frames.len(), 3, size, size), &self.device)
-            .context("CLIP input tensor construction failed")
+        build_frame_batch(frames, &self.device)
     }
 
     fn l2_normalize(&self, t: &Tensor) -> anyhow::Result<Tensor> {
@@ -142,6 +126,56 @@ impl ClipEncoder {
         let flat: Vec<f32> = t.flatten_all()?.to_vec1()?;
         Ok(flat.chunks(dim).map(|c| c.to_vec()).collect())
     }
+}
+
+/// Builds the CLIP input batch tensor from RGB24 HWC frames, [B, 3, H, W].
+///
+/// Task 040 (audit A4): `frames[0]` cannot panic on an empty slice -
+/// `encode_frames`, this function's only caller (via `frames_to_tensor`),
+/// already returns early for an empty `frames`, before this is ever
+/// reached. But a frame whose `data` does not actually match
+/// `width * height * 3` (or whose `width != height`) indexes out of
+/// bounds if trusted, and trusting `frames[0]`'s size for every frame
+/// silently mis-slices a heterogeneous batch. Each frame is validated on
+/// its own terms and a malformed one is excluded, not trusted - the
+/// returned batch can therefore be shorter than `frames.len()`; the
+/// caller derives the count the same way Task 042's audio fix does.
+///
+/// A free function, not a method, so it is testable without a loaded
+/// CLIP model - `frames_to_tensor` only ever needed `self.device`.
+fn build_frame_batch(frames: &[RawVideoFrame], device: &Device) -> anyhow::Result<Tensor> {
+    let is_well_formed = |f: &RawVideoFrame| {
+        f.width == f.height && f.data.len() == (f.width as usize) * (f.height as usize) * 3
+    };
+    let Some(reference) = frames.iter().find(|f| is_well_formed(f)) else {
+        anyhow::bail!(
+            "no well-formed frame in this batch of {} - every frame's data length disagreed \
+             with its own width/height",
+            frames.len()
+        );
+    };
+    let size = reference.width as usize;
+    let valid: Vec<&RawVideoFrame> = frames
+        .iter()
+        .filter(|f| is_well_formed(f) && f.width as usize == size)
+        .collect();
+
+    let mut data: Vec<f32> = Vec::with_capacity(valid.len() * 3 * size * size);
+
+    for frame in &valid {
+        // HWC -> CHW plus CLIP normalization.
+        for c in 0..3usize {
+            let mean = CLIP_MEAN[c];
+            let std = CLIP_STD[c];
+            for hw in 0..(size * size) {
+                let raw = frame.data[hw * 3 + c] as f32 / 255.0;
+                data.push((raw - mean) / std);
+            }
+        }
+    }
+
+    Tensor::from_vec(data, (valid.len(), 3, size, size), device)
+        .context("CLIP input tensor construction failed")
 }
 
 /// Resizes and normalizes an image file, then converts it to a tensor.
@@ -243,6 +277,71 @@ mod tests {
             .save_with_format(&path, format.format)
             .unwrap_or_else(|err| panic!("{} fixture write failed: {err}", format.name));
         path
+    }
+
+    fn well_formed_frame(size: u32) -> RawVideoFrame {
+        RawVideoFrame {
+            timestamp_secs: 0.0,
+            width: size,
+            height: size,
+            data: vec![128u8; (size * size * 3) as usize],
+        }
+    }
+
+    /// Task 040 (audit A4): a truncated buffer must be excluded, not
+    /// indexed into - the whole point of the fix is that this no longer
+    /// panics.
+    #[test]
+    fn build_frame_batch_excludes_a_truncated_frame_and_keeps_the_good_ones() {
+        let good = well_formed_frame(4);
+        let truncated = RawVideoFrame {
+            timestamp_secs: 1.0,
+            width: 4,
+            height: 4,
+            data: vec![128u8; 10], // needs 4*4*3 = 48.
+        };
+
+        let batch = build_frame_batch(&[good, truncated], &Device::Cpu)
+            .expect("one well-formed frame is enough to build a batch");
+
+        assert_eq!(
+            batch.dims(),
+            &[1, 3, 4, 4],
+            "the truncated frame must be excluded from the batch, not indexed into"
+        );
+    }
+
+    /// The audit's `width != height` case, plus the "do not trust
+    /// `frames[0]`" case: the first frame here is well-formed but at a
+    /// different size than the rest of a real batch would be, which
+    /// `build_frame_batch` must not blindly propagate to every frame.
+    #[test]
+    fn build_frame_batch_excludes_a_frame_whose_width_and_height_disagree() {
+        let good = well_formed_frame(4);
+        let non_square = RawVideoFrame {
+            timestamp_secs: 1.0,
+            width: 4,
+            height: 3,
+            data: vec![128u8; (4 * 3 * 3) as usize], // internally consistent, just not square.
+        };
+
+        let batch = build_frame_batch(&[good, non_square], &Device::Cpu).unwrap();
+
+        assert_eq!(batch.dims(), &[1, 3, 4, 4]);
+    }
+
+    /// When every frame is malformed, this must return a real `Err`, not
+    /// index into an empty selection.
+    #[test]
+    fn build_frame_batch_errors_when_no_frame_is_well_formed() {
+        let truncated = RawVideoFrame {
+            timestamp_secs: 0.0,
+            width: 4,
+            height: 4,
+            data: vec![128u8; 10],
+        };
+
+        assert!(build_frame_batch(&[truncated], &Device::Cpu).is_err());
     }
 }
 

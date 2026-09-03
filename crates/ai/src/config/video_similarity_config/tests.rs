@@ -90,3 +90,22 @@ fn test_dedup() {
     let input = vec![5.0, 10.0, 30.0, 35.0, 60.0];
     assert_eq!(deduplicate_by_gap(input, 20.0), vec![5.0, 30.0, 60.0]);
 }
+
+/// Task 040 (audit A3): `get_duration` now rejects a non-finite duration
+/// before this function is ever called with one, but this asserts the
+/// panic class itself is closed here too - `f64::total_cmp` is total
+/// over NaN, unlike `partial_cmp(...).unwrap()`, which panicked on it.
+/// Simply calling this with `NAN`/`INFINITY` and returning normally is
+/// the proof: reverting the `total_cmp` fix makes this test panic
+/// instead of failing an assertion.
+#[test]
+fn compute_sample_timestamps_does_not_panic_on_non_finite_duration() {
+    for duration in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        let ts = cfg().compute_sample_timestamps(duration);
+        assert!(
+            ts.iter().all(|t| t.is_finite()),
+            "duration={duration}: non-finite duration must not produce non-finite \
+             timestamps, got {ts:?}"
+        );
+    }
+}

@@ -154,15 +154,23 @@ impl VideoSimilarityPipeline {
                 let frames = self
                     .extractor
                     .extract_video_frames_report(path, &timestamps);
-                let failures = frames.failures;
+                let extraction_failures = frames.failures;
                 if frames.frames.is_empty() {
-                    (vec![], failures)
+                    (vec![], extraction_failures)
                 } else {
-                    let embeddings = encoder
-                        .encode_frames(&frames.frames)
-                        .map(|embeddings| mean_embeddings(&embeddings))
-                        .unwrap_or_default();
-                    (embeddings, failures)
+                    let frame_count = frames.frames.len();
+                    let raw_embeddings = encoder.encode_frames(&frames.frames).unwrap_or_default();
+                    // Task 040 (audit A4): `frames_to_tensor` excludes any
+                    // frame it rejects as malformed rather than trusting
+                    // it (see `build_frame_batch`'s own doc comment) - the
+                    // gap between frames sent in and vectors returned is
+                    // exactly that count, mirroring Task 042's audio-side
+                    // fix for the same shape of defect.
+                    let validation_failures = frame_count.saturating_sub(raw_embeddings.len());
+                    (
+                        mean_embeddings(&raw_embeddings),
+                        extraction_failures + validation_failures,
+                    )
                 }
             }
             None => (vec![], 0),
@@ -229,8 +237,13 @@ impl VideoSimilarityPipeline {
         if let Some(err) = &self.clip_setup_error {
             reasons.push(format!("frame modality unavailable: {err}"));
         } else if frame_failures > 0 {
+            // Task 040 (audit A4): "processing", not "extraction" - this
+            // count is now extraction failures plus validation failures
+            // folded together (see extract_features's own comment), so
+            // "extraction" alone would be inaccurate for the latter. Same
+            // correction as Task 042 made on the audio side.
             reasons.push(format!(
-                "frame extraction failed at {frame_failures} sample points"
+                "frame processing failed at {frame_failures} sample points"
             ));
         }
         if let Some(err) = &self.audio_setup_error {

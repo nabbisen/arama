@@ -116,7 +116,12 @@ impl VideoSimilarityConfig {
             }
         }
 
-        points.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        // Task 040 (audit A3): `partial_cmp(...).unwrap()` panics on NaN.
+        // `get_duration` now rejects a non-finite duration at its own
+        // boundary, but `total_cmp` (total, NaN-safe) closes the panic
+        // class here too, regardless of how a non-finite `duration_secs`
+        // might reach this function.
+        points.sort_by(f64::total_cmp);
         points.retain(|&t| t > 0.0 && t < duration_secs);
 
         // Fixed anchors are exempt from the minimum-gap merge.
