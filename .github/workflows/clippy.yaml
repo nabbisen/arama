@@ -32,10 +32,12 @@ name: Clippy
 # bump, that is this job doing its job, not a reason to delete it - fix
 # the lint (or record a deliberate `#[allow]`), the same way Task 033 did.
 #
-# `cargo fmt` is not run anywhere in CI, in this workflow or any other -
-# noted here rather than silently left absent (Task 033 §5), and not
-# added: it was out of that task's scope and is not brought into this one
-# either.
+# `cargo fmt` was not run anywhere in CI at the time this workflow was
+# written - noted here rather than silently left absent (Task 033 §5), and
+# not added: it was out of that task's scope. Task 044 revisited that
+# decision and added it, deliberately as its own separate workflow
+# (fmt.yaml) rather than a step folded in here, for the same reason
+# msrv.yaml and this workflow are already separate from each other.
 
 on:
   push:

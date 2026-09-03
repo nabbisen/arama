@@ -1,0 +1,60 @@
+name: Docs
+
+# Task 044 (audit D5): three `broken_intra_doc_links` rustdoc warnings were
+# live and ungated - `cargo doc` was never run in CI, so they sat rendering
+# as literal `[`FfmpegToolchain`]` text on docs.rs indefinitely. The same
+# failure mode clippy.yaml's own header describes for its lint: a check
+# enforced only on a developer machine, if at all, "can sit latent
+# indefinitely while every report says clean."
+#
+# Deliberately a separate, narrow workflow (same precedent as msrv.yaml and
+# clippy.yaml), not folded into either: this checks documentation
+# correctness, not code behavior or lint conformance, and keeping it
+# separate keeps its failure mode ("a doc link broke") legible in the
+# Actions UI on its own, rather than buried inside a broader job's log.
+#
+# Runs on stable, matching clippy.yaml's own choice and for the same
+# reason: rustdoc's own lints move with the toolchain, and pinning this to
+# MSRV would not have caught a warning that already exists on every
+# supported version.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # Registry/git caching only, same rationale as msrv.yaml and
+      # clippy.yaml: `target/` is deliberately excluded, since this
+      # workspace's clean debug build is multiple gigabytes, comfortably
+      # capable of exhausting GitHub Actions' cache allowance and the
+      # runner's free disk for a reason unrelated to the doc link this job
+      # exists to check.
+      - name: Cache cargo registry
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: docs-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            docs-${{ runner.os }}-cargo-
+
+      - name: Install Rust stable
+        run: bash .github/workflows/scripts/install-rust.sh stable
+
+      - name: cargo doc --workspace --no-deps --locked
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --workspace --no-deps --locked

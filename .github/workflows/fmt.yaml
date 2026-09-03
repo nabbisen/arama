@@ -1,0 +1,44 @@
+name: Format
+
+# Task 044 (audit D5/D11): `cargo fmt --all --check` was a deliberate,
+# recorded absence - clippy.yaml's own header said so explicitly, out of
+# Task 033's scope - not an oversight, but also not free: nothing enforced
+# it, so a contributor who never ran `cargo fmt` locally could land
+# unformatted code with every other gate green. This task revisits that
+# decision rather than reversing it silently; clippy.yaml's header is
+# updated in the same change to say so.
+#
+# Deliberately a separate workflow, for the same reason msrv.yaml and
+# clippy.yaml are already separate from each other: a narrow,
+# single-purpose job whose failure is unambiguous in the Actions UI,
+# rather than one more step folded into a broader job.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust stable
+        run: bash .github/workflows/scripts/install-rust.sh stable
+
+      # install-rust.sh's minimal profile does not include rustfmt (the
+      # same situation clippy.yaml documents for the clippy component) -
+      # ubuntu-latest's preinstalled stable toolchain likely already has
+      # it, but this makes it explicit rather than relying on that.
+      - name: Ensure the rustfmt component is installed
+        run: rustup component add rustfmt --toolchain=stable
+
+      - name: cargo fmt --all --check
+        run: cargo fmt --all --check

@@ -1,0 +1,72 @@
+name: Audit
+
+# Task 044 (audit D5/D11): `cargo audit` had a track record before this
+# gate existed - docs/src/dev/release.md lists it as a manual release
+# step, and running it by hand caught this project's first real
+# vulnerability (webbrowser, RUSTSEC-2026-0257) during the 0.39.1 gate. A
+# gate that valuable should not depend on the release operator remembering
+# to run it; this makes every push and pull request run it instead.
+#
+# `--deny warnings` fails the job on ANY cargo audit warning
+# (unmaintained/unsound/yanked/notice) that is not explicitly ignored by
+# identity in .cargo/audit.toml - the RUSTSEC IDs tracked in
+# rfcs/notes/audit-warning-burn-down.md's "Remaining Warnings" section are
+# listed there, each with its own dependency path, rationale, and revisit
+# condition. This is deliberately NOT a hardcoded warning count: the point
+# is that this job goes red on a genuinely NEW advisory while staying
+# green on the tracked ones, and a count is the wrong mechanism for that -
+# the tracked count itself changed from five to four within two days of
+# this task being written (Task 047's snora upgrade removed rustybuzz from
+# the dependency graph entirely, by removal rather than a patch). Match
+# identities, not cardinality: keep .cargo/audit.toml's ignore list and
+# the ledger's "Remaining Warnings" section in sync with each other.
+#
+# Deliberately a separate workflow from clippy.yaml/docs.yaml/fmt.yaml:
+# this checks the dependency graph against an external, independently
+# updated advisory database, not this repository's own code - a failure
+# here can happen with no arama change at all, the same accepted
+# trade-off clippy.yaml's header describes for running on a moving stable
+# toolchain rather than a pinned one.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # Registry/git caching only, same rationale as the other workflows:
+      # `target/` is deliberately excluded.
+      - name: Cache cargo registry
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: audit-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            audit-${{ runner.os }}-cargo-
+
+      - name: Install Rust stable
+        run: bash .github/workflows/scripts/install-rust.sh stable
+
+      # Pinned, not "latest": an unpinned cargo-audit could change
+      # behavior (a new lint category, a different --deny surface) with no
+      # arama change to review. Bump deliberately, the same way model
+      # revisions and the CUDA toolkit action are pinned elsewhere in this
+      # project.
+      - name: Install cargo-audit 0.22.2
+        run: cargo install cargo-audit --version 0.22.2 --locked
+
+      - name: cargo audit --deny warnings
+        run: cargo audit --deny warnings

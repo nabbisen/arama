@@ -2,8 +2,6 @@
 //!
 //! Self-contained reusable UI widgets for arama.
 //!
-//! - [`dir_tree::DirTree`] — interactive directory tree with per-node
-//!   processing-state spinners; emits `DirClick` events.
 //! - [`context_menu::ContextMenu`] — right-click menu for gallery cells
 //!   (open, show in folder, trash).
 //! - [`dialog::media_focus_dialog`] — modal that shows media similar to

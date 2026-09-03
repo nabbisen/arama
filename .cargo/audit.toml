@@ -4,8 +4,28 @@
 # quick-xml line is >=0.41.0, but wayland-scanner 0.31.10 requires
 # quick-xml ^0.39 and is currently the latest compatible release.
 # Revisit when wayland-scanner publishes a version that accepts quick-xml
-# 0.41 or newer, or when the Linux Wayland dependency path changes.
+# 0.41 or newer, or when the Linux Wayland dependency path changes. This
+# pair is an actual vulnerability ignore (denial-of-service, CVSS-scored),
+# unlike the four below.
+#
+# Task 044: the four IDs below are `cargo audit` *warnings*
+# (unmaintained/unsound), each tracked deliberately with its own
+# dependency path, rationale, and revisit condition in
+# rfcs/notes/audit-warning-burn-down.md's "Remaining Warnings" section -
+# not ignored blindly. Listing them here by identity is what lets CI run
+# `cargo audit --deny warnings` and go red on a genuinely *new* advisory
+# while staying green on these tracked ones. Keep this list and that
+# ledger section in sync: an identity removed from one without the other
+# either leaves CI silently green on something no longer tracked, or
+# fails CI on something the ledger still explains. A resolved warning's
+# ID may stay listed here harmlessly (cargo audit does not complain
+# about an ignore that no longer matches anything) until its ledger entry
+# is moved to "Resolved" and this entry is removed in the same change.
 ignore = [
     "RUSTSEC-2026-0194",
     "RUSTSEC-2026-0195",
+    "RUSTSEC-2025-0141", # bincode 2.0.1, unmaintained - localcache <- arama-cache.
+    "RUSTSEC-2024-0436", # paste 1.0.15, unmaintained - candle/gemm, tokenizers, Apple rendering.
+    "RUSTSEC-2026-0192", # ttf-parser 0.25.1, unmaintained - fontdb, cosmic-text, ab_glyph.
+    "RUSTSEC-2026-0253", # lru 0.16.4, unsound - cryoglyph <- iced_wgpu <- iced.
 ]
