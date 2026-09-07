@@ -35,7 +35,14 @@ pub(crate) const NAMESPACE_VIDEO: &str = "video";
 /// Version of the image payload layout / pipeline. Bump to invalidate.
 pub(crate) const IMAGE_PAYLOAD_VERSION: u32 = 1;
 /// Version of the video payload layout / pipeline. Bump to invalidate.
-pub(crate) const VIDEO_PAYLOAD_VERSION: u32 = 1;
+///
+/// **2 (0.42.0):** Task 042 changed what the audio encoder computes - conv
+/// layer 0's GroupNorm is now applied, and a segment that fails to encode is
+/// excluded from the mean instead of contributing a zero vector. Vectors
+/// cached by 0.41.2 or earlier are not comparable with ones computed now, and
+/// nothing downstream can tell them apart, so they are purged rather than
+/// silently mixed. See RFC 046 §4.1.
+pub(crate) const VIDEO_PAYLOAD_VERSION: u32 = 2;
 
 // ---------------------------------------------------------------------------
 // Error / Result

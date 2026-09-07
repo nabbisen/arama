@@ -9,6 +9,70 @@ Releases follow the archive naming `arama-X.Y.Z.tar.gz`.
 
 ---
 
+## [0.42.0]
+
+**A release about not losing your work, and about arama describing itself
+honestly.** A single click could delete hours of indexing with no confirmation
+and no way to tell whether it had worked. Separately, the documentation
+described an audio capability arama does not implement, and understated the disk
+space it needs by roughly four times.
+
+**One action is required when upgrading: your videos will be re-indexed once.**
+Images, settings, thumbnails and your media files are untouched. The reason is
+in Changed, below.
+
+### Added
+
+- **A Microsoft Store package is now built and verified for every release.**
+  Previously the Store version was assembled by hand; it is now produced by the
+  same workflow that builds every other download, installed and launched on a
+  clean machine before the release is published, and checked for the same
+  guarantees as the rest — no bundled ffmpeg, and a version that cannot drift
+  from the release it claims to be.
+
+### Changed
+
+- **Audio matching for videos was computing its numbers wrongly, and now is
+  not.** arama compares a video's audio alongside its frames. One step of that
+  calculation — a normalisation the model's own configuration asks for — was
+  being skipped, and any audio segment that failed to process was being folded
+  into the result as silence rather than left out. Both are corrected.
+
+  **This is why videos are re-indexed once on upgrade.** Numbers computed by
+  0.41.2 and earlier cannot be meaningfully compared against ones computed now,
+  and nothing downstream could tell them apart, so the old ones are discarded
+  rather than silently mixed with the new. Image results are unaffected and are
+  kept.
+
+- **Toast messages are easier to read.** Warning text is now dark on its amber
+  background rather than white — it previously fell below the WCAG AA contrast
+  floor — and the dismiss "×" no longer fades when you are not pointing at it.
+
+### Fixed
+
+- **"Cache delete" now asks first, and tells you what happened.** It deleted
+  everything immediately on one click, with no confirmation, and then said
+  nothing at all — success and failure looked identical, and the page went on
+  showing thumbnails for files that were gone. It now confirms first, states
+  plainly that your original files are not affected, reports the outcome either
+  way, and empties the cache directory instead of removing it.
+
+- **Two crashes reachable from ordinary media.** A video whose duration could
+  not be read as a sensible number, and a frame that arrived shorter than
+  expected, each ended the indexing pass abruptly. Both are now counted as
+  failures of that one file and reported, like every other extraction failure.
+
+- **The documentation described arama inaccurately in several places.**
+  The models need about **938 MB**, not the ~700 MB stated, and setup requires
+  roughly **3 GB** free rather than the ~750 MB documented — a user with 1 GB
+  free was following the documentation into a refusal they could not diagnose.
+  Audio matching is described by what it actually does rather than as a
+  capability arama does not implement. The stated default for **Include video**
+  was wrong, and four claims about pausing, cancelling and progressive results
+  described behaviour that does not exist yet.
+
+---
+
 ## [0.41.2]
 
 A fix-only release for Windows users, and the fix is one every Windows user has
