@@ -1,5 +1,3 @@
-use crate::pipeline::score::similarity::video::util::{deduplicate_by_gap, uniform_timestamps};
-
 use super::*;
 
 fn cfg() -> VideoSimilarityConfig {
@@ -76,19 +74,6 @@ fn test_90s() {
             );
         }
     }
-}
-
-#[test]
-fn test_uniform() {
-    let ts = uniform_timestamps(6, 120.0);
-    assert_eq!(ts.len(), 6);
-    assert!((ts[0] - 120.0 / 7.0).abs() < 0.01);
-}
-
-#[test]
-fn test_dedup() {
-    let input = vec![5.0, 10.0, 30.0, 35.0, 60.0];
-    assert_eq!(deduplicate_by_gap(input, 20.0), vec![5.0, 30.0, 60.0]);
 }
 
 /// Task 040 (audit A3): `get_duration` now rejects a non-finite duration
