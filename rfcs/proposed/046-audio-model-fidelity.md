@@ -362,6 +362,33 @@ A wrong 768-float vector looks exactly like a right one.
 Gate 1 lands regardless of §3 and should land first — it is the cheapest
 falsifier this project has been offered.
 
+### 4.1 Gate 2 is also the cache-invalidation trigger — added 2026-09-07
+
+**Discovered while cutting 0.42.0.** Task 042 changed what the audio encoder
+computes — conv-0's GroupNorm now applied, failed segments excluded instead of
+zero-filled — and `VIDEO_PAYLOAD_VERSION` stayed at `1`. Nothing noticed. Shipping
+that would have left every upgrading user comparing pre-fix cached vectors
+against post-fix new ones, silently and wrongly.
+
+**The purge is already automatic.** `cache_options` carries the version and
+`purge_stale_versions()` runs on open (`crates/cache/src/core/image.rs:59`), and
+`engine.rs:38` already says the constant covers the *"layout / pipeline"*. **What
+is manual — and what failed here — is noticing that the pipeline moved.**
+
+**Gate 2 is that observer.** A golden-vector test fails exactly when the computed
+embedding changes, which is precisely when the payload version must bump. Not
+when the code changes: a comment, a refactor, or a test-only edit would trip a
+file-watching check and cost a false cache purge for every user.
+
+**So the rule is:** when a golden-vector test fails because the pipeline
+deliberately changed, the fix is *two* edits — update the reference vector **and**
+bump the matching `*_PAYLOAD_VERSION`. Neither alone is correct. A gate-2
+implementation that does not say this in its own failure message will be obeyed
+halfway.
+
+This does not need its own RFC; it is what gate 2 was already for, with the
+consequence written down.
+
 ## 5. Non-goals
 
 - **CLIP.** Image similarity is verified working; A11 (aspect-ratio distortion
