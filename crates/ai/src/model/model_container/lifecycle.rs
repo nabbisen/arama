@@ -13,7 +13,7 @@ use tokio::{fs, sync::watch};
 
 use super::{
     CONFIG_JSON, GENERATION_MANIFEST, ModelContainer, ModelDownloadStatus, OPERATION_METADATA,
-    PYTORCH_MODEL, SAFETENSORS_MODEL, SourceUrl, models_dir,
+    PYTORCH_MODEL, SAFETENSORS_MODEL, SourceUrl,
     publication::{
         acquire_model_lock, cleanup_directory, next_operation_sequence, publish_generation,
         reconcile_generations,
@@ -210,7 +210,7 @@ impl ModelContainer {
     }
 
     async fn cleanup_generation(&self, generation_id: u64) {
-        if let Ok(root) = models_dir() {
+        if let Ok(root) = self.models_dir() {
             let staging = root.join(self.operation_name("stage", generation_id));
             let _ = cleanup_directory(&staging).await;
         }
@@ -223,7 +223,7 @@ impl ModelContainer {
     ) -> anyhow::Result<()> {
         let mut progress = GenerationProgress::new(&generation.progress);
         validate_model_specification(self)?;
-        let root = models_dir()?;
+        let root = self.models_dir()?;
         validate_dir(&root)?;
         let _model_lock = acquire_model_lock(&root, &self.name).await?;
         reconcile_generations(self, &root).await?;

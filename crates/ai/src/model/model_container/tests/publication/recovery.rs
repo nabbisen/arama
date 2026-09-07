@@ -11,12 +11,12 @@ fn write_ready_generation(path: &std::path::Path, model: &ModelContainer, body: 
 
 #[test]
 fn restart_reconciliation_promotes_only_authenticated_complete_stage() {
-    let model = single_file_model(
+    let (_scratch, model) = single_file_model(
         unique_model_name("recover-stage"),
         "https://example.invalid/model".to_owned(),
         b"model",
     );
-    let root = models_dir().expect("models root");
+    let root = model.models_dir().expect("models root");
     fs::create_dir_all(&root).expect("create models root");
     let stale = root.join(format!(".{}.stage-restarted", model.name()));
     let backup = root.join(format!(".{}.backup-restarted", model.name()));
@@ -38,12 +38,12 @@ fn restart_reconciliation_promotes_only_authenticated_complete_stage() {
 
 #[test]
 fn restart_reconciliation_restores_backup_when_no_stage_or_final_exists() {
-    let model = single_file_model(
+    let (_scratch, model) = single_file_model(
         unique_model_name("recover-backup"),
         "https://example.invalid/model".to_owned(),
         b"model",
     );
-    let root = models_dir().expect("models root");
+    let root = model.models_dir().expect("models root");
     fs::create_dir_all(&root).expect("create models root");
     let backup = root.join(format!(".{}.backup-restarted", model.name()));
     write_ready_generation(&backup, &model, b"restored", 10);
@@ -62,12 +62,12 @@ fn restart_reconciliation_restores_backup_when_no_stage_or_final_exists() {
 
 #[test]
 fn restart_reconciliation_uses_durable_order_for_multiple_backups() {
-    let model = single_file_model(
+    let (_scratch, model) = single_file_model(
         unique_model_name("ordered-backup"),
         "https://example.invalid/model".to_owned(),
         b"model",
     );
-    let root = models_dir().expect("models root");
+    let root = model.models_dir().expect("models root");
     fs::create_dir_all(&root).expect("create models root");
     let lexically_later_old = root.join(format!(".{}.backup-z-old", model.name()));
     let lexically_earlier_new = root.join(format!(".{}.backup-a-new", model.name()));
@@ -88,12 +88,12 @@ fn restart_reconciliation_uses_durable_order_for_multiple_backups() {
 
 #[test]
 fn restart_reconciliation_skips_newer_mismatched_backup_for_matching_backup() {
-    let model = single_file_model(
+    let (_scratch, model) = single_file_model(
         unique_model_name("matching-backup"),
         "https://example.invalid/model".to_owned(),
         b"model",
     );
-    let root = models_dir().expect("models root");
+    let root = model.models_dir().expect("models root");
     fs::create_dir_all(&root).expect("create models root");
     let matching = root.join(format!(".{}.backup-matching", model.name()));
     let mismatched = root.join(format!(".{}.backup-mismatched", model.name()));
@@ -119,12 +119,12 @@ fn restart_reconciliation_skips_newer_mismatched_backup_for_matching_backup() {
 
 #[test]
 fn restart_reconciliation_ignores_mismatched_stage_and_restores_backup() {
-    let model = single_file_model(
+    let (_scratch, model) = single_file_model(
         unique_model_name("mismatched-stage"),
         "https://example.invalid/model".to_owned(),
         b"model",
     );
-    let root = models_dir().expect("models root");
+    let root = model.models_dir().expect("models root");
     fs::create_dir_all(&root).expect("create models root");
     let stage = root.join(format!(".{}.stage-mismatch", model.name()));
     let backup = root.join(format!(".{}.backup-valid", model.name()));
@@ -147,12 +147,12 @@ fn restart_reconciliation_ignores_mismatched_stage_and_restores_backup() {
 
 #[test]
 fn restart_reconciliation_quarantines_incomplete_final_before_backup_restore() {
-    let model = single_file_model(
+    let (_scratch, model) = single_file_model(
         unique_model_name("incomplete-final"),
         "https://example.invalid/model".to_owned(),
         b"model",
     );
-    let root = models_dir().expect("models root");
+    let root = model.models_dir().expect("models root");
     let final_directory = root.join(model.name());
     let backup = root.join(format!(".{}.backup-valid", model.name()));
     fs::create_dir_all(&final_directory).expect("create incomplete final");
@@ -192,12 +192,12 @@ fn restart_reconciliation_quarantines_incomplete_final_before_backup_restore() {
 
 #[test]
 fn restart_reconciliation_treats_cleanup_failure_as_repeatable_ready_warning() {
-    let model = single_file_model(
+    let (_scratch, model) = single_file_model(
         unique_model_name("reconcile-cleanup"),
         "https://example.invalid/model".to_owned(),
         b"model",
     );
-    let root = models_dir().expect("models root");
+    let root = model.models_dir().expect("models root");
     let final_directory = root.join(model.name());
     let stale = root.join(format!(".{}.stage-stale", model.name()));
     write_ready_generation(&final_directory, &model, b"ready", 20);
@@ -222,11 +222,12 @@ fn restart_reconciliation_treats_cleanup_failure_as_repeatable_ready_warning() {
 fn cleanup_warning_does_not_redownload_authenticated_final() {
     let body = b"ready model";
     let (url, requests) = serve_responses(vec![response("200 OK", body)], Duration::ZERO);
-    let model = single_file_model(unique_model_name("cleanup-no-redownload"), url, body);
+    let (_scratch, model) =
+        single_file_model(unique_model_name("cleanup-no-redownload"), url, body);
     test_runtime()
         .block_on(model.download())
         .expect("initial authenticated download");
-    let root = models_dir().expect("models root");
+    let root = model.models_dir().expect("models root");
     let stale = root.join(format!(".{}.stage-stale", model.name()));
     write_ready_generation(&stale, &model, b"stale", 1);
 
@@ -249,12 +250,12 @@ fn cleanup_warning_does_not_redownload_authenticated_final() {
 
 #[test]
 fn manager_construction_does_not_recreate_final_during_publication_window() {
-    let model = single_file_model(
+    let (_scratch, model) = single_file_model(
         unique_model_name("manager-publication-window"),
         "https://example.invalid/model".to_owned(),
         b"model",
     );
-    let root = models_dir().expect("models root");
+    let root = model.models_dir().expect("models root");
     fs::create_dir_all(&root).expect("create models root");
     let final_directory = root.join(model.name());
     let backup = root.join(format!(".{}.backup-window", model.name()));
@@ -274,9 +275,8 @@ fn manager_construction_does_not_recreate_final_during_publication_window() {
 
 #[test]
 fn publication_activation_failure_restores_prior_generation() {
-    let root = models_dir()
-        .expect("models root")
-        .join(unique_model_name("publish-restore"));
+    let scratch = tempfile::TempDir::new().expect("scratch models directory");
+    let root = scratch.path().join(unique_model_name("publish-restore"));
     let staging = root.join("staging");
     let final_directory = root.join("final");
     let backup = root.join("backup");
@@ -304,9 +304,8 @@ fn publication_activation_failure_restores_prior_generation() {
 
 #[test]
 fn publication_backup_failure_leaves_prior_generation_untouched() {
-    let root = models_dir()
-        .expect("models root")
-        .join(unique_model_name("publish-backup"));
+    let scratch = tempfile::TempDir::new().expect("scratch models directory");
+    let root = scratch.path().join(unique_model_name("publish-backup"));
     let staging = root.join("staging");
     let final_directory = root.join("final");
     let backup = root.join("backup");
@@ -334,9 +333,8 @@ fn publication_backup_failure_leaves_prior_generation_untouched() {
 
 #[test]
 fn publication_restore_failure_retains_backup_for_reconciliation() {
-    let root = models_dir()
-        .expect("models root")
-        .join(unique_model_name("publish-retain"));
+    let scratch = tempfile::TempDir::new().expect("scratch models directory");
+    let root = scratch.path().join(unique_model_name("publish-retain"));
     let staging = root.join("staging");
     let final_directory = root.join("final");
     let backup = root.join("backup");
@@ -367,9 +365,8 @@ fn publication_restore_failure_retains_backup_for_reconciliation() {
 
 #[test]
 fn publication_cleanup_failure_keeps_new_generation_and_recoverable_backup() {
-    let root = models_dir()
-        .expect("models root")
-        .join(unique_model_name("publish-cleanup"));
+    let scratch = tempfile::TempDir::new().expect("scratch models directory");
+    let root = scratch.path().join(unique_model_name("publish-cleanup"));
     let staging = root.join("staging");
     let final_directory = root.join("final");
     let backup = root.join("backup");

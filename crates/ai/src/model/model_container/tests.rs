@@ -16,10 +16,9 @@ use sha2::{Digest, Sha256};
 use super::{
     CONFIG_JSON, GENERATION_MANIFEST, ModelContainer, ModelDownloadStatus, OPERATION_METADATA,
     PublishFilesystem, SAFETENSORS_MODEL, SourceUrl, acquire_model_lock,
-    acquire_model_lock_with_timeout, download_entry, finish_generation, models_dir,
-    next_operation_sequence, publish_generation_with, reconcile_generations,
-    reconcile_generations_with, select_generation, sha256_hex, supervise_generation,
-    wait_for_generation,
+    acquire_model_lock_with_timeout, download_entry, finish_generation, next_operation_sequence,
+    publish_generation_with, reconcile_generations, reconcile_generations_with, select_generation,
+    sha256_hex, supervise_generation, wait_for_generation,
 };
 
 struct FailingPublishFilesystem {
@@ -166,15 +165,66 @@ fn test_runtime() -> tokio::runtime::Runtime {
         .expect("test runtime")
 }
 
-fn single_file_model(name: String, url: String, body: &[u8]) -> ModelContainer {
-    ModelContainer {
+/// Task 046 (audit B6): every test model built through this (or
+/// [`single_file_model`]/[`paired_file_model`] below) resolves under its
+/// own scratch directory (`ModelContainer::root_override`) instead of the
+/// real platform data directory - real installs were accumulating
+/// `model/test-*` directories and `.test-*.lock` files indefinitely, and
+/// worse, no test was actually isolated from whatever happened to already
+/// be on the machine running it. The returned `TempDir` must be kept
+/// alive (bound to a variable, not `_`) for as long as the model is used,
+/// including across an `.await` inside `test_runtime().block_on(...)`,
+/// since dropping it deletes the directory.
+fn model_container(
+    name: String,
+    source_url: SourceUrl,
+    expected_sha256: &'static str,
+    config_expected_sha256: Option<&'static str>,
+    max_model_bytes: u64,
+    max_config_bytes: Option<u64>,
+) -> (tempfile::TempDir, ModelContainer) {
+    let scratch = tempfile::TempDir::new().expect("scratch models directory");
+    let model = ModelContainer {
         name,
-        source_url: SourceUrl::ModelSafetensors(url),
-        expected_sha256: leaked_digest(body),
-        config_expected_sha256: None,
-        max_model_bytes: 1024,
-        max_config_bytes: None,
-    }
+        source_url,
+        expected_sha256,
+        config_expected_sha256,
+        max_model_bytes,
+        max_config_bytes,
+        root_override: Some(scratch.path().to_path_buf()),
+    };
+    (scratch, model)
+}
+
+fn single_file_model(
+    name: String,
+    url: String,
+    body: &[u8],
+) -> (tempfile::TempDir, ModelContainer) {
+    model_container(
+        name,
+        SourceUrl::ModelSafetensors(url),
+        leaked_digest(body),
+        None,
+        1024,
+        None,
+    )
+}
+
+fn paired_file_model(
+    name: String,
+    url: String,
+    model_body: &[u8],
+    config_body: &[u8],
+) -> (tempfile::TempDir, ModelContainer) {
+    model_container(
+        name,
+        SourceUrl::ModelSafetensorsConfigJson((url.clone(), url)),
+        leaked_digest(model_body),
+        Some(leaked_digest(config_body)),
+        1024,
+        Some(1024),
+    )
 }
 
 fn cleanup_model(model: &ModelContainer) {

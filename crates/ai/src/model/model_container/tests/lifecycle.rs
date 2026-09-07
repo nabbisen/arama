@@ -7,7 +7,7 @@ fn concurrent_callers_join_one_authenticated_publication() {
     let body = b"authenticated model";
     let (url, requests) =
         serve_responses(vec![response("200 OK", body)], Duration::from_millis(75));
-    let model = single_file_model(unique_model_name("joined"), url, body);
+    let (_scratch, model) = single_file_model(unique_model_name("joined"), url, body);
     let first = model.clone();
     let second = model.clone();
 
@@ -32,7 +32,7 @@ fn cancelling_starting_caller_does_not_strand_joiner_or_retry() {
     let body = b"cancellation-safe model";
     let (url, requests) =
         serve_responses(vec![response("200 OK", body)], Duration::from_millis(100));
-    let model = single_file_model(unique_model_name("cancel-safe"), url, body);
+    let (_scratch, model) = single_file_model(unique_model_name("cancel-safe"), url, body);
     let starting = model.clone();
     let joining = model.clone();
 
@@ -63,12 +63,13 @@ fn cancelling_starting_caller_does_not_strand_joiner_or_retry() {
 fn worker_panic_wakes_joiner_cleans_stage_and_allows_retry() {
     let body = b"panic recovery model";
     let (url, requests) = serve_responses(vec![response("200 OK", body)], Duration::ZERO);
-    let model = single_file_model(unique_model_name("panic-retry"), url, body);
+    let (_scratch, model) = single_file_model(unique_model_name("panic-retry"), url, body);
     let entry = download_entry(model.name(), &model.identity()).expect("registry entry");
     let (generation, owner) = select_generation(&entry);
     assert!(owner);
     let result = generation.result.subscribe();
-    let staging = models_dir()
+    let staging = model
+        .models_dir()
         .expect("models root")
         .join(model.operation_name("stage", generation.id));
     fs::create_dir_all(&staging).expect("create abandoned stage");
@@ -100,7 +101,7 @@ fn model_manager_ensure_joins_shared_manifested_generation() {
     let body = b"compatibility model";
     let (url, requests) =
         serve_responses(vec![response("200 OK", body)], Duration::from_millis(75));
-    let model = single_file_model(unique_model_name("manager-join"), url, body);
+    let (_scratch, model) = single_file_model(unique_model_name("manager-join"), url, body);
     let manager = ModelManager::new(model.clone()).expect("create compatibility manager");
     let direct = model.clone();
 
@@ -121,7 +122,7 @@ fn model_manager_ensure_joins_shared_manifested_generation() {
 
 #[test]
 fn delayed_joiner_keeps_exact_result_across_many_later_generations() {
-    let model = single_file_model(
+    let (_scratch, model) = single_file_model(
         unique_model_name("delayed-result"),
         "https://example.invalid/model".to_owned(),
         b"model",
@@ -152,13 +153,14 @@ fn delayed_joiner_keeps_exact_result_across_many_later_generations() {
 #[test]
 fn digest_mismatch_removes_only_operation_owned_staging() {
     let (url, _) = serve_responses(vec![response("200 OK", b"wrong bytes")], Duration::ZERO);
-    let model = single_file_model(unique_model_name("digest-failure"), url, b"expected");
+    let (_scratch, model) =
+        single_file_model(unique_model_name("digest-failure"), url, b"expected");
 
     let result = test_runtime().block_on(model.download());
 
     assert!(result.is_err());
     assert!(!model.model_dir().expect("model dir").exists());
-    let root = models_dir().expect("models root");
+    let root = model.models_dir().expect("models root");
     assert!(
         !fs::read_dir(root)
             .expect("models entries")
@@ -183,14 +185,7 @@ fn config_failure_preserves_preexisting_generation_files() {
         Duration::ZERO,
     );
     let name = unique_model_name("config-failure");
-    let model = ModelContainer {
-        name,
-        source_url: SourceUrl::ModelSafetensorsConfigJson((url.clone(), url)),
-        expected_sha256: leaked_digest(model_body),
-        config_expected_sha256: Some(leaked_digest(b"{}")),
-        max_model_bytes: 1024,
-        max_config_bytes: Some(1024),
-    };
+    let (_scratch, model) = paired_file_model(name, url, model_body, b"{}");
     let final_directory = model.model_dir().expect("final directory");
     fs::create_dir_all(&final_directory).expect("old directory");
     fs::write(final_directory.join(SAFETENSORS_MODEL), b"old model").expect("old model");
@@ -210,7 +205,7 @@ fn config_failure_preserves_preexisting_generation_files() {
 #[test]
 fn declared_oversize_is_rejected_before_publication() {
     let (url, _) = serve_responses(vec![response("200 OK", b"five")], Duration::ZERO);
-    let mut model = single_file_model(unique_model_name("oversize"), url, b"five");
+    let (_scratch, mut model) = single_file_model(unique_model_name("oversize"), url, b"five");
     model.max_model_bytes = 3;
 
     let result = test_runtime().block_on(model.download());
@@ -225,7 +220,7 @@ fn interrupted_body_is_not_published() {
         vec![response_with_declared_length(b"short", 20)],
         Duration::ZERO,
     );
-    let model = single_file_model(unique_model_name("interrupted"), url, b"short");
+    let (_scratch, model) = single_file_model(unique_model_name("interrupted"), url, b"short");
 
     let result = test_runtime().block_on(model.download());
 
@@ -244,14 +239,12 @@ fn model_and_config_publish_as_one_complete_generation() {
         ],
         Duration::ZERO,
     );
-    let model = ModelContainer {
-        name: unique_model_name("paired-success"),
-        source_url: SourceUrl::ModelSafetensorsConfigJson((url.clone(), url)),
-        expected_sha256: leaked_digest(model_body),
-        config_expected_sha256: Some(leaked_digest(config_body)),
-        max_model_bytes: 1024,
-        max_config_bytes: Some(1024),
-    };
+    let (_scratch, model) = paired_file_model(
+        unique_model_name("paired-success"),
+        url,
+        model_body,
+        config_body,
+    );
 
     test_runtime()
         .block_on(model.download())
@@ -283,7 +276,8 @@ fn download_with_progress_emits_more_than_one_value_for_a_multi_chunk_transfer()
         format!("HTTP/1.1 200 OK\r\nContent-Length: {body_len}\r\nConnection: close\r\n\r\n");
     let url = serve_chunked_response(&header, &chunks, Duration::from_millis(20));
     let full_body: Vec<u8> = chunks.concat();
-    let model = single_file_model(unique_model_name("progress-multi-chunk"), url, &full_body);
+    let (_scratch, model) =
+        single_file_model(unique_model_name("progress-multi-chunk"), url, &full_body);
 
     let (observed, result) = test_runtime().block_on(async {
         let (mut progress, download) = model.download_with_progress().expect("progress handle");
@@ -344,7 +338,7 @@ fn download_with_progress_reports_no_total_when_content_length_is_absent() {
         &[body],
         Duration::ZERO,
     );
-    let model = single_file_model(unique_model_name("progress-no-length"), url, body);
+    let (_scratch, model) = single_file_model(unique_model_name("progress-no-length"), url, body);
 
     let (observed, result) = test_runtime().block_on(async {
         let (mut progress, download) = model.download_with_progress().expect("progress handle");
@@ -384,7 +378,8 @@ fn joiner_observes_current_progress_not_zero() {
         format!("HTTP/1.1 200 OK\r\nContent-Length: {body_len}\r\nConnection: close\r\n\r\n");
     let url = serve_chunked_response(&header, &chunks, Duration::from_millis(40));
     let full_body: Vec<u8> = chunks.concat();
-    let model = single_file_model(unique_model_name("progress-joiner"), url, &full_body);
+    let (_scratch, model) =
+        single_file_model(unique_model_name("progress-joiner"), url, &full_body);
     let joiner_model = model.clone();
 
     let (joined_at, result) = test_runtime().block_on(async {
@@ -432,14 +427,12 @@ fn download_with_progress_does_not_reset_across_model_and_config_files() {
         ],
         Duration::ZERO,
     );
-    let model = ModelContainer {
-        name: unique_model_name("progress-two-files"),
-        source_url: SourceUrl::ModelSafetensorsConfigJson((url.clone(), url)),
-        expected_sha256: leaked_digest(model_body),
-        config_expected_sha256: Some(leaked_digest(config_body)),
-        max_model_bytes: 1024,
-        max_config_bytes: Some(1024),
-    };
+    let (_scratch, model) = paired_file_model(
+        unique_model_name("progress-two-files"),
+        url,
+        model_body,
+        config_body,
+    );
 
     let (observed, result) = test_runtime().block_on(async {
         let (mut progress, download) = model.download_with_progress().expect("progress handle");
@@ -491,7 +484,7 @@ fn failed_generation_can_be_retried_without_stale_state() {
         ],
         Duration::ZERO,
     );
-    let model = single_file_model(unique_model_name("retry"), url, body);
+    let (_scratch, model) = single_file_model(unique_model_name("retry"), url, body);
 
     assert!(test_runtime().block_on(model.download()).is_err());
     assert_eq!(model.download_status(), super::ModelDownloadStatus::Failed);

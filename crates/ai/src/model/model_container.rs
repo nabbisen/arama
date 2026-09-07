@@ -52,6 +52,16 @@ pub struct ModelContainer {
     config_expected_sha256: Option<&'static str>,
     max_model_bytes: u64,
     max_config_bytes: Option<u64>,
+    /// Task 046 (audit B6): `None` in every production `ModelContainer` -
+    /// [`new`](Self::new) never sets it, and nothing else can from outside
+    /// this module. Tests construct it directly (this module's `tests`
+    /// submodule can reach private fields) so their models resolve under
+    /// a scratch directory instead of the real platform data directory,
+    /// without ever touching `ARAMA_DATA_HOME` or any other process-global
+    /// state - the same "pure seam beside the real resolver" shape as
+    /// `arama_env::local_dir`'s own (private, `arama_env`-internal)
+    /// `local_dir_with_override`.
+    root_override: Option<PathBuf>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -78,6 +88,7 @@ impl ModelContainer {
             config_expected_sha256,
             max_model_bytes,
             max_config_bytes,
+            root_override: None,
         };
         validate_model_specification(&model)?;
         Ok(model)
@@ -116,7 +127,16 @@ impl ModelContainer {
     }
 
     fn model_dir(&self) -> Result<PathBuf> {
-        Ok(models_dir()?.join(&self.name))
+        Ok(self.models_dir()?.join(&self.name))
+    }
+
+    /// The real `models_dir()`, unless this instance carries a test-only
+    /// [`root_override`](Self::root_override) - see its own comment.
+    fn models_dir(&self) -> Result<PathBuf> {
+        match &self.root_override {
+            Some(root) => Ok(root.clone()),
+            None => models_dir(),
+        }
     }
 
     fn ready_in(&self, directory: &Path) -> bool {
