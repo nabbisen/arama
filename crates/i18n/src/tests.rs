@@ -206,6 +206,31 @@ fn task_034_plain_keys_resolve_to_real_text_in_both_locales() {
     set_locale(Locale::En);
 }
 
+/// Task 043 (audit B7): moved here from `arama-ui-layout`'s
+/// `footer::view` tests, which found this exact shape of race -
+/// `arama-ui-layout`'s test binary runs several other footer tests in
+/// parallel that assert exact English text without expecting the
+/// global locale to move under them, the same discipline
+/// `app/src/core/tests.rs` and `app/src/core/update/cache.rs` already
+/// document for their own crates. `arama-i18n`'s own suite is small
+/// and already ordered (see the comment above
+/// `translation_and_fallback`), which is what makes mutating the
+/// global locale here safe. Checks the two keys directly rather than
+/// through `footer::view`'s `files_line`/`dirs_line` formatting
+/// functions: this crate is a dependency of `arama-ui-layout`, not the
+/// other way around, and the original test's only real assertion was
+/// that these two keys resolve to real text, not the formatting
+/// wrapper around them.
+#[test]
+fn task_043_footer_keys_resolve_to_real_text_in_both_locales() {
+    for locale in Locale::all() {
+        set_locale(*locale);
+        assert_ne!(t("footer.files_count"), "footer.files_count");
+        assert_ne!(t("footer.dirs_scanned"), "footer.dirs_scanned");
+    }
+    set_locale(Locale::En);
+}
+
 #[test]
 fn t_with_substitutes_a_placeholder_that_repeats() {
     // notice.migration_failed.body uses {kind} twice - both must

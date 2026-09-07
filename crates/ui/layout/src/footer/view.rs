@@ -66,13 +66,26 @@ impl Footer {
 
 #[cfg(test)]
 mod tests {
-    use arama_i18n::{Locale, set_locale};
-
     use super::{dirs_line, files_line};
+
+    // English-only, deliberately: `arama-ui-layout`'s test binary runs
+    // these functions' tests in parallel and none of them expect
+    // `arama_i18n`'s global locale to move under them - the process
+    // default is already `Locale::En` (Task 043 / audit B7), so no
+    // `set_locale` call is needed here. A prior version of this module
+    // had a fourth test that looped over both locales and was found to
+    // race these three when the full workspace suite ran repeatedly -
+    // the same shape of race `app/src/core/tests.rs` and
+    // `app/src/core/update/cache.rs` each already document. That
+    // guarantee (`footer.files_count`/`footer.dirs_scanned` resolve to
+    // real text in both locales) now lives in `arama-i18n`'s own,
+    // much smaller and already-ordered test binary instead
+    // (`crates/i18n/src/tests.rs`'s
+    // `task_043_footer_keys_resolve_to_real_text_in_both_locales`),
+    // where mutating the global locale is safe.
 
     #[test]
     fn files_line_does_not_depend_on_dirs_count() {
-        set_locale(Locale::En);
         assert_eq!(files_line(27), "27 files");
         assert_eq!(files_line(1), "1 files");
         assert_eq!(files_line(0), "0 files");
@@ -80,7 +93,6 @@ mod tests {
 
     #[test]
     fn dirs_line_does_not_depend_on_files_count() {
-        set_locale(Locale::En);
         assert_eq!(dirs_line(1), "(1 dirs scanned)");
         assert_eq!(dirs_line(3), "(3 dirs scanned)");
         assert_eq!(dirs_line(0), "(0 dirs scanned)");
@@ -91,18 +103,7 @@ mod tests {
     /// label branched on `files_count`, not `dirs_count`.
     #[test]
     fn one_file_across_many_directories_reads_correctly() {
-        set_locale(Locale::En);
         assert_eq!(files_line(1), "1 files");
         assert_eq!(dirs_line(3), "(3 dirs scanned)");
-    }
-
-    #[test]
-    fn both_lines_resolve_to_real_text_in_both_locales() {
-        for locale in Locale::all() {
-            set_locale(*locale);
-            assert_ne!(files_line(1), "1 footer.files_count");
-            assert_ne!(dirs_line(1), "(1 footer.dirs_scanned)");
-        }
-        set_locale(Locale::En);
     }
 }
