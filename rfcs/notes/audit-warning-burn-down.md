@@ -179,6 +179,34 @@ enter through the same renderer and share that revisit condition.
 Not previously listed because the advisory postdates this ledger's last
 refresh; surfaced by the 0.39.1 release gate.
 
+**Reclassified 2026-09-12, after snora's advisory-gate correction.** Three
+things this entry had wrong or missing:
+
+1. **This is not the same class as the other three.** `bincode`, `paste` and
+   `ttf-parser` are *unmaintained-crate* advisories — nobody is maintaining the
+   code. This is **memory corruption on a runtime path**: use-after-free /
+   double-free. Listing it beside them, with the same treatment, understated it.
+   snora now names it in their threat model rather than only in scanner
+   configuration, and that distinction is the right one.
+2. **`cargo update -p lru` will not move it.** `cryoglyph 0.1.0` holds `lru`
+   below the patched **0.18.2** and has published no release that lifts it, so
+   **neither arama nor snora can clear this today.** The previous wording
+   ("burning it down requires `cryoglyph` or the `iced_wgpu` line to move") was
+   right in direction but did not say that the obvious command is useless, which
+   is the thing someone would try first.
+3. **Reachability, which narrows it considerably.** The failure needs a stored
+   key whose `Drop` panics, with unwinding enabled. arama stores no such key in
+   any cache it owns; the `lru` instances here belong to `cryoglyph`'s glyph
+   atlas. That is a real mitigation and it belongs on the record — but it is a
+   mitigation, not an absence, and `panic = "abort"` is commented out in
+   `Cargo.toml`'s release profile rather than set.
+
+**And the shared revisit condition above was already shown to be wrong.** This
+entry grouped `lru` with `rustybuzz` and `ttf-parser` as sharing one trigger.
+snora 0.42.0 retired `rustybuzz` and moved neither of the others — recorded in
+the Resolved section. Grouping advisories by how they entered predicts nothing
+about how they leave.
+
 ## Resolved by the snora 0.42.0 upgrade — 2026-09-03
 
 **RUSTSEC-2026-0206, `rustybuzz` 0.20.1 — resolved by removal, not by a patch.**
