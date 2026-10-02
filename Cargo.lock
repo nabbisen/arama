@@ -1405,7 +1405,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1588,7 +1588,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2556,7 +2556,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.58.0",
+ "windows-core 0.62.2",
 ]
 
 [[package]]
@@ -4903,7 +4903,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4960,7 +4960,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5347,9 +5347,9 @@ dependencies = [
 
 [[package]]
 name = "snora"
-version = "0.42.0"
+version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d55c90d5249201fb8d50335ce42bb164b23a26d7c5c692a91b2845270555905"
+checksum = "aea13d315998ff77e4dd7f32c13d2a54072bcb6b5b70300e38bc61759ae8f78c"
 dependencies = [
  "iced",
  "snora-core",
@@ -5360,21 +5360,21 @@ dependencies = [
 
 [[package]]
 name = "snora-core"
-version = "0.42.0"
+version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "219a72e1bcfcf84ce5b4f4946ea71926a7cf623463e6358a316f8a2ca1da81e9"
+checksum = "ce669b9d7781cbde63d7d4d74222759a480bad8d30bb5a7976ead66a9007cf95"
 
 [[package]]
 name = "snora-design"
-version = "0.42.0"
+version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c926f7dcef26f657c041b89e16f52e1ba8e1031c7eb90af30693a53bbe176928"
+checksum = "cc911efe290b47d069d4163e0e802c8b85d3b00317cdeeda9d81aade09c8e50e"
 
 [[package]]
 name = "snora-style"
-version = "0.42.0"
+version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c9e339a596b2ca4c771977a37909acb1cc053678131fbf88455e898d5030f22"
+checksum = "4336e11286c47ff51025788c86a81fcbfb6852fb6a3a11b7b4f0fd40e363862c"
 dependencies = [
  "iced",
  "snora-design",
@@ -5382,9 +5382,9 @@ dependencies = [
 
 [[package]]
 name = "snora-widgets"
-version = "0.42.0"
+version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ed7e1be48606bb651b83b57e9b4eec3ed7674b7c12581e251e5325e6b0f2a4a"
+checksum = "e6d1b79f3d359141eeb2142c980fe6f5517348f09909ed2501a7470332b8fc99"
 dependencies = [
  "iced",
  "snora-core",
@@ -5399,7 +5399,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "52d1cfed4120b4d927bf7c0f86d2087a4a7d6027c906d9f9d525a80573b9be51"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5587,7 +5587,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5944,7 +5944,7 @@ checksum = "f2f6fb2847f6742cd76af783a2a2c49e9375d0a111c7bef6f71cd9e738c72d6e"
 dependencies = [
  "memoffset",
  "tempfile",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6615,7 +6615,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
