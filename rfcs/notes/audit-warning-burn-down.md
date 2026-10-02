@@ -207,7 +207,7 @@ snora 0.42.0 retired `rustybuzz` and moved neither of the others — recorded in
 the Resolved section. Grouping advisories by how they entered predicts nothing
 about how they leave.
 
-## Resolved: the quick-xml ignores retired — 2026-09-26
+## Resolved: the quick-xml ignores retired — 2026-10-02
 
 **RUSTSEC-2026-0194 and RUSTSEC-2026-0195, `quick-xml` 0.39.4 — both
 denial-of-service, both vulnerability ignores in `.cargo/audit.toml`, not
@@ -220,7 +220,7 @@ real, CVSS-scored vulnerability ignore.
 task acted.** The ignore's own comment said to revisit "when wayland-scanner
 publishes a version that accepts quick-xml 0.41 or newer, or when the Linux
 Wayland dependency path changes." `wayland-scanner 0.31.11`, published
-2026-07-22, does exactly that — the fix sat available, unnoticed, for nearly
+2026-07-22, does exactly that — the fix sat available, unnoticed, for over
 two months.
 
 ```sh
@@ -252,7 +252,7 @@ advisory's named blocking dependency and fails if a newer compatible version
 exists) was not implemented, since it is a process/tooling decision beyond
 this task's own scope of closing the two advisories.
 
-## Resolved during a gate — 2026-09-26
+## Resolved during a gate — 2026-10-02
 
 **RUSTSEC-2026-0285, `rustls` 0.23.40 — vulnerability, not a warning.** TLS 1.3
 handshake messages incorrectly accepted across encryption level boundaries,

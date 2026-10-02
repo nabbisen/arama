@@ -4,7 +4,7 @@
 # 0.31.11 (published 2026-07-22) accepts quick-xml >=0.41.0, so
 # `cargo update -p wayland-scanner` closes both. See
 # rfcs/notes/audit-warning-burn-down.md's "Resolved" section for the
-# before/after and the full timeline (the fix was available for nearly
+# before/after and the full timeline (the fix was available for over
 # two months before anyone revisited the ignore that named the exact
 # condition that would retire it).
 #
