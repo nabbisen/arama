@@ -1,10 +1,15 @@
 # No maintainer line and no contact details anywhere in this file -
 # owner decision, 2026-10-02 (T054 §2a). The convention is widespread
-# but it is only a comment: makepkg ignores it and namcap does not ask
-# for it. The AUR is a public git repository, so a line added there is
-# public permanently, unlike a Partner Center field. url= below already
-# points at the repository, where the issue tracker is the better route
-# for a packaging problem anyway.
+# but it is only a comment: makepkg ignores it entirely.
+#
+# `namcap` DOES flag the omission - `PKGBUILD (arama) W: Missing
+# Maintainer tag`, a warning, exit 0. That warning is expected and
+# accepted, not an oversight to fix: the AUR is a public git
+# repository, so an address added there is public permanently, unlike
+# a Partner Center field. url= below already points at the repository,
+# where the issue tracker is the better route for a packaging problem
+# anyway. If you came here because namcap warned, this comment is the
+# answer - leave the tag off.
 
 pkgname=arama
 pkgver=0.42.0
