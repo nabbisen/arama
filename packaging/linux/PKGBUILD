@@ -1,0 +1,61 @@
+# No maintainer line and no contact details anywhere in this file -
+# owner decision, 2026-10-02 (T054 §2a). The convention is widespread
+# but it is only a comment: makepkg ignores it and namcap does not ask
+# for it. The AUR is a public git repository, so a line added there is
+# public permanently, unlike a Partner Center field. url= below already
+# points at the repository, where the issue tracker is the better route
+# for a packaging problem anyway.
+
+pkgname=arama
+pkgver=0.42.0
+pkgrel=1
+pkgdesc="Find similar images and videos, entirely on your own machine"
+arch=('x86_64')
+url="https://github.com/nabbisen/arama"
+license=('Apache-2.0')
+
+# Derived from the embedded sonames in the shipped release binary
+# (readelf -d reports only libgcc_s.so.1 / libm.so.6 / libc.so.6 as
+# NEEDED - everything below is opened at run time, via dlopen, not
+# linked; a missing entry here produces a package that installs and
+# then fails to start, not a build failure). Verify against `namcap`
+# on the built package rather than trusting this list unchanged - if
+# namcap disagrees, namcap is right.
+depends=('dbus' 'libglvnd' 'vulkan-icd-loader' 'wayland'
+         'libx11' 'libxcb' 'libxcursor' 'libxi'
+         'libxkbcommon' 'libxkbcommon-x11')
+# ffmpeg is optional, never a hard dependency - RFC 032 is explicit
+# that arama never obtains ffmpeg on the user's behalf, and a hard
+# depends would make this package do exactly that.
+optdepends=('ffmpeg: video similarity (arama never installs it for you - RFC 032)')
+makedepends=('cargo')
+
+# The checksum is SKIP here, and that is permanent in this repository
+# copy. pkgver tracks the workspace version, which bumps immediately
+# after each tag - so for nearly this file's whole life it names a tag
+# that does not exist yet and has no tarball to hash. The real checksum
+# is computed at publish time with `updpkgsums`, into the AUR's own
+# copy only (owner task 003 §2). This file is a template, not something
+# to run `makepkg -si` against expecting verification - do not "fix"
+# this to a real hash; it would be wrong again as soon as it was right.
+source=("$pkgname-$pkgver.tar.gz::https://github.com/nabbisen/arama/archive/refs/tags/$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cd "$pkgname-$pkgver"
+    cargo build --release --bin arama --locked
+}
+
+package() {
+    cd "$pkgname-$pkgver"
+    install -Dm755 "target/release/arama" "$pkgdir/usr/bin/arama"
+    install -Dm644 "packaging/linux/arama.desktop" "$pkgdir/usr/share/applications/arama.desktop"
+    # 150x150 is a legal if unusual hicolor size - the largest icon
+    # this repository has (packaging/windows/Assets/Square150x150Logo.png).
+    # There is no 256x256 or scalable source yet; do not upscale this
+    # one and call it something it is not.
+    install -Dm644 "packaging/windows/Assets/Square150x150Logo.png" \
+        "$pkgdir/usr/share/icons/hicolor/150x150/apps/arama.png"
+    install -Dm644 "LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm644 "NOTICE" "$pkgdir/usr/share/licenses/$pkgname/NOTICE"
+}

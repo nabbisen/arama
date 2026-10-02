@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=arama
+Comment=Find similar images and videos — entirely on your machine
+Exec=arama
+Icon=arama
+Categories=Graphics;Photography;Utility;
+Keywords=similar;duplicate;image;video;search;
+StartupNotify=true
