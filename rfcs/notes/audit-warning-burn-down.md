@@ -207,6 +207,51 @@ snora 0.42.0 retired `rustybuzz` and moved neither of the others — recorded in
 the Resolved section. Grouping advisories by how they entered predicts nothing
 about how they leave.
 
+## Resolved: the quick-xml ignores retired — 2026-09-26
+
+**RUSTSEC-2026-0194 and RUSTSEC-2026-0195, `quick-xml` 0.39.4 — both
+denial-of-service, both vulnerability ignores in `.cargo/audit.toml`, not
+warnings.** Reached only through `wayland-scanner`, a build-time proc-macro
+parsing protocol XML that ships with the build — neither was reachable at run
+time by a user of arama, which is why this was low urgency despite being a
+real, CVSS-scored vulnerability ignore.
+
+**The condition that retires this ignore was met on 2026-07-22, not when this
+task acted.** The ignore's own comment said to revisit "when wayland-scanner
+publishes a version that accepts quick-xml 0.41 or newer, or when the Linux
+Wayland dependency path changes." `wayland-scanner 0.31.11`, published
+2026-07-22, does exactly that — the fix sat available, unnoticed, for nearly
+two months.
+
+```sh
+cargo update -p wayland-scanner
+```
+
+moves exactly two packages, identical package set otherwise:
+
+| Package | before | after |
+|---|---|---|
+| `wayland-scanner` | 0.31.10 | **0.31.11** |
+| `quick-xml` | 0.39.4 | **0.41.0** — above the fixed line |
+
+Both `RUSTSEC-2026-0194` and `RUSTSEC-2026-0195` removed from
+`.cargo/audit.toml`'s `ignore` list in the same change, and the comment
+explaining the now-gone constraint rewritten rather than left describing a
+constraint that no longer exists. `cargo audit --deny warnings` passes clean
+with both gone — the gate is stricter afterward, not looser: either ID
+returning would now fail CI instead of being silently suppressed.
+
+**This is the second revisit condition that passed unobserved** — the first
+was `rustybuzz`, retired by snora 0.42.0's own dependency reduction and only
+noticed while preparing Task 044 (recorded below). Whether a ledger entry's
+own stated revisit condition deserves an actual automated check, rather than
+depending on a future task happening to re-read the comment, is recorded as an
+open question for the architect/owner in T049's own review package rather
+than decided here — a plausible shape (a CI step that re-resolves each ignored
+advisory's named blocking dependency and fails if a newer compatible version
+exists) was not implemented, since it is a process/tooling decision beyond
+this task's own scope of closing the two advisories.
+
 ## Resolved during a gate — 2026-09-26
 
 **RUSTSEC-2026-0285, `rustls` 0.23.40 — vulnerability, not a warning.** TLS 1.3

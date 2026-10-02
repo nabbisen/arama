@@ -1,12 +1,12 @@
 [advisories]
-# quick-xml is pulled only through wayland-scanner 0.31.10, a proc-macro
-# code generator used by the Wayland stack under iced/rfd. The fixed
-# quick-xml line is >=0.41.0, but wayland-scanner 0.31.10 requires
-# quick-xml ^0.39 and is currently the latest compatible release.
-# Revisit when wayland-scanner publishes a version that accepts quick-xml
-# 0.41 or newer, or when the Linux Wayland dependency path changes. This
-# pair is an actual vulnerability ignore (denial-of-service, CVSS-scored),
-# unlike the four below.
+# Task 049: the two quick-xml advisories (RUSTSEC-2026-0194/0195) this
+# comment used to explain are resolved, not ignored - wayland-scanner
+# 0.31.11 (published 2026-07-22) accepts quick-xml >=0.41.0, so
+# `cargo update -p wayland-scanner` closes both. See
+# rfcs/notes/audit-warning-burn-down.md's "Resolved" section for the
+# before/after and the full timeline (the fix was available for nearly
+# two months before anyone revisited the ignore that named the exact
+# condition that would retire it).
 #
 # Task 044: the four IDs below are `cargo audit` *warnings*
 # (unmaintained/unsound), each tracked deliberately with its own
@@ -22,8 +22,6 @@
 # about an ignore that no longer matches anything) until its ledger entry
 # is moved to "Resolved" and this entry is removed in the same change.
 ignore = [
-    "RUSTSEC-2026-0194",
-    "RUSTSEC-2026-0195",
     "RUSTSEC-2025-0141", # bincode 2.0.1, unmaintained - localcache <- arama-cache.
     "RUSTSEC-2024-0436", # paste 1.0.15, unmaintained - candle/gemm, tokenizers, Apple rendering.
     "RUSTSEC-2026-0192", # ttf-parser 0.25.1, unmaintained - fontdb, cosmic-text, ab_glyph.
