@@ -207,6 +207,63 @@ snora 0.42.0 retired `rustybuzz` and moved neither of the others — recorded in
 the Resolved section. Grouping advisories by how they entered predicts nothing
 about how they leave.
 
+## Resolved during a gate — 2026-09-26
+
+**RUSTSEC-2026-0285, `rustls` 0.23.40 — vulnerability, not a warning.** TLS 1.3
+handshake messages incorrectly accepted across encryption level boundaries,
+severity 5.3 (medium).
+
+Unlike every entry in **Remaining Warnings** above, this one sits on **arama's
+only network path** — model downloads over HTTPS:
+
+```
+rustls 0.23.40 <- hyper-rustls 0.27.9 <- reqwest 0.13.4 <- arama-ai
+```
+
+**The obvious fix stops short.** `cargo update -p rustls` (with or without also
+listing `aws-lc-rs`/`aws-lc-sys` on the same command) locks only as far as
+0.23.43 and reports `(available: v0.23.45)` without taking it — still
+vulnerable, and a green local build at 0.23.43 is not evidence of anything here.
+**What closes it:**
+
+```sh
+cargo update -p rustls --precise 0.23.45
+```
+
+which moves four packages, the same package set before and after (705 crate
+dependencies, unchanged):
+
+| Package | before | after |
+|---|---|---|
+| `rustls` | 0.23.40 | **0.23.45** |
+| `rustls-webpki` | 0.103.13 | 0.103.15 |
+| `aws-lc-rs` | 1.17.0 | 1.18.1 |
+| `aws-lc-sys` | 0.41.0 | 0.45.0 |
+
+`aws-lc-sys` 0.45.0 gains one new dependency edge, to `pkg-config` — already
+present elsewhere in the graph, not a new package entering it.
+
+**Why plain `-p rustls` stops at 0.23.43 was not established.** Ruled out:
+MSRV (all four moved packages declare `rust_version` 1.71, below arama's 1.91,
+both before and after); the version being yanked (0.23.44 and 0.23.45 both
+resolve cleanly under `--precise`); a third dependent constraining the graph
+(`cargo tree -i aws-lc-rs`/`aws-lc-sys` shows `rustls` is their only path into
+the tree); and avoiding a cascade into `aws-lc-rs`/`aws-lc-sys` specifically
+(requesting all three together, still without `--precise`, still stops at
+0.23.43, with `aws-lc-rs`/`aws-lc-sys` moving to 1.18.1/0.45.0 regardless).
+The mechanism behind cargo's `update -p`-scoped version selection here remains
+unexplained; recorded as such rather than guessed at.
+
+`cargo audit --deny warnings` passes after the fix.
+
+**The risk this carried**: `aws-lc-sys` compiles C (cmake/nasm on Windows) — a
+four-minor jump there is exactly the class of lockfile change that broke the
+Windows build for six commits in T048 (`rfcs/notes/windows-crate-reresolution.md`)
+while every Linux gate stayed green. The Windows job in `Native FFmpeg Smoke`
+was treated as mandatory evidence for this reason, not optional; a local
+`cargo check --target x86_64-pc-windows-gnu` passing is reported only as a
+supplementary signal — it does not exercise a native C build under MSVC.
+
 ## Resolved by the snora 0.42.0 upgrade — 2026-09-03
 
 **RUSTSEC-2026-0206, `rustybuzz` 0.20.1 — resolved by removal, not by a patch.**
