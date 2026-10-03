@@ -55,12 +55,17 @@ package() {
     cd "$pkgname-$pkgver"
     install -Dm755 "target/release/arama" "$pkgdir/usr/bin/arama"
     install -Dm644 "packaging/linux/arama.desktop" "$pkgdir/usr/share/applications/arama.desktop"
-    # 150x150 is a legal if unusual hicolor size - the largest icon
-    # this repository has (packaging/windows/Assets/Square150x150Logo.png).
-    # There is no 256x256 or scalable source yet; do not upscale this
-    # one and call it something it is not.
-    install -Dm644 "packaging/windows/Assets/Square150x150Logo.png" \
-        "$pkgdir/usr/share/icons/hicolor/150x150/apps/arama.png"
+    # Derived from packaging/icons/arama-300.png (the owner's 300x300
+    # source, committed alongside these) by Lanczos downscale - T056.
+    # Regenerate with:
+    #   for s in 256 128 64 48 32; do
+    #     magick packaging/icons/arama-300.png -filter Lanczos \
+    #       -resize ${s}x${s} packaging/icons/hicolor/${s}x${s}/arama.png
+    #   done
+    for _size in 256 128 64 48 32; do
+        install -Dm644 "packaging/icons/hicolor/${_size}x${_size}/arama.png" \
+            "$pkgdir/usr/share/icons/hicolor/${_size}x${_size}/apps/arama.png"
+    done
     install -Dm644 "LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
     install -Dm644 "NOTICE" "$pkgdir/usr/share/licenses/$pkgname/NOTICE"
 }
