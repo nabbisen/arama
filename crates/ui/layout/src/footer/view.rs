@@ -1,8 +1,8 @@
 use arama_i18n::t;
 use iced::{
     Element,
-    Length::{Fill, FillPortion},
-    widget::{container, row, space, text},
+    Length::{Fill, Shrink},
+    widget::{container, row, space, text, text::Wrapping},
 };
 
 use super::{Footer, message::Message};
@@ -19,17 +19,39 @@ impl Footer {
     pub fn view(&self) -> Element<'_, Message> {
         container(
             row![
+                // T055: `Fill` rather than a `FillPortion` tied to the
+                // status group's own portion. The path is already
+                // elided-by-nature (the user can see it in full elsewhere),
+                // so it is the element that absorbs whatever width the
+                // status group doesn't need, in either direction - wide
+                // when status is short (English), narrow when status is
+                // long (Japanese). `Wrapping::None` + `clip(true)` make
+                // that narrowing a horizontal truncation instead of a wrap
+                // that would grow into a second line and hit the same
+                // fixed-height clip this task exists to fix.
                 if let Some(x) = &self.image_cell_path {
-                    container(text(
-                        x.canonicalize()
-                            .unwrap_or_default()
-                            .to_string_lossy()
-                            .to_string(),
-                    ))
+                    container(
+                        text(
+                            x.canonicalize()
+                                .unwrap_or_default()
+                                .to_string_lossy()
+                                .to_string(),
+                        )
+                        .wrapping(Wrapping::None),
+                    )
                 } else {
                     container(space())
                 }
-                .align_left(FillPortion(2)),
+                .align_left(Fill)
+                .clip(true),
+                // `Shrink`, not a fixed portion: this group's width comes
+                // from what the slider + counts + F6 hint actually need in
+                // the active locale, instead of an arbitrary one third of
+                // the footer that Japanese doesn't fit in (T055 §2). The
+                // slider itself is given an explicit width for this to
+                // resolve (see thumbnail_size_slider/view.rs) - a `Fill`
+                // child under a `Shrink` ancestor has no content size to
+                // contribute and collapses instead.
                 container(
                     row![
                         self.thumbnail_size_slider
@@ -46,20 +68,22 @@ impl Footer {
                             // already one of the three zones this hint
                             // explains how to reach, so hiding it after one
                             // use would remove the explanation from the
-                            // exact place someone re-orients from.
+                            // exact place someone re-orients from. T055
+                            // leaves this element untouched - the fix is the
+                            // footer's width allocation, not this hint.
                             text(t("footer.f6_hint")).style(text::secondary),
                         ]
                         .spacing(10)
                     ]
                     .spacing(30)
                 )
-                .align_right(FillPortion(1)),
+                .align_right(Shrink),
             ]
             .spacing(10),
         )
         .padding([10, 20])
         .align_right(Fill)
-        .height(40)
+        .height(Shrink)
         .into()
     }
 }
