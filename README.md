@@ -1,3 +1,5 @@
+<img src="https://raw.githubusercontent.com/nabbisen/arama/main/packaging/icons/hicolor/128x128/arama.png" alt="" width="128" height="128">
+
 # arama
 
 [![License](https://img.shields.io/github/license/nabbisen/arama)](LICENSE)
