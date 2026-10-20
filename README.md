@@ -129,3 +129,8 @@ structured for [mdBook](https://rust-lang.github.io/mdBook/).
 |---|---|
 | New users | [Installation](./docs/src/users/installation.md) · [First Run](./docs/src/users/first-run.md) · [Using arama](./docs/src/users/using-arama.md) |
 | Contributors | [Architecture](./docs/src/dev/architecture.md) · [Workspace](./docs/src/dev/workspace.md) · [Workflow](./docs/src/dev/workflow.md) |
+
+**Privacy:** arama collects nothing and sends nothing about you. The only
+network connection it makes is the one-time AI model download described in
+Quick Start. Full policy, in English and Japanese:
+[`PRIVACY.md`](./PRIVACY.md).
