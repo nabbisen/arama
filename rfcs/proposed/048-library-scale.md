@@ -18,6 +18,40 @@ Four findings sit behind it. **All four are defects or quality problems, not
 product direction** — that distinction is load-bearing and is the reason this
 RFC exists separately from ROADMAP theme C (§5).
 
+## 0. Phasing — added 2026-10-21
+
+> Added under the portfolio review of 2026-10-21, with the owner's agreement.
+> The RFC's analysis is unchanged; this section says what ships when.
+
+The four findings are one diagnosis but not one piece of work. **§2 and §4 are
+small, self-contained, and are what a user notices**; §1 is the large structural
+change. Holding the first behind the second would mean a user keeps seeing files
+in meaningless order for however long virtualisation takes.
+
+**Phase 1 — clarity and cost, independent of §1.**
+
+- **§2 — files render in a stable, predictable order.** One type change.
+- **§4 — no `view()` performs filesystem I/O.** Four named sites, each hoisted
+  into state.
+
+Neither depends on §1, neither changes the rendering model, and both can be
+verified without a scale measurement.
+
+**Phase 2 — the ceiling itself.**
+
+- **§1 — the gallery's cost bounded by what is visible.** This is the
+  structural work, and §8's sizing question becomes answerable only once it
+  lands.
+
+**Why this order and not the reverse.** §1 is the more important finding — a
+design limit *"turned into a setting and then into advice"* is the thing the
+owner's "finally" principle exists to prevent, and it should not be dropped.
+But §2 is a defect a user meets on first launch, and it costs one type. Shipping
+the cheap honest fix first does not reduce the case for §1; it removes a
+confusion while §1 is built.
+
+**§3 is no longer here** — moved to RFC 047 §3.3, see below.
+
 ## 1. The gallery builds a widget per file, per frame (C2)
 
 `crates/ui/main/src/core/views/gallery/view.rs` iterates the complete file map
@@ -54,32 +88,20 @@ than a feature.
 The fix is one type. Anything beyond it — user-selectable sort by name, date,
 size — is product direction and out of scope here (§5).
 
-## 3. Similar pairs truncate silently, and asymmetrically (A8)
+## 3. Similar pairs truncate silently — moved to RFC 047
 
-`similar_pairs_dialog.rs:33`:
-
-```rust
-const MAX_IMAGE_SIMILAR_PAIRS: usize = 50;
-```
-
-Images are capped at 50. **Videos have no cap at all.** Nobody chose that
-asymmetry; it is what happens when a bound is added on one path.
-
-Two problems, and the second is the one that matters:
-
-1. **The cap is invisible.** A user with 300 similar pairs sees 50 and is told
-   nothing. There is no "showing 50 of 300", no indication that a threshold
-   exists.
-2. **It is indistinguishable from completeness.** RFC 036 built absence states
-   precisely so "nothing found" could never be confused with "something went
-   wrong". A silent truncation reintroduces the same class of ambiguity one
-   level up: *"these are the similar pairs"* and *"these are the first 50 of the
-   similar pairs"* render identically.
-
-**A single explicit cap applied to both media types, with retained-versus-total
-counts rendered**, replaces a silent truncation with an honest one. That is the
-whole change; raising or removing the cap is a separate question that depends on
-§1.
+> **Moved to [RFC 047](./047-indexing-cancellation.md) §3.3 on 2026-10-21**,
+> with the owner's agreement, under the portfolio review of that date.
+>
+> The analysis has not changed and is not repeated here. What changed is where
+> it lives. This section specified the *bound and the honest counts*; RFC 047
+> specified *cancellation and progress* for the same scan. They are two halves
+> of one user-visible behaviour, and splitting them across RFCs meant 047 could
+> ship a pair scan that stops cleanly and still misreports how much it found.
+>
+> `MAX_IMAGE_SIMILAR_PAIRS = 50` with no video equivalent, the invisibility of
+> the cap, and the RFC 036 argument that silent truncation is indistinguishable
+> from completeness are all now in RFC 047 §3.3 and its acceptance list.
 
 ## 4. `view()` does filesystem I/O, per frame (C3)
 
@@ -135,11 +157,18 @@ feature. Truncating silently is a defect. Multi-select is a feature.
 
 ## 7. Acceptance
 
+**Phase 1:**
+
+- Files render in a stable, predictable order across runs.
+- No `view()` performs filesystem I/O.
+
+**Phase 2:**
+
 - The gallery's cost is bounded by what is visible, not by directory size,
   demonstrated with a measurement at two library sizes rather than an assertion.
-- Files render in a stable, predictable order across runs.
-- One cap, both media types, with retained-versus-total counts visible.
-- No `view()` performs filesystem I/O.
+
+**No longer this RFC's** — the single cap across both media types, with
+retained-versus-total counts visible, is now RFC 047 §3.3's acceptance item.
 
 ## 8. Open question
 

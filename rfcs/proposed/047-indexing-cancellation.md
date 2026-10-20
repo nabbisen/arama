@@ -97,12 +97,37 @@ future at an await point cancels *the future*, but rayon work already dispatched
 inside `upsert_all` continues. **The flag is what stops the work; the yield is
 what lets the flag be observed.** Both are required.
 
-**3.3 A bound and a progress signal for the pair scan.** The audit notes images
-are already silently capped at 50 pairs while videos are unbounded (A8) — an
-asymmetry nobody chose. A single explicit cap, with retained-versus-total counts
-rendered in the dialog, replaces a silent truncation with an honest one. That
-piece is [RFC 048](./048-library-scale.md)'s; what belongs here is that the scan
-must be interruptible and must report that it is running.
+**3.3 A bound, honest counts, and a progress signal for the pair scan.**
+
+> **Moved here from [RFC 048](./048-library-scale.md) §3 on 2026-10-21**, with
+> the owner's agreement. The two were halves of one user-visible behaviour: 047
+> made the scan stoppable, 048 made its result honest. Shipping 047 alone would
+> have produced a pair scan that stops cleanly and still misreports how much it
+> found — a fix that satisfies the engineering half of the problem and leaves
+> the user-facing half, which is the opposite of what the owner's second
+> principle asks for. RFC 048 §3 now points here.
+
+Images are silently capped at 50 (`similar_pairs_dialog.rs:33`,
+`MAX_IMAGE_SIMILAR_PAIRS`); **videos have no cap at all** — verified again
+2026-10-21, there is no video equivalent anywhere in the tree. Nobody chose that
+asymmetry; it is what happens when a bound is added on one path.
+
+Two problems, and the second is the one that matters:
+
+1. **The cap is invisible.** A user with 300 similar pairs sees 50 and is told
+   nothing.
+2. **It is indistinguishable from completeness.** [RFC 036](../done/036-similarity-dialog-absence-states.md)
+   built absence states precisely so "nothing found" could never be read as
+   "something went wrong". A silent truncation reintroduces that ambiguity one
+   level up: *"these are the similar pairs"* and *"these are the first 50 of the
+   similar pairs"* render identically.
+
+**A single explicit cap applied to both media types, with retained-versus-total
+counts rendered in the dialog**, replaces a silent truncation with an honest
+one. Raising or removing the cap is a separate question that depends on
+RFC 048 §1 and is not answered here.
+
+The scan must also be **interruptible** and must **report that it is running**.
 
 **3.4 Gate the pairs button on completion, not on file count.** `embedding_cached`
 should mean what its name says.
@@ -136,13 +161,52 @@ work rather than after it.
 - Switching directories mid-index cancels both phases.
 - The three blocking bodies run under `spawn_blocking`.
 - The pair scan reports progress and can be cancelled.
+- **The pair cap applies to images and videos alike, and the dialog renders
+  retained-versus-total counts** — a user can tell truncation from completeness
+  (moved from RFC 048 §3).
 - The pairs button reflects embedding completion.
 - No document describes an interruption the code does not implement.
 
-## 7. Open question
+## 7. Decided — cancellation is cooperative and partial
 
-**Should cancellation be cooperative-and-partial, or transactional?** Stopping
-mid-index leaves a cache populated for some files and not others. That is
-already true today for the embedding phase, and it is probably correct — a
-partial index is useful and resuming is cheap — but it has never been stated as
-a decision, and RFC 015's cache lifecycle does not cover it.
+**Was an open question; decided 2026-10-21** by the architect, under the owner's
+standing principle that the end-state design should be chosen deliberately
+rather than inherited from whatever the implementation happens to do. Owner may
+overrule.
+
+**Stopping mid-index leaves the cache populated for some files and not others,
+and that is correct.** Reasons, in order of weight:
+
+1. **It is what a user pressing Stop is asking for.** Stop means *stop doing
+   more work*. Discarding work already finished is closer to Undo, which nobody
+   asked for and which would make Stop expensive in proportion to how long the
+   user waited before pressing it.
+2. **Resuming is cheap and already works.** Re-running indexes only what is
+   missing, so a partial index is a useful intermediate state rather than a
+   corrupt one.
+3. **"Transactional" could not be told truthfully here.** The cache spans two
+   stores — SQLite rows and thumbnail files on disk. A rollback would have to be
+   atomic across both to deserve the name. That is real machinery, and its
+   failure mode is a half-rolled-back cache: strictly worse than a half-built
+   one, and much harder to reason about.
+4. **It preserves today's embedding-phase behaviour** rather than changing it.
+   Transactional would be the larger change, not the smaller.
+
+### 7.1 The condition this decision carries
+
+Partial indexing is only acceptable **if the user can tell**. Under the owner's
+second principle — users must not be confused or misled — a partially-indexed
+directory that presents itself as fully indexed is a misdescription defect, and
+this decision would create one if left bare.
+
+**So it is binding on §3.4 rather than separate from it.** `embedding_cached`
+must mean *embedding completed*, and a directory stopped midway must not satisfy
+it. The pairs button staying greyed after a Stop is the correct, and visible,
+consequence of a partial index — not a bug to work around.
+
+**Added to acceptance (§6):** after a Stop, the application's own state
+distinguishes *partially indexed* from *fully indexed*, and the UI does not
+present the first as the second.
+
+RFC 015's cache lifecycle does not cover cancellation; this section is where
+that gap is now answered.

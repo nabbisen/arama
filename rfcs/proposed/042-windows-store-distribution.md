@@ -240,6 +240,17 @@ Today it is automatic with no control. Option A makes a setting necessary;
 Phase 0 succeeding makes it optional but still probably right — "use GPU when
 available" is a reasonable thing for a user to want to turn off.
 
+> **Split 2026-10-21.** This question bundled two things: whether the user can
+> *see* which device is running, and whether they can *choose* it. The first is
+> a defect that exists today on every platform and in every build, and it was
+> waiting here behind a packaging decision blocked on an unanswered upstream
+> `candle` PR. It is now
+> [RFC 050](./050-compute-device-visibility.md).
+>
+> **The control question stays here.** It is also easier to answer once the
+> information exists — a setting to override a choice the user cannot currently
+> observe would be a control over an invisible state.
+
 ### 3. What capability does the manifest declare?
 
 > **Corrected 2026-08-17 (Task 024).** The paragraph below asserted that

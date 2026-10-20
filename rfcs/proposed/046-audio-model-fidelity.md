@@ -175,8 +175,28 @@ lead to different models and different costs. **This should be answered before
 
 ## 3. The decision — owner-reserved
 
-**This is the part I am not deciding.** Three routes, with what each actually
-costs.
+> **Narrowed 2026-10-21 by the owner's standing design principle.** The owner
+> asked that every RFC be judged against *"finally clean, safe and secure, and
+> robust and sophisticated design"*, and accepted the portfolio review's
+> recommendation that **Route C is excluded by it**.
+>
+> Route C changes no behaviour. It leaves arama downloading 359 MB of which
+> **95.1 % is never read**, and makes the documentation accurate *about* that
+> state rather than ending it. The word carrying the weight in the principle is
+> **"finally"** — the end-state design, not the expedient patch — and a design
+> that ships twenty times the weights it uses does not reach it.
+>
+> **Route C is retained below as recorded analysis, not as an option.** It is
+> the honest description of today, and it remains the fallback if both A and B
+> are found infeasible — but choosing it deliberately would need the owner to
+> set the principle aside, and that should be an explicit act rather than a
+> default. See
+> [`design-philosophy-review-2026-10-21`](../notes/design-philosophy-review-2026-10-21.md).
+>
+> **The live decision is A or B.**
+
+**The route choice is the part I am not deciding.** Three routes below, with
+what each actually costs — two of them live, per the note above.
 
 ### Route A — implement the transformer encoder
 
