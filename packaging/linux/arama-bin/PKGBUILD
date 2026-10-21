@@ -62,13 +62,20 @@ optdepends=('ffmpeg: video similarity (arama never installs it for you - RFC 032
 # rejected: a second source= entry for a
 # "$pkgname-$pkgver.tar.gz"-style git tag tarball, matching how
 # packaging/linux/PKGBUILD fetches its own source. Checked directly
-# against the real 0.42.0 release and found that tag's source archive
-# predates this repository's packaging/ directory entirely - it
-# contains neither file. Pointing at it would make this package
-# untestable today (the full makepkg -si && arama run is this task's
-# own central check, T060 §3) and would still be fragile at a future
-# real release unless the tag cutting that release happens to include
-# both the asset and this exact PKGBUILD. Vendoring makes the package
+# against the repository at the 0.42.0 tag - `git ls-tree -r
+# --name-only 0.42.0 -- packaging/` - rather than grepping a release
+# tarball listing (review 155 caught that the first attempt at this
+# check used the wrong archive with a prefix from a different one, and
+# would silently keep "passing" at a future tag that does contain both
+# files, for reasons unrelated to the question). The tag has
+# packaging/windows/ only; packaging/linux/arama.desktop (T054) and
+# packaging/icons/ (T056) both arrived after it. Pointing at it would
+# make this package untestable today (the full makepkg -si && arama run
+# is this task's own central check, T060 §3) and would still be fragile
+# at a future real release unless the tag cutting that release happens
+# to include both the asset and this exact PKGBUILD - re-run the
+# ls-tree check above against the release's actual tag before assuming
+# that risk has passed. Vendoring makes the package
 # self-contained and buildable against any already-published binary
 # asset, at the cost of needing a manual re-sync if the desktop entry
 # or icon set ever change - regenerate with:
