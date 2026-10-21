@@ -1,6 +1,8 @@
 # RFC 050: Which device is actually running the model, and saying so
 
-**Status:** Proposed
+**Status:** **Accepted by the project owner, 2026-10-21** (*"All of them are
+authorized."*). No implementing task has been written yet — acceptance of the
+RFC is not authorization of work, per the project's standing rule.
 **Raised by:** the portfolio review of 2026-10-21
 ([`design-philosophy-review-2026-10-21`](../notes/design-philosophy-review-2026-10-21.md)),
 lifted out of [RFC 042](./042-windows-store-distribution.md)'s design question 2
