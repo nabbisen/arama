@@ -207,6 +207,49 @@ snora 0.42.0 retired `rustybuzz` and moved neither of the others — recorded in
 the Resolved section. Grouping advisories by how they entered predicts nothing
 about how they leave.
 
+## Resolved: the rustls / rustls-webpki / webpki-root-certs advisories — 2026-10-21
+
+Six advisories across three packages, all on **arama's only network path** —
+the same path the RUSTSEC-2026-0285 fix below sits on:
+
+```
+rustls / rustls-webpki / webpki-root-certs <- reqwest 0.13.4 <- arama-ai
+```
+
+**RUSTSEC-2026-0382, `rustls-webpki` 0.103.15 — the most serious of the six.**
+Certificate verification may accept distrusted intermediates.
+
+**RUSTSEC-2026-0383, `webpki-root-certs` 1.0.8 — same class**, in the bundled
+root set.
+
+**RUSTSEC-2026-0346, 0347, 0348, 0349, `rustls` 0.23.45 — medium-to-low.** A
+`Debug` impl exposing TLS secrets, an ECH rejection leak, a brotli
+decompression allocation bound, and a downgrade.
+
+**`--precise` required, the same mechanism the entry below found.** A plain
+`cargo update -p rustls` stops short of the fixed version and reports
+`(available: ...)` without taking it — a green local build at the intermediate
+version proves nothing. What closes it:
+
+```sh
+cargo update -p rustls --precise 0.23.46
+cargo update -p rustls-webpki --precise 0.103.16
+cargo update -p webpki-root-certs --precise 1.0.10
+```
+
+which moves exactly three packages, confirmed by diffing `Cargo.lock`'s
+`[[package]]` blocks rather than eyeballing:
+
+| Package | before | after |
+|---|---|---|
+| `rustls` | 0.23.45 | **0.23.46** |
+| `rustls-webpki` | 0.103.15 | **0.103.16** |
+| `webpki-root-certs` | 1.0.8 | **1.0.10** |
+
+`cargo audit` reports **11 vulnerabilities remaining** after this change, not
+0 — the `zip`×6 and `quinn-proto`×5 groups, triaged separately (Task 059).
+This entry closes only the six advisories named above.
+
 ## Resolved: the quick-xml ignores retired — 2026-10-02
 
 **RUSTSEC-2026-0194 and RUSTSEC-2026-0195, `quick-xml` 0.39.4 — both
