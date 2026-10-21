@@ -15,7 +15,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 047 | [Indexing that can be stopped, and async that actually awaits](./proposed/047-indexing-cancellation.md) | High — external audit 2026-09-01; absorbed RFC 048 §3 and settled its own §7 on 2026-10-21 |
 | 048 | [Library scale — rendering cost and ordering](./proposed/048-library-scale.md) | High — external audit 2026-09-01; phased 2026-10-21, §3 moved to RFC 047 |
 | 050 | [Which device is actually running the model, and saying so](./proposed/050-compute-device-visibility.md) | Medium — portfolio review 2026-10-21; lifted out of RFC 042 |
-| 051 | [Flatpak distribution, and what a sandbox changes](./proposed/051-flatpak-distribution.md) | Medium — owner request 2026-10-21; sequenced after the AUR channel goes live |
+| 051 | [Flatpak distribution, and what a sandbox changes](./proposed/051-flatpak-distribution.md) | Medium — **accepted 2026-10-22**; sequenced after the AUR channel goes live. §2.2's inaccessible-root fix is platform-independent and not gated by that |
 
 ## Implemented
 

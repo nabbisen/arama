@@ -1,6 +1,9 @@
 # RFC 051: Flatpak distribution, and what a sandbox changes
 
-**Status:** Proposed
+**Status:** **Accepted by the project owner, 2026-10-22** (*"Accepted."*).
+**No implementing task has been written**, and none should be yet — §5 sequences
+this after the AUR channel serves a real package. Acceptance of the RFC is not
+authorization of work, per the project's standing rule.
 **Raised by:** the owner, 2026-10-21 — *"I got interested in publishment on
 FlatPak via GitHub. It will bring the product to a broader range of Linux
 users."*
