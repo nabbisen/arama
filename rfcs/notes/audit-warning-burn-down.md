@@ -207,6 +207,124 @@ snora 0.42.0 retired `rustybuzz` and moved neither of the others — recorded in
 the Resolved section. Grouping advisories by how they entered predicts nothing
 about how they leave.
 
+### `quinn-proto` 0.11.15 — added 2026-10-21
+
+RUSTSEC-2026-0338, 0339, 0340, 0341, 0342. Two (0340, 0341) are 7.5 high; the
+other three are unscored. All five are QUIC protocol-level DoS/panic issues —
+a malicious peer panicking `quinn-proto` with crafted STREAM/DATAGRAM frames,
+or bypassing its memory-exhaustion guards.
+
+**Not reachable at all, not merely mitigated.** `quinn`/`quinn-proto` enter
+`Cargo.lock` because `reqwest` 0.13.4 declares them as the optional
+dependencies of its own `http3` feature:
+
+```toml
+# reqwest 0.13.4's own Cargo.toml
+http3 = ["rustls", "dep:h3", "dep:h3-quinn", "dep:quinn", "tokio/macros"]
+```
+
+arama's workspace `Cargo.toml` enables only `["blocking", "multipart",
+"rustls", "stream"]` for `reqwest` — `http3` is not among them, and none of
+those four imply it. Cargo still resolves `quinn`/`quinn-proto` into the lock
+as a dormant optional-dependency entry because lock resolution covers the
+full feature graph, not only the active feature set; it does not mean the
+code is compiled or reachable.
+
+Confirmed independently, not merely asserted from the manifest reading:
+
+```sh
+$ cargo tree -i quinn-proto
+warning: nothing to print.
+$ cargo tree -i quinn-proto --target all -e normal,build,dev
+warning: nothing to print.
+```
+
+No edge, under any target, under any edge kind. **Revisit condition:**
+`reqwest`'s `http3` feature actually appearing in arama's or arama-ai's
+enabled feature set in `Cargo.toml` — a condition anyone can check by reading
+that file, not "when upstream fixes it."
+
+### `zip` 7.2.0 / 8.6.0 — added 2026-10-21
+
+RUSTSEC-2026-0367 (SUID/SGID preservation during extraction), 0368 (symlink
+escape outside the destination directory), 0369 (9.1 critical — applies Unix
+permissions through symlinks without confining the target). Each matches
+**both** `zip` versions in the lock, so three IDs cover six `cargo audit`
+entries.
+
+**Two different packages pull two different `zip` versions, and the
+duplicate is ours:**
+
+```
+zip 7.2.0 <- candle-core 0.10.2 <- pt2safetensors 0.1.3 <- arama-ai
+zip 8.6.0 <- candle-core 0.11.0 <- arama-ai
+```
+
+`pt2safetensors` 0.1.3 requires `candle-core ^0.10`; it is the only published
+version (checked against the crates.io index, 2026-10-21) and cannot be
+updated to track candle 0.11 — no newer release exists. **Not collapsed, and
+not forced**: RFC 021 already documents this exact duplicate and the
+condition for removing `pt2safetensors` (a direct SafeTensors source being
+selected first); that condition still has not been met, and dropping it here
+to shrink an advisory count would override a decision this ledger does not
+get to override.
+
+**The remaining edge is real and upstream-blocked.** `candle-core` 0.11.0 is
+the latest published version and still depends on `zip` 8.6.0 (checked
+against the crates.io index, 2026-10-21); `zip` fixed all three at `>=9.0.0`.
+Revisit when `candle-core` depends on `zip >=9.0.0`.
+
+**Whether arama's model path reaches the vulnerable function — determined,
+not assumed.** All three advisories concern `ZipArchive::extract()` /
+`ZipStreamReader::extract()` specifically (confirmed by reading each
+advisory's own text, not the task's paraphrase of it): extraction to disk,
+not reading an archive's entries. arama never calls `zip` directly —
+`pt2safetensors` doesn't either (`grep -rn "zip\b" pt2safetensors-0.1.3/src`
+finds nothing); the only consumer in this entire chain is `candle-core`
+itself, reading PyTorch `.bin` checkpoints via its `pickle`/`npy` modules.
+Checked both versions' source directly:
+
+```sh
+$ grep -rn "\.extract(" candle-core-0.11.0/src/ candle-core-0.10.2/src/
+# (no matches, either version)
+$ grep -n "zip::" candle-core-0.11.0/src/pickle.rs
+677:    let mut zip = zip::ZipArchive::new(zip_reader)?;
+689:        let reader = zip.by_name(file_name)?;
+```
+
+**Zero calls to `extract()` in either version.** Every use is `by_name()` /
+`by_index()` — reading one entry's bytes into memory, never writing extracted
+files to a destination directory. **The critical does not apply to arama's
+actual usage, determined rather than guessed**: the only code that could call
+the vulnerable function doesn't, in either version in the lock.
+
+### `zvariant` 5.12.0 / `zbus_names` 4.3.2 / `zvariant_derive` 5.12.0 — added 2026-10-21
+
+RUSTSEC-2026-0370, 0371, 0372 — all *unmaintained*, not vulnerabilities. Each
+advisory (checked individually, not assumed identical) states the same thing:
+merged into `zbus` as of `zbus` **6.0.0** (`zvariant` becomes zbus's `wire`
+module, `zbus_names` becomes its `names` module, `zvariant_derive`'s macros
+move into zbus directly). `zbus` 6.0.0 is already published.
+
+Two real paths, both through dependencies this project doesn't control
+directly:
+
+```
+zvariant <- zbus 5.16.0 <- file-handle 0.2.3 <- arama (direct) and arama-ui-widgets
+zvariant <- zbus 5.16.0 <- mundy 0.2.3 <- iced_winit <- iced
+```
+
+**Checked whether either has already moved, rather than assuming not**:
+`file-handle`'s latest published release is 0.4.0 (current lock: 0.2.3), but
+it still requires `zbus ^5` (checked against its crates.io dependency
+manifest, 2026-10-21) — the newer release did not adopt zbus 6. `mundy`
+0.2.3 is still its only published version and requires `zbus ^5.0.0`. Neither
+upgrade clears this today.
+
+**Revisit condition:** `file-handle` and `mundy` both depending on `zbus
+>=6.0.0` — a version number on each, checkable the same way this entry was
+written, not "when upstream fixes it."
+
 ## Resolved: the rustls / rustls-webpki / webpki-root-certs advisories — 2026-10-21
 
 Six advisories across three packages, all on **arama's only network path** —

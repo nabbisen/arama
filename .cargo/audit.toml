@@ -21,9 +21,36 @@
 # ID may stay listed here harmlessly (cargo audit does not complain
 # about an ignore that no longer matches anything) until its ledger entry
 # is moved to "Resolved" and this entry is removed in the same change.
+#
+# Task 059: the eleven IDs below follow the same convention - each has
+# its full dependency-path evidence and revisit condition in
+# rfcs/notes/audit-warning-burn-down.md's "Remaining Warnings" section,
+# not just here. Three groups:
+#   - quinn-proto x5 (0338-0342): resolved into Cargo.lock by reqwest's
+#     optional `http3` feature, which arama does not enable - confirmed
+#     unreachable via `cargo tree -i quinn-proto`, which prints nothing.
+#   - zip x3 (0367-0369, each matching both zip 7.2.0 and 8.6.0 in the
+#     lock - one ID ignored here covers every version it matches): a
+#     real but upstream-blocked path through candle-core, and confirmed
+#     not to reach the vulnerable `extract()` function at all - arama's
+#     model path only reads zip entries via `by_name()`.
+#   - zvariant/zbus_names/zvariant_derive x3 (0370-0372): unmaintained,
+#     merged into zbus 6.0.0, which neither of the two crates that pull
+#     these in has adopted yet.
 ignore = [
     "RUSTSEC-2025-0141", # bincode 2.0.1, unmaintained - localcache <- arama-cache.
     "RUSTSEC-2024-0436", # paste 1.0.15, unmaintained - candle/gemm, tokenizers, Apple rendering.
     "RUSTSEC-2026-0192", # ttf-parser 0.25.1, unmaintained - fontdb, cosmic-text, ab_glyph.
     "RUSTSEC-2026-0253", # lru 0.16.4, unsound - cryoglyph <- iced_wgpu <- iced.
+    "RUSTSEC-2026-0338", # quinn-proto 0.11.15, unreachable - reqwest's optional http3 feature, not enabled.
+    "RUSTSEC-2026-0339", # quinn-proto 0.11.15, unreachable - reqwest's optional http3 feature, not enabled.
+    "RUSTSEC-2026-0340", # quinn-proto 0.11.15, unreachable - reqwest's optional http3 feature, not enabled.
+    "RUSTSEC-2026-0341", # quinn-proto 0.11.15, unreachable - reqwest's optional http3 feature, not enabled.
+    "RUSTSEC-2026-0342", # quinn-proto 0.11.15, unreachable - reqwest's optional http3 feature, not enabled.
+    "RUSTSEC-2026-0367", # zip 7.2.0/8.6.0, extract() not called - candle-core <- pt2safetensors/arama-ai.
+    "RUSTSEC-2026-0368", # zip 7.2.0/8.6.0, extract() not called - candle-core <- pt2safetensors/arama-ai.
+    "RUSTSEC-2026-0369", # zip 7.2.0/8.6.0, extract() not called - candle-core <- pt2safetensors/arama-ai.
+    "RUSTSEC-2026-0370", # zvariant 5.12.0, unmaintained - zbus 5.16.0 <- file-handle/mundy.
+    "RUSTSEC-2026-0371", # zbus_names 4.3.2, unmaintained - zbus 5.16.0 <- file-handle.
+    "RUSTSEC-2026-0372", # zvariant_derive 5.12.0, unmaintained - zbus 5.16.0 <- file-handle/mundy.
 ]
