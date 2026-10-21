@@ -1,0 +1,126 @@
+# No maintainer line and no contact details anywhere in this file -
+# owner decision, 2026-10-02 (T054 §2a), unchanged for this package.
+# The AUR is a public git repository, so an address added there is
+# public permanently. url= below already points at the repository.
+#
+# namcap flags this - `PKGBUILD (arama-bin) W: Missing Maintainer tag`,
+# a warning, exit 0. Expected and accepted, not an oversight to fix.
+
+pkgname=arama-bin
+pkgver=0.42.0
+pkgrel=1
+pkgdesc="Find similar images and videos, entirely on your own machine (prebuilt binary)"
+arch=('x86_64')
+url="https://github.com/nabbisen/arama"
+license=('Apache-2.0')
+provides=('arama')
+conflicts=('arama')
+
+# Same shared dependency list as packaging/linux/PKGBUILD - the two
+# packages ship the identical binary, so the dependency answer is
+# shared even though only this one can be built on a host without a
+# pacman-tracked cargo (T054 §7 / T060 §3). T060 ran namcap against a
+# real built arama-bin package for the first time (T054 never could -
+# §7 there) and it settles the glibc/gcc-libs question the AUR
+# placeholder's stub depends= raised: both are flagged "implicitly
+# satisfied", namcap's wording for base-system libraries every install
+# already has - standard Arch convention is not to list them, so T054's
+# derived list was already correct and stays unchanged here. namcap
+# also flags all ten of the below as "may not be needed" - the known
+# dlopen blind spot T054 already documented (readelf -d shows only
+# libgcc_s.so.1/libm.so.6/libc.so.6 as NEEDED; everything here is
+# opened at runtime, not linked, so namcap's static NEEDED-scan can't
+# see the usage). Not a new finding, re-confirmed against this real
+# build rather than taken on trust.
+depends=('dbus' 'libglvnd' 'vulkan-icd-loader' 'wayland'
+         'libx11' 'libxcb' 'libxcursor' 'libxi'
+         'libxkbcommon' 'libxkbcommon-x11')
+# hicolor-icon-theme: namcap's one genuinely new finding here - this is
+# the first time a built package installing packaging/icons/ has gone
+# through namcap (T054's own run was PKGBUILD-only, before a package
+# ever built). It flags hicolor-icon-theme as implicitly satisfied but
+# optional, for the hicolor theme hierarchy the icons above install
+# into. Added here and to packaging/linux/PKGBUILD in the same change.
+optdepends=('ffmpeg: video similarity (arama never installs it for you - RFC 032)'
+            'hicolor-icon-theme: icon theme hierarchy for the app icon')
+# No makedepends=('cargo') - nothing is compiled. That is the entire
+# point of this package: T054 §7 could not produce a built package on
+# a host where cargo is rustup-managed rather than pacman-tracked,
+# because makepkg's dependency step needs cargo as a pacman package
+# before build() even runs. This package has no build() to reach.
+
+# The -cpu variant, not -gpu-cuda - a general install should not carry
+# an implicit CUDA requirement. A GPU package, if ever wanted, is a
+# third AUR package and a separate decision, not a flag here.
+#
+# The desktop entry and icons are vendored as flat local files below
+# (arama.desktop, arama-<size>.png - identical copies of
+# packaging/linux/arama.desktop and packaging/icons/hicolor/<size>x<size>/arama.png
+# in this repository, flattened because makepkg's local source=
+# entries must sit beside the PKGBUILD itself, not in a subdirectory)
+# rather than fetched from the tagged source archive. Considered and
+# rejected: a second source= entry for a
+# "$pkgname-$pkgver.tar.gz"-style git tag tarball, matching how
+# packaging/linux/PKGBUILD fetches its own source. Checked directly
+# against the real 0.42.0 release and found that tag's source archive
+# predates this repository's packaging/ directory entirely - it
+# contains neither file. Pointing at it would make this package
+# untestable today (the full makepkg -si && arama run is this task's
+# own central check, T060 §3) and would still be fragile at a future
+# real release unless the tag cutting that release happens to include
+# both the asset and this exact PKGBUILD. Vendoring makes the package
+# self-contained and buildable against any already-published binary
+# asset, at the cost of needing a manual re-sync if the desktop entry
+# or icon set ever change - regenerate with:
+#   cp ../arama.desktop ../../LICENSE ../../NOTICE arama-bin/
+#   for s in 256 128 64 48 32; do
+#     cp ../../icons/hicolor/${s}x${s}/arama.png arama-bin/arama-${s}.png
+#   done
+# then regenerate the eight non-SKIP hashes below with `updpkgsums` or
+# `sha256sum`.
+source=("$pkgname-$pkgver.tar.gz::https://github.com/nabbisen/arama/releases/download/$pkgver/arama@Linux-x64-gnu-cpu-$pkgver.tar.gz"
+        "arama.desktop"
+        "arama-256.png"
+        "arama-128.png"
+        "arama-64.png"
+        "arama-48.png"
+        "arama-32.png"
+        "LICENSE"
+        "NOTICE")
+
+# Real hashes for the vendored local files (they do not change at
+# publish time the way the release asset's does); SKIP for the release
+# asset itself, for the same reason packaging/linux/PKGBUILD's SKIP is
+# permanent - pkgver tracks the workspace version, which bumps
+# immediately after each tag, so this file usually names a tag with no
+# asset published yet. The real asset hash is generated at publish
+# time with `updpkgsums`, into the AUR's own copy only (owner task 003
+# §2). Do not "fix" the first SKIP to a real hash; it would be wrong
+# again as soon as it was right. A binary package pinning a hash for
+# everything but the binary itself looks backwards at a glance - this
+# comment is the answer if that is why you are reading it.
+sha256sums=('SKIP'
+            '62bcdac2066599e3653e26eda6a644ed782f20df841d1dd7545e628267ea8575'
+            '1bb4b787e69e721cada5362a7133429e7123880c9155c4ebd4bfbff852c006ac'
+            '731c0e72ffc89aa05c90518cceb0608052f5e2297a57dc6fe759990b7693a08f'
+            '39d81dd43cdde8707f8e7955f18044488d5acb8b87bfbc34404f1e159633eada'
+            '431ca0ed183dc84e1de26c5907f89cc3c5fe2f875dd5614e8a749e41dbe0cf8e'
+            'a215cfa39028510f589bcefeab527eb65d4684054f5fa032f6a57aa38bbda8b0'
+            'f651689716d7e61870c050334baf1bfc0e44a2fb8f39c68b2a1412de140f97fe'
+            'a2054f1f9d4a699824f0b4d7dcc867261b1c2ee698929cbe1bb9cf30e2c09211')
+
+# No build() - nothing is compiled. The release asset's own wrapping
+# directory is "arama@Linux-x64-gnu-cpu-$pkgver" (RFC 030's executable
+# asset layout: one same-named directory containing the executable),
+# not "$pkgname-$pkgver" - named explicitly in package() below rather
+# than assumed to match the source= rename.
+package() {
+    install -Dm755 "arama@Linux-x64-gnu-cpu-$pkgver/arama" "$pkgdir/usr/bin/arama"
+    install -Dm644 "arama.desktop" "$pkgdir/usr/share/applications/arama.desktop"
+    for _size in 256 128 64 48 32; do
+        install -Dm644 "arama-${_size}.png" \
+            "$pkgdir/usr/share/icons/hicolor/${_size}x${_size}/apps/arama.png"
+    done
+    install -Dm644 "LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm644 "NOTICE" "$pkgdir/usr/share/licenses/$pkgname/NOTICE"
+}

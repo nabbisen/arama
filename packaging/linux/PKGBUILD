@@ -31,8 +31,14 @@ depends=('dbus' 'libglvnd' 'vulkan-icd-loader' 'wayland'
          'libxkbcommon' 'libxkbcommon-x11')
 # ffmpeg is optional, never a hard dependency - RFC 032 is explicit
 # that arama never obtains ffmpeg on the user's behalf, and a hard
-# depends would make this package do exactly that.
-optdepends=('ffmpeg: video similarity (arama never installs it for you - RFC 032)')
+# depends would make this package do exactly that. hicolor-icon-theme
+# is namcap's own suggestion (T060, run against a real built arama-bin
+# package - this file's own namcap run has only ever had a PKGBUILD to
+# check, never a built package with icons installed) - implicitly
+# satisfied but optional, for the hicolor theme hierarchy T056's icons
+# install into. Carried over here in the same change, same reasoning.
+optdepends=('ffmpeg: video similarity (arama never installs it for you - RFC 032)'
+            'hicolor-icon-theme: icon theme hierarchy for the app icon')
 makedepends=('cargo')
 
 # The checksum is SKIP here, and that is permanent in this repository
