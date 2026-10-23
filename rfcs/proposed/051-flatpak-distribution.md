@@ -62,39 +62,51 @@ step that is unpleasant to do by hand and easy to do stale.
 CI-automation exclusion for packaging generally. Deferring it means the first
 stale release is how we find out.
 
-### 2.2 `root_dir_path` persistence — the one that needs code
+### 2.2 `root_dir_path` persistence — convenience, not correctness
+
+> **Corrected 2026-10-24. The original version of this section was wrong**, and
+> the owner accepted this RFC partly on the strength of it. It claimed arama
+> would "display a library root it remembers and silently be unable to read it",
+> indistinguishable from an empty directory, and that this already happened on
+> every platform with an unmounted share or a removed drive.
+>
+> **arama already detects this and says so.** The claim was asserted from
+> `settings.rs:42` without reading the startup path. Verified since:
 
 `env/src/config/settings.rs:42` persists `root_dir_path: String` and reopens it
-on launch.
+on launch — and `startup_dir_node` (`app/src/core.rs:462`) checks it before
+anything else. Both failure modes are already handled and surfaced:
 
-**In a sandbox a path granted through the portal is not necessarily re-openable
-in the next session.** So arama would start, display a library root it remembers,
-and silently be unable to read it.
+| Case | `Path::is_dir()` | What the user gets |
+|---|---|---|
+| Missing, unmounted share, removed drive | `false` | `startup.root_dir_unavailable` — *"Startup folder unavailable / The saved folder cannot be opened. Choose another folder to start indexing"*, with the path |
+| Present but unreadable (permission denied) | `true`, `read_dir` fails | `startup.root_scan_warning`, via `swdir::WalkError::Io` which documents covering *"read_dir failing outright (e.g. permission denied, not found)"*, with the path |
 
-Under the owner's second principle that is the wrong failure precisely: the
-application appears to know where the library is and does not say that it has
-lost access. It is indistinguishable from an empty directory — the same class of
-ambiguity [RFC 036](../done/036-similarity-dialog-absence-states.md) built
-absence states to eliminate, and that
-[RFC 047](./047-indexing-cancellation.md) §3.3 is removing from the pairs
-dialog.
+Both keys exist in **both** locales, both are pushed as startup toasts through
+`push_startup_notices` (`core.rs:242`), and `dir_node: None` stops indexing from
+starting on a bad root. Verified empirically: a missing directory gives
+`is_dir() == false`; a `chmod 000` directory gives `is_dir() == true` with
+`read_dir` failing — so the two notices cover the two cases between them.
 
-**Options:**
+**So the honest-failure requirement is already met, on every platform, today.**
+There is no defect here and no cross-platform work to schedule.
 
-- **(a) Use the portal's persistent permissions.** The document portal can
-  retain access across restarts. Correct, and the most work.
-- **(b) Detect and say so.** On launch, if the remembered root is unreadable,
-  present a distinct state — *"the folder arama remembered is no longer
-  accessible, choose it again"* — not an empty gallery. Cheap, honest, and
-  needed as a fallback even if (a) is implemented.
-- **(c) `--filesystem=home`.** Makes the problem disappear by removing the
-  sandbox's point. Flathub review discourages it and it contradicts §1's
-  portal finding.
+**What remains is Flatpak-only and is convenience, not correctness.** A
+portal-granted path may not be re-openable after a restart, so a sandboxed arama
+would show the "Startup folder unavailable" notice and ask the user to pick the
+folder again — correct behaviour, and irritating every launch.
 
-**Recommendation: (b) regardless, (a) if the portal work proves tractable.**
-(b) is not Flatpak-specific — a removed USB drive or an unmounted network share
-produces the same state today on every platform, and arama does not handle it
-distinctly.
+**Options, for the Flatpak work only:**
+
+- **(a) Use the portal's persistent permissions**, so the grant survives a
+  restart and the notice does not fire. The right answer; the most work.
+- **(b) Accept re-picking.** Honest, already implemented, mildly annoying.
+- **(c) `--filesystem=home`.** Removes the sandbox's point; Flathub review
+  discourages it and it contradicts §1's portal finding. Rejected.
+
+**Recommendation: (a), scoped inside the Flatpak work.** Nothing here is
+liftable into a separate cross-platform task, which is what the corrected
+version of this section changes.
 
 ### 2.3 Network permission for the model download
 
