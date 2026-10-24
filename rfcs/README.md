@@ -14,7 +14,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 046 | [Audio model fidelity, and the gap that let it survive](./proposed/046-audio-model-fidelity.md) | **Critical** — external audit 2026-09-01; narrowed to route A or B 2026-10-21, decision owner-reserved |
 | 047 | [Indexing that can be stopped, and async that actually awaits](./proposed/047-indexing-cancellation.md) | High — external audit 2026-09-01; absorbed RFC 048 §3 and settled its own §7 on 2026-10-21 |
 | 048 | [Library scale — rendering cost and ordering](./proposed/048-library-scale.md) | High — external audit 2026-09-01; phased 2026-10-21, §3 moved to RFC 047 |
-| 049 | [Advisory maintenance as a standing policy](./proposed/049-advisory-maintenance-policy.md) | High — the `cargo audit` gate has been reconciled six times with no governing document; `Audit` went red twice in October on commits that changed no code |
+| 049 | [Advisory maintenance as a standing policy](./proposed/049-advisory-maintenance-policy.md) | High — **accepted 2026-10-24**. §3 and §6 apply now; §8's scheduled check has no task yet |
 | 050 | [Which device is actually running the model, and saying so](./proposed/050-compute-device-visibility.md) | Medium — portfolio review 2026-10-21; lifted out of RFC 042 |
 | 051 | [Flatpak distribution, and what a sandbox changes](./proposed/051-flatpak-distribution.md) | Medium — **accepted 2026-10-22**; sequenced after the AUR channel goes live. §2.2 corrected 2026-10-24: arama already handles an unreadable remembered root, so nothing here is liftable |
 
