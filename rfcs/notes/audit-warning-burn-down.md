@@ -325,6 +325,86 @@ upgrade clears this today.
 >=6.0.0` — a version number on each, checkable the same way this entry was
 written, not "when upstream fixes it."
 
+## Resolved: the tokio unsound advisory and the yanked clipboard-win — 2026-10-27
+
+Two different kinds of problem, closed in the same change (Task 062) because
+both are simple version moves with no ignore involved. Recorded separately so
+a missing severity on one of them does not read as an oversight — this ledger
+has never recorded a yanked crate before.
+
+**RUSTSEC-2026-0386, `tokio` 1.52.3 — unsound, not a vulnerability.**
+`AsyncFd::new` and its three sibling constructors (`with_interest`, `try_new`,
+`try_with_interest`) violate I/O safety. Governed by RFC 049 §3's reachability
+condition even though no ignore is added here — determined, not guessed:
+
+```text
+tokio 1.52.3 <- arama (direct, and via most of the async stack)
+```
+
+Neither arama's own code nor tokio's internals reach the affected
+constructors. Checked both, not assumed from the absence of a direct call —
+the same standard T059 applied to `zip`'s `extract()`:
+
+```sh
+$ grep -rn "AsyncFd::\(new\|with_interest\|try_new\|try_with_interest\)\b" \
+    --include="*.rs" src/        # tokio 1.52.3 and 1.54.1, both checked
+# matches only inside src/io/async_fd.rs itself (the definitions) and doc
+# comments (///); zero call sites anywhere else in src/ in either version
+```
+
+Nothing in tokio's own `net`/`runtime`/`fs` modules routes through these
+public constructors — they exist for callers building a custom FD wrapper, a
+pattern arama does not use. **Record this regardless of the fix**, per the
+task's instruction: if a future advisory names the same functions, this
+answer does not need to be redone.
+
+**Yanked, not advisoried: `clipboard-win` 5.4.1.** The crate was withdrawn
+from crates.io — no severity, no affected-functions list, because a yank
+isn't an advisory. Windows-only:
+
+```text
+clipboard-win 5.4.1 <- window_clipboard 0.5.1 <- iced_winit 0.14.0 <- iced
+```
+
+`cargo tree -i clipboard-win --target x86_64-unknown-linux-gnu` prints
+nothing; only the `x86_64-pc-windows-msvc` target shows the chain above. No
+Linux gate exercises this crate at all — the Windows CI job is the only one
+that proves this change.
+
+**Resolution, same shape as the `event-listener` entry above** — direct
+update, nothing suppressed:
+
+```sh
+cargo update -p tokio --precise 1.54.1
+cargo update -p clipboard-win --precise 5.4.3
+```
+
+| Package | before | after |
+|---|---|---|
+| `tokio` | 1.52.3 | **1.54.1** (1.54.0 is yanked — not landed on) |
+| `clipboard-win` | 5.4.1 | **5.4.3** |
+
+Exactly two `[[package]]` blocks changed their own `version`/`checksum` —
+confirmed by diffing name/version/checksum lines in isolation, not the raw
+`Cargo.lock` diff. The raw diff also shows eight dependency-array lines
+(in `dirs-sys`, `errno`, `rustix`, `rustls-platform-verifier`, `socket2`,
+`tempfile`, `uds_windows`, `winapi-util`) repointing from `windows-sys 0.61.2`
+to an older sibling version. **Not a third moved package**: all four
+`windows-sys` versions (0.52.0, 0.59.0, 0.60.2, 0.61.2) are present as
+`[[package]]` entries both before and after this change, unchanged in
+number — the resolver re-selected among already-present alternatives when
+tokio's and clipboard-win's own requirement ranges shifted. Total
+`[[package]]` block count: 705 before, 705 after.
+
+`cargo audit --deny warnings` exits **0** after this change — the goal of the
+task, and the first time since the database's last move that it does.
+
+**Recorded because it is now a pattern, not an incident**: this is the
+**second time in three days** `Audit` has gone red on a commit that changed
+no code — T059 made it green on 2026-10-21 (11 remaining, all triaged), and
+the advisory database moving under `c97e353` (a docs-only commit) broke it
+again on 2026-10-24. RFC 049 exists because of this exact shape.
+
 ## Resolved: the rustls / rustls-webpki / webpki-root-certs advisories — 2026-10-21
 
 Six advisories across three packages, all on **arama's only network path** —
