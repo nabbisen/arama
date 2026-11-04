@@ -17,6 +17,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 049 | [Advisory maintenance as a standing policy](./proposed/049-advisory-maintenance-policy.md) | High — **accepted 2026-10-24**. §3 and §6 apply now; §8's scheduled check has no task yet |
 | 050 | [Which device is actually running the model, and saying so](./proposed/050-compute-device-visibility.md) | Medium — portfolio review 2026-10-21; lifted out of RFC 042 |
 | 051 | [Flatpak distribution, and what a sandbox changes](./proposed/051-flatpak-distribution.md) | Medium — **accepted 2026-10-22**; sequenced after the AUR channel goes live. §2.2 corrected 2026-10-24: arama already handles an unreadable remembered root, so nothing here is liftable |
+| 052 | [A text-size setting, and reach for older readers](./proposed/052-text-size-and-reach.md) | High — **accepted 2026-11-04**. arama has no text-size control and no preset can substitute; colour and target sizes measured fine and are explicit non-goals |
 
 ## Implemented
 
