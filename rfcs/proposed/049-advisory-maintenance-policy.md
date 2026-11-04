@@ -1,7 +1,7 @@
 # RFC 049: Advisory maintenance as a standing policy
 
 **Status:** **Accepted by the project owner, 2026-10-24** (*"RFC 049 is
-accepted."*). **No implementing task has been written** for §8's scheduled check
+accepted."*). **No implementing task has been written** for §8's detection check
 — acceptance of the policy is not authorization of the automation that enforces
 it. The policy's §3 conditions and §6 filing rule apply from now regardless.
 **Raised by:** T049's finding that a stated revisit condition sat satisfied for
