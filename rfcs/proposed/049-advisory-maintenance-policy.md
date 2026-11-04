@@ -122,19 +122,41 @@ the pairing rule in §3.1.
 
 ## 5. Where it runs, and where it must not
 
-**Not on push or PR.** A newly available upstream fix is not a defect in the
-commit under test. Failing a contributor's PR because a crate published that
-morning teaches people to re-ignore, which is the opposite of the intent.
+> **Corrected 2026-11-04 by the owner:** *"we don't have 'weekly' routine."*
+> The accepted text said scheduled **weekly**. That was invented. **No workflow
+> in this repository uses `schedule:`** — every one runs on push, pull request,
+> tag or dispatch — and the ROADMAP states the model outright: *"Release prep
+> remains owner-driven. This roadmap does not set a release point."*
+>
+> **A cron firing into an Actions tab nobody opens reproduces §2.1's own failure
+> mode in a new costume** — a signal with no reader. §9 asked whether the notice
+> would reach anyone and I then wrote a trigger that guaranteed it would not.
 
-**Scheduled, and at the release gate.**
+**Not on push or PR as a *failure*.** A newly available upstream fix is not a
+defect in the commit under test. Failing a contributor's PR because a crate
+published that morning teaches people to re-ignore, which is the opposite of the
+intent. That part of the original reasoning stands.
 
-- **Scheduled (weekly)** answers §2.2 as well as §2.1 — it asks the question when
-  nobody is pushing, which is exactly when the answer is currently unknown.
-- **At the release cut**, because that is already when the ledger is read.
+**Attach it to the two events this project actually has, both of which have a
+reader:**
 
-Output is a **notice, not a failure**. The existing push gate keeps failing on
-genuine new advisories; this one reports that an ignore may be retirable, which
-is information, not a defect.
+- **On push, as a non-failing notice**, alongside the existing `Audit` gate.
+  Whoever pushed is already looking at CI; that is the moment a human is
+  present. It must not be able to turn the job red.
+- **At the release cut**, as a checklist item. `docs/src/dev/release.md:36`
+  already asks for this *manually* — *"confirm each `.cargo/audit.toml` ignore
+  and each tracked warning still has a current dependency path, rationale, and
+  revisit condition"* — and **T049 is the proof that a manual instruction does
+  not get followed**: the `quick-xml` condition sat satisfied for 66 days with
+  that sentence already in the checklist. Replace the instruction with a command
+  that answers it.
+
+**What this does and does not buy.** The push gate already catches a *new*
+advisory, and all three red episodes surfaced on a push — the moment it has a
+cost, because that is when someone is trying to land work. What no push-triggered
+gate can ever catch is a **retirable** ignore: it never turns anything red, it
+just sits. That is the rustybuzz and quick-xml failure, and it is the only thing
+this check exists for.
 
 ## 6. What this means for filing — the owner's question, answered by rule
 
@@ -169,8 +191,8 @@ owner asked for.
 
 ## 8. Acceptance
 
-- A scheduled job runs the §4 detection weekly and reports retirable ignores as
-  a notice, not a failure.
+- The §4 detection runs **on push as a non-failing notice**, and cannot turn the
+  `Audit` job red.
 - The release checklist includes the same check.
 - `.cargo/audit.toml` and the ledger are verifiably in sync — every identity in
   the array appears in the ledger **by identity**, checkable by script.
@@ -184,5 +206,8 @@ owner asked for.
   ledger only as crate names (`bincode` 2.0.1, `paste` 1.0.15, `ttf-parser`
   0.25.1), which defeats §8's scriptable check. Found in review 154; small, and a
   prerequisite rather than part of this.
-- **Does the weekly notice go anywhere a person will see it?** A CI job that
-  reports into its own log and nowhere else reproduces §2.1 in a new costume.
+- ~~**Does the weekly notice go anywhere a person will see it?**~~ **Answered
+  2026-11-04 by the correction in §5.** It would not have, which is why the
+  weekly trigger is gone. The notice now runs where a reader already is: on a
+  push, beside the CI result someone is already reading, and at the release cut.
+  **The open question was right and the design contradicted it.**
