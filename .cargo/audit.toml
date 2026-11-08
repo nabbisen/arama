@@ -37,6 +37,14 @@
 #   - zvariant/zbus_names/zvariant_derive x3 (0370-0372): unmaintained,
 #     merged into zbus 6.0.0, which neither of the two crates that pull
 #     these in has adopted yet.
+#
+# Task 065: RUSTSEC-2026-0429 (one identity, matching both zip 7.2.0 and
+# 8.6.0 in the lock) is the same `ZipArchive::extract()` family of
+# functions Task 059 already determined unreachable for RUSTSEC-2026-
+# 0367/0368/0369 above - candle-core is still the only zip consumer in
+# either version, confirmed again rather than assumed, and it never
+# calls extract(). Revisit condition: candle-core depending on
+# zip >=9.0.0, the version that patches it.
 ignore = [
     "RUSTSEC-2025-0141", # bincode 2.0.1, unmaintained - localcache <- arama-cache.
     "RUSTSEC-2024-0436", # paste 1.0.15, unmaintained - candle/gemm, tokenizers, Apple rendering.
@@ -53,4 +61,5 @@ ignore = [
     "RUSTSEC-2026-0370", # zvariant 5.12.0, unmaintained - zbus 5.16.0 <- file-handle/mundy.
     "RUSTSEC-2026-0371", # zbus_names 4.3.2, unmaintained - zbus 5.16.0 <- file-handle.
     "RUSTSEC-2026-0372", # zvariant_derive 5.12.0, unmaintained - zbus 5.16.0 <- file-handle/mundy.
+    "RUSTSEC-2026-0429", # zip 7.2.0/8.6.0, extract() not called - candle-core <- pt2safetensors/arama-ai. Same path as 0367-0369.
 ]

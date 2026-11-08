@@ -244,13 +244,34 @@ No edge, under any target, under any edge kind. **Revisit condition:**
 enabled feature set in `Cargo.toml` — a condition anyone can check by reading
 that file, not "when upstream fixes it."
 
-### `zip` 7.2.0 / 8.6.0 — added 2026-10-21
+### `zip` 7.2.0 / 8.6.0 — added 2026-10-21, extended 2026-11-08
 
 RUSTSEC-2026-0367 (SUID/SGID preservation during extraction), 0368 (symlink
 escape outside the destination directory), 0369 (9.1 critical — applies Unix
 permissions through symlinks without confining the target). Each matches
 **both** `zip` versions in the lock, so three IDs cover six `cargo audit`
 entries.
+
+**RUSTSEC-2026-0429, added 2026-11-08 (Task 065) — the same function,
+determined once, cited rather than re-derived.** 7.5 high: `ZipArchive::
+extract` aborts the process on a symlink entry with a large declared size.
+One identity, matching both `zip` versions, so two more `cargo audit`
+entries. This is the same `extract()` family the reachability finding below
+already covers — re-confirmed, not assumed, that `candle-core` is still the
+only `zip` consumer in the lock, in either version, before relying on the
+existing finding:
+
+```sh
+$ cargo tree -i zip@7.2.0 --target all -e normal,build,dev   # candle-core 0.10.2 only
+$ cargo tree -i zip@8.6.0 --target all -e normal,build,dev   # candle-core 0.11.0 only
+```
+
+**This is RFC 049 §2.1's determination-reuse paying for itself for the first
+time**: no fresh source-reading was needed, because the finding below already
+answers the only question a new `extract()` advisory could raise — whether
+anything in this chain calls `extract()` rather than `by_name()`/`by_index()`.
+It doesn't, in either version, confirmed 2026-10-21 and still true today.
+Revisit condition unchanged: `candle-core` depending on `zip >=9.0.0`.
 
 **Two different packages pull two different `zip` versions, and the
 duplicate is ours:**
@@ -324,6 +345,46 @@ upgrade clears this today.
 **Revisit condition:** `file-handle` and `mundy` both depending on `zbus
 >=6.0.0` — a version number on each, checkable the same way this entry was
 written, not "when upstream fixes it."
+
+## Resolved: the yanked async-executor — 2026-11-08
+
+**Yanked, not an advisory — the second time this ledger has recorded one**,
+after `clipboard-win` in Task 062. `async-executor` 1.14.0 was withdrawn from
+crates.io: no severity, no patched range, no affected-functions list, because
+a yank isn't an advisory. 1.14.1 is published and unyanked.
+
+Unlike `clipboard-win`, this crate is a pure-Rust async runtime dependency
+present on every platform, not Windows-only — so the Windows CI job carries
+its usual weight here, no more.
+
+Resolved directly, same shape as `clipboard-win` and `event-listener` before
+it:
+
+```sh
+cargo update -p async-executor --precise 1.14.1
+```
+
+| Package | before | after |
+|---|---|---|
+| `async-executor` | 1.14.0 | **1.14.1** |
+
+Exactly one `[[package]]` block changed its own version/checksum, confirmed
+by diffing name/version/checksum lines in isolation; total block count
+unchanged (705 before, 705 after) and no collateral dependency-reference
+churn this time (unlike the `windows-sys` siblings in Task 062).
+
+**Recorded because the pattern named in Task 062 has now happened a third
+time** — `Audit` going red on a commit that changed no code, from the
+advisory database moving under us:
+
+| Date | Commit | What changed in it |
+|---|---|---|
+| 2026-10-20 | `b674239` | documentation |
+| 2026-10-23 | `c97e353` | documentation |
+| 2026-11-04 | `282b71a` | RFC text |
+
+The scheduled-check question this raises is the architect's to take to the
+owner, not this task's to decide — no workflow was added here.
 
 ## Resolved: the tokio unsound advisory and the yanked clipboard-win — 2026-10-27
 
