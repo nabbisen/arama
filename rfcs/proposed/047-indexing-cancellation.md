@@ -31,6 +31,14 @@ video — in an `async move` block containing **no `.await` at all**. The
 `.abortable()` handle is real and the Stop button dispatches to it; there is
 simply no point at which the future can be dropped.
 
+> **Corrected 2026-11-08.** The rayon fan-out does **not** decode, resize or
+> encode here. The phase opens its writer with `ImageCacheWriter::onetime`, whose
+> configuration has no `thumbnail_dir`, and `ensure_thumbnail` returns early
+> without one — so this phase writes cache rows only. Image and video thumbnails
+> are generated later, inside the embedding phase. Found by the dev team during
+> T061. **The conclusion is unchanged:** a synchronous block with no await point
+> cannot be aborted, however much work it does.
+
 **The embedding phase is different, and the contrast is the evidence.** It
 awaits (`image_embedding(...).await`, `:135`), so abort works there. Someone
 solved this problem once and the fix did not reach the sibling phase.
@@ -127,7 +135,12 @@ counts rendered in the dialog**, replaces a silent truncation with an honest
 one. Raising or removing the cap is a separate question that depends on
 RFC 048 §1 and is not answered here.
 
-The scan must also be **interruptible** and must **report that it is running**.
+The scan must also be **interruptible** and must **report its progress** — a
+determinate count of how far it has got, not only that it is running.
+
+> **Corrected 2026-11-08.** This sentence used to say *"report that it is
+> running"*, weaker than §6's *"reports progress"*. §6 is the acceptance the
+> owner accepted and it governs; this sentence now agrees with it.
 
 **3.4 Gate the pairs button on completion, not on file count.** `embedding_cached`
 should mean what its name says.

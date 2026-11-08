@@ -30,6 +30,36 @@
 >
 > **Moved 2026-11-08** from `.git-exclude/tasks/dev-team/` into `rfcs/handoffs/`, at the owner's direction, and completed against the 17-item Developer Handoff structure. The authorization above is unchanged.
 
+> **REWORK REQUESTED 2026-11-08 — architect review of the first delivery.**
+> The authorization above covers this rework; nothing new needs granting. The
+> thumbnail-phase work stands. Five changes, then resubmit as a new package:
+>
+> 1. **Stop must return the app to idle.** The Stop arm never calls
+>    `processing_off()`, and an aborted task never delivers its completion
+>    message, so after one Stop the directory tree stops responding (the aside
+>    blocks expand and selection while processing) and media-type or depth
+>    changes never start a run. Call it in the Stop arm, and assert
+>    `!processing` after Stop in the existing `App::update` test.
+> 2. **Closing the pairs dialog must stop the scan.** Aborting a
+>    `spawn_blocking` task has no effect (tokio documents this), so closing the
+>    dialog today abandons the scan and leaves it running. Use the thumbnail
+>    phase's mechanism: a shared flag set on close, checked inside the scoring
+>    loop.
+> 3. **The scan must report progress (§6), not only that it is running.** A
+>    determinate *N of M* from the same loop as 2. Not streamed results
+>    (RFC 047 §5).
+> 4. **§10: reap the ffmpeg process tree on Windows** with `command-group`
+>    (already a workspace dependency, used by the sidecar for Task 021), and
+>    either let Stop reach a running ffmpeg through the existing `try_wait`
+>    poll, or argue in the package why that half is separable.
+> 5. **Make the stop-early test deterministic** — trigger the flag from the
+>    run's own progress, not from a 20 ms sleep.
+>
+> Also: reset `embedding_completed` in `handle_cache_require` (the one choke
+> point every run start passes through — two settings-triggered starts miss it
+> today), and describe the full-run test as what it does (no decode happens in
+> that phase). §8 below has been corrected; it contradicted §2c.
+
 # T061 Handoff — indexing that can actually be stopped (RFC 047)
 
 Companion to [RFC 047](../proposed/047-indexing-cancellation.md). **Read the RFC first** — this handoff settles what it left open and names the traps.
@@ -206,7 +236,7 @@ lifetime. The architect pushes and watches all seven workflows.
 
 ## 8. Non-change scope
 
-- the pair-scan **bound** or truncation counts — RFC 048
+- **raising or removing** the pair-scan cap — deferred to RFC 048 §1 (§2c). *Corrected 2026-11-08: this line used to read "the pair-scan bound or truncation counts — RFC 048", left over from before 2026-10-21 and contradicting §2c and §6 item 4. The cap and the counts are this task's; only changing the cap's value is not.*
 - anything in RFC 046's audio path
 - `CHANGELOG.md` or any `Cargo.toml` version field
 
@@ -229,7 +259,7 @@ lifetime. The architect pushes and watches all seven workflows.
 - Windows process-tree reaping on timeout is Windows-specific; the `-msvc` CI job is the only proof.
 - **T069 follows on `handle_cache_require`.** Leave its two silent early returns alone (banner).
 - **T064 also edits `app/src/core/view.rs`.** This task has right of way.
-- Scope creep into RFC 048's bound and truncation counts is out — those moved here only as §2c describes.
+- Scope creep into RFC 048 is out: the cap and the counts are this task's (§2c); raising or removing the cap, and RFC 048 §1's rendering work, are not.
 
 ## 12. Acceptance criteria
 
