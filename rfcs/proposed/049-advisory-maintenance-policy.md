@@ -115,6 +115,33 @@ it from prose. It needs no machine-readable schema and no third place to keep in
 sync, and **it would have caught both of §2.1's misses** — each was exactly "a
 dependency published a version that dropped the vulnerable transitive."
 
+### 4.1 A limitation, found 2026-11-08 — the detector stops at semver
+
+An unconstrained `cargo update` respects the requirements in `Cargo.toml`. So
+**it cannot see a retirement that needs a semver-major upgrade.**
+
+Demonstrated rather than reasoned. `RUSTSEC-2025-0141` (`bincode` 2.0.1) reaches
+arama only through `localcache` 0.21.2, and **`localcache` 0.26.2 drops `bincode`
+entirely** — so the ignore is retirable. Running §4's mechanism against the
+current tree:
+
+```
+Updating localcache v0.21.2 -> v0.21.6 (available: v0.26.2)
+```
+
+`localcache = "0.21"` caps it at 0.21.x; `bincode` stays; **the detector reports
+nothing.**
+
+**Both historical misses were semver-compatible** — `rustybuzz` and `quick-xml`
+each cleared with an in-range update — so §4 still catches the class that has
+actually occurred. **This is a second class, and §4 is blind to it.**
+
+**Not fixed here.** cargo's own `(available: …)` note is the signal that a
+breaking upgrade exists, and a detector could read it — but whether to report
+retirements that need a breaking change, which is a deliberate migration rather
+than maintenance, is a design question, not a patch. **Recorded so that a quiet
+detector is not read as "no ignore is retirable".**
+
 **Rejected alternative:** parsing each ignore comment's named blocking dependency
 and re-resolving it. That is where the dev team's own sketch went, and it
 requires the comments to become machine-readable, which adds a third artifact to
