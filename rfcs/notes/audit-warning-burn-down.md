@@ -230,6 +230,54 @@ No edge, under any target, under any edge kind. **Revisit condition:**
 enabled feature set in `Cargo.toml` — a condition anyone can check by reading
 that file, not "when upstream fixes it."
 
+### `pin-utils` 0.1.0 — added 2026-11-08
+
+RUSTSEC-2026-0441, *unmaintained* — the upstream repository was archived
+2026-10-01. Found mid-task during Task 065 (review package 158) and
+deliberately left out of scope there, since its reachability had not yet
+been determined.
+
+**This is the ledger's second entry of a specific shape: `cargo audit`
+reports it, and no binary arama ships contains it — for a different
+reason than the first.** `quinn-proto` above is absent because an
+*optional feature* (`reqwest`'s `http3`) is never enabled. `pin-utils` is
+absent because a *target* is never built. Worth naming the distinction
+explicitly, because `cargo tree --target all` (used to find the path
+below) deliberately includes every target cargo knows about, not only the
+ones a given project ships — a result from it is a claim about the full
+dependency graph, not about what gets compiled into a release.
+
+```text
+pin-utils 0.1.0 <- wasmtimer 0.4.3 <- iced_futures 0.14.0 <- iced <- arama
+```
+
+`iced_futures` 0.14.0's own manifest gates `wasmtimer` behind
+`[target.'cfg(target_arch = "wasm32")'.dependencies.wasmtimer]`. arama is a
+desktop application with five release variants — Linux ×2, Windows ×2,
+macOS — and ships no `wasm32` build. **Confirmed per target, not assumed
+from the cfg alone:**
+
+```sh
+$ cargo tree -i pin-utils --target x86_64-unknown-linux-gnu -e normal,build
+warning: nothing to print.
+$ cargo tree -i pin-utils --target x86_64-pc-windows-msvc -e normal,build
+warning: nothing to print.
+$ cargo tree -i pin-utils --target aarch64-apple-darwin -e normal,build
+warning: nothing to print.
+$ cargo tree -i pin-utils --target wasm32-unknown-unknown -e normal,build
+pin-utils v0.1.0
+└── wasmtimer v0.4.3
+    └── iced_futures v0.14.0
+    ...
+```
+
+A real edge exists only for the one target arama never builds. **Revisit
+condition:** that same per-target `cargo tree -i pin-utils --target <t>
+-e normal,build` command printing a path for `x86_64-unknown-linux-gnu`,
+`x86_64-pc-windows-msvc`, or `aarch64-apple-darwin` — which would mean
+either arama gained that target or `iced_futures` widened the dependency
+beyond the wasm32 gate. Not "when upstream fixes it."
+
 ### `zip` 7.2.0 / 8.6.0 — added 2026-10-21, extended 2026-11-08
 
 RUSTSEC-2026-0367 (SUID/SGID preservation during extraction), 0368 (symlink
