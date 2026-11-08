@@ -1,9 +1,11 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use arama_ai::{
     config::video_similarity_config::VideoSimilarityConfig,
     pipeline::score::similarity::{
         image::{SimilarImagePair, find_similar_pairs, sort_pairs},
+        scan_control::ScanControl,
         video::video_similarity_calculator::score_mean_vectors,
     },
 };
@@ -57,6 +59,11 @@ pub struct SimilarPairsDialog {
     hovered_media_item_path_str: Option<String>,
     similarity_threshold: f32,
     ffmpeg_toolchain: Option<FfmpegToolchain>,
+    /// RFC 047 S6 / review 161 #3: `(compared, total)` as of the last
+    /// `Message::Progress` tick. `(0, 0)` before scoring starts (the
+    /// cache-read phase has nothing to report yet) and while `pairs` is
+    /// already `Some` (nothing left to report).
+    scan_progress: (usize, usize),
 }
 
 #[derive(Clone)]
@@ -85,40 +92,57 @@ impl SimilarPairsDialog {
             hovered_media_item_path_str: None,
             similarity_threshold,
             ffmpeg_toolchain,
+            scan_progress: (0, 0),
         }
     }
 
-    /// RFC 047 S3.3: the scan must be interruptible. `prepare_embeddings`
-    /// is synchronous, CPU-heavy (O(N^2) scoring) work with no await
-    /// point of its own - `spawn_blocking` gives this `Task` the one
-    /// await point `.abortable()` needs to actually stop it (the same
-    /// reasoning as `handle_cache_require`'s thumbnail phase; see that
-    /// function's own comment for why a technique like this is needed at
-    /// all rather than only here). Unlike that phase, this is one
-    /// unchunked unit of work, not a loop: cancelling means "discard
-    /// whatever this produces," which is all RFC 047 S3.3 asks for here,
-    /// since progressive/streamed results are explicitly a non-goal
-    /// (RFC 047 S5).
+    /// Current `(compared, total)` - for the caller's subscription to
+    /// read against the live `ScanControl` it is holding; this method
+    /// has nothing to do with that polling itself, it is just a typed
+    /// accessor for `view()`/`update()`'s own stored copy.
+    pub fn scan_progress(&self) -> (usize, usize) {
+        self.scan_progress
+    }
+
+    /// RFC 047 S3.3/S6, review 161 #2/#3: the scan must be interruptible
+    /// *and* report a determinate count, not only that it is running.
     ///
-    /// Returns the abort `Handle` alongside the `Task` because this
+    /// **Why `Task::abortable()` cannot provide the cancellation**:
+    /// `prepare_embeddings` is synchronous, CPU-heavy (O(N^2)) work with
+    /// no await point of its own, run inside `tokio::task::spawn_blocking`
+    /// so this `Task` has an await point at all - but aborting a
+    /// `spawn_blocking` task has **no effect on the blocking closure
+    /// itself** (`tokio-1.54.1/src/task/blocking.rs:106-110`: *"If you
+    /// call abort on a spawn_blocking task, then this will not have any
+    /// effect, and the task will continue running normally."*). So
+    /// cancellation here uses the same mechanism as
+    /// `run_thumbnail_phase`'s chunk loop: a flag the work itself checks
+    /// from the inside, not a `Task`-level drop. `ScanControl` carries
+    /// that flag and the progress counters `find_similar_pairs` and
+    /// `find_similar_video_pairs` advance once per outer row.
+    ///
+    /// Returns the `Arc<ScanControl>` alongside the `Task` because this
     /// method only has `&self`, not a place on `App` to store it - the
-    /// caller (the dialog-open handler) is responsible for keeping it
-    /// and aborting it when the dialog closes.
-    pub fn default_task(&self) -> (Task<message::Message>, iced::task::Handle) {
+    /// caller (the dialog-open handler) keeps it to cancel on dialog
+    /// close and to poll for progress.
+    pub fn default_task(&self) -> (Task<message::Message>, Arc<ScanControl>) {
         let dir_node = self.dir_node.clone();
         let threshold = self.similarity_threshold;
         let ffmpeg_toolchain = self.ffmpeg_toolchain.clone();
-        Task::perform(
+        let control = Arc::new(ScanControl::new());
+        let task_control = control.clone();
+        let task = Task::perform(
             async move {
+                let control = task_control;
                 tokio::task::spawn_blocking(move || {
-                    prepare_embeddings(dir_node, threshold, ffmpeg_toolchain)
+                    prepare_embeddings(dir_node, threshold, ffmpeg_toolchain, &control)
                 })
                 .await
                 .unwrap_or_default()
             },
             message::Message::EmbeddingsReady,
-        )
-        .abortable()
+        );
+        (task, control)
     }
 }
 
@@ -131,6 +155,7 @@ fn prepare_embeddings(
     dir_node: DirNode,
     similarity_threshold: f32,
     ffmpeg_toolchain: Option<FfmpegToolchain>,
+    control: &ScanControl,
 ) -> EmbeddingsReadyResult {
     let paths = dir_node.flatten_paths();
 
@@ -288,15 +313,26 @@ fn prepare_embeddings(
     // `ffmpeg_missing_with_videos` carries that distinction separately.
     let nothing_indexed = image_path_embeddings.is_empty() && video_path_embeddings.is_empty();
 
+    // RFC 047 S6 / review 161 #3: the total is known once the cache
+    // reads above finish, before scoring starts - set it here so a
+    // progress tick during the very first row already has a real
+    // denominator rather than 0.
+    control.set_total(image_path_embeddings.len() + video_path_embeddings.len());
+
     // RFC 047 S3.3: images and videos are scored separately (different
     // feature spaces) but share one cap, applied once on the merged,
     // globally re-sorted list - never one cap per media type. Both
     // `find_similar_pairs` and `find_similar_video_pairs` are already
     // uncapped and individually sorted; merging two individually-sorted
     // lists still needs a full re-sort, since the merge is by
-    // concatenation, not by score.
-    let mut similar_pairs = find_similar_pairs(&image_path_embeddings, similarity_threshold);
-    let video_pairs = find_similar_video_pairs(&video_path_embeddings, similarity_threshold);
+    // concatenation, not by score. Both also share `control`: its
+    // `compared` count advances across images first, then videos, so
+    // the dialog can report one running "N of M" across the whole scan
+    // rather than two.
+    let mut similar_pairs =
+        find_similar_pairs(&image_path_embeddings, similarity_threshold, control);
+    let video_pairs =
+        find_similar_video_pairs(&video_path_embeddings, similarity_threshold, control);
     similar_pairs.extend(video_pairs);
     sort_pairs(&mut similar_pairs);
     let total_found = similar_pairs.len();
@@ -331,11 +367,23 @@ fn prepare_embeddings(
     }
 }
 
-fn find_similar_video_pairs(map: &[VideoEmbedding], threshold: f32) -> Vec<SimilarImagePair> {
+/// Same cancellation/progress contract as `find_similar_pairs`
+/// (review 161 #2/#3): `control` checked once per outer row, before its
+/// O(n) inner loop, and advanced once per row actually scored. Continues
+/// `control`'s running count rather than starting its own, so a scan
+/// spanning images then videos reports one coherent "N of M".
+fn find_similar_video_pairs(
+    map: &[VideoEmbedding],
+    threshold: f32,
+    control: &ScanControl,
+) -> Vec<SimilarImagePair> {
     let config = VideoSimilarityConfig::default();
     let mut pairs = (0..map.len())
         .into_par_iter()
         .flat_map(|i| {
+            if control.is_cancelled() {
+                return Vec::new();
+            }
             let left = &map[i];
             let mut pairs = Vec::new();
             for right in map.iter().skip(i + 1) {
@@ -357,6 +405,7 @@ fn find_similar_video_pairs(map: &[VideoEmbedding], threshold: f32) -> Vec<Simil
                     ));
                 }
             }
+            control.advance();
             pairs
         })
         .collect::<Vec<_>>();
@@ -397,7 +446,7 @@ mod tests {
             files: vec![],
         };
 
-        let result = prepare_embeddings(dir_node, 0.0, None);
+        let result = prepare_embeddings(dir_node, 0.0, None, &ScanControl::new());
 
         assert!(
             !result.outcome.had_errors,
@@ -426,7 +475,7 @@ mod tests {
             files: vec![PathBuf::from("clip.mp4")],
         };
 
-        let result = prepare_embeddings(dir_node, 0.0, None);
+        let result = prepare_embeddings(dir_node, 0.0, None, &ScanControl::new());
 
         assert!(
             !result.outcome.had_errors,
@@ -456,7 +505,7 @@ mod tests {
             .map(|i| (format!("image-{i}.jpg"), None, vector.clone()))
             .collect();
 
-        let all_pairs = find_similar_pairs(&map, 0.0);
+        let all_pairs = find_similar_pairs(&map, 0.0, &ScanControl::new());
         let total_found = all_pairs.len();
         let mut capped = all_pairs;
         capped.truncate(MAX_SIMILAR_PAIRS);
@@ -470,6 +519,82 @@ mod tests {
         assert!(
             total_found > capped.len(),
             "this fixture only proves anything if the cap actually bit"
+        );
+    }
+
+    /// Review 161 #2/#3, for `find_similar_video_pairs` specifically -
+    /// the identical property already proven for `find_similar_pairs`
+    /// in `arama-ai`'s own tests, reproduced here because this function
+    /// is private to this crate and has its own cancellation check.
+    /// Deterministic for the same reason: triggers on observed
+    /// progress, not a sleep.
+    #[test]
+    fn find_similar_video_pairs_cancelling_once_progress_is_observed_stops_short() {
+        let n = 400;
+        let map: Vec<VideoEmbedding> = (0..n)
+            .map(|i| VideoEmbedding {
+                path: format!("clip-{i}.mp4"),
+                thumbnail_path: None,
+                clip_vector: Some(vec![1.0, 0.0]),
+                audio_vector: None,
+            })
+            .collect();
+        let control = Arc::new(ScanControl::new());
+
+        let canceller = {
+            let control = control.clone();
+            std::thread::spawn(move || {
+                while control.snapshot().0 == 0 {
+                    std::hint::spin_loop();
+                }
+                control.cancel();
+            })
+        };
+
+        let _pairs = find_similar_video_pairs(&map, 0.0, &control);
+        canceller.join().unwrap();
+
+        let (compared, _) = control.snapshot();
+        assert!(
+            compared < n,
+            "expected the scan to stop before every row was compared, got all {n}"
+        );
+        assert!(
+            compared > 0,
+            "expected at least the triggering row to count"
+        );
+    }
+
+    /// Review 161 #3: a scan with both images and videos must report one
+    /// running total across both, not reset between them - confirmed by
+    /// calling `prepare_embeddings`'s own merge sequence through a
+    /// `ScanControl` and checking its `total` after cache-read-equivalent
+    /// setup, without needing a real cache (this only exercises the
+    /// scoring half, by constructing the embeddings directly).
+    #[test]
+    fn total_spans_images_and_videos_together() {
+        let control = ScanControl::new();
+        let images: Vec<(String, Option<String>, Vec<f32>)> = (0..3)
+            .map(|i| (format!("image-{i}.jpg"), None, vec![1.0, 0.0]))
+            .collect();
+        let videos: Vec<VideoEmbedding> = (0..2)
+            .map(|i| VideoEmbedding {
+                path: format!("clip-{i}.mp4"),
+                thumbnail_path: None,
+                clip_vector: Some(vec![1.0, 0.0]),
+                audio_vector: None,
+            })
+            .collect();
+
+        control.set_total(images.len() + videos.len());
+        let _ = find_similar_pairs(&images, 0.0, &control);
+        let _ = find_similar_video_pairs(&videos, 0.0, &control);
+
+        let (compared, total) = control.snapshot();
+        assert_eq!(total, 5, "3 images + 2 videos");
+        assert_eq!(
+            compared, 5,
+            "every row across both calls must advance the one shared counter"
         );
     }
 }

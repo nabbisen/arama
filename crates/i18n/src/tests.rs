@@ -316,6 +316,15 @@ fn similarity_scanning_and_truncation_keys_resolve_correctly_in_both_locales() {
         assert!(truncated.contains("50"), "{locale:?}: {truncated}");
         assert!(truncated.contains("287"), "{locale:?}: {truncated}");
         assert!(!truncated.contains('{'), "{locale:?}: {truncated}");
+
+        // RFC 047 S6 / review 161 #3: the determinate progress key.
+        let progress = t_with(
+            "similarity.scan_progress",
+            &[("{compared}", "37"), ("{total}", "120")],
+        );
+        assert!(progress.contains("37"), "{locale:?}: {progress}");
+        assert!(progress.contains("120"), "{locale:?}: {progress}");
+        assert!(!progress.contains('{'), "{locale:?}: {progress}");
     }
     set_locale(Locale::En);
 }

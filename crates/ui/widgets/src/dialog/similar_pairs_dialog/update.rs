@@ -12,6 +12,7 @@ impl SimilarPairsDialog {
                 self.total_found = result.total_found;
                 self.pairs = Some(result.outcome.items);
             }
+            Message::Progress(compared, total) => self.scan_progress = (compared, total),
             Message::MediaItemEnter(path) => self.hovered_media_item_path_str = Some(path),
             Message::MediaItemDoubleClicked(_) => (),
             Message::MediaExit => self.hovered_media_item_path_str = None,

@@ -186,6 +186,7 @@ version = "0.42.0"
 dependencies = [
  "anyhow",
  "blake3",
+ "command-group",
  "image",
  "localcache",
  "rayon",

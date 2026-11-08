@@ -40,6 +40,11 @@ localcache = { workspace = true }
 
 anyhow = { workspace = true }
 blake3 = { workspace = true }
+# Review 161 #4: `run_command_with_timeout` (thumbnail.rs) kills the whole
+# process group on timeout, not just the one child - already a workspace
+# dependency, used the same way by the sidecar for Task 021's Windows
+# process-tree reaping. No new crate in the lockfile.
+command-group = { workspace = true }
 image = { workspace = true }
 rayon = { workspace = true }
 serde = { workspace = true }

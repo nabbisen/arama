@@ -181,6 +181,7 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
             "Video comparison did not run: no ffmpeg/ffprobe pair was found."
         }
         "similarity.scanning" => "Searching for similar pairs\u{2026}",
+        "similarity.scan_progress" => "Comparing {compared} of {total} files\u{2026}",
         "similarity.pairs_truncated" => {
             "Showing the {retained} most similar of {total} matches found."
         }

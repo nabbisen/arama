@@ -146,11 +146,14 @@ impl App {
                         self.ffmpeg_authority.toolchain().cloned(),
                     );
                     self.dialog = Some(Dialog::SimilarPairsDialog(dialog.clone()));
-                    // RFC 047 S3.3: kept so the scan can be aborted if
-                    // the dialog closes before it finishes -
-                    // `handle_dialog_close` is where that happens.
-                    let (scan_task, handle) = dialog.default_task();
-                    self.similar_pairs_task_handle = Some(handle);
+                    // Review 161 #2: kept so the scan can actually be
+                    // cancelled if the dialog closes before it finishes
+                    // (`handle_dialog_close`) - a `Task::abortable`
+                    // `Handle` cannot do this for a `spawn_blocking` task
+                    // (see `ScanControl`'s own doc comment). Also read
+                    // by `subscription()` below to poll progress.
+                    let (scan_task, control) = dialog.default_task();
+                    self.similar_pairs_scan = Some(control);
                     return scan_task.map(Message::SimilarPairsDialogMessage);
                 }
             },
@@ -220,16 +223,31 @@ impl App {
         Task::none()
     }
 
+    /// RFC 047 S6 / review 161 #3: reads the live `ScanControl` snapshot,
+    /// the one place with `&self` access to it, and forwards it into the
+    /// dialog as an ordinary `Progress` message. A `None` scan (the
+    /// result already arrived, or the dialog was closed since the tick
+    /// was scheduled) makes this a no-op; `subscription()` also stops
+    /// scheduling further ticks once that happens.
+    pub(super) fn handle_similar_pairs_progress_tick(&mut self) -> Task<Message> {
+        let Some(control) = &self.similar_pairs_scan else {
+            return Task::none();
+        };
+        let (compared, total) = control.snapshot();
+        self.handle_similar_pairs_dialog_message(similar_pairs_dialog::message::Message::Progress(
+            compared, total,
+        ))
+    }
+
     pub(super) fn handle_similar_pairs_dialog_message(
         &mut self,
         message: similar_pairs_dialog::message::Message,
     ) -> Task<Message> {
-        // RFC 047 S3.3: reaching this message at all means the scan
-        // `Task` was not aborted (the same `Abortable`-drop reasoning as
-        // `handle_embedding_cache_finished`) - the handle now refers to
-        // a finished task, so there is nothing left to abort it for.
+        // The scan has produced its final result, whether it ran to
+        // completion or stopped early after `cancel()` - either way
+        // there is nothing left to poll progress from or to cancel.
         if let similar_pairs_dialog::message::Message::EmbeddingsReady(_) = &message {
-            self.similar_pairs_task_handle = None;
+            self.similar_pairs_scan = None;
         }
 
         if let Some(Dialog::SimilarPairsDialog(x)) = &mut self.dialog {

@@ -61,6 +61,20 @@ async fn run_thumbnail_phase(
     dir_node: DirNode,
     cancel_flag: Arc<AtomicBool>,
 ) -> Vec<(PathBuf, Arc<arama_cache::Result<()>>)> {
+    run_thumbnail_phase_with_hook(dir_node, cancel_flag, |_cumulative_results| {}).await
+}
+
+/// The real body, parameterized by a hook called with the cumulative
+/// result count after every chunk. `run_thumbnail_phase` passes a no-op
+/// in production - the hook exists only so a test can observe real
+/// progress and act on it (review 161 #5: cancel once a chunk has
+/// actually finished, not after a fixed sleep, which a faster or slower
+/// machine could make pass or fail without any code change).
+async fn run_thumbnail_phase_with_hook(
+    dir_node: DirNode,
+    cancel_flag: Arc<AtomicBool>,
+    mut after_chunk: impl FnMut(usize),
+) -> Vec<(PathBuf, Arc<arama_cache::Result<()>>)> {
     let Ok(cache_path) = cache_storage_path() else {
         return vec![];
     };
@@ -91,12 +105,26 @@ async fn run_thumbnail_phase(
             break;
         };
         results.extend(chunk_results.into_iter().map(|(p, r)| (p, Arc::new(r))));
+        after_chunk(results.len());
     }
     results
 }
 
 impl App {
     pub(super) fn handle_cache_require(&mut self, target: Option<DirNode>) -> Task<Message> {
+        // Review 161, "smaller": every run-start path dispatches
+        // `Message::CacheRequire`, which always lands here - the one
+        // choke point - so this is where a stale `embedding_completed`
+        // from a previous run must be cleared, rather than at each of
+        // the six call sites individually. `abort_indexing`'s two
+        // callers (`on_dir_changed`, `on_cache_page_request`) already
+        // clear it before getting here; the three settings-triggered
+        // paths in `component.rs` do not, since they only start a run
+        // when nothing was already processing and so never had a task
+        // to abort.
+        self.embedding_completed = false;
+        self.header.set_embedding_cached(false);
+
         let node = target.or_else(|| self.dir_node.clone());
         if let Some(dir_node) = node {
             let cancel_flag = Arc::new(AtomicBool::new(false));
@@ -268,7 +296,19 @@ impl App {
                     Task::batch([task, prune_task(max_bytes)])
                 }
                 cache_page::message::Event::StopRequest => {
+                    // Review 161 #1: `abort_indexing` alone leaves
+                    // `processing` stuck `true` forever, because an
+                    // aborted task's completion message never arrives
+                    // to call `processing_off` for us (confirmed via
+                    // `iced_runtime`'s `Abortable` semantics, same
+                    // reasoning as `embedding_completed`). Its other
+                    // two callers (`on_dir_changed`,
+                    // `on_cache_page_request`) immediately start a new
+                    // run and call `processing_on` right after, so
+                    // `processing_off` belongs here, not inside the
+                    // shared helper.
                     self.abort_indexing();
+                    self.processing_off();
                     let reload = self.run_finished_reload();
                     Task::batch([task, reload])
                 }
@@ -812,15 +852,15 @@ mod tests {
     use std::path::PathBuf;
     use std::sync::{
         Arc,
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicUsize, Ordering},
     };
-    use std::time::{Duration, Instant};
+    use std::time::Instant;
 
     use arama_env::DATA_HOME_ENV_VAR;
     use swdir::DirNode;
 
     use super::super::super::ARAMA_DATA_HOME_TEST_LOCK;
-    use super::{THUMBNAIL_CHUNK_SIZE, run_thumbnail_phase};
+    use super::{THUMBNAIL_CHUNK_SIZE, run_thumbnail_phase, run_thumbnail_phase_with_hook};
 
     /// A syntactically valid 1x1 JPEG - enough for `image::open` to
     /// decode and `generate_image_thumbnail` to resize successfully.
@@ -913,7 +953,13 @@ mod tests {
         let failures: Vec<_> = results.iter().filter(|(_, r)| r.is_err()).collect();
         assert!(
             failures.is_empty(),
-            "every real, decodable file must cache successfully: {failures:?}"
+            // Review 161: described precisely, not as a decode check -
+            // `ImageCacheWriter::onetime` configures no `thumbnail_dir`,
+            // so `ensure_thumbnail` returns early and this phase never
+            // calls `image::open` at all (confirmed by reading both).
+            // This only proves the freshness-tracking row write itself
+            // succeeds for every file.
+            "every file's freshness-tracking row must write successfully: {failures:?}"
         );
 
         unsafe {
@@ -936,9 +982,9 @@ mod tests {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let previous = std::env::var_os(DATA_HOME_ENV_VAR);
-        // Enough chunks that cancelling partway through is observable:
-        // too few and the whole run could finish before the canceller
-        // task is even scheduled, which would prove nothing either way.
+        // Enough chunks that cancelling after the first one leaves real
+        // work undone: too few and the whole run could finish inside
+        // that first chunk, which would prove nothing either way.
         let file_count = THUMBNAIL_CHUNK_SIZE * 40;
         let (data_home, source_dir, dir_node) =
             thumbnail_phase_fixture("cancel-mid-run", file_count);
@@ -948,23 +994,39 @@ mod tests {
 
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let cancel_flag = Arc::new(AtomicBool::new(false));
+
+        // Review 161 #5: deterministic, not timed. `chunks_done` is
+        // advanced by the hook from *inside* the run, after each real
+        // chunk finishes; the canceller thread busy-polls it (reacting
+        // to actual progress, never to wall-clock time) and sets the
+        // flag the instant the first chunk is done - before the second
+        // chunk's `spawn_blocking` call is ever reached, on any machine,
+        // at any speed.
+        let chunks_done = Arc::new(AtomicUsize::new(0));
+        let canceller_chunks_done = chunks_done.clone();
         let canceller_flag = cancel_flag.clone();
 
         let started = Instant::now();
         let results = runtime.block_on(async move {
-            let canceller = tokio::spawn(async move {
-                tokio::time::sleep(Duration::from_millis(20)).await;
+            let canceller = tokio::task::spawn_blocking(move || {
+                while canceller_chunks_done.load(Ordering::Relaxed) == 0 {
+                    std::hint::spin_loop();
+                }
                 canceller_flag.store(true, Ordering::Relaxed);
             });
-            let results = run_thumbnail_phase(dir_node, cancel_flag).await;
+            let results = run_thumbnail_phase_with_hook(dir_node, cancel_flag, move |_| {
+                chunks_done.fetch_add(1, Ordering::Relaxed);
+            })
+            .await;
             let _ = canceller.await;
             results
         });
         let elapsed = started.elapsed();
 
         eprintln!(
-            "=== T061 evidence: cancel set after 20ms, {} of {file_count} files \
-             processed, run_thumbnail_phase returned after {elapsed:?} ===",
+            "=== T061 evidence: cancelled as soon as the first chunk of \
+             {THUMBNAIL_CHUNK_SIZE} finished, {} of {file_count} files processed, \
+             run_thumbnail_phase returned after {elapsed:?} ===",
             results.len()
         );
 
@@ -975,13 +1037,18 @@ mod tests {
         );
         assert!(
             !results.is_empty(),
-            "the chunk(s) already dispatched before cancellation should still have \
-             produced some results, got none at all"
+            "the chunk already dispatched before cancellation should still have produced \
+             some results, got none at all"
         );
+        // At most two chunks' worth: the triggering chunk, plus - in
+        // the worst case - one more dispatched before the flag check
+        // above it is observed. Anything more would mean the flag
+        // check is not actually gating dispatch.
         assert!(
-            elapsed < Duration::from_secs(5),
-            "a cancelled run must return in roughly one chunk's worth of time, not finish \
-             the whole directory - took {elapsed:?} for {file_count} files"
+            results.len() <= THUMBNAIL_CHUNK_SIZE * 2,
+            "expected at most two chunks' worth of results ({}), got {}",
+            THUMBNAIL_CHUNK_SIZE * 2,
+            results.len()
         );
 
         unsafe {

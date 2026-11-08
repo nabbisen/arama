@@ -54,6 +54,7 @@ impl App {
             Message::CloseMenus => self.handle_close_menus(),
             Message::ToastDismiss(id) => self.handle_toast_dismiss(id),
             Message::ToastSweep => self.handle_toast_sweep(),
+            Message::SimilarPairsProgressTick => self.handle_similar_pairs_progress_tick(),
             Message::CursorMove(point) => self.handle_cursor_move(point),
 
             // --- keyboard (RFC 044) ---

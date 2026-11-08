@@ -37,13 +37,16 @@ impl App {
 
     pub(super) fn handle_dialog_close(&mut self) -> Task<Message> {
         self.dialog = None;
-        // RFC 047 S3.3: the similar-pairs scan must be interruptible, and
-        // closing its dialog is the only control surface it has for
-        // that - there is no separate Cancel button. A `None` handle
-        // (no scan in flight, or a different dialog was open) makes
+        // Review 161 #2: the similar-pairs scan must actually be
+        // interruptible, and closing its dialog is the only control
+        // surface it has for that - there is no separate Cancel button.
+        // `cancel()` on the shared `ScanControl`, not a `Task::abortable`
+        // `Handle` (which cannot stop a `spawn_blocking` closure once it
+        // is running - see `ScanControl`'s own doc comment). A `None`
+        // scan (none in flight, or a different dialog was open) makes
         // this a no-op.
-        if let Some(handle) = self.similar_pairs_task_handle.take() {
-            handle.abort();
+        if let Some(control) = self.similar_pairs_scan.take() {
+            control.cancel();
         }
         Task::none()
     }

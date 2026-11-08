@@ -65,6 +65,14 @@ pub enum Message {
     CloseMenus,
     ToastDismiss(u64),
     ToastSweep,
+    /// RFC 047 S6 / review 161 #3: a non-capturing subscription tick
+    /// (`subscription()`) - it carries no state itself, since
+    /// `Subscription::map`'s closure must not capture anything.
+    /// `handle_similar_pairs_progress_tick` reads the live
+    /// `ScanControl` snapshot and forwards it into the dialog, the same
+    /// pattern `ToastSweep` already uses for reading `self.toasts`
+    /// inside `update` rather than inside the subscription closure.
+    SimilarPairsProgressTick,
     CursorMove(Point),
     /// RFC 044: every key press, routed through `snora::keyboard`'s pure
     /// helpers (`dismiss_on_escape`, `cycle_zones`) in `update` - this

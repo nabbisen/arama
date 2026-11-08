@@ -11,19 +11,21 @@ use super::{SimilarPairsDialog, message::Message};
 
 impl SimilarPairsDialog {
     pub fn view(&self) -> Element<'_, Message> {
-        // RFC 047 S3.3/claim #2: the scan runs in the background and
-        // produces one result when it completes - it does not stream
-        // partial results (a non-goal, RFC 047 S5). But it is not
-        // instant either, and rendering nothing at all while it runs is
-        // exactly the "appears to do nothing" shape the rest of this RFC
-        // is about. This is a static sentence, not a progress bar or a
-        // live count - "reports that it is running" (S3.3), not
-        // progressive delivery.
+        // RFC 047 S6 / review 161 #3: the scan runs in the background
+        // and produces one result when it completes - it does not
+        // stream partial *results* (that remains a non-goal, RFC 047
+        // S5). But §6 asks for more than "it is running": a determinate
+        // count of how far it has got, which `scanning_text` below
+        // renders from `self.scan_progress` once scoring has a real
+        // denominator.
         let pairs = match &self.pairs {
             Some(x) => x,
             None => {
-                return container(text(t("similarity.scanning")).size(arama_theme::body_size()))
-                    .into();
+                let (compared, total) = self.scan_progress;
+                return container(
+                    text(scanning_text(compared, total)).size(arama_theme::body_size()),
+                )
+                .into();
             }
         };
 
@@ -120,9 +122,29 @@ fn truncation_notice_text(retained: usize, total_found: usize) -> Option<String>
     })
 }
 
+/// RFC 047 S6 / review 161 #3: `total == 0` means scoring has not
+/// started yet (still reading the cache, or nothing to compare) - the
+/// generic "it is running" sentence is all that is honest to show, since
+/// there is no real denominator yet. Once `total > 0`, a determinate "N
+/// of M" replaces it. Pure and separate from `view()` for the same
+/// reason as `truncation_notice_text` above.
+fn scanning_text(compared: usize, total: usize) -> String {
+    if total == 0 {
+        t("similarity.scanning")
+    } else {
+        t_with(
+            "similarity.scan_progress",
+            &[
+                ("{compared}", &compared.to_string()),
+                ("{total}", &total.to_string()),
+            ],
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::truncation_notice_text;
+    use super::{scanning_text, truncation_notice_text};
 
     #[test]
     fn no_notice_when_nothing_was_truncated() {
@@ -137,5 +159,20 @@ mod tests {
         assert!(notice.contains("50"), "{notice}");
         assert!(notice.contains("287"), "{notice}");
         assert!(!notice.contains('{'), "{notice}");
+    }
+
+    #[test]
+    fn scanning_text_is_generic_before_a_total_is_known() {
+        let text = scanning_text(0, 0);
+        assert!(!text.contains('0'), "{text}");
+        assert!(!text.contains('{'), "{text}");
+    }
+
+    #[test]
+    fn scanning_text_names_both_counts_once_a_total_is_known() {
+        let text = scanning_text(37, 120);
+        assert!(text.contains("37"), "{text}");
+        assert!(text.contains("120"), "{text}");
+        assert!(!text.contains('{'), "{text}");
     }
 }

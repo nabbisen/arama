@@ -765,6 +765,11 @@ fn stop_signals_the_cancel_flag_clears_the_task_handle_and_un_completes_embeddin
     let cancel_flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     app.cancel_flag = Some(cancel_flag.clone());
     app.embedding_completed = true;
+    // Review 161 #1: a real run in flight is always `processing`; the
+    // bug was that `abort_indexing` alone never cleared it, which left
+    // the aside blocking expand/selection (it checks `processing`) for
+    // the rest of the session after one Stop.
+    app.processing = true;
 
     let _ = app.update(Message::CachePageMessage(
         arama_ui_main::views::cache_page::message::Message::Event(
@@ -789,6 +794,11 @@ fn stop_signals_the_cancel_flag_clears_the_task_handle_and_un_completes_embeddin
     assert!(
         !app.embedding_completed,
         "a directory stopped midway must not present itself as fully indexed (RFC 047 S7.1)"
+    );
+    assert!(
+        !app.processing,
+        "review 161 #1: Stop must return the app to idle, or the aside stays blocked and \
+         settings-triggered runs never start again until restart"
     );
 
     unsafe {
@@ -857,6 +867,62 @@ fn switching_directories_mid_index_cancels_both_the_task_and_the_flag() {
     }
     let _ = std::fs::remove_dir_all(&scratch);
     let _ = std::fs::remove_dir_all(&new_dir);
+}
+
+/// Review 161, "smaller": two settings-triggered run-starts
+/// (`TargetMediaTypeChanged`/`SubDirDepthLimitChanged`) start a new run
+/// without going through `abort_indexing` (nothing was running, so
+/// there is nothing to abort), which used to leave a stale
+/// `embedding_completed = true` from a previous directory's completed
+/// run - the button would stay available on the *old* completion. The
+/// fix lives at the one choke point every run-start path passes
+/// through (`handle_cache_require`), confirmed here through the real
+/// `App::update` path for `TargetMediaTypeChanged` specifically - the
+/// exact scenario the review's own probe reproduced.
+#[test]
+fn settings_triggered_run_start_clears_a_stale_embedding_completed() {
+    let _guard = ARAMA_DATA_HOME_TEST_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
+    let scratch = scratch_data_home("settings-run-start-clears-stale-completed");
+    unsafe {
+        std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
+    }
+
+    let mut app = App::new().0;
+    // A previous directory's run completed in full.
+    app.embedding_completed = true;
+    app.processing = false;
+
+    // The settings handler itself only returns a `Task::done(CacheRequire(None))`
+    // - it does not call `handle_cache_require` directly. `iced::Task`
+    // has no public way to poll itself to completion outside the real
+    // application executor (confirmed during T061's own work), so the
+    // second step is driven by hand here, exactly as the executor would
+    // deliver it.
+    let _ = app.update(Message::SettingsDialogMessage(
+        arama_ui_widgets::dialog::settings_dialog::message::Message::TargetMediaTypeChanged(
+            arama_env::target_media_type::TargetMediaType {
+                include_image: true,
+                include_video: true,
+            },
+        ),
+    ));
+    let _ = app.update(Message::CacheRequire(None));
+
+    assert!(
+        !app.embedding_completed,
+        "a brand new run must not inherit the previous directory's completed state"
+    );
+
+    unsafe {
+        match &previous {
+            Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
+            None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
+        }
+    }
+    let _ = std::fs::remove_dir_all(&scratch);
 }
 
 /// RFC 047 S3.4: reaching `handle_embedding_cache_finished` is itself

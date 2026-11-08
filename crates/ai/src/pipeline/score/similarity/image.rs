@@ -5,6 +5,8 @@ use rayon::{
     slice::ParallelSliceMut,
 };
 
+use super::scan_control::ScanControl;
+
 // Assumption: vectors were L2-normalized when cached.
 // Return: left (path, thumbnail_path), right (path, thumbnail_path), similarity.
 pub type MediaRef = (String, Option<String>);
@@ -18,10 +20,19 @@ pub type SimilarImagePair = (MediaRef, MediaRef, f32);
 /// 50 while videos had no cap at all, an asymmetry nobody chose). The
 /// caller needs the honest pre-cap total to render retained-versus-total
 /// counts, which an internal cap would have made impossible to recover.
+///
+/// `control` is checked once per outer row, before that row's O(n) inner
+/// loop - review 161 #2: once cancelled, this turns the remaining work
+/// from O(n) per row into O(1) per row, rather than merely stopping
+/// *future* calls into this function the way an `.abortable()` `Task`
+/// around a `spawn_blocking` call alone would (it would not - see
+/// `ScanControl`'s own doc comment). Each row actually scored also
+/// advances `control`'s progress count (review 161 #3).
 pub fn find_similar_pairs(
     // path, thumbnail_path, features
     map: &[(String, Option<String>, Vec<f32>)],
     threshold: f32,
+    control: &ScanControl,
 ) -> Vec<SimilarImagePair> {
     let n = map.len();
     if n == 0 {
@@ -31,6 +42,9 @@ pub fn find_similar_pairs(
     let mut ret: Vec<SimilarImagePair> = (0..n)
         .into_par_iter()
         .flat_map(|i| {
+            if control.is_cancelled() {
+                return Vec::new();
+            }
             let (path_a, thumbnail_path_a, vec_a) = &map[i];
             let mut pairs = Vec::new();
             for (path_b, thumbnail_path_b, vec_b) in map.iter().skip(i + 1) {
@@ -46,6 +60,7 @@ pub fn find_similar_pairs(
                     ));
                 }
             }
+            control.advance();
             pairs
         })
         .collect();
@@ -80,6 +95,7 @@ fn compare_pairs(a: &SimilarImagePair, b: &SimilarImagePair) -> Ordering {
 #[cfg(test)]
 mod tests {
     use super::find_similar_pairs;
+    use crate::pipeline::score::similarity::scan_control::ScanControl;
 
     fn item(path: &str, vector: &[f32]) -> (String, Option<String>, Vec<f32>) {
         (path.to_owned(), None, vector.to_vec())
@@ -87,7 +103,7 @@ mod tests {
 
     #[test]
     fn empty_input_returns_no_pairs() {
-        let pairs = find_similar_pairs(&[], 0.5);
+        let pairs = find_similar_pairs(&[], 0.5, &ScanControl::new());
 
         assert!(pairs.is_empty());
     }
@@ -100,7 +116,7 @@ mod tests {
             item("c.jpg", &[0.0, 1.0]),
         ];
 
-        let pairs = find_similar_pairs(&map, 0.8);
+        let pairs = find_similar_pairs(&map, 0.8, &ScanControl::new());
 
         assert_eq!(pairs.len(), 1);
         assert_eq!(pairs[0].0.0, "a.jpg");
@@ -122,7 +138,7 @@ mod tests {
             item("d.jpg", &[0.0, 1.0]),
         ];
 
-        let pairs = find_similar_pairs(&map, 0.0);
+        let pairs = find_similar_pairs(&map, 0.0, &ScanControl::new());
 
         let keys = pairs
             .iter()
@@ -149,9 +165,76 @@ mod tests {
             item("c.jpg", &[f32::NAN, 0.0]),
         ];
 
-        let pairs = find_similar_pairs(&map, 0.0);
+        let pairs = find_similar_pairs(&map, 0.0, &ScanControl::new());
 
         assert!(pairs.is_empty());
+    }
+
+    #[test]
+    fn a_pre_cancelled_control_returns_no_pairs_and_advances_nothing() {
+        let map = vec![
+            item("a.jpg", &[1.0, 0.0]),
+            item("b.jpg", &[1.0, 0.0]),
+            item("c.jpg", &[1.0, 0.0]),
+        ];
+        let control = ScanControl::new();
+        control.cancel();
+
+        let pairs = find_similar_pairs(&map, 0.0, &control);
+
+        assert!(pairs.is_empty());
+        assert_eq!(
+            control.snapshot().0,
+            0,
+            "a row skipped for cancellation must not count as compared"
+        );
+    }
+
+    /// Review 161 #5's own fix (a deterministic trigger, not a sleep)
+    /// applied to the new cancellation path itself: cancels once real
+    /// progress is observed, by polling `ScanControl::snapshot` from
+    /// another thread rather than waiting a fixed duration - the busy
+    /// loop reacts to actual work done, not wall-clock time, so it
+    /// cannot be flaky on a faster or slower machine the way a sleep-
+    /// then-cancel race would be.
+    #[test]
+    fn cancelling_once_progress_is_observed_stops_short_of_the_full_scan() {
+        // Enough rows that the scan cannot finish before the polling
+        // thread below observes at least one row and cancels.
+        let n = 400;
+        let map: Vec<(String, Option<String>, Vec<f32>)> = (0..n)
+            .map(|i| item(&format!("image-{i}.jpg"), &[1.0, 0.0]))
+            .collect();
+        let control = std::sync::Arc::new(ScanControl::new());
+
+        let canceller = {
+            let control = control.clone();
+            std::thread::spawn(move || {
+                while control.snapshot().0 == 0 {
+                    std::hint::spin_loop();
+                }
+                control.cancel();
+            })
+        };
+
+        let pairs = find_similar_pairs(&map, 0.0, &control);
+        canceller.join().unwrap();
+
+        let (compared, _) = control.snapshot();
+        assert!(
+            compared < n,
+            "expected the scan to stop before every row was compared, got all {n}"
+        );
+        assert!(
+            compared > 0,
+            "expected at least the triggering row to count"
+        );
+        // Every row that *was* compared still produced correct pairs -
+        // cancellation must not corrupt the rows it did not skip.
+        for (left, right, score) in &pairs {
+            assert!(left.0 < right.0 || right.0 < left.0, "{left:?}/{right:?}");
+            assert!((*score - 1.0).abs() < f32::EPSILON);
+        }
     }
 
     #[test]
@@ -170,7 +253,7 @@ mod tests {
             .collect::<Vec<_>>();
 
         let started = std::time::Instant::now();
-        let pairs = find_similar_pairs(&map, 0.0);
+        let pairs = find_similar_pairs(&map, 0.0, &ScanControl::new());
         let elapsed = started.elapsed();
 
         println!(

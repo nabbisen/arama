@@ -12,6 +12,8 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
+use command_group::CommandGroup;
+
 use super::engine::CacheError;
 
 /// RFC 047 S4 / the external audit's B3: ffmpeg previously ran with no
@@ -140,10 +142,18 @@ fn run_command_with_timeout(
     mut command: Command,
     timeout: Duration,
 ) -> std::result::Result<(), CommandTimeoutError> {
+    // Review 161 #4: `group_spawn` (not `spawn`) so `kill()` below
+    // terminates the whole process group/job object, not only this one
+    // process - the same mechanism the sidecar already uses for Task
+    // 021's Windows process-tree reaping
+    // (`crates/engine/sidecar/src/media/video/video_engine.rs`). A
+    // launcher shim (a Chocolatey or scoop ffmpeg wrapper, say) whose
+    // real work happens in a child of the process we spawned would
+    // otherwise be orphaned by a plain `child.kill()`.
     let mut child = command
         .stdout(Stdio::null())
         .stderr(Stdio::piped())
-        .spawn()
+        .group_spawn()
         .map_err(|e| CommandTimeoutError::Spawn(e.to_string()))?;
 
     // `Command::output()` drains stdout/stderr on background threads
@@ -151,7 +161,7 @@ fn run_command_with_timeout(
     // full pipe. A manual poll loop (needed below for the timeout) does
     // not get that for free, so stderr is drained on its own thread here
     // for the same reason.
-    let stderr_handle = child.stderr.take().map(|mut pipe| {
+    let stderr_handle = child.inner().stderr.take().map(|mut pipe| {
         std::thread::spawn(move || {
             use std::io::Read;
             let mut buf = String::new();
@@ -250,6 +260,56 @@ mod tests {
             elapsed < Duration::from_secs(5),
             "killing a hung process took {elapsed:?}, expected well under the 30s it would \
              otherwise have run for"
+        );
+    }
+
+    /// Review 161 #4: the point of `group_spawn` over plain `spawn` -
+    /// killing the direct child must not orphan a grandchild it spawned
+    /// itself, the shape of a launcher shim (a Chocolatey or scoop
+    /// `ffmpeg` wrapper) whose real work happens one process down.
+    /// Proven without a PID-existence check (no `libc` dependency
+    /// needed): the grandchild repeatedly stamps a heartbeat file while
+    /// alive; if it is still running after the parent is killed, the
+    /// stamp keeps advancing, and if it is dead, it stops - checked by
+    /// comparing two reads of the file a beat apart, after the kill.
+    #[cfg(unix)]
+    #[test]
+    fn killing_the_group_also_reaps_a_grandchild_it_spawned() {
+        let heartbeat = std::env::temp_dir().join(format!(
+            "arama-t061-rework-grandchild-heartbeat-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&heartbeat);
+
+        let mut command = Command::new("sh");
+        command.args([
+            "-c",
+            &format!("(while true; do date +%s%N > {heartbeat:?}; sleep 0.05; done) & wait",),
+        ]);
+
+        // Long enough that the grandchild has definitely written at
+        // least once before the timeout fires.
+        let result = run_command_with_timeout(command, Duration::from_millis(200));
+        assert!(
+            matches!(result, Err(CommandTimeoutError::TimedOut { .. })),
+            "expected TimedOut, got {result:?}"
+        );
+        assert!(
+            heartbeat.exists(),
+            "the grandchild never got to write even once - the fixture itself is broken, \
+             not the property under test"
+        );
+
+        let first = std::fs::read_to_string(&heartbeat).unwrap();
+        std::thread::sleep(Duration::from_millis(250));
+        let second = std::fs::read_to_string(&heartbeat).unwrap();
+
+        let _ = std::fs::remove_file(&heartbeat);
+
+        assert_eq!(
+            first, second,
+            "the heartbeat kept advancing after the parent was killed - the grandchild is \
+             still alive, orphaned rather than reaped"
         );
     }
 

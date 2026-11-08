@@ -88,9 +88,17 @@ pub struct App {
     /// Pairs button: a partially-indexed directory must not present
     /// itself as fully indexed.
     embedding_completed: bool,
-    /// Handle for the in-flight similar-pairs scan, aborted when its
-    /// dialog closes - RFC 047 S3.3's "must be interruptible".
-    similar_pairs_task_handle: Option<iced::task::Handle>,
+    /// Shared cancellation/progress state for the in-flight similar-pairs
+    /// scan, `cancel()`-ed when its dialog closes. Review 161 #2:
+    /// `Task::abortable()`'s `Handle` cannot do this job - aborting a
+    /// `tokio::task::spawn_blocking` task has no effect on the blocking
+    /// closure itself, confirmed against tokio's own source
+    /// (`ScanControl`'s own doc comment, in
+    /// `arama_ai::pipeline::score::similarity::scan_control`, has the
+    /// citation). Also read by `subscription()` to poll progress while a
+    /// scan is running.
+    similar_pairs_scan:
+        Option<std::sync::Arc<arama_ai::pipeline::score::similarity::scan_control::ScanControl>>,
     /// Currently displayed top-level page.
     nav_page: NavPage,
     /// Settings page widget — persistent so tab state is preserved across
@@ -309,7 +317,7 @@ impl App {
                 task_handle: None,
                 cancel_flag: None,
                 embedding_completed: false,
-                similar_pairs_task_handle: None,
+                similar_pairs_scan: None,
                 nav_page: NavPage::Explorer,
                 settings_page,
                 cache_page: CachePage::default(),
