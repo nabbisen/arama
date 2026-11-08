@@ -79,6 +79,7 @@ it has no handoff.
 | T066 | [Detect an ignore whose condition is already met](./T066-retirable-ignore-detection-handoff.md) | RFC 049 §4, §5, §8 | 2026-11-04 |
 | T068 | [RUSTSEC-2026-0441, `pin-utils`: wasm32-only](./T068-pin-utils-wasm32-only-handoff.md) | RFC 049 | 2026-11-08 |
 | T069 | [Thumbnail phase swallows an unopenable cache](./T069-thumbnail-phase-silent-cache-failure-handoff.md) | RFC 017 | 2026-11-08 |
+| T070 | [snora 0.52 → 0.57](./T070-snora-0.57-handoff.md) | — (dependency maintenance; RFC 044, RFC 049 §3) | **not yet** |
 
 **Tasks written before 2026-11-08 are not here.** Until then they were kept in
 the working copy's `.git-exclude/tasks/dev-team/` — numbered `001`–`047`, then
