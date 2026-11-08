@@ -1,6 +1,6 @@
 # arama Privacy Policy
 
-Last updated: 2026-10-21
+Last updated: 2026-11-09
 
 arama runs entirely on your own computer.
 
@@ -15,12 +15,13 @@ arama runs entirely on your own computer.
 
 ## The only network connection arama makes
 
-On first run, arama downloads two AI models from `huggingface.co` so that it can
-analyse your media offline afterwards. That is an ordinary file download: like
-any download, the server you contact can see your IP address. No information
-about your files, your folders, or your use of the application is included in
-that request. After the download, arama analyses your media with no network
-connection at all.
+On first run, arama downloads two AI models from HuggingFace so that it can
+analyse your media offline afterwards. The request goes to `huggingface.co`,
+which redirects it to a download server under HuggingFace's `hf.co` domain.
+That is an ordinary file download: like any download, the servers you contact
+can see your IP address. No information about your files, your folders, or your
+use of the application is included in those requests. After the download,
+arama analyses your media with no network connection at all.
 
 arama never downloads or installs ffmpeg or any other program on your behalf.
 
@@ -39,7 +40,7 @@ Questions about this policy: https://github.com/nabbisen/arama/issues
 
 # arama プライバシーポリシー
 
-最終更新日: 2026-10-21
+最終更新日: 2026-11-09
 
 arama は、すべての処理をお使いのコンピューター上で行います。
 
@@ -54,11 +55,13 @@ arama は、すべての処理をお使いのコンピューター上で行い�
 
 ## arama が行う唯一のネットワーク通信
 
-初回起動時に、`huggingface.co` から AI モデルを 2 つダウンロードします。これに
-より、以降はオフラインで解析できるようになります。これは通常のファイルの
-ダウンロードであり、他のダウンロードと同様に、接続先のサーバーからは IP
-アドレスが見えます。この通信に、お客様のファイル、フォルダー、アプリケーション
-の利用状況に関する情報が含まれることはありません。ダウンロード後の解析は、
+初回起動時に、HuggingFace から AI モデルを 2 つダウンロードします。これに
+より、以降はオフラインで解析できるようになります。要求は `huggingface.co` に
+送られ、HuggingFace の `hf.co` ドメイン配下のダウンロード用サーバーへ転送
+されます。これは通常のファイルのダウンロードであり、他のダウンロードと同様に、
+接続先のサーバーからは IP アドレスが見えます。これらの通信に、お客様の
+ファイル、フォルダー、アプリケーションの利用状況に関する情報が含まれることは
+ありません。ダウンロード後の解析は、
 ネットワークに接続せずに行われます。
 
 arama が ffmpeg やその他のプログラムを、お客様に代わってダウンロードまたは
