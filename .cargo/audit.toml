@@ -8,9 +8,11 @@
 # two months before anyone revisited the ignore that named the exact
 # condition that would retire it).
 #
-# Task 044: the four IDs below are `cargo audit` *warnings*
-# (unmaintained/unsound), each tracked deliberately with its own
-# dependency path, rationale, and revisit condition in
+# Task 044: three of these IDs (originally four - RUSTSEC-2025-0141,
+# `bincode`, retired by Task 067; see "Resolved" in the ledger) are
+# `cargo audit` *warnings* (unmaintained/unsound), each tracked
+# deliberately with its own dependency path, rationale, and revisit
+# condition in
 # rfcs/notes/audit-warning-burn-down.md's "Remaining Warnings" section -
 # not ignored blindly. Listing them here by identity is what lets CI run
 # `cargo audit --deny warnings` and go red on a genuinely *new* advisory
@@ -45,8 +47,13 @@
 # either version, confirmed again rather than assumed, and it never
 # calls extract(). Revisit condition: candle-core depending on
 # zip >=9.0.0, the version that patches it.
+#
+# Task 067: RUSTSEC-2025-0141 (bincode 2.0.1) is retired, not listed
+# below any more - `localcache` 0.26.2 dropped `bincode` entirely
+# (`grep -c '^name = "bincode"$' Cargo.lock` -> 0). This is the semver-
+# major-upgrade retirement RFC 049 S4.1 says no automated detector can
+# see; see the ledger's "Resolved" section for the before/after.
 ignore = [
-    "RUSTSEC-2025-0141", # bincode 2.0.1, unmaintained - localcache <- arama-cache.
     "RUSTSEC-2024-0436", # paste 1.0.15, unmaintained - candle/gemm, tokenizers, Apple rendering.
     "RUSTSEC-2026-0192", # ttf-parser 0.25.1, unmaintained - fontdb, cosmic-text, ab_glyph.
     "RUSTSEC-2026-0253", # lru 0.16.4, unsound - cryoglyph <- iced_wgpu <- iced.

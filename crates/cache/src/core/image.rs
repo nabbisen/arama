@@ -1,13 +1,13 @@
 //! `ImageCacheWriter` / `ImageCacheReader` — image-specific cache handles.
 //!
-//! Backed by `localcache` (RFC 002): a [`ConnectionPool`] serializes
+//! Backed by `localcache` (RFC 002): a [`SyncCacheEngine`] serializes
 //! writes; a [`ReadPool`] of `read_conns` read-only connections serves
 //! parallel lookups. Both are `Arc`-based, so `Clone` is cheap.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use localcache::{CacheEntry, CacheStatus, ConnectionPool, ReadPool};
+use localcache::{CacheEntry, CacheStatus, ReadPool, SyncCacheEngine};
 use rayon::prelude::*;
 
 use crate::core::engine::{
@@ -42,7 +42,7 @@ pub struct ImageCacheConfig {
 /// - `Clone` only bumps `Arc` counters.
 #[derive(Clone)]
 pub struct ImageCacheWriter {
-    write: ConnectionPool<ImagePayload>,
+    write: SyncCacheEngine<ImagePayload>,
     read: ReadPool<ImagePayload>,
     config: Arc<ImageCacheConfig>,
 }
@@ -54,7 +54,7 @@ impl ImageCacheWriter {
         ensure_db_dir(&options)?;
         // The writable engine is opened first: it creates the database
         // file and schema, which the read-only pool cannot.
-        let write = ConnectionPool::open(options.clone())?;
+        let write = SyncCacheEngine::open(options.clone())?;
         // Entries written by an older pipeline version are dead weight.
         write.with(|e| e.purge_stale_versions())?;
         let read = ReadPool::open(options, read_pool_size(&config.cache_config))?;

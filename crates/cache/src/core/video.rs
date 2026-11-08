@@ -8,7 +8,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use localcache::{CacheEntry, CacheStatus, ConnectionPool, ReadPool};
+use localcache::{CacheEntry, CacheStatus, ReadPool, SyncCacheEngine};
 use rayon::prelude::*;
 
 use crate::core::engine::{
@@ -46,7 +46,7 @@ pub struct VideoCacheConfig {
 /// - `Clone` only bumps `Arc` counters.
 #[derive(Clone)]
 pub struct VideoCacheWriter {
-    write: ConnectionPool<VideoPayload>,
+    write: SyncCacheEngine<VideoPayload>,
     read: ReadPool<VideoPayload>,
     config: Arc<VideoCacheConfig>,
 }
@@ -56,7 +56,7 @@ impl VideoCacheWriter {
         let options = cache_options(&config.cache_config, NAMESPACE_VIDEO, VIDEO_PAYLOAD_VERSION);
         // Create the parent directory before localcache touches SQLite.
         ensure_db_dir(&options)?;
-        let write = ConnectionPool::open(options.clone())?;
+        let write = SyncCacheEngine::open(options.clone())?;
         write.with(|e| e.purge_stale_versions())?;
         let read = ReadPool::open(options, read_pool_size(&config.cache_config))?;
         Ok(Self {

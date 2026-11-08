@@ -113,20 +113,6 @@ four as a result. No ignore, patch, or override was needed.
 
 ## Remaining Warnings
 
-### `bincode` 2.0.1
-
-Observed path:
-
-```text
-bincode 2.0.1 <- localcache 0.20.0 <- arama-cache
-```
-
-`localcache` 0.20.0 is the latest published crate version at the time of this
-ledger refresh. `bincode` 3.0.0 exists, but arama reaches `bincode` through
-`localcache`, not a direct workspace dependency. Burning down this warning
-requires an upstream `localcache` release that moves off the unmaintained
-`bincode` line, or a cache-engine design change.
-
 ### `paste` 1.0.15
 
 Observed through multiple transitive owners, including:
@@ -345,6 +331,131 @@ upgrade clears this today.
 **Revisit condition:** `file-handle` and `mundy` both depending on `zbus
 >=6.0.0` — a version number on each, checkable the same way this entry was
 written, not "when upstream fixes it."
+
+## Resolved: localcache 0.21.2 → 0.26.2, retiring the bincode warning — 2026-11-08
+
+**The oldest tracked warning retires on a semver-major upgrade, not a
+revisit-condition match** — the exact gap RFC 049 §4.1 names: the detector
+it builds asks whether a currently-ignored identity still appears after an
+*unconstrained* `cargo update`, which never crosses a semver-major boundary
+on its own. This retirement needed the major bump itself, so it would have
+reported nothing, correctly, and a quiet result here must not be read as
+"nothing retirable."
+
+**`RUSTSEC-2025-0141` (`bincode` 2.0.1, unmaintained) is retired, not
+ignored.** `localcache` 0.26.2 drops `bincode` from its own dependency graph
+entirely:
+
+```text
+bincode 2.0.1 <- localcache 0.21.2 <- arama-cache   (before)
+(absent)                                             (after)
+```
+
+```sh
+$ grep -c '^name = "bincode"$' Cargo.lock
+0
+```
+
+Removed `RUSTSEC-2025-0141` from `.cargo/audit.toml`'s `ignore` list and this
+entry replaces its "Remaining Warnings" subsection, in the same commit.
+
+**Why the upgrade, and the path there.** `arama-cache` 0.36.2 declared
+`localcache ^0.20`; the lock sat at 0.21.2. Five breaking releases separate
+that from 0.26.2 (`localcache`'s own `CHANGELOG.md` and
+`docs/src/migration.md` have the full lists). Step 1 moved within `^0.21` to
+0.21.6 first and ran `cargo clippy --workspace --all-targets --locked -- -D
+warnings`, which surfaced exactly **one** deprecation class at eleven call
+sites — `localcache::ConnectionPool<T>` renamed to `SyncCacheEngine<T>` ("it
+is a shared engine, not a pool"), a pure type-alias rename with no behavior
+change (`pub type ConnectionPool<T> = SyncCacheEngine<T>;` in 0.21.6's own
+source). Fixed all eleven in `core/image.rs`, `core/maintenance.rs`, and
+`core/video.rs`, then moved to 0.26.2, where the alias no longer exists at
+all.
+
+**Why exactly `0.26.2`, never `0.26.0` or `0.26.1`.** Both carry a SQLite
+3.54.1 defect that recompiles cached statements on every use; `0.26.2` keeps
+the six affected statements compiled. Written as `localcache = "0.26.2"` in
+the workspace manifest — caret semantics then exclude `0.26.0`/`0.26.1` by
+construction, not by a comment asking a future editor to remember it.
+
+**The API surface, checked against the letter's specific risks, not just a
+green build:**
+
+- No `rusqlite::Error` match anywhere in `crates/cache/src` (confirmed by
+  grep before touching anything, matching the architect's own finding) —
+  `LocalFileCacheError::Database` wrapping an opaque `DatabaseError` as of
+  0.22.0 has nothing to break.
+- `cache_options()`'s configuration is accepted by 0.26.2's "reject before
+  creating anything" validation (0.22.0) — proven empirically: every
+  `arama-cache` unit test opens a real engine through it, and all pass.
+- **Eviction order and `last_accessed_at` (0.23.0) do not reach arama,
+  confirmed rather than left as "probably."** `grep -rn "last_accessed_at"`
+  across `crates/`, `app/`, `env/` finds nothing; arama's own trim
+  (`core/maintenance.rs`, RFC 016) sorts candidates by `updated_at` only,
+  a different field whose meaning did not change in 0.23.0.
+- `ReadPool` is unchanged per the letter, and
+  `poisoned_read_pool_surfaces_as_error_not_miss` (`core/video/tests.rs`)
+  exercises its blocking fallback deterministically — that test passing is
+  the check, and it passed.
+
+**The one-way schema migration (v6, introduced 0.23.0) — proven on an
+upgrade path, not a fresh database.** Built the pre-upgrade binary (stashed
+this change, `localcache` back at 0.21.2), created a cache with one real
+entry via a throwaway example using the public `ImageCacheWriter` API
+against an isolated `DbLocation::Custom` path, then restored this change
+(`localcache` 0.26.2) and opened the *same* database file:
+
+```sh
+$ cargo run -p arama-cache --example t067_migration_proof -- write <db> <source>
+WRITE_OK clip_len=Some(4)
+# — git stash pop, localcache now 0.26.2 —
+$ cargo run -p arama-cache --example t067_migration_proof -- read <db> <source>
+READ_OK clip_vector=Some([0.25, 0.5, 0.75, 1.0])
+```
+
+The migration ran transparently inside `CacheEngine::open` and the exact
+vector written under 0.21.2 read back correctly under 0.26.2. **Neither
+payload version was bumped** (`VIDEO_PAYLOAD_VERSION`/`IMAGE_PAYLOAD_VERSION`
+in `core/engine.rs`, unchanged) — the letter states the stored payload bytes
+are unchanged for unencrypted data, and this proof confirms it directly
+rather than taking the claim alone.
+
+**Downgrade consequence, for the release notes**: after this release, an
+older arama build cannot read a cache a newer one has touched, because the
+v6 schema migration is one way. A cache can be rebuilt by re-indexing; it is
+derived data, not a document.
+
+**`CVE-2026-119375` — fixed by this upgrade, and the ledger's first entry
+for an issue `cargo audit` cannot see at all.** The bundled SQLite moves
+from 3.51.3 (`libsqlite3-sys` 0.37.0) to **3.54.1** (`libsqlite3-sys`
+0.39.1, confirmed by reading `SQLITE_VERSION` from the vendored
+`sqlite3/sqlite3.h` — not `sqlcipher/sqlite3.h`, a different header arama's
+build does not even vendor, since the `encryption` feature is never
+enabled). The CVE (uninitialized memory returned from an ordinary query,
+given a crafted database file and its sibling `-wal`) is fixed as of
+SQLite 3.54.0. Neither RustSec, OSV, nor GitHub's reviewed database lists it
+against any crate as of this writing — `cargo audit` and `cargo deny` stay
+silent about it regardless of this fix, which is exactly why this ledger
+cannot assume `cargo audit`'s output is the complete picture. Practical
+exposure was low even before the fix: the CVE needs a less-trusted party to
+have written the database file, and arama's cache is per-user, under
+`ProjectDirs::cache_dir()`, never created inside a scanned media folder.
+
+Every package whose version moved, confirmed by diffing `[[package]]`
+identity lines in isolation rather than the raw diff:
+
+| Package | before | after |
+|---|---|---|
+| `localcache` | 0.21.2 | **0.26.2** |
+| `rusqlite` | 0.39.0 | **0.41.1** |
+| `libsqlite3-sys` | 0.37.0 | **0.39.1** |
+| `hashlink` | 0.11.1 | **0.12.2** |
+
+New: `localcache-format` 0.26.2 (the payload format split out as its own
+crate in 0.25.0), a third concurrent `base64` version (0.23.1, alongside the
+pre-existing 0.13.1 and 0.22.1). Removed: `bincode` 2.0.1, `bincode_derive`
+2.0.1, `unty` 0.0.4, `virtue` 0.0.18 (all reached only through `bincode`).
+Total `[[package]]` block count: 705 before, 703 after.
 
 ## Resolved: the yanked async-executor — 2026-11-08
 

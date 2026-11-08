@@ -5,7 +5,7 @@ use std::ffi::OsString;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use localcache::{ConnectionPool, EntryInfo};
+use localcache::{EntryInfo, SyncCacheEngine};
 
 use crate::CacheError;
 use crate::core::engine::{
@@ -56,13 +56,13 @@ impl CacheMaintenance {
 
         let image_pool = if db_path.exists() {
             let options = cache_options(&self.config, NAMESPACE_IMAGE, IMAGE_PAYLOAD_VERSION);
-            Some(ConnectionPool::<ImagePayload>::open(options)?)
+            Some(SyncCacheEngine::<ImagePayload>::open(options)?)
         } else {
             None
         };
         let video_pool = if db_path.exists() {
             let options = cache_options(&self.config, NAMESPACE_VIDEO, VIDEO_PAYLOAD_VERSION);
-            Some(ConnectionPool::<VideoPayload>::open(options)?)
+            Some(SyncCacheEngine::<VideoPayload>::open(options)?)
         } else {
             None
         };
@@ -158,7 +158,7 @@ fn footprint(config: &CacheConfig) -> Result<CacheFootprint> {
 }
 
 fn collect_image_candidates(
-    pool: &ConnectionPool<ImagePayload>,
+    pool: &SyncCacheEngine<ImagePayload>,
     referenced_thumbnails: &mut BTreeSet<PathBuf>,
     candidates: &mut Vec<PruneCandidate>,
 ) -> Result<()> {
@@ -181,7 +181,7 @@ fn collect_image_candidates(
 }
 
 fn collect_video_candidates(
-    pool: &ConnectionPool<VideoPayload>,
+    pool: &SyncCacheEngine<VideoPayload>,
     referenced_thumbnails: &mut BTreeSet<PathBuf>,
     candidates: &mut Vec<PruneCandidate>,
 ) -> Result<()> {
