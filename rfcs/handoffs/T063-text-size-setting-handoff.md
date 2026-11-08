@@ -11,6 +11,14 @@
 >
 > **Moved 2026-11-08** from `.git-exclude/tasks/dev-team/` into `rfcs/handoffs/`, at the owner's direction, and completed against the 17-item Developer Handoff structure. The authorization above is unchanged.
 
+> **Added 2026-11-09 — wait for T070 (snora 0.52 → 0.57).** From snora 0.55,
+> snora's icons and click targets grow with the text size (*"a control is at
+> least max(24 px, 1.5 × its text, `Tokens::targets.min`)"*). This task's
+> acceptance — the layout survives Larger, in both locales — measured on 0.52
+> would not hold on 0.57. **Do not start, or pause where you are, until T070
+> lands**; if you have work in progress, report what exists. The authorization
+> above is unchanged.
+
 # T063 Handoff — a text-size setting: Default / Large / Larger
 
 Companion to [RFC 052](../proposed/052-text-size-and-reach.md) §2.

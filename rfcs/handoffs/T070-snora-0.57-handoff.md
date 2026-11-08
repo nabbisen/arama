@@ -1,7 +1,7 @@
-> **NOT AUTHORIZED YET.** Written 2026-11-09 by the architect. Do not start
-> until this banner is replaced by the owner's authorization.
+> **AUTHORIZED 2026-11-09 — owner:** *"T070 is accepted."* Written 2026-11-09
+> by the architect.
 >
-> **Order, once authorized:** after T061's rework lands (both edit
+> **Order:** after T061's rework lands (both edit
 > `app/src/core/view.rs`), and **before T063 and T064 continue** — snora 0.55
 > changes how snora's icons and targets follow the text size (T063's subject),
 > and 0.54 gives `app_side_bar` visible labels (T064's subject). Verifying

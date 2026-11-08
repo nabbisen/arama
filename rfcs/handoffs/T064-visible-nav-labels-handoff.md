@@ -10,6 +10,16 @@
 >
 > **Moved 2026-11-08** from `.git-exclude/tasks/dev-team/` into `rfcs/handoffs/`, at the owner's direction, and completed against the 17-item Developer Handoff structure. The authorization above is unchanged.
 
+> **Added 2026-11-09 — wait for T070 (snora 0.52 → 0.57).** snora 0.54's
+> `app_side_bar` shows each item's name on the rail (`SideBarLabels::Beneath`),
+> its controls are keyboard-focusable from 0.55, and its active item clears
+> 4.5:1. arama's navigation is three hand-built iced buttons with tooltips,
+> which iced 0.14 cannot focus. **Whether to adopt snora's sidebar instead of
+> showing labels on arama's own buttons is a design question the architect will
+> settle in this handoff after T070 lands.** Do not start, or pause where you
+> are; if you have work in progress, report what exists. The authorization above
+> is unchanged.
+
 # T064 Handoff — show the navigation labels without hover
 
 Companion to [RFC 052](../proposed/052-text-size-and-reach.md) §3.
