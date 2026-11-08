@@ -30,6 +30,19 @@
 >
 > **Moved 2026-11-08** from `.git-exclude/tasks/dev-team/` into `rfcs/handoffs/`, at the owner's direction, and completed against the 17-item Developer Handoff structure. The authorization above is unchanged.
 
+> **SECOND REWORK REQUESTED 2026-11-09 — review of `2567fcf`.** Everything
+> the first rework asked for is done. One regression came with it: replacing
+> the pair scan's abort handle with `ScanControl` means a cancelled scan still
+> delivers its (partial) result, and `handle_similar_pairs_dialog_message`
+> accepts any result — so after close-and-reopen, the old scan's partial pairs
+> land in the new dialog, and its arrival also drops the new scan's control.
+> **Fix:** the result carries the identity of the scan that produced it
+> (a generation number); a stale one is dropped without touching state. Test it
+> through `App::update`. Also, smaller: set the stop-early test's flag inside
+> the hook (exactly one chunk, by construction) and correct its comment; make
+> the grandchild heartbeat test count lines rather than read `date +%s%N`
+> (BSD `date` has no `%N`).
+>
 > **REWORK REQUESTED 2026-11-08 — architect review of the first delivery.**
 > The authorization above covers this rework; nothing new needs granting. The
 > thumbnail-phase work stands. Five changes, then resubmit as a new package:
