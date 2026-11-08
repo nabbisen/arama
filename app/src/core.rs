@@ -64,6 +64,33 @@ pub struct App {
     /// Handle for the active thumbnail-cache or embedding task, used to
     /// abort it when the user switches to a different directory.
     task_handle: Option<iced::task::Handle>,
+    /// RFC 047 S3.2: shared cooperative-cancellation signal for the
+    /// currently in-flight indexing run (thumbnail phase, then embedding
+    /// phase). Created fresh in `handle_cache_require`; Stop and a
+    /// directory switch both set it, alongside aborting `task_handle`.
+    /// `task_handle.abort()` alone stops the *next* unit of work the
+    /// outer `Task` would start (it works by no longer polling the
+    /// future); it does nothing about work already dispatched onto a
+    /// `spawn_blocking` thread, which keeps running in the background
+    /// regardless. This flag is checked *before* dispatching each new
+    /// chunk, so it is the mechanism that actually stops new work from
+    /// starting, independent of `Task` polling semantics - see
+    /// `handle_cache_require`'s own comment for the full reasoning.
+    cancel_flag: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
+    /// RFC 047 S3.4/S7.1: true only once the embedding phase for the
+    /// currently loaded directory has *completed*, never merely started.
+    /// Reset to `false` at the start of every new run and on Stop; set to
+    /// `true` only in `handle_embedding_cache_finished`, which an
+    /// aborted task's completion message never reaches (confirmed
+    /// against `iced_runtime::task::Handle::abort`'s own
+    /// `futures::stream::abortable`-based implementation). Read alongside
+    /// `gallery.embedding_cached()` (file count) to gate the Similarity
+    /// Pairs button: a partially-indexed directory must not present
+    /// itself as fully indexed.
+    embedding_completed: bool,
+    /// Handle for the in-flight similar-pairs scan, aborted when its
+    /// dialog closes - RFC 047 S3.3's "must be interruptible".
+    similar_pairs_task_handle: Option<iced::task::Handle>,
     /// Currently displayed top-level page.
     nav_page: NavPage,
     /// Settings page widget — persistent so tab state is preserved across
@@ -280,6 +307,9 @@ impl App {
                 image_cell_path: None,
                 processing,
                 task_handle: None,
+                cancel_flag: None,
+                embedding_completed: false,
+                similar_pairs_task_handle: None,
                 nav_page: NavPage::Explorer,
                 settings_page,
                 cache_page: CachePage::default(),

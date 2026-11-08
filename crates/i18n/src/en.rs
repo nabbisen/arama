@@ -180,6 +180,10 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "similarity.video_unavailable" => {
             "Video comparison did not run: no ffmpeg/ffprobe pair was found."
         }
+        "similarity.scanning" => "Searching for similar pairs\u{2026}",
+        "similarity.pairs_truncated" => {
+            "Showing the {retained} most similar of {total} matches found."
+        }
 
         // Focus dialog
         "focus.strategy" => "Cache lookup strategy",

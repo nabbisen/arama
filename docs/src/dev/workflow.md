@@ -67,10 +67,25 @@ Tests for a module live in a sibling `tests.rs` file or, if large, in
 Long-running work (AI inference, cache writes) runs inside
 `Task::perform` or `Task::run` so it does not block the iced event loop.
 Both use `Task::abortable` so the handle can be stored and cancelled
-when the user changes directories.
+when the user changes directories or presses Stop — but storing the
+handle only stops the *next* unit of work the `Task` would start; it
+does nothing about work already dispatched elsewhere, so each caller
+still needs its own await points for that to mean anything (RFC 047).
 
 The AI embedding loop calls `tokio::task::yield_now().await` at each
-file boundary to allow responsive cancellation.
+file boundary to allow responsive cancellation — sufficient there
+because every file's work runs inline in the polled future itself,
+nothing is dispatched to another thread.
+
+Cache writes (thumbnail generation) are different: the work runs via
+`rayon` inside `tokio::task::spawn_blocking`, on threads outside the
+polled future, so `yield_now` alone would not help — once a batch is
+dispatched, dropping the future does not stop the batch already
+running. `handle_cache_require` processes files in fixed-size batches,
+each behind its own `spawn_blocking`/`.await`, and checks a shared
+`AtomicBool` before starting the next batch; that flag, set by both
+Stop and a directory switch, is what actually bounds how much further
+work can start, not the `Task::abortable` drop by itself (RFC 047 S3.2).
 
 ### Formatting and linting
 

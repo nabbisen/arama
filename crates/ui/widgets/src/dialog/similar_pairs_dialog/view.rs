@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use arama_env::MAX_THUMBNAIL_SIZE;
+use arama_i18n::{t, t_with};
 use iced::widget::{column, container, image, mouse_area, row, space, text};
 use iced::{Element, widget::scrollable};
 
@@ -10,17 +11,30 @@ use super::{SimilarPairsDialog, message::Message};
 
 impl SimilarPairsDialog {
     pub fn view(&self) -> Element<'_, Message> {
-        // `None` for at most one frame after the dialog opens, before
-        // `EmbeddingsReady` arrives - not a state a user meaningfully
-        // sees, so no text is required here the way RFC 036's binding
-        // rule requires for the settled states below.
+        // RFC 047 S3.3/claim #2: the scan runs in the background and
+        // produces one result when it completes - it does not stream
+        // partial results (a non-goal, RFC 047 S5). But it is not
+        // instant either, and rendering nothing at all while it runs is
+        // exactly the "appears to do nothing" shape the rest of this RFC
+        // is about. This is a static sentence, not a progress bar or a
+        // live count - "reports that it is running" (S3.3), not
+        // progressive delivery.
         let pairs = match &self.pairs {
             Some(x) => x,
-            None => return container(space()).into(),
+            None => {
+                return container(text(t("similarity.scanning")).size(arama_theme::body_size()))
+                    .into();
+            }
         };
 
         let status: Element<'_, Message> =
             status_line(self.has_read_error, self.ffmpeg_missing_with_videos);
+
+        let truncation_notice: Element<'_, Message> =
+            match truncation_notice_text(pairs.len(), self.total_found) {
+                Some(notice) => text(notice).size(arama_theme::body_size()).into(),
+                None => container(space()).into(),
+            };
 
         let header = if let Some(x) = &self.hovered_media_item_path_str {
             container(text(x))
@@ -79,9 +93,49 @@ impl SimilarPairsDialog {
                 .into()
         };
 
-        column![status, header, body]
+        column![status, truncation_notice, header, body]
             .spacing(10)
             .padding([10, 0])
             .into()
+    }
+}
+
+/// RFC 047 S3.3: `Some` only when the cap actually truncated something -
+/// a cap that kept everything says nothing ("showing 50 of 50" would be
+/// noise, not information). Distinguishes "these are the similar pairs"
+/// from "these are the top N of M" (RFC 036's absence states made the
+/// same distinction one level up, for zero results versus none
+/// indexed). Pure and separate from `view()` so the condition and the
+/// substitution are directly testable without rendering anything,
+/// mirroring `similarity_read_outcome::status_line_text`.
+fn truncation_notice_text(retained: usize, total_found: usize) -> Option<String> {
+    (total_found > retained).then(|| {
+        t_with(
+            "similarity.pairs_truncated",
+            &[
+                ("{retained}", &retained.to_string()),
+                ("{total}", &total_found.to_string()),
+            ],
+        )
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::truncation_notice_text;
+
+    #[test]
+    fn no_notice_when_nothing_was_truncated() {
+        assert_eq!(truncation_notice_text(50, 50), None);
+        assert_eq!(truncation_notice_text(3, 3), None);
+        assert_eq!(truncation_notice_text(0, 0), None);
+    }
+
+    #[test]
+    fn notice_names_both_counts_when_truncated() {
+        let notice = truncation_notice_text(50, 287).expect("287 > 50 must produce a notice");
+        assert!(notice.contains("50"), "{notice}");
+        assert!(notice.contains("287"), "{notice}");
+        assert!(!notice.contains('{'), "{notice}");
     }
 }

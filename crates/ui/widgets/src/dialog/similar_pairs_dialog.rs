@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use arama_ai::{
     config::video_similarity_config::VideoSimilarityConfig,
     pipeline::score::similarity::{
-        image::{SimilarImagePair, find_similar_pairs},
+        image::{SimilarImagePair, find_similar_pairs, sort_pairs},
         video::video_similarity_calculator::score_mean_vectors,
     },
 };
@@ -27,15 +27,24 @@ mod view;
 
 use types::SimilarPair;
 
-use crate::dialog::similar_pairs_dialog::types::SimilarPairItem;
+use crate::dialog::similar_pairs_dialog::types::{EmbeddingsReadyResult, SimilarPairItem};
 use crate::dialog::similarity_read_outcome::SimilarityReadOutcome;
 
-const MAX_IMAGE_SIMILAR_PAIRS: usize = 50;
+/// RFC 047 S3.3: one cap applied to the merged image-and-video list, not
+/// one cap per media type. Images alone used to be capped here at 50
+/// while videos had no cap at all - an asymmetry nobody chose, just what
+/// happens when a bound is added to one path and not the other.
+const MAX_SIMILAR_PAIRS: usize = 50;
 
 #[derive(Clone, Debug)]
 pub struct SimilarPairsDialog {
     dir_node: DirNode,
     pairs: Option<Vec<SimilarPair>>,
+    /// How many pairs matched the threshold before `MAX_SIMILAR_PAIRS`
+    /// was applied (RFC 047 S3.3). Equal to `pairs.len()` whenever
+    /// nothing was truncated; the dialog only mentions a cap when the
+    /// two differ, so a reader is never told "showing 50 of 50".
+    total_found: usize,
     /// Set when any cache read failed while preparing `pairs` (RFC 035).
     /// One aggregated flag per dialog open, not one per failed file.
     has_read_error: bool,
@@ -65,9 +74,11 @@ impl SimilarPairsDialog {
         similarity_threshold: f32,
         ffmpeg_toolchain: Option<FfmpegToolchain>,
     ) -> Self {
+        let total_found = pairs.as_ref().map_or(0, Vec::len);
         Self {
             dir_node: dir_node.into(),
             pairs,
+            total_found,
             has_read_error: false,
             nothing_indexed: false,
             ffmpeg_missing_with_videos: false,
@@ -77,22 +88,50 @@ impl SimilarPairsDialog {
         }
     }
 
-    pub fn default_task(&self) -> Task<message::Message> {
+    /// RFC 047 S3.3: the scan must be interruptible. `prepare_embeddings`
+    /// is synchronous, CPU-heavy (O(N^2) scoring) work with no await
+    /// point of its own - `spawn_blocking` gives this `Task` the one
+    /// await point `.abortable()` needs to actually stop it (the same
+    /// reasoning as `handle_cache_require`'s thumbnail phase; see that
+    /// function's own comment for why a technique like this is needed at
+    /// all rather than only here). Unlike that phase, this is one
+    /// unchunked unit of work, not a loop: cancelling means "discard
+    /// whatever this produces," which is all RFC 047 S3.3 asks for here,
+    /// since progressive/streamed results are explicitly a non-goal
+    /// (RFC 047 S5).
+    ///
+    /// Returns the abort `Handle` alongside the `Task` because this
+    /// method only has `&self`, not a place on `App` to store it - the
+    /// caller (the dialog-open handler) is responsible for keeping it
+    /// and aborting it when the dialog closes.
+    pub fn default_task(&self) -> (Task<message::Message>, iced::task::Handle) {
         let dir_node = self.dir_node.clone();
         let threshold = self.similarity_threshold;
         let ffmpeg_toolchain = self.ffmpeg_toolchain.clone();
         Task::perform(
-            prepare_embeddings(dir_node, threshold, ffmpeg_toolchain),
+            async move {
+                tokio::task::spawn_blocking(move || {
+                    prepare_embeddings(dir_node, threshold, ffmpeg_toolchain)
+                })
+                .await
+                .unwrap_or_default()
+            },
             message::Message::EmbeddingsReady,
         )
+        .abortable()
     }
 }
 
-async fn prepare_embeddings(
+/// Synchronous, deliberately: every call inside it (cache reads, the
+/// O(N^2) scorers) is synchronous already, and `default_task` is what
+/// gives this a `spawn_blocking`/await point for cancellation - adding
+/// an `async fn` here with no `.await` inside it would just recreate the
+/// shape RFC 047 is about (see `handle_cache_require`'s own history).
+fn prepare_embeddings(
     dir_node: DirNode,
     similarity_threshold: f32,
     ffmpeg_toolchain: Option<FfmpegToolchain>,
-) -> SimilarityReadOutcome<SimilarPair> {
+) -> EmbeddingsReadyResult {
     let paths = dir_node.flatten_paths();
 
     // RFC 035: every cache-read failure below sets `had_errors` rather than
@@ -104,11 +143,14 @@ async fn prepare_embeddings(
         Ok(path) => DbLocation::Custom(path),
         Err(err) => {
             eprintln!("failed to get cache storage path: {err}");
-            return SimilarityReadOutcome {
-                items: vec![],
-                had_errors: true,
-                nothing_indexed: false,
-                ffmpeg_missing_with_videos: false,
+            return EmbeddingsReadyResult {
+                outcome: SimilarityReadOutcome {
+                    items: vec![],
+                    had_errors: true,
+                    nothing_indexed: false,
+                    ffmpeg_missing_with_videos: false,
+                },
+                total_found: 0,
             };
         }
     };
@@ -117,11 +159,14 @@ async fn prepare_embeddings(
         Ok(path) => Some(path),
         Err(err) => {
             eprintln!("failed to get cache thumbnail dir path: {err}");
-            return SimilarityReadOutcome {
-                items: vec![],
-                had_errors: true,
-                nothing_indexed: false,
-                ffmpeg_missing_with_videos: false,
+            return EmbeddingsReadyResult {
+                outcome: SimilarityReadOutcome {
+                    items: vec![],
+                    had_errors: true,
+                    nothing_indexed: false,
+                    ffmpeg_missing_with_videos: false,
+                },
+                total_found: 0,
             };
         }
     };
@@ -243,13 +288,20 @@ async fn prepare_embeddings(
     // `ffmpeg_missing_with_videos` carries that distinction separately.
     let nothing_indexed = image_path_embeddings.is_empty() && video_path_embeddings.is_empty();
 
-    let mut similar_pairs = find_similar_pairs(
-        &image_path_embeddings,
-        similarity_threshold,
-        MAX_IMAGE_SIMILAR_PAIRS,
-    );
+    // RFC 047 S3.3: images and videos are scored separately (different
+    // feature spaces) but share one cap, applied once on the merged,
+    // globally re-sorted list - never one cap per media type. Both
+    // `find_similar_pairs` and `find_similar_video_pairs` are already
+    // uncapped and individually sorted; merging two individually-sorted
+    // lists still needs a full re-sort, since the merge is by
+    // concatenation, not by score.
+    let mut similar_pairs = find_similar_pairs(&image_path_embeddings, similarity_threshold);
     let video_pairs = find_similar_video_pairs(&video_path_embeddings, similarity_threshold);
     similar_pairs.extend(video_pairs);
+    sort_pairs(&mut similar_pairs);
+    let total_found = similar_pairs.len();
+    similar_pairs.truncate(MAX_SIMILAR_PAIRS);
+
     let items = similar_pairs
         .into_iter()
         .map(
@@ -268,11 +320,14 @@ async fn prepare_embeddings(
             },
         )
         .collect();
-    SimilarityReadOutcome {
-        items,
-        had_errors,
-        nothing_indexed,
-        ffmpeg_missing_with_videos,
+    EmbeddingsReadyResult {
+        outcome: SimilarityReadOutcome {
+            items,
+            had_errors,
+            nothing_indexed,
+            ffmpeg_missing_with_videos,
+        },
+        total_found,
     }
 }
 
@@ -314,27 +369,11 @@ fn find_similar_video_pairs(map: &[VideoEmbedding], threshold: f32) -> Vec<Simil
 mod tests {
     use super::*;
 
-    /// `prepare_embeddings` is `async fn` but never actually awaits
-    /// anything (every call inside it is synchronous); this drives it to
-    /// completion without pulling in an async-runtime dependency this
-    /// crate does not otherwise need.
-    fn block_on<F: std::future::Future>(fut: F) -> F::Output {
-        use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
-        fn noop(_: *const ()) {}
-        fn clone_raw(_: *const ()) -> RawWaker {
-            RawWaker::new(std::ptr::null(), &VTABLE)
-        }
-        static VTABLE: RawWakerVTable = RawWakerVTable::new(clone_raw, noop, noop, noop);
-        let raw = RawWaker::new(std::ptr::null(), &VTABLE);
-        let waker = unsafe { Waker::from_raw(raw) };
-        let mut cx = Context::from_waker(&waker);
-        let mut fut = std::pin::pin!(fut);
-        loop {
-            if let Poll::Ready(val) = fut.as_mut().poll(&mut cx) {
-                return val;
-            }
-        }
-    }
+    // RFC 047 S3.3: `prepare_embeddings` is a plain synchronous `fn`
+    // now (it never awaited anything even when it was `async fn` - see
+    // its own doc comment), so these tests call it directly; the
+    // hand-rolled no-op-waker `block_on` this module used to need is
+    // gone with it.
 
     // `prepare_embeddings` resolves its cache location itself via
     // `cache_storage_path()`/`cache_thumbnail_dir_path()` rather than
@@ -358,15 +397,25 @@ mod tests {
             files: vec![],
         };
 
-        let outcome = block_on(prepare_embeddings(dir_node, 0.0, None));
+        let result = prepare_embeddings(dir_node, 0.0, None);
 
-        assert!(!outcome.had_errors, "no files to check is not a failure");
-        assert!(outcome.items.is_empty());
         assert!(
-            outcome.nothing_indexed,
+            !result.outcome.had_errors,
+            "no files to check is not a failure"
+        );
+        assert!(result.outcome.items.is_empty());
+        assert!(
+            result.outcome.nothing_indexed,
             "an empty directory has nothing indexed by definition"
         );
-        assert!(!outcome.ffmpeg_missing_with_videos, "no video paths exist");
+        assert!(
+            !result.outcome.ffmpeg_missing_with_videos,
+            "no video paths exist"
+        );
+        assert_eq!(
+            result.total_found, 0,
+            "nothing found means nothing found before the cap either"
+        );
     }
 
     #[test]
@@ -377,16 +426,50 @@ mod tests {
             files: vec![PathBuf::from("clip.mp4")],
         };
 
-        let outcome = block_on(prepare_embeddings(dir_node, 0.0, None));
+        let result = prepare_embeddings(dir_node, 0.0, None);
 
         assert!(
-            !outcome.had_errors,
+            !result.outcome.had_errors,
             "missing ffmpeg has its own dedicated surface, not this dialog's error message"
         );
-        assert!(outcome.items.is_empty());
+        assert!(result.outcome.items.is_empty());
         assert!(
-            outcome.ffmpeg_missing_with_videos,
+            result.outcome.ffmpeg_missing_with_videos,
             "RFC 036: video paths existed but no toolchain was available"
+        );
+        assert_eq!(result.total_found, 0);
+    }
+
+    /// RFC 047 S3.3: proves the merge-then-cap arithmetic itself, not
+    /// just that a cap exists - more than `MAX_SIMILAR_PAIRS` distinct
+    /// images, all identical (so every pair is a match at any
+    /// threshold), must retain exactly the cap's worth while reporting
+    /// the true, larger total.
+    #[test]
+    fn find_similar_pairs_merge_and_cap_reports_total_found_before_truncating() {
+        // n images all pairwise identical -> n*(n-1)/2 qualifying pairs.
+        // MAX_SIMILAR_PAIRS is 50; 15 images make C(15,2) = 105 pairs,
+        // comfortably past the cap without an unwieldy fixture.
+        let n = 15;
+        let vector = vec![1.0_f32, 0.0];
+        let map: Vec<(String, Option<String>, Vec<f32>)> = (0..n)
+            .map(|i| (format!("image-{i}.jpg"), None, vector.clone()))
+            .collect();
+
+        let all_pairs = find_similar_pairs(&map, 0.0);
+        let total_found = all_pairs.len();
+        let mut capped = all_pairs;
+        capped.truncate(MAX_SIMILAR_PAIRS);
+
+        assert_eq!(total_found, n * (n - 1) / 2, "105 qualifying pairs");
+        assert_eq!(
+            capped.len(),
+            MAX_SIMILAR_PAIRS,
+            "retained must be exactly the cap, not the full 105"
+        );
+        assert!(
+            total_found > capped.len(),
+            "this fixture only proves anything if the cap actually bit"
         );
     }
 }

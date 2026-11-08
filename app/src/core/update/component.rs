@@ -146,9 +146,12 @@ impl App {
                         self.ffmpeg_authority.toolchain().cloned(),
                     );
                     self.dialog = Some(Dialog::SimilarPairsDialog(dialog.clone()));
-                    return dialog
-                        .default_task()
-                        .map(Message::SimilarPairsDialogMessage);
+                    // RFC 047 S3.3: kept so the scan can be aborted if
+                    // the dialog closes before it finishes -
+                    // `handle_dialog_close` is where that happens.
+                    let (scan_task, handle) = dialog.default_task();
+                    self.similar_pairs_task_handle = Some(handle);
+                    return scan_task.map(Message::SimilarPairsDialogMessage);
                 }
             },
             header::message::Message::Internal(_) => (),
@@ -221,6 +224,14 @@ impl App {
         &mut self,
         message: similar_pairs_dialog::message::Message,
     ) -> Task<Message> {
+        // RFC 047 S3.3: reaching this message at all means the scan
+        // `Task` was not aborted (the same `Abortable`-drop reasoning as
+        // `handle_embedding_cache_finished`) - the handle now refers to
+        // a finished task, so there is nothing left to abort it for.
+        if let similar_pairs_dialog::message::Message::EmbeddingsReady(_) = &message {
+            self.similar_pairs_task_handle = None;
+        }
+
         if let Some(Dialog::SimilarPairsDialog(x)) = &mut self.dialog {
             let task = x
                 .update(message.clone())

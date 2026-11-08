@@ -50,15 +50,19 @@ Click any folder in the directory tree. arama immediately:
    for files that don't have them yet.
 
 The spinning indicators on folder icons in the tree show that indexing
-is in progress. The Similarity Pairs button becomes enabled once
-thumbnails are cached for more than one file — this happens while
-embeddings are still being computed, not after indexing fully finishes.
+is in progress. The Similarity Pairs button stays disabled until
+embedding has actually *completed* for the directory — not merely
+started, and not merely because the directory has more than one
+thumbnail. Stopping partway through (below) leaves the button disabled,
+even though some files were already cached: a partially-indexed
+directory never presents itself as fully indexed.
 
 **Switching directories mid-index** starts a fresh pass for the new
-selection. The previous directory's embedding computation is cancelled;
-a thumbnail-generation pass already under way for it keeps running to
-completion in the background (its results are simply cached for later
-use, and it does not block or interfere with the new directory).
+selection and cancels the previous one — both the thumbnail phase and
+the embedding phase, not only embedding. Work already dispatched for a
+small batch of files may finish in the background after the switch (its
+results are simply cached for later use, and it does not block or
+interfere with the new directory), but no further batches start.
 
 ## Browsing the gallery
 

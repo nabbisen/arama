@@ -9,9 +9,19 @@
 //! id; row ids no longer exist under `localcache`.)
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::time::{Duration, Instant};
 
 use super::engine::CacheError;
+
+/// RFC 047 S4 / the external audit's B3: ffmpeg previously ran with no
+/// timeout and no output cap at all - a hung or adversarial process
+/// would block this call, and everything awaiting it, forever. Chosen
+/// generously: a 224x224 single-frame extract from a local file is
+/// ordinarily sub-second; this bounds the pathological case without
+/// second-guessing a slow disk or codec on an otherwise-valid file.
+const FFMPEG_TIMEOUT: Duration = Duration::from_secs(30);
+const FFMPEG_POLL_INTERVAL: Duration = Duration::from_millis(50);
 
 /// Standard CLIP model input size (px).
 const THUMBNAIL_SIZE: u32 = 224;
@@ -83,30 +93,99 @@ fn run_ffmpeg(
     dest: &Path,
     timestamp: &str,
 ) -> Result<(), CacheError> {
-    let output = Command::new(ffmpeg_path)
-        .args([
-            "-ss",
-            timestamp,
-            "-i",
-            src.to_str().unwrap_or(""),
-            "-vframes",
-            "1",
-            "-vf",
-            &format!(
-                "scale={THUMBNAIL_SIZE}:{THUMBNAIL_SIZE}:force_original_aspect_ratio=decrease"
-            ),
-            "-y", // overwrite an existing file
-            dest.to_str().unwrap_or(""),
-        ])
-        .output()
-        .map_err(|e| CacheError::ThumbnailGenerationFailed(e.to_string()))?;
+    let mut command = Command::new(ffmpeg_path);
+    command.args([
+        "-ss",
+        timestamp,
+        "-i",
+        src.to_str().unwrap_or(""),
+        "-vframes",
+        "1",
+        "-vf",
+        &format!("scale={THUMBNAIL_SIZE}:{THUMBNAIL_SIZE}:force_original_aspect_ratio=decrease"),
+        "-y", // overwrite an existing file
+        dest.to_str().unwrap_or(""),
+    ]);
 
-    if output.status.success() {
-        Ok(())
-    } else {
-        Err(CacheError::ThumbnailGenerationFailed(
-            String::from_utf8_lossy(&output.stderr).to_string(),
-        ))
+    run_command_with_timeout(command, FFMPEG_TIMEOUT).map_err(|err| {
+        CacheError::ThumbnailGenerationFailed(match err {
+            CommandTimeoutError::Spawn(message) => message,
+            CommandTimeoutError::Failed(stderr) => stderr,
+            CommandTimeoutError::TimedOut { timeout, stderr } => format!(
+                "ffmpeg did not finish extracting a frame from {} within {}s and was killed; stderr: {stderr}",
+                src.display(),
+                timeout.as_secs()
+            ),
+        })
+    })
+}
+
+#[derive(Debug)]
+enum CommandTimeoutError {
+    /// The process could not even be spawned (e.g. the binary vanished
+    /// between discovery and use).
+    Spawn(String),
+    /// It ran to completion with a non-zero exit status.
+    Failed(String),
+    /// It did not exit within `timeout` and was killed.
+    TimedOut { timeout: Duration, stderr: String },
+}
+
+/// Run `command` to completion, killing it if it has not exited after
+/// `timeout`. `std::process::Command` has no built-in timeout - this is
+/// the general mechanism `run_ffmpeg` uses it through, kept generic (and
+/// so independently testable without a real media file or binary) rather
+/// than private to ffmpeg specifically.
+fn run_command_with_timeout(
+    mut command: Command,
+    timeout: Duration,
+) -> std::result::Result<(), CommandTimeoutError> {
+    let mut child = command
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| CommandTimeoutError::Spawn(e.to_string()))?;
+
+    // `Command::output()` drains stdout/stderr on background threads
+    // while it waits, precisely so a chatty child cannot deadlock on a
+    // full pipe. A manual poll loop (needed below for the timeout) does
+    // not get that for free, so stderr is drained on its own thread here
+    // for the same reason.
+    let stderr_handle = child.stderr.take().map(|mut pipe| {
+        std::thread::spawn(move || {
+            use std::io::Read;
+            let mut buf = String::new();
+            let _ = pipe.read_to_string(&mut buf);
+            buf
+        })
+    });
+
+    let deadline = Instant::now() + timeout;
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break Some(status),
+            Ok(None) => {
+                if Instant::now() >= deadline {
+                    // Best-effort: either call failing just means the
+                    // process was already gone by the time we got here.
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    break None;
+                }
+                std::thread::sleep(FFMPEG_POLL_INTERVAL.min(timeout));
+            }
+            Err(_) => break None,
+        }
+    };
+
+    let stderr = stderr_handle
+        .and_then(|handle| handle.join().ok())
+        .unwrap_or_default();
+
+    match status {
+        Some(status) if status.success() => Ok(()),
+        Some(_) => Err(CommandTimeoutError::Failed(stderr)),
+        None => Err(CommandTimeoutError::TimedOut { timeout, stderr }),
     }
 }
 
@@ -142,4 +221,129 @@ fn ensure_parent(path: &Path) -> Result<(), CacheError> {
         std::fs::create_dir_all(parent).map_err(|e| CacheError::io(parent, e))?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// RFC 047 S4 / audit B3: the central property - a process that
+    /// never exits on its own is killed within bounds, not awaited
+    /// forever. No real ffmpeg or media file involved: the timeout
+    /// mechanism is generic over any `Command` (`run_ffmpeg` is one
+    /// caller of it, not the thing under test here).
+    #[cfg(unix)]
+    #[test]
+    fn a_process_that_never_exits_is_killed_within_the_timeout() {
+        let mut command = Command::new("sh");
+        command.args(["-c", "sleep 30"]);
+
+        let started = std::time::Instant::now();
+        let result = run_command_with_timeout(command, Duration::from_millis(300));
+        let elapsed = started.elapsed();
+
+        assert!(
+            matches!(result, Err(CommandTimeoutError::TimedOut { .. })),
+            "expected TimedOut, got a different outcome"
+        );
+        assert!(
+            elapsed < Duration::from_secs(5),
+            "killing a hung process took {elapsed:?}, expected well under the 30s it would \
+             otherwise have run for"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_process_that_exits_zero_well_within_the_timeout_succeeds() {
+        let command = Command::new("true");
+
+        let result = run_command_with_timeout(command, Duration::from_secs(5));
+
+        assert!(result.is_ok(), "expected success, got {result:?}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_process_that_exits_nonzero_well_within_the_timeout_fails_without_a_timeout_error() {
+        let command = Command::new("false");
+
+        let result = run_command_with_timeout(command, Duration::from_secs(5));
+
+        assert!(
+            matches!(result, Err(CommandTimeoutError::Failed(_))),
+            "expected Failed (a clean non-zero exit, not a timeout), got {result:?}"
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_process_that_never_exits_is_killed_within_the_timeout() {
+        let mut command = Command::new("cmd");
+        command.args(["/C", "ping -n 60 127.0.0.1 >NUL"]);
+
+        let started = std::time::Instant::now();
+        let result = run_command_with_timeout(command, Duration::from_millis(300));
+        let elapsed = started.elapsed();
+
+        assert!(
+            matches!(result, Err(CommandTimeoutError::TimedOut { .. })),
+            "expected TimedOut, got a different outcome"
+        );
+        assert!(
+            elapsed < Duration::from_secs(10),
+            "killing a hung process took {elapsed:?}"
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_process_that_exits_zero_well_within_the_timeout_succeeds() {
+        let mut command = Command::new("cmd");
+        command.args(["/C", "exit 0"]);
+
+        let result = run_command_with_timeout(command, Duration::from_secs(5));
+
+        assert!(result.is_ok(), "expected success, got {result:?}");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_process_that_exits_nonzero_well_within_the_timeout_fails_without_a_timeout_error() {
+        let mut command = Command::new("cmd");
+        command.args(["/C", "exit 1"]);
+
+        let result = run_command_with_timeout(command, Duration::from_secs(5));
+
+        assert!(
+            matches!(result, Err(CommandTimeoutError::Failed(_))),
+            "expected Failed (a clean non-zero exit, not a timeout), got {result:?}"
+        );
+    }
+
+    /// Not platform-gated: proves the stderr-draining thread does not
+    /// itself deadlock a chatty child against a full pipe, which a
+    /// manual poll loop does not get for free the way `Command::output`
+    /// does - this is the specific failure mode that motivated draining
+    /// stderr on its own thread rather than reading it after the fact.
+    #[cfg(unix)]
+    #[test]
+    fn a_chatty_process_does_not_deadlock_the_poll_loop() {
+        // A pipe buffer is typically 64 KiB; this writes well past that
+        // before exiting, so a reader that isn't actively draining would
+        // leave the child blocked on `write()` and `try_wait` spinning
+        // forever on `None`.
+        let mut command = Command::new("sh");
+        command.args(["-c", "yes 'filling the pipe' | head -c 200000 1>&2; exit 0"]);
+
+        let started = std::time::Instant::now();
+        let result = run_command_with_timeout(command, Duration::from_secs(5));
+        let elapsed = started.elapsed();
+
+        assert!(result.is_ok(), "expected success, got {result:?}");
+        assert!(
+            elapsed < Duration::from_secs(5),
+            "a drained chatty child should finish almost immediately, took {elapsed:?}"
+        );
+    }
 }

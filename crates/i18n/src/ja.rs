@@ -245,6 +245,10 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "similarity.video_unavailable" => {
             "ffmpeg/ffprobe\u{306e}\u{30da}\u{30a2}\u{304c}\u{898b}\u{3064}\u{304b}\u{3089}\u{306a}\u{304b}\u{3063}\u{305f}\u{305f}\u{3081}\u{3001}\u{52d5}\u{753b}\u{306e}\u{6bd4}\u{8f03}\u{306f}\u{5b9f}\u{884c}\u{3055}\u{308c}\u{307e}\u{305b}\u{3093}\u{3067}\u{3057}\u{305f}\u{3002}"
         } // ffmpeg/ffprobeのペアが見つからなかったため、動画の比較は実行されませんでした。
+        "similarity.scanning" => "類似ペアを検索しています…",
+        "similarity.pairs_truncated" => {
+            "最も類似する{retained}件を表示しています（全{total}件中）。"
+        }
 
         // Focus dialog
         "focus.strategy" => {

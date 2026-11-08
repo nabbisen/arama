@@ -276,7 +276,21 @@ impl ModelContainer {
         // any) continues the running total instead of restarting at 0.
         progress.finish_file();
 
-        if let Err(error) = self.ensure_safetensors_in(&staging) {
+        // RFC 047 S3.1: a synchronous ~605 MB conversion run inline would
+        // occupy this tokio worker for its whole length while a second
+        // download runs concurrently - the same pattern already applied
+        // at `publication.rs:22` and sidecar's discovery `runtime.rs:45`.
+        // `ModelContainer` is `Clone` (cheap: a name, an enum, two
+        // `&'static str`s, two integer bounds) so moving a clone into the
+        // blocking closure needs no new synchronization.
+        let container = self.clone();
+        let conversion_staging = staging.clone();
+        let conversion_result = tokio::task::spawn_blocking(move || {
+            container.ensure_safetensors_in(&conversion_staging)
+        })
+        .await
+        .context("safetensors conversion task panicked")?;
+        if let Err(error) = conversion_result {
             let _ = cleanup_directory(&staging).await;
             return Err(error).context("failed to convert downloaded model to SafeTensors");
         }

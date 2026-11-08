@@ -1,7 +1,10 @@
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
 };
 
 use arama_ai::{
@@ -23,33 +26,83 @@ use swdir::{DirNode, FilterRule, Recurse, Swdir};
 
 use super::super::{App, message::Message};
 
+/// RFC 047 S3.2: how many `UpsertImageRequest`s one `spawn_blocking` call
+/// processes before the loop in `handle_cache_require` checks whether it
+/// should stop. Each chunk's own rayon fan-out (inside `upsert_all`) is
+/// not itself interruptible once dispatched - this is the bound on how
+/// much work can still be "in flight and unstoppable" at the moment Stop
+/// is pressed. Picked empirically (T061 review package): small enough to
+/// keep that bound well under a second on real files, large enough that
+/// per-chunk dispatch and SQLite-write overhead stay a small fraction of
+/// total run time on a steady-state (already-cached) re-index.
+const THUMBNAIL_CHUNK_SIZE: usize = 24;
+
+/// RFC 047 S3.1/S3.2: the thumbnail phase, extracted to a free function
+/// (rather than inlined in `handle_cache_require`'s `Task::perform`) so
+/// it can be driven directly by a manual `tokio` runtime in tests -
+/// `iced::Task` has no public API to poll one to completion outside the
+/// real application executor, but a plain `async fn` needs none.
+///
+/// Chunked so there is an `.await` point between groups of files, which
+/// is what lets dropping the `Task` built around this (Stop, or a
+/// directory switch) actually stop the *next* chunk from ever being
+/// dispatched - the previous whole-batch `upsert_all` call had no await
+/// point anywhere inside it, so `Task::abortable()`'s drop had nothing to
+/// act on and the phase ran to completion regardless of Stop.
+///
+/// `cancel_flag` is checked explicitly rather than relying only on that
+/// drop, because it is the authoritative, directly-testable signal: a
+/// chunk already dispatched to `spawn_blocking` keeps running on its own
+/// thread even after this future stops being polled (that is what "rayon
+/// work already dispatched... continues" means in practice), so checking
+/// the flag *before* the next chunk's `spawn_blocking` call is what
+/// actually bounds how much further work can start.
+async fn run_thumbnail_phase(
+    dir_node: DirNode,
+    cancel_flag: Arc<AtomicBool>,
+) -> Vec<(PathBuf, Arc<arama_cache::Result<()>>)> {
+    let Ok(cache_path) = cache_storage_path() else {
+        return vec![];
+    };
+    let Ok(writer) = ImageCacheWriter::onetime(arama_cache::DbLocation::Custom(cache_path)) else {
+        return vec![];
+    };
+    let paths = dir_node.flatten_paths();
+
+    let mut results: Vec<(PathBuf, Arc<arama_cache::Result<()>>)> = Vec::new();
+    for path_chunk in paths.chunks(THUMBNAIL_CHUNK_SIZE) {
+        if cancel_flag.load(Ordering::Relaxed) {
+            break;
+        }
+        let chunk: Vec<UpsertImageRequest> = path_chunk
+            .iter()
+            .map(|path| UpsertImageRequest {
+                path: path.to_path_buf(),
+                clip_vector: None,
+            })
+            .collect();
+        let writer = writer.clone();
+        let Ok(chunk_results) = tokio::task::spawn_blocking(move || writer.upsert_all(chunk)).await
+        else {
+            // The blocking task panicked. Keep whatever earlier chunks
+            // already produced rather than losing it too, and stop - a
+            // panic means something is genuinely wrong, not a reason to
+            // keep dispatching more chunks against it.
+            break;
+        };
+        results.extend(chunk_results.into_iter().map(|(p, r)| (p, Arc::new(r))));
+    }
+    results
+}
+
 impl App {
     pub(super) fn handle_cache_require(&mut self, target: Option<DirNode>) -> Task<Message> {
         let node = target.or_else(|| self.dir_node.clone());
         if let Some(dir_node) = node {
+            let cancel_flag = Arc::new(AtomicBool::new(false));
+            self.cancel_flag = Some(cancel_flag.clone());
             let (task, handle) = Task::perform(
-                async move {
-                    let Ok(cache_path) = cache_storage_path() else {
-                        return vec![];
-                    };
-                    let Ok(writer) =
-                        ImageCacheWriter::onetime(arama_cache::DbLocation::Custom(cache_path))
-                    else {
-                        return vec![];
-                    };
-                    let requests: Vec<UpsertImageRequest> = dir_node
-                        .flatten_paths()
-                        .iter()
-                        .map(|x| UpsertImageRequest {
-                            path: x.to_path_buf(),
-                            clip_vector: None,
-                        })
-                        .collect();
-                    let ret = writer.upsert_all(requests);
-                    ret.into_iter()
-                        .map(|x| (x.0, Arc::new(x.1)))
-                        .collect::<Vec<(PathBuf, Arc<arama_cache::Result<()>>)>>()
-                },
+                run_thumbnail_phase(dir_node, cancel_flag),
                 Message::ThumbnailCacheFinished,
             )
             .abortable();
@@ -93,8 +146,19 @@ impl App {
                                 ),
                             );
 
-                            self.header
-                                .set_embedding_cached(self.gallery.embedding_cached());
+                            // RFC 047 S1.4/S3.4: this used to pass
+                            // `self.gallery.embedding_cached()` straight
+                            // through here - a file-count check with no
+                            // relation to whether embedding ever ran -
+                            // which is exactly why the button used to
+                            // ungrey ~35 lines before the embedding task
+                            // below is even spawned. Explicit `false`:
+                            // embedding has not started yet at this
+                            // point, let alone completed. The only place
+                            // that may set this `true` is
+                            // `handle_embedding_cache_finished`, once the
+                            // embedding phase has actually completed.
+                            self.header.set_embedding_cached(false);
                         }
                         (Err(err), _) => {
                             self.push_error_toast(
@@ -166,9 +230,18 @@ impl App {
         }
 
         self.task_handle = None;
+        self.cancel_flag = None;
+        // Reaching this handler at all means the embedding `Task` was
+        // never aborted (RFC 047 S7.1): `Handle::abort` drops the future
+        // without ever delivering its completion message, confirmed
+        // against `iced_runtime`'s own `Abortable`-based implementation.
+        // So "this handler ran" already *is* "embedding completed, not
+        // merely started" - no separate cancelled/not-cancelled check is
+        // needed here.
+        self.embedding_completed = true;
         self.aside.set_processing(self.processing);
         self.header
-            .set_embedding_cached(self.gallery.embedding_cached());
+            .set_embedding_cached(self.embedding_completed && self.gallery.embedding_cached());
 
         self.processing_off();
         self.run_finished_reload()
@@ -195,9 +268,7 @@ impl App {
                     Task::batch([task, prune_task(max_bytes)])
                 }
                 cache_page::message::Event::StopRequest => {
-                    if let Some(handle) = self.task_handle.take() {
-                        handle.abort();
-                    }
+                    self.abort_indexing();
                     let reload = self.run_finished_reload();
                     Task::batch([task, reload])
                 }
@@ -296,10 +367,9 @@ impl App {
         self.gallery.clear_filter();
 
         // Abort any running indexing task: the user switched directories,
-        // so the old result is no longer wanted.
-        if let Some(handle) = self.task_handle.take() {
-            handle.abort();
-        }
+        // so the old result is no longer wanted (RFC 047 S1: both the
+        // thumbnail and embedding phases must stop, not only embedding).
+        self.abort_indexing();
         // Mark the run on the Cache page (RFC 004 ⏳ indicator).
         self.cache_page.run_started(path);
         self.processing_on();
@@ -321,12 +391,30 @@ impl App {
         let node = build_dir_node(&path, &self.settings);
 
         // Single-task rule: a new run replaces any in-flight one.
-        if let Some(handle) = self.task_handle.take() {
-            handle.abort();
-        }
+        self.abort_indexing();
         self.cache_page.run_started(path);
         self.processing_on();
         Task::done(Message::CacheRequire(Some(node)))
+    }
+
+    /// RFC 047 S1/S3.2/S3.4: stop whichever indexing phase (thumbnail or
+    /// embedding) is currently in flight, shared by Stop and by a
+    /// directory switch. Aborts the `Task` (stops the next unit of work
+    /// it would start) *and* signals `cancel_flag` (stops the thumbnail
+    /// loop's own next chunk dispatch - see that loop's comment for why
+    /// both are needed). Also clears `embedding_completed` immediately,
+    /// rather than waiting for a cache-finished handler that a Stop may
+    /// prevent from ever running: the button must grey out the moment a
+    /// run is known to be incomplete, not some indeterminate time later.
+    fn abort_indexing(&mut self) {
+        if let Some(handle) = self.task_handle.take() {
+            handle.abort();
+        }
+        if let Some(flag) = self.cancel_flag.take() {
+            flag.store(true, Ordering::Relaxed);
+        }
+        self.embedding_completed = false;
+        self.header.set_embedding_cached(false);
     }
 
     /// At the end of an indexing run: clear the ⏳ marker and reload
@@ -707,5 +795,237 @@ mod tests {
         let summary = embedding_report_summary(&indexed_only);
         assert!(summary.starts_with('5'), "{summary}");
         assert!(!summary.contains('{'), "{summary}");
+    }
+
+    // --- RFC 047 S3.1/S3.2: `run_thumbnail_phase` cancellation ---------
+    //
+    // Drives the extracted async fn directly with a manual `tokio`
+    // runtime - `iced::Task` has no public API to poll one to completion
+    // outside the real application executor (confirmed: `iced::task`
+    // only re-exports `Handle`/`Task`/`Never`/`Sipper`/`Straw`/`sipper`/
+    // `stream`, not `into_stream`), so this is the level these
+    // properties are actually checkable at. State assertions on the
+    // function's own return value, not timing read from rendered frames,
+    // per the GUI evidence rules' "assert, do not photograph in a loop"
+    // rule.
+
+    use std::path::PathBuf;
+    use std::sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    };
+    use std::time::{Duration, Instant};
+
+    use arama_env::DATA_HOME_ENV_VAR;
+    use swdir::DirNode;
+
+    use super::super::super::ARAMA_DATA_HOME_TEST_LOCK;
+    use super::{THUMBNAIL_CHUNK_SIZE, run_thumbnail_phase};
+
+    /// A syntactically valid 1x1 JPEG - enough for `image::open` to
+    /// decode and `generate_image_thumbnail` to resize successfully.
+    /// Identical in spirit to `crates/cache/tests/helpers.rs`'s
+    /// `MINIMAL_JPEG` (private to that crate, not reusable from here).
+    const MINIMAL_JPEG: &[u8] = &[
+        0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x00, 0xff, 0xdb, 0x00, 0x43, 0x00, 0x08, 0x06, 0x06, 0x07, 0x06,
+        0x05, 0x08, 0x07, 0x07, 0x07, 0x09, 0x09, 0x08, 0x0a, 0x0c, 0x14, 0x0d, 0x0c, 0x0b, 0x0b,
+        0x0c, 0x19, 0x12, 0x13, 0x0f, 0x14, 0x1d, 0x1a, 0x1f, 0x1e, 0x1d, 0x1a, 0x1c, 0x1c, 0x20,
+        0x24, 0x2e, 0x27, 0x20, 0x22, 0x2c, 0x23, 0x1c, 0x1c, 0x28, 0x37, 0x29, 0x2c, 0x30, 0x31,
+        0x34, 0x34, 0x34, 0x1f, 0x27, 0x39, 0x3d, 0x38, 0x32, 0x3c, 0x2e, 0x33, 0x34, 0x32, 0xff,
+        0xc0, 0x00, 0x0b, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01, 0x01, 0x11, 0x00, 0xff, 0xc4, 0x00,
+        0x1f, 0x00, 0x00, 0x01, 0x05, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b,
+        0xff, 0xc4, 0x00, 0x1f, 0x10, 0x00, 0x02, 0x01, 0x03, 0x03, 0x02, 0x04, 0x03, 0x05, 0x05,
+        0x04, 0x04, 0x00, 0x00, 0x01, 0x7d, 0x01, 0x02, 0x03, 0x00, 0x04, 0x11, 0x05, 0x12, 0x21,
+        0x31, 0x41, 0x06, 0x13, 0x51, 0x61, 0x07, 0x22, 0x71, 0x14, 0x32, 0x81, 0x91, 0xa1, 0x08,
+        0x23, 0x42, 0xb1, 0xc1, 0x15, 0x52, 0xd1, 0xf0, 0x24, 0x33, 0x62, 0x72, 0x82, 0x09, 0x0a,
+        0x16, 0x17, 0x18, 0x19, 0x1a, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x34, 0x35, 0x36, 0x37,
+        0x38, 0x39, 0x3a, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x53, 0x54, 0x55, 0x56,
+        0x57, 0x58, 0x59, 0x5a, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x73, 0x74, 0x75,
+        0x76, 0x77, 0x78, 0x79, 0x7a, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x92, 0x93,
+        0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9a, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xa8, 0xa9,
+        0xaa, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 0xb8, 0xb9, 0xba, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6,
+        0xc7, 0xc8, 0xc9, 0xca, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda, 0xe1, 0xe2,
+        0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
+        0xf8, 0xf9, 0xfa, 0xff, 0xda, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3f, 0x00, 0xfb, 0xd0,
+        0x3f, 0xff, 0xd9,
+    ];
+
+    /// Isolated `ARAMA_DATA_HOME` plus `n` real, decodable image files on
+    /// disk, under their own scratch source directory (never the cache
+    /// scratch dir itself). Returns the `DirNode` listing them; cleanup
+    /// is the caller's, matching every other `scratch_data_home`-style
+    /// test in this file/crate.
+    fn thumbnail_phase_fixture(label: &str, n: usize) -> (PathBuf, PathBuf, DirNode) {
+        let data_home = std::env::temp_dir().join(format!(
+            "arama-t061-thumbnail-phase-{}-{label}-data",
+            std::process::id()
+        ));
+        let source_dir = std::env::temp_dir().join(format!(
+            "arama-t061-thumbnail-phase-{}-{label}-source",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&data_home);
+        let _ = std::fs::remove_dir_all(&source_dir);
+        std::fs::create_dir_all(&source_dir).unwrap();
+
+        let files: Vec<PathBuf> = (0..n)
+            .map(|i| {
+                let path = source_dir.join(format!("image-{i:05}.jpg"));
+                std::fs::write(&path, MINIMAL_JPEG).unwrap();
+                path
+            })
+            .collect();
+
+        (
+            data_home,
+            source_dir.clone(),
+            DirNode {
+                path: source_dir,
+                sub_dirs: vec![],
+                files,
+            },
+        )
+    }
+
+    #[test]
+    fn run_thumbnail_phase_processes_every_file_when_never_cancelled() {
+        let _guard = ARAMA_DATA_HOME_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let previous = std::env::var_os(DATA_HOME_ENV_VAR);
+        let file_count = THUMBNAIL_CHUNK_SIZE * 3 + 7; // spans several chunks, not a round number of them
+        let (data_home, source_dir, dir_node) = thumbnail_phase_fixture("full-run", file_count);
+        unsafe {
+            std::env::set_var(DATA_HOME_ENV_VAR, &data_home);
+        }
+
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let cancel_flag = Arc::new(AtomicBool::new(false));
+        let results = runtime.block_on(run_thumbnail_phase(dir_node, cancel_flag));
+
+        assert_eq!(
+            results.len(),
+            file_count,
+            "an uncancelled run must process every file"
+        );
+        let failures: Vec<_> = results.iter().filter(|(_, r)| r.is_err()).collect();
+        assert!(
+            failures.is_empty(),
+            "every real, decodable file must cache successfully: {failures:?}"
+        );
+
+        unsafe {
+            match &previous {
+                Some(value) => std::env::set_var(DATA_HOME_ENV_VAR, value),
+                None => std::env::remove_var(DATA_HOME_ENV_VAR),
+            }
+        }
+        let _ = std::fs::remove_dir_all(&data_home);
+        let _ = std::fs::remove_dir_all(&source_dir);
+    }
+
+    /// The property RFC 047 S3.2 is actually about: setting the flag
+    /// mid-run must leave *some* work undone (not every chunk already
+    /// dispatched) and must return in time bounded by roughly one
+    /// chunk's processing cost, not by finishing the whole directory.
+    #[test]
+    fn run_thumbnail_phase_stops_early_once_cancel_flag_is_set() {
+        let _guard = ARAMA_DATA_HOME_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let previous = std::env::var_os(DATA_HOME_ENV_VAR);
+        // Enough chunks that cancelling partway through is observable:
+        // too few and the whole run could finish before the canceller
+        // task is even scheduled, which would prove nothing either way.
+        let file_count = THUMBNAIL_CHUNK_SIZE * 40;
+        let (data_home, source_dir, dir_node) =
+            thumbnail_phase_fixture("cancel-mid-run", file_count);
+        unsafe {
+            std::env::set_var(DATA_HOME_ENV_VAR, &data_home);
+        }
+
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let cancel_flag = Arc::new(AtomicBool::new(false));
+        let canceller_flag = cancel_flag.clone();
+
+        let started = Instant::now();
+        let results = runtime.block_on(async move {
+            let canceller = tokio::spawn(async move {
+                tokio::time::sleep(Duration::from_millis(20)).await;
+                canceller_flag.store(true, Ordering::Relaxed);
+            });
+            let results = run_thumbnail_phase(dir_node, cancel_flag).await;
+            let _ = canceller.await;
+            results
+        });
+        let elapsed = started.elapsed();
+
+        eprintln!(
+            "=== T061 evidence: cancel set after 20ms, {} of {file_count} files \
+             processed, run_thumbnail_phase returned after {elapsed:?} ===",
+            results.len()
+        );
+
+        assert!(
+            results.len() < file_count,
+            "expected the cancel flag to stop the run before every chunk ran, got all \
+             {file_count} files processed"
+        );
+        assert!(
+            !results.is_empty(),
+            "the chunk(s) already dispatched before cancellation should still have \
+             produced some results, got none at all"
+        );
+        assert!(
+            elapsed < Duration::from_secs(5),
+            "a cancelled run must return in roughly one chunk's worth of time, not finish \
+             the whole directory - took {elapsed:?} for {file_count} files"
+        );
+
+        unsafe {
+            match &previous {
+                Some(value) => std::env::set_var(DATA_HOME_ENV_VAR, value),
+                None => std::env::remove_var(DATA_HOME_ENV_VAR),
+            }
+        }
+        let _ = std::fs::remove_dir_all(&data_home);
+        let _ = std::fs::remove_dir_all(&source_dir);
+    }
+
+    /// Cancelling *before* the first chunk ever dispatches must return
+    /// an empty result, not panic or hang - the same shape
+    /// `handle_cache_require`'s `!ret.is_empty()` check downstream
+    /// depends on to correctly skip the embedding phase.
+    #[test]
+    fn run_thumbnail_phase_returns_empty_when_already_cancelled_before_starting() {
+        let _guard = ARAMA_DATA_HOME_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let previous = std::env::var_os(DATA_HOME_ENV_VAR);
+        let (data_home, source_dir, dir_node) =
+            thumbnail_phase_fixture("pre-cancelled", THUMBNAIL_CHUNK_SIZE * 2);
+        unsafe {
+            std::env::set_var(DATA_HOME_ENV_VAR, &data_home);
+        }
+
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let cancel_flag = Arc::new(AtomicBool::new(true));
+        let results = runtime.block_on(run_thumbnail_phase(dir_node, cancel_flag));
+
+        assert!(
+            results.is_empty(),
+            "a flag already set before the first chunk must produce no results"
+        );
+
+        unsafe {
+            match &previous {
+                Some(value) => std::env::set_var(DATA_HOME_ENV_VAR, value),
+                None => std::env::remove_var(DATA_HOME_ENV_VAR),
+            }
+        }
+        let _ = std::fs::remove_dir_all(&data_home);
+        let _ = std::fs::remove_dir_all(&source_dir);
     }
 }

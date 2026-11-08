@@ -294,6 +294,32 @@ fn similarity_absence_state_keys_resolve_to_real_text_in_both_locales() {
     }
 }
 
+/// RFC 047 S3.3: the two new similar-pairs-dialog keys - "it is running"
+/// (no placeholders) and "N of M matches" (two placeholders) - resolve
+/// correctly in both locales.
+#[test]
+fn similarity_scanning_and_truncation_keys_resolve_correctly_in_both_locales() {
+    for locale in Locale::all() {
+        set_locale(*locale);
+
+        let scanning = t("similarity.scanning");
+        assert_ne!(
+            scanning, "similarity.scanning",
+            "{locale:?}: must resolve to translated text, not the raw key"
+        );
+        assert!(!scanning.is_empty(), "{locale:?}");
+
+        let truncated = t_with(
+            "similarity.pairs_truncated",
+            &[("{retained}", "50"), ("{total}", "287")],
+        );
+        assert!(truncated.contains("50"), "{locale:?}: {truncated}");
+        assert!(truncated.contains("287"), "{locale:?}: {truncated}");
+        assert!(!truncated.contains('{'), "{locale:?}: {truncated}");
+    }
+    set_locale(Locale::En);
+}
+
 /// Task 019: the two `FilesystemUnavailable` messages must stay
 /// distinct and neither must read as the other's advice — Auto mode has
 /// no single folder to check permissions on, Selected mode has nothing

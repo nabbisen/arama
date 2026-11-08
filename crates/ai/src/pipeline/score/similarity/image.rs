@@ -10,14 +10,21 @@ use rayon::{
 pub type MediaRef = (String, Option<String>);
 pub type SimilarImagePair = (MediaRef, MediaRef, f32);
 
+/// All image pairs at or above `threshold`, globally sorted
+/// (highest-similarity first). Deliberately uncapped, matching
+/// `find_similar_video_pairs` - RFC 047 S3.3 moved truncation to the
+/// caller so a *single* cap applies to the merged image-and-video list,
+/// not one cap per media type (images used to be capped here at a fixed
+/// 50 while videos had no cap at all, an asymmetry nobody chose). The
+/// caller needs the honest pre-cap total to render retained-versus-total
+/// counts, which an internal cap would have made impossible to recover.
 pub fn find_similar_pairs(
     // path, thumbnail_path, features
     map: &[(String, Option<String>, Vec<f32>)],
     threshold: f32,
-    max_pairs: usize,
 ) -> Vec<SimilarImagePair> {
     let n = map.len();
-    if n == 0 || max_pairs == 0 {
+    if n == 0 {
         return vec![];
     }
 
@@ -39,14 +46,11 @@ pub fn find_similar_pairs(
                     ));
                 }
             }
-            sort_pairs(&mut pairs);
-            pairs.truncate(max_pairs);
             pairs
         })
         .collect();
 
     sort_pairs(&mut ret);
-    ret.truncate(max_pairs);
 
     ret
 }
@@ -60,7 +64,10 @@ fn cosine_dot(a: &[f32], b: &[f32]) -> Option<f32> {
     score.is_finite().then_some(score)
 }
 
-fn sort_pairs(pairs: &mut [SimilarImagePair]) {
+/// `pub` so a caller merging image and video pairs into one list (RFC
+/// 047 S3.3's single shared cap) can re-sort the combined list with the
+/// identical ordering, rather than reimplementing or approximating it.
+pub fn sort_pairs(pairs: &mut [SimilarImagePair]) {
     pairs.par_sort_unstable_by(compare_pairs);
 }
 
@@ -80,7 +87,7 @@ mod tests {
 
     #[test]
     fn empty_input_returns_no_pairs() {
-        let pairs = find_similar_pairs(&[], 0.5, 10);
+        let pairs = find_similar_pairs(&[], 0.5);
 
         assert!(pairs.is_empty());
     }
@@ -93,7 +100,7 @@ mod tests {
             item("c.jpg", &[0.0, 1.0]),
         ];
 
-        let pairs = find_similar_pairs(&map, 0.8, 10);
+        let pairs = find_similar_pairs(&map, 0.8);
 
         assert_eq!(pairs.len(), 1);
         assert_eq!(pairs[0].0.0, "a.jpg");
@@ -101,8 +108,13 @@ mod tests {
         assert!((pairs[0].2 - 0.8).abs() < f32::EPSILON);
     }
 
+    /// RFC 047 S3.3: this used to also prove truncation to `max_pairs`
+    /// (the third argument this function no longer takes) - capping is
+    /// now the caller's job, applied once to a merged image+video list,
+    /// so this only has global sort order and stable tie-breaking left
+    /// to prove.
     #[test]
-    fn output_is_global_top_n_with_stable_tie_ordering() {
+    fn output_is_globally_sorted_with_stable_tie_ordering() {
         let map = vec![
             item("b.jpg", &[1.0, 0.0]),
             item("a.jpg", &[1.0, 0.0]),
@@ -110,7 +122,7 @@ mod tests {
             item("d.jpg", &[0.0, 1.0]),
         ];
 
-        let pairs = find_similar_pairs(&map, 0.0, 3);
+        let pairs = find_similar_pairs(&map, 0.0);
 
         let keys = pairs
             .iter()
@@ -122,17 +134,11 @@ mod tests {
                 ("a.jpg", "c.jpg", 1.0),
                 ("b.jpg", "a.jpg", 1.0),
                 ("b.jpg", "c.jpg", 1.0),
+                ("a.jpg", "d.jpg", 0.0),
+                ("b.jpg", "d.jpg", 0.0),
+                ("c.jpg", "d.jpg", 0.0),
             ]
         );
-    }
-
-    #[test]
-    fn zero_limit_returns_no_pairs() {
-        let map = vec![item("a.jpg", &[1.0]), item("b.jpg", &[1.0])];
-
-        let pairs = find_similar_pairs(&map, 0.0, 0);
-
-        assert!(pairs.is_empty());
     }
 
     #[test]
@@ -143,7 +149,7 @@ mod tests {
             item("c.jpg", &[f32::NAN, 0.0]),
         ];
 
-        let pairs = find_similar_pairs(&map, 0.0, 10);
+        let pairs = find_similar_pairs(&map, 0.0);
 
         assert!(pairs.is_empty());
     }
@@ -164,15 +170,15 @@ mod tests {
             .collect::<Vec<_>>();
 
         let started = std::time::Instant::now();
-        let pairs = find_similar_pairs(&map, 0.0, 50);
+        let pairs = find_similar_pairs(&map, 0.0);
         let elapsed = started.elapsed();
 
         println!(
-            "exact image similarity smoke: {} vectors x 512 dims, {} pairs retained, {:?}",
+            "exact image similarity smoke: {} vectors x 512 dims, {} pairs found (uncapped), \
+             {:?}",
             map.len(),
             pairs.len(),
             elapsed
         );
-        assert!(pairs.len() <= 50);
     }
 }

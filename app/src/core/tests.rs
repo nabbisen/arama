@@ -738,3 +738,167 @@ fn is_focused_selector_cannot_see_aramas_zone_ring_containers() {
     }
     let _ = std::fs::remove_dir_all(&scratch);
 }
+
+// --- RFC 047 S3.4/S7.1: Stop and a directory switch must leave a
+// partial index visibly partial, through the real `App::update` path --
+
+#[test]
+fn stop_signals_the_cancel_flag_clears_the_task_handle_and_un_completes_embedding() {
+    let _guard = ARAMA_DATA_HOME_TEST_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
+    let scratch = scratch_data_home("stop-signals-cancel-flag");
+    unsafe {
+        std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
+    }
+
+    let mut app = App::new().0;
+
+    // Simulate a run already in flight: a real abortable handle (its
+    // target task does not matter, only that `Handle::abort` on it is
+    // observable as "taken"), a cancel flag the running phase would be
+    // checking, and a directory whose embedding this run would complete
+    // if left alone.
+    let (_task, handle) = iced::Task::<()>::none().abortable();
+    app.task_handle = Some(handle);
+    let cancel_flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    app.cancel_flag = Some(cancel_flag.clone());
+    app.embedding_completed = true;
+
+    let _ = app.update(Message::CachePageMessage(
+        arama_ui_main::views::cache_page::message::Message::Event(
+            arama_ui_main::views::cache_page::message::Event::StopRequest,
+        ),
+    ));
+
+    assert!(
+        app.task_handle.is_none(),
+        "Stop must take and abort the in-flight task handle"
+    );
+    assert!(
+        app.cancel_flag.is_none(),
+        "Stop must not leave a stale cancel flag referenced for the next run to find already \
+         set"
+    );
+    assert!(
+        cancel_flag.load(std::sync::atomic::Ordering::Relaxed),
+        "the flag the running phase holds its own clone of must have been set, not just \
+         dropped from App"
+    );
+    assert!(
+        !app.embedding_completed,
+        "a directory stopped midway must not present itself as fully indexed (RFC 047 S7.1)"
+    );
+
+    unsafe {
+        match &previous {
+            Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
+            None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
+        }
+    }
+    let _ = std::fs::remove_dir_all(&scratch);
+}
+
+#[test]
+fn switching_directories_mid_index_cancels_both_the_task_and_the_flag() {
+    let _guard = ARAMA_DATA_HOME_TEST_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
+    let scratch = scratch_data_home("dir-switch-cancels-both-phases");
+    unsafe {
+        std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
+    }
+    let new_dir = std::env::temp_dir().join(format!(
+        "arama-dir-switch-cancel-test-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&new_dir);
+    std::fs::create_dir_all(&new_dir).unwrap();
+
+    let mut app = App::new().0;
+    let (_task, handle) = iced::Task::<()>::none().abortable();
+    app.task_handle = Some(handle);
+    let cancel_flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    app.cancel_flag = Some(cancel_flag.clone());
+    app.embedding_completed = true;
+
+    // The same message path a header path-submit or an aside tree click
+    // produces (`component.rs`'s `header::message::Event::DirSelect`
+    // handler calls `on_dir_changed`, which this exercises through the
+    // real `App::update`, not by calling `on_dir_changed` directly).
+    let _ = app.update(Message::HeaderMessage(
+        arama_ui_layout::header::message::Message::Event(
+            arama_ui_layout::header::message::Event::DirSelect(new_dir.clone()),
+        ),
+    ));
+
+    assert!(
+        app.task_handle.is_none(),
+        "a directory switch must abort the previous directory's in-flight task"
+    );
+    assert!(
+        cancel_flag.load(std::sync::atomic::Ordering::Relaxed),
+        "a directory switch must signal the previous run's cancel flag, exactly like Stop - \
+         RFC 047 S1's claim #3 ('switching directories cancels the running index') must hold \
+         for the thumbnail phase too, not only embedding"
+    );
+    assert!(
+        !app.embedding_completed,
+        "the new directory must start un-indexed, not inherit the old one's completed state"
+    );
+
+    unsafe {
+        match &previous {
+            Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
+            None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
+        }
+    }
+    let _ = std::fs::remove_dir_all(&scratch);
+    let _ = std::fs::remove_dir_all(&new_dir);
+}
+
+/// RFC 047 S3.4: reaching `handle_embedding_cache_finished` is itself
+/// proof the embedding `Task` was never aborted (confirmed against
+/// `iced_runtime`'s `Abortable`-based `Handle::abort` - an aborted
+/// task's completion message is never delivered), so this handler is
+/// the only place allowed to set `embedding_completed` back to `true`.
+#[test]
+fn embedding_finished_handler_sets_embedding_completed_true_through_real_app_update() {
+    let _guard = ARAMA_DATA_HOME_TEST_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
+    let scratch = scratch_data_home("embedding-finished-sets-completed");
+    unsafe {
+        std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
+    }
+
+    let mut app = App::new().0;
+    assert!(
+        !app.embedding_completed,
+        "must start false - nothing has been indexed yet"
+    );
+
+    let _ = app.update(Message::EmbeddingCacheFinished(Ok(
+        arama_ai::pipeline::encode::image::embeddings::EmbeddingRunReport::default(),
+    )));
+
+    assert!(
+        app.embedding_completed,
+        "reaching the real finished handler (not an abort) must mark embedding complete"
+    );
+    assert!(
+        app.task_handle.is_none(),
+        "the finished handler must clear the task handle"
+    );
+
+    unsafe {
+        match &previous {
+            Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
+            None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
+        }
+    }
+    let _ = std::fs::remove_dir_all(&scratch);
+}

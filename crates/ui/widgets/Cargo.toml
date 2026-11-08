@@ -27,6 +27,9 @@ lucide-icons = { workspace = true }
 rayon = { workspace = true }
 swdir = { workspace = true }
 webbrowser = { workspace = true }
+# `tokio::task::spawn_blocking` (RFC 047 S3.3) - see `app/Cargo.toml`'s
+# own `tokio` line for why no extra features need listing here.
+tokio = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }

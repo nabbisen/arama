@@ -153,6 +153,7 @@ dependencies = [
  "rfd",
  "snora",
  "swdir",
+ "tokio",
 ]
 
 [[package]]
@@ -284,6 +285,7 @@ dependencies = [
  "rayon",
  "swdir",
  "tempfile",
+ "tokio",
  "webbrowser",
 ]
 

@@ -32,6 +32,13 @@ rfd                         = { workspace = true }
 rayon                       = { workspace = true }
 swdir                       = { workspace = true }
 snora                       = { workspace = true }
+# `tokio::task::spawn_blocking` (RFC 047 S3.1) - no extra features listed
+# here, matching `arama-ai`'s own `{ workspace = true }` line: `rt` and
+# `rt-multi-thread` are already pulled into the one shared `tokio` build
+# by `iced`'s own `features = ["tokio"]` request (`iced_futures`'s
+# `tokio` optional dependency), and Cargo unifies features across every
+# crate that depends on the same `tokio` in one build.
+tokio                       = { workspace = true }
 
 [dev-dependencies]
 iced_test                   = "0.14"

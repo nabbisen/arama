@@ -47,12 +47,18 @@ User selects directory
         ▼
 App::update / on_dir_changed
   ├── abort any running task (Task::abortable handle)
+  │     and signal the shared cancel flag (RFC 047 S3.2 -
+  │     the handle alone only stops the *next* batch; the
+  │     flag is what a batch already dispatched observes)
   └── Task::done(CacheRequire)
                │
                ▼
         CacheRequire(target) handler
-          └── Task::perform(upsert_all thumbnails, ThumbnailCacheFinished)
-                (target = None: uses Explorer's dir_node
+          └── Task::perform(run_thumbnail_phase, ThumbnailCacheFinished)
+                (batches upsert_all over fixed-size chunks of files,
+                 each behind its own spawn_blocking/.await, checking
+                 the cancel flag between batches
+                 target = None: uses Explorer's dir_node
                  target = Some: Cache page explicit request)
                               │
                               ▼

@@ -1,10 +1,8 @@
-use crate::dialog::similarity_read_outcome::SimilarityReadOutcome;
-
-use super::types::SimilarPair;
+use super::types::EmbeddingsReadyResult;
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    EmbeddingsReady(SimilarityReadOutcome<SimilarPair>),
+    EmbeddingsReady(EmbeddingsReadyResult),
     MediaItemEnter(String),
     MediaItemDoubleClicked(String),
     MediaExit,
