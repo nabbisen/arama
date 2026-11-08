@@ -1,5 +1,5 @@
-> **NOT AUTHORIZED YET.** Written 2026-11-09 by the architect. Do not start
-> until this banner is replaced by the owner's authorization.
+> **AUTHORIZED 2026-11-09 — owner:** *"Both accepted: `PRIVACY.md` and T071."*
+> Written 2026-11-09 by the architect.
 >
 > **Independent of T061, T063, T064 and T070** — it touches neither
 > `app/src/core/view.rs` nor the cache. It can run beside any of them.

@@ -30,7 +30,7 @@
 >
 > **Moved 2026-11-08** from `.git-exclude/tasks/dev-team/` into `rfcs/handoffs/`, at the owner's direction, and completed against the 17-item Developer Handoff structure. The authorization above is unchanged.
 
-> **SECOND REWORK REQUESTED 2026-11-09 — review of `2567fcf`.** Everything
+> **SECOND REWORK REQUESTED 2026-11-09 — review of the first rework.** Everything
 > the first rework asked for is done. One regression came with it: replacing
 > the pair scan's abort handle with `ScanControl` means a cancelled scan still
 > delivers its (partial) result, and `handle_similar_pairs_dialog_message`

@@ -80,7 +80,7 @@ it has no handoff.
 | T068 | [RUSTSEC-2026-0441, `pin-utils`: wasm32-only](./T068-pin-utils-wasm32-only-handoff.md) | RFC 049 | 2026-11-08 |
 | T069 | [Thumbnail phase swallows an unopenable cache](./T069-thumbnail-phase-silent-cache-failure-handoff.md) | RFC 017 | 2026-11-08 |
 | T070 | [snora 0.52 → 0.57](./T070-snora-0.57-handoff.md) | — (dependency maintenance; RFC 044, RFC 049 §3) | 2026-11-09 |
-| T071 | [Model downloads refuse plain HTTP, redirects included](./T071-https-only-model-downloads-handoff.md) | RFC 021 | **not yet** |
+| T071 | [Model downloads refuse plain HTTP, redirects included](./T071-https-only-model-downloads-handoff.md) | RFC 021 | 2026-11-09 |
 
 **Tasks written before 2026-11-08 are not here.** Until then they were kept in
 the working copy's `.git-exclude/tasks/dev-team/` — numbered `001`–`047`, then
