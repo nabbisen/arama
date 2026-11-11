@@ -7,6 +7,13 @@
 > and 0.54 gives `app_side_bar` visible labels (T064's subject). Verifying
 > either task on 0.52 and then upgrading would invalidate its evidence.
 
+> **Amended 2026-11-11 — evidence plan, to the owner's updated GUI rules.**
+> §2.5 and §13 now follow the rules' *Test Optimization Rules*: each question at
+> the cheapest level that proves it (§13.1), and **two captures instead of
+> eight** — the worst case plus its baseline. §2.5 also names every directory
+> arama reads, for isolation. If you already took captures under the old plan,
+> keep the two that match §2.5 and say so; do not retake the set.
+
 # T070 Handoff — snora 0.52 → 0.57
 
 No RFC. Dependency maintenance, the same kind as T052 (snora 0.42 → 0.52).
@@ -138,12 +145,37 @@ On arama's path (the `design` feature, the four presets in
 | Toast text colours | 0.53 | Unchanged on arama's presets — the guide pins stock and preset colours |
 
 **Evidence follows the GUI rules** (`.git-exclude/rules/project-instructions-gui-common.md`
-— a working-copy file, not in the repository): prefer recorded state; capture
-only where appearance is the claim. Here it is, for two pictures: a dialog open
-(dim) and a toast visible, on Light and on Dark, before and after, same backend.
-Fixed window size at launch, isolated `XDG_CONFIG_HOME` and `XDG_STATE_HOME`,
-one instance by pid, `niri msg action screenshot-window` with an absolute path.
-**Abort at the first anomaly.**
+— a working-copy file, not in the repository; **updated 2026-11-11** with *Test
+Optimization Rules* — read them). Each property is checked at the cheapest level
+that can prove it; the plan is §13.1. **What snora changed, snora tests** — the
+toast ×'s size and the toast colours are pinned by snora's own suite, and arama
+uses snora's presets unchanged, so they get no capture here.
+
+**One question needs eyes: does the new dim read well over arama's own content?**
+Two captures answer it, the worst case and its baseline: **Dark preset** (where
+the dim changed most), a dialog open over a **populated gallery**, English,
+1280 × 720 — once on 0.52 (before), once on 0.57 (after), same script, same
+input folder, same backend. Not Light, not a toast, not a second locale: the
+rules ask for the worst case plus one baseline, and nothing else here is a
+question for eyes.
+
+**Isolate every directory arama reads** — from the source, not assumed
+(`env/src/dir.rs`):
+
+- **`ARAMA_DATA_HOME`** → a scratch directory. It moves settings
+  (`settings.json`), models (`.arama-local/`) and the cache (`.arama-cache/`)
+  together (RFC 041).
+- **`XDG_CONFIG_HOME`, `XDG_STATE_HOME`, `XDG_CACHE_HOME`, `XDG_DATA_HOME`** →
+  scratch too. arama itself does not use them while `ARAMA_DATA_HOME` is set,
+  but the toolkit and the file chooser can (recently-used files are state).
+- **The binary must not sit beside a `.arama-local/` or `.arama-cache/`.** Those
+  legacy folders are resolved relative to the **executable** and read for
+  migration (`legacy_local_dir` / `legacy_cache_dir`), so a stale one next to
+  `target/debug/arama` would leak into the run. Check before launching.
+
+Fixed window size at launch, one instance by pid,
+`niri msg action screenshot-window` with an absolute path. **Abort at the first
+anomaly.**
 
 ### 2.6 One ignore this upgrade can retire — as its own commit
 
@@ -284,9 +316,26 @@ is attributable. `cargo audit --deny warnings` must still exit 0 afterwards.
 
 ## 13. Required evidence
 
+### 13.1 Evidence plan
+
+| Question | Level | Evidence |
+|---|---|---|
+| Does each lockfile change match §8 and §2.6? | machine | the lockfile diff summary per commit |
+| Do removed and deprecated calls remain? | machine | `grep` for every name in §11 |
+| Does the toast attention hold work? | 1 — logic and state | the `App::update` test (§5) |
+| Does Escape close a dialog and a menu? | 2 — headless UI | the Simulator test (§2.3) |
+| Do RFC 044's zone cycling and focus ring still work? | 1 and 2 | the existing tests, unmodified except as §2.4 allows |
+| Can an error toast pile up? | source | the audit (§2.2) |
+| Does the new dim read well over arama's content? | 3 — real UI | **two captures**: the worst case and its baseline (§2.5) |
+
+If something comes up that this plan does not cover, add a row to the plan
+in your package and say why — before you take any capture it implies.
+
+### 13.2 Deliverables
+
 - The lockfile diff summary per commit (packages moved, added, removed).
 - The output of each gate, observed.
-- The two before/after capture pairs (§2.5), with backend and window size.
+- The two captures (§2.5), with backend, window size and the isolation used.
 - The error-toast audit (§2.2) and the `Named::Escape` search (§10).
 - Your reproduction of §2's matching — which guide rows applied, and which did
   not.

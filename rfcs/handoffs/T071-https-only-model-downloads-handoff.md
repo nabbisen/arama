@@ -153,6 +153,21 @@ checked against its pinned checksum wherever it was served from.
 
 ## 14. Required evidence
 
+### 14.1 Evidence plan
+
+No GUI change, so no capture. Each question at the cheapest level that proves
+it (the GUI rules' *Test Optimization Rules*, `.git-exclude/rules/project-instructions-gui-common.md`
+— a working-copy file, not in the repository):
+
+| Question | Level | Evidence |
+|---|---|---|
+| Is there one client construction site, with `https_only(true)`? | source | the `grep` (§3) |
+| Is a plain-HTTP request refused before connecting? | 1 — logic | the zero-connections test (§7) |
+| Is a redirect to plain HTTP refused? | source | the reqwest lines read, at the locked version (§2) |
+| Does a real download still work? | expensive pass | **one** real download, by hand (§8) — this task changes the code it exercises, which is when the rules say to run it |
+
+### 14.2 Deliverables
+
 - The grep showing one construction site.
 - The zero-connections test output.
 - The reqwest source lines read, with the locked version.

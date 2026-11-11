@@ -26,6 +26,13 @@ acceptance criteria, prohibited shortcuts, module boundaries, compatibility and
 security constraints, known risks, required evidence, and the review-request
 format — and closes with a checklist mapping each item to its section.
 
+**Required evidence is an evidence plan** (from 2026-11-11): a table of the
+questions the work must answer, the cheapest level each is checked at — logic
+and state, headless UI, or the real UI — and the captures that remain. A capture
+is the worst case, plus one baseline when something is compared. The plan is
+stated before work starts; a question found later is added to it, with the
+reason, before any capture it implies.
+
 **References to `.git-exclude/…`** point at files in the working copy that are
 not part of the repository: the local rules, the architect's schedule, and the
 review records. They are written out so the dev team can find them; a public
