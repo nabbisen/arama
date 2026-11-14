@@ -4,6 +4,23 @@
 > **Independent of every open task.** T070's two captures may use it if it
 > lands first; they must not wait for it.
 
+> **Amended 2026-11-14, after the incident report (package 164).** A launch
+> outside the script, with no isolation, wrote default settings and empty data
+> and cache folders into the real home directory. No data was lost: those
+> folders did not exist before it. **What it changes here:**
+>
+> - **Every launch of the binary goes through the script's isolation** — the
+>   preflight decoy included. Provide the launch in the script (a decoy mode, or
+>   an exported function), and start the binary no other way in this task's
+>   evidence. `App::new()` writes its data locations and a default
+>   `settings.json` **before any window exists**, so a launch without a display
+>   still writes; there is no safe unisolated launch.
+> - **Continue the isolation comparison now.** Compare the real folders'
+>   modification times and checksums before and after, as they stand —
+>   checksums compare without reading contents. Do not delete, open or modify
+>   anything in the real home directory; the owner decides about the three
+>   folders the stray run created.
+
 # T073 Handoff — one GUI session script, and a fixtures folder
 
 No RFC. Test infrastructure, required by the owner's GUI test rules
