@@ -44,10 +44,11 @@ env:
   CUDA_COMPUTE_CAPS: 86
   # 5 executable variants (the build matrix) + 1 contract-compliant source
   # archive (the source-archive job) + 1 Store package (the package-msix
-  # job, RFC 045 Half A). Part D: "all variants built" and "all assets
-  # attached" are different claims, so this is checked explicitly after
-  # upload rather than inferred from job success.
-  EXPECTED_ASSET_COUNT: 7
+  # job, RFC 045 Half A) + 1 SHA256SUMS (T075, written over the other
+  # seven and uploaded alongside them). Part D: "all variants built" and
+  # "all assets attached" are different claims, so this is checked
+  # explicitly after upload rather than inferred from job success.
+  EXPECTED_ASSET_COUNT: 8
 
 jobs:
   build:
@@ -531,6 +532,15 @@ jobs:
           merge-multiple: true
           path: dist
 
+      # T075: a checksum file a user can check offline
+      # (`sha256sum -c SHA256SUMS`), written over the downloaded build
+      # artifacts before upload so it travels with them as the eighth
+      # asset. Idempotent on a re-run: it is regenerated from whatever is
+      # in dist/ right now, and `--clobber` (below) replaces all eight
+      # together.
+      - name: Write SHA256SUMS over the release assets
+        run: .github/workflows/scripts/release-checksums.sh write dist
+
       # RFC 037: create as a draft rather than published. A draft is not
       # publicly visible and does not take the "Latest" badge, so any
       # failure between here and the explicit publish step at the end of
@@ -601,6 +611,20 @@ jobs:
             echo "::error::Release ${{ github.ref_name }} is missing assets (${ACTUAL}/${{ env.EXPECTED_ASSET_COUNT }})."
             exit 1
           fi
+
+      # T075: "all assets attached" and "the attached bytes are the built
+      # bytes" are different claims too - this is RFC 037's publication
+      # gate for the second one. Fetches the release's own asset list (with
+      # GitHub's own per-asset `digest`) and checks every file in dist/
+      # against it, both directions: a wrong or missing digest, and an
+      # asset the release has that dist/ does not. A failure here leaves
+      # the draft in place, same as every other check in this job.
+      - name: Verify uploaded assets against their release digests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "${{ github.ref_name }}" --json assets --jq '.assets' >assets.json
+          .github/workflows/scripts/release-checksums.sh verify dist assets.json
 
       # RFC 037: publication is the job's last action, after every claim
       # about the release (notes, asset count) has already been verified.

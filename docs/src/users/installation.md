@@ -51,6 +51,37 @@ CUDA assets require a compatible NVIDIA driver and CUDA environment. Use the
 CPU asset when CUDA is unavailable. If no asset matches the platform, use the
 Cargo-install or source-build route instead.
 
+### Verifying a download
+
+Every release also carries a `SHA256SUMS` file, listing a SHA-256 digest for
+each asset. Download it alongside the archive and check the archive against
+it before extracting:
+
+```sh
+# Linux - --ignore-missing skips the other assets' lines, since you likely
+# downloaded only your own platform's archive:
+sha256sum -c --ignore-missing SHA256SUMS
+```
+
+```sh
+# macOS - shasum's own --ignore-missing support varies by version, so
+# filter to the one line for your downloaded file first instead:
+grep ' arama@macOS-aarch64-X.Y.Z.zip$' SHA256SUMS | shasum -a 256 -c -
+```
+
+```powershell
+# Windows (PowerShell) - compare the printed hash against the matching line
+# in SHA256SUMS yourself (case does not matter):
+Get-FileHash arama@Windows-x64-cpu-X.Y.Z.zip -Algorithm SHA256
+```
+
+This protects against a corrupted or incomplete download — the kind of
+failure a flaky connection or a broken mirror causes. **It does not protect
+against a compromised release**: the digests are published in the same
+release as the files they describe, so anyone able to alter one can alter
+the other too. That would require signing, which arama does not currently
+do.
+
 ## Route 2: Install from crates.io
 
 The `arama` package and its internal packages are published on crates.io.

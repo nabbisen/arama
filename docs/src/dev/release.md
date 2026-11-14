@@ -202,16 +202,22 @@ release create` step. The workflow's required order:
 tag push
    │
    ▼
-build all five executable variants + the source archive
+build all five executable variants + the source archive + the Store package
    │  (all succeeded)
+   ▼
+write SHA256SUMS over the downloaded assets        ← T075
+   │
    ▼
 create the release AS A DRAFT (or reuse one left by a prior failed run)
    │
    ▼
-attach all six assets           ← --clobber, safe to re-run
+attach all eight assets         ← --clobber, safe to re-run
    │
    ▼
 verify the expected asset count
+   │
+   ▼
+verify every asset's digest against the release's own record  ← T075
    │
    ▼
 publish (draft → published)     ← the job's last action
@@ -248,12 +254,16 @@ after the tag exists costs a whole tag-and-retry cycle instead.
 gh release view X.Y.Z
 ```
 
-Confirm all **six** assets are attached: five executables
-(`arama@<variant>-X.Y.Z.<ext>`) and one source archive
+Confirm all **eight** assets are attached: five executables
+(`arama@<variant>-X.Y.Z.<ext>`), one source archive
 (`arama-X.Y.Z.tar.gz`, the same contract-compliant archive from steps 5–6
 — **not** GitHub's auto-generated "Source code" links, which wrap in a
-`<repo>-<sha>/` directory and do not satisfy the contract). The workflow's
-own asset-count check makes this redundant in the ordinary case; run it
+`<repo>-<sha>/` directory and do not satisfy the contract), one Microsoft
+Store package (`arama-X.Y.Z.msix`), and one `SHA256SUMS` (T075, a digest for
+each of the other seven; the `release` job's own `verify` step already
+checked every digest against GitHub's own record before publishing — this
+confirmation is that it ran and passed, not a re-check). The workflow's own
+asset-count check makes the *count* redundant in the ordinary case; run it
 anyway as the human-facing confirmation.
 
 ## Distribution contracts
@@ -337,9 +347,12 @@ release review package.
       that changed platform-conditional code (Part C)
 - [ ] Tag pushed (`X.Y.Z`, no `v` prefix); release-executable workflow
       completed with all jobs succeeding
-- [ ] Published release has all six assets: five executables plus the
-      contract-compliant source archive — verified via `gh release view`,
-      not inferred from the workflow's own green checkmark
+- [ ] Published release has all eight assets: five executables, the
+      contract-compliant source archive, the Microsoft Store package, and
+      `SHA256SUMS` — verified via `gh release view`, not inferred from the
+      workflow's own green checkmark
+- [ ] The release has `SHA256SUMS`, and the `release` job's "Verify uploaded
+      assets against their release digests" step passed (T075)
 - [ ] Source, executable, and crates.io artifact contracts checked separately
 - [ ] crates.io dry-run/publication follows dependency order with `arama` last
 - [ ] `NOTICE` updated if new third-party components were added
