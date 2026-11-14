@@ -234,6 +234,40 @@ RFC adds smoke automation, good first candidates are startup/exit in an
 already-configured profile, settings load/save round trips, and cache page data
 reloads through existing logic seams.
 
+## Real-UI sessions
+
+`scripts/gui-session.sh` is shared launch-and-capture infrastructure for any
+task that needs a real, running `arama` window — not an automated version of
+the checklist above (see "Future automation candidates"): it starts the app
+and gets out of the way; a task's own script sources it and drives the UI.
+
+It guarantees, every time:
+
+- **Preflight** — refuses to start if an `arama` instance is already running,
+  a stale legacy `.arama-local`/`.arama-cache` folder sits beside the binary
+  under test, or `ARAMA_DATA_HOME`/any `XDG_*_HOME` already resolves outside
+  the project.
+- **Isolation** — a fresh scratch profile, with every directory `arama` or the
+  toolkit reads (`ARAMA_DATA_HOME` and the four `XDG_*_HOME` variables)
+  pointed into it. Nothing is created in the maintainer's real home directory
+  (owner's rule) — the binary is never launched any other way from this
+  script.
+- **A fixed window size**, obtained by sizing a nested compositor before the
+  app ever launches into it — never by resizing a window after the fact.
+- **The right window** — found by the instance's own pid (or, under X11,
+  niri's own window list), never "the first window on screen."
+- **Capture and teardown** — a `name` → screenshot helper, and a teardown that
+  confirms zero instances remain afterward.
+
+See the script's own header for full usage and environment variables, and the
+project's own GUI test rules (not public) for why each of these exists.
+
+Reusable fixtures — synthetic gallery images, the two AI models pre-installed
+so a session skips the network download, and a previous release's build for
+upgrade checks — live in the project's git-ignored `.git-exclude/fixtures/`,
+built or fetched once and recorded with their checksums (see that directory's
+own `README.md`).
+
 ## Avoiding regressions
 
 Design specs (RFCs) are the source of truth for test design. When an
