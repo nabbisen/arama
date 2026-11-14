@@ -88,6 +88,8 @@ it has no handoff.
 | T069 | [Thumbnail phase swallows an unopenable cache](./T069-thumbnail-phase-silent-cache-failure-handoff.md) | RFC 017 | 2026-11-08 |
 | T070 | [snora 0.52 → 0.57](./T070-snora-0.57-handoff.md) | — (dependency maintenance; RFC 044, RFC 049 §3) | 2026-11-09 |
 | T071 | [Model downloads refuse plain HTTP, redirects included](./T071-https-only-model-downloads-handoff.md) | RFC 021 | 2026-11-09 |
+| T072 | [`rustix` unsound and three `quinn` advisories, cleared by lockfile updates](./T072-rustix-and-quinn-advisories-handoff.md) | RFC 049 §3, §4 | **not yet** |
+| T073 | [One GUI session script, and a fixtures folder](./T073-gui-session-script-and-fixtures-handoff.md) | — (the owner's GUI test rules) | **not yet** |
 
 **Tasks written before 2026-11-08 are not here.** Until then they were kept in
 the working copy's `.git-exclude/tasks/dev-team/` — numbered `001`–`047`, then

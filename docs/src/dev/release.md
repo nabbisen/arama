@@ -25,7 +25,7 @@ cargo fmt --check
 cargo check --workspace
 cargo test --workspace
 cargo clippy --workspace --all-targets -- -D warnings
-cargo audit
+cargo audit --deny warnings
 ```
 
 This is the default CPU release gate. `cargo clippy --workspace
@@ -33,9 +33,11 @@ This is the default CPU release gate. `cargo clippy --workspace
 `cuda` feature and requires a CUDA toolkit with `nvcc`; run it only in a
 CUDA-equipped verification environment and record that separately.
 
-If `cargo audit` passes with ignored advisories or allowed warnings,
-confirm each `.cargo/audit.toml` ignore and each tracked warning still
-has a current dependency path, rationale, and revisit condition.
+`--deny warnings` matches the `Audit` workflow: an unmaintained, unsound or
+yanked crate fails the gate unless it is ignored by ID. Confirm each
+`.cargo/audit.toml` ignore still has a current dependency path, rationale, and
+revisit condition in `rfcs/notes/audit-warning-burn-down.md` (RFC 049 §3), and
+that no update has made it unnecessary (RFC 049 §4).
 
 For releases that include UI, setup, cache, first-run, or recoverable-error
 changes, also consider the manual release smoke checklist in
@@ -65,6 +67,34 @@ bash scripts/check-external-ffmpeg-contract.sh \
   --archive arama@Linux-x64-gnu-cpu-X.Y.Z.tar.gz \
   --binary target/release/arama
 ```
+
+### Once-per-release expensive passes
+
+Two checks are too costly to run on every change, so they run only when the
+code they exercise changes — **and at least once per release, on the release
+commit**, whatever changed. Record each in the release review package with its
+observed output; a pass not run is recorded as not run, with the reason.
+
+**1. A real model download.** In a clean, isolated profile (`ARAMA_DATA_HOME`
+and the four `XDG_*` homes pointed at a scratch directory — see
+[testing.md](./testing.md#release-smoke-with-the-ui)), run first-run setup and
+let it download both models from HuggingFace. Record the elapsed time, the
+bytes received, and that both files passed their pinned SHA-256 checks. **This
+is the only check that sees HuggingFace as it is today:** its redirects and
+download servers change without notice (they moved to a regional server in
+November 2026), and no automated test downloads a real model.
+
+**2. An upgrade from the previous release.** In a second isolated profile:
+
+1. run the **previous** release's published binary on a small fixture gallery,
+   so it writes settings and a cache;
+2. change one setting (theme or locale) so there is something to preserve;
+3. run the **release candidate** on the same profile.
+
+Confirm the setting survived, the gallery appears without re-indexing from
+nothing, and no error toast is shown. Where the release migrates stored data
+one way (a cache schema, for example), confirm the release notes say what a
+user who downgrades must do — and that it is true.
 
 ### 2. Bump the version
 
@@ -290,6 +320,10 @@ release review package.
       evidence recorded when run
 - [ ] Release artifacts contain no bundled ffmpeg/ffprobe executable, and
       setup exposes only the external prerequisite
+- [ ] Real model download passed on the release commit (elapsed, bytes,
+      checksums recorded)
+- [ ] Upgrade from the previous release passed on the release commit
+      (settings preserved, cache read, no error toast; downgrade note checked)
 - [ ] Workspace package version updated; internal dependency requirements unchanged
 - [ ] `Cargo.lock` refreshed and reviewed without unrelated dependency churn
 - [ ] Post-bump locked metadata/check gate passed
