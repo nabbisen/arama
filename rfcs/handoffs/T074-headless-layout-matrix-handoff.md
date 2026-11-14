@@ -52,7 +52,7 @@ Read RFC 053 in full first. The short version:
 
 ## 4. Change scope
 
-- `app/src/core.rs` — `App::start`: `min_size` and the launch size.
+- `app/src/core.rs` — `App::start`: `min_size`, the launch size, the title and the Linux application id.
 - `app/src/core/tests.rs` — declares the new module.
 - `app/src/core/tests/layout_matrix.rs` (new) — the matrix.
 - `app/src/core/tests/layout_probe.rs` (new) — Phase 0's probe (§6.1). It stays:
@@ -117,6 +117,21 @@ must fit inside 1093 × 535 logical px — **1024 × 520** unless Phase 0 shows 
 reason otherwise. One named constant per value, with the reason beside it
 (RFC 053 §2.2). Both are logical px of the content area.
 
+**Added 2026-11-14 (review 165, P1) — the window's name, in the same
+`window::Settings`.** arama sets no title and no application id today. iced's
+default title is `format!("{title} - Iced")` (`iced_program` 0.14.0,
+`src/lib.rs:90`), so every platform shows **"Arama - Iced"** in the taskbar,
+the window switcher and the title bar. On Linux, a window with no app id cannot
+be matched to `packaging/linux/arama.desktop`: users get a generic icon and no
+grouping with the launcher. Set:
+
+- the title, through `.title(…)`, to **`arama`** — the product name exactly as
+  `arama.desktop`'s `Name=` spells it, in every locale;
+- `platform_specific.application_id` to **`arama`** on Linux — the desktop
+  file's basename, as iced's own documentation for that field advises
+  (`iced_core` 0.14.0, `window/settings/linux.rs`). On X11, winit sets
+  `WM_CLASS` from the same value.
+
 ### 6.3 The matrix (delivery 2)
 
 As RFC 053 §2.1: text size (Default only until T063 lands, the dimension wired)
@@ -161,6 +176,9 @@ failure.
 - The matrix, every combination of §6.3.
 - `min_size` and launch size: a unit test reads `App`'s window settings and
   asserts both values — the constants are not only defined but used.
+- Title and application id: the same test asserts both are `arama`, and that
+  the application id equals `arama.desktop`'s basename, read from
+  `packaging/linux/` — so renaming one without the other fails.
 - The kana-face check failing when the font database has no Japanese face (a
   font database built without one).
 - `cargo test --workspace --locked`, `clippy --all-targets -D warnings`,
@@ -181,6 +199,7 @@ RFC 053 §6, and:
 - Matrix under 60 s on the Linux runner, or split (not trimmed) with the
   numbers reported.
 - `min_size` 760 × 520 and a launch size inside 1093 × 535, both tested.
+- Title `arama` and Linux application id `arama`, both tested (§6.2).
 - No font file in the repository; release assets unchanged in size.
 - Green on all seven workflows after the architect pushes.
 
@@ -239,6 +258,7 @@ theme, i18n and snora crates are read, not changed.
 | Which font draws kanji on each platform? | headless, on CI | Phase 0 item 4's output from all three runners |
 | Does every combination keep every label visible? | headless | the matrix, its run time, `KNOWN_LAYOUT_DEFECTS` |
 | Are the minimum and launch sizes set? | logic | the unit test of §7 |
+| Does the window carry arama's name and app id? | logic, then machine | the unit test of §7; then niri's window list showing `title` and `app_id` both `arama`, from a session started through `scripts/gui-session.sh` — no capture needed |
 | Is Japanese measured with a real font everywhere? | headless, on CI | the kana-face check; `dpkg-query` line in the Linux log |
 | Does the real window honour the minimum? | real UI | **none in this task** — one capture at 760 × 520 belongs to T063's evidence, through `scripts/gui-session.sh` |
 

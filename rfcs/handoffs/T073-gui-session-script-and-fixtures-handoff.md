@@ -33,6 +33,15 @@
 > resolves outside the project** — the guard that would have stopped the
 > incident — and a refusal of that kind is a third one to demonstrate (§7).
 
+> **CHANGES REQUESTED 2026-11-14 — review 165**
+> (`.git-exclude/reviewed/165-t073-gui-session-and-fixtures-review.md`).
+> Blocking: **(B1)** when the script is *sourced*, every refusal prints and
+> carries on — reproduced: an unisolated launch. **(B2)** killing by name can
+> kill an arama the owner started. **(B3)** X11 window selected by title.
+> **(B4)** fullscreening after launch resizes a running window. Plus nine
+> smaller items, among them a gallery fixture that is not reproducible (PNG date
+> stamps). Rework on top of `c8ef9f7`. The authorization above is unchanged.
+
 # T073 Handoff — one GUI session script, and a fixtures folder
 
 No RFC. Test infrastructure, required by the owner's GUI test rules
