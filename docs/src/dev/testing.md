@@ -253,11 +253,17 @@ It guarantees, every time:
   (owner's rule) — the binary is never launched any other way from this
   script.
 - **A fixed window size**, obtained by sizing a nested compositor before the
-  app ever launches into it — never by resizing a window after the fact.
-- **The right window** — found by the instance's own pid (or, under X11,
-  niri's own window list), never "the first window on screen."
-- **Capture and teardown** — a `name` → screenshot helper, and a teardown that
-  confirms zero instances remain afterward.
+  app launches into it, configured to open its one window already
+  fullscreen — never a resize command run against a window that already
+  exists.
+- **The right window** — the nested compositor is private to one session, so
+  the only window in it (confirmed: none before launch, exactly one after)
+  is arama's, cross-checked by pid on Wayland. Never "the first window on
+  screen," and never an X11 client query against the session's own display.
+- **Capture and teardown** — a `name` → screenshot helper, and a teardown
+  that kills only the exact pid this script itself launched and confirms it
+  is gone — never a kill by process name, which could hit an arama the
+  maintainer opened for real, on their own desktop, during the session.
 
 See the script's own header for full usage and environment variables, and the
 project's own GUI test rules (not public) for why each of these exists.
