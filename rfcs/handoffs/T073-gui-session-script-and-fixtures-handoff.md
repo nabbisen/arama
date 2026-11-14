@@ -21,6 +21,18 @@
 >   anything in the real home directory; the owner decides about the three
 >   folders the stray run created.
 
+> **Amended 2026-11-14, after the owner's answer.** The owner had the three
+> stray folders removed; the architect deleted them (`~/.config/arama/`,
+> `~/.local/share/arama/`, `~/.cache/arama/`). The comparison is therefore
+> *"absent before, absent after"* — the strongest form. **Owner's rule, now in
+> `rfcs/handoffs/README.md`:** nothing is created in the home directory unless
+> truly necessary. Settings go under `ARAMA_DATA_HOME` (stored by
+> `app-json-settings` through `ConfigManager::with_root_dir`); scratch,
+> fixtures and evidence under `.git-exclude/`. **The script's preflight also
+> refuses to launch when `ARAMA_DATA_HOME` or any of the four `XDG_*` homes
+> resolves outside the project** — the guard that would have stopped the
+> incident — and a refusal of that kind is a third one to demonstrate (§7).
+
 # T073 Handoff — one GUI session script, and a fixtures folder
 
 No RFC. Test infrastructure, required by the owner's GUI test rules
@@ -133,6 +145,8 @@ the rules by name; the rules file itself is not public.
 - **Each preflight refusal shown failing:** run the script once with an
   `arama` instance already running, and once with a planted `.arama-cache/`
   beside the binary — both must refuse, with a message naming the reason.
+  And a third: once with `ARAMA_DATA_HOME` (or an `XDG_*` home) pointing
+  outside the project — it must refuse before any launch.
 - **One end-to-end session:** launch, capture one image at 1280 × 720, teardown.
   Show `session.txt`, and show by machine (the image's pixel size, read with a
   tool, converted from physical to logical px at the display scale) that the
@@ -145,7 +159,7 @@ the rules by name; the rules file itself is not public.
 ## 8. Acceptance criteria
 
 - Both scripts committed, `shellcheck` clean, no personal path in them.
-- Both preflight refusals demonstrated.
+- All three preflight refusals demonstrated.
 - One end-to-end session, with `session.txt` and the size check.
 - Real settings and XDG folders untouched, shown.
 - The three fixtures present, each with a checksum, the README describing how
@@ -196,7 +210,7 @@ are out of scope; say so in its header.
 | Question | Level | Evidence |
 |---|---|---|
 | Are the scripts free of errors and personal data? | machine | `shellcheck`; a `grep` for home paths and email patterns |
-| Does preflight refuse a second instance and a stale legacy folder? | machine | the two refused runs, their output |
+| Does preflight refuse a second instance, a stale legacy folder, and an isolation path outside the project? | machine | the three refused runs, their output |
 | Does a session give the requested size and an isolated profile? | machine | `session.txt`, the image size converted to logical px, the before/after comparison of the real folders |
 | Is the capture of the right window? | real UI | **one** capture — the end-to-end session's |
 | Are the fixtures intact? | machine | `SHA256SUMS` verification output |

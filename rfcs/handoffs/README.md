@@ -33,6 +33,17 @@ is the worst case, plus one baseline when something is compared. The plan is
 stated before work starts; a question found later is added to it, with the
 reason, before any capture it implies.
 
+**Nothing is created in the home directory** (from 2026-11-14, owner's rule)
+unless it is truly necessary — by the dev team or the architect, in evidence
+runs, tests and scratch work alike. Every run of arama sets `ARAMA_DATA_HOME`
+into a scratch folder under `.git-exclude/tmp/` — `app-json-settings` then
+stores settings under that root (`ConfigManager::with_root_dir`), and tests use
+the same seam with a temporary root — together with the four `XDG_*` homes the
+toolkit uses. `App::new()` writes its data locations and default settings before
+any window exists, so no run of the binary is harmless without this. Scratch
+files, fixtures and evidence stay inside the project. A write into the home
+directory that cannot be avoided is named in the package, with the reason.
+
 **References to `.git-exclude/…`** point at files in the working copy that are
 not part of the repository: the local rules, the architect's schedule, and the
 review records. They are written out so the dev team can find them; a public
