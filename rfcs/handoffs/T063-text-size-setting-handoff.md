@@ -19,6 +19,14 @@
 > lands**; if you have work in progress, report what exists. The authorization
 > above is unchanged.
 
+> **Added 2026-11-14 — "a narrow window" now has a value: 760 × 520 logical px
+> of content.** The owner chose it for [RFC 053](../proposed/053-headless-layout-matrix.md)
+> §2.2 (option A): half of a 1920 × 1080 screen at 125 %, so arama fits beside a
+> file manager. Wherever this handoff says *"narrow window"*, read that size.
+> **If the layout does not fit it at the largest step, fix the layout, not the
+> size** — RFC 053 §2.2. Setting `min_size` itself belongs to RFC 053's task,
+> not this one. The authorization above is unchanged.
+
 # T063 Handoff — a text-size setting: Default / Large / Larger
 
 Companion to [RFC 052](../proposed/052-text-size-and-reach.md) §2.

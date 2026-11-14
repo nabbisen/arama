@@ -1,6 +1,7 @@
 # RFC 053: A headless layout matrix — every text size, language, theme and window size, on every CI run
 
-**Status:** Proposed
+**Status:** Proposed — **owner decisions recorded 2026-11-14** (§7): minimum
+window **760 × 520**; fonts **(a)**, installed on CI only.
 **Raised by:** the architect, 2026-11-11, applying the owner's updated GUI test
 rules (*Test Optimization Rules*, 2026-11-11). The owner asked for this RFC on
 2026-11-14 (*"Yes."*).
@@ -88,15 +89,29 @@ which need state constructed directly on `App`.
 
 ### 2.2 A minimum window size — decided here, enforced in the app
 
-**Proposal: arama sets `min_size` at launch, and the matrix tests that size.**
-The value is the owner's to choose (§7). The architect's candidate: **960 × 520
-logical px for the window's content area.** The smallest common laptop screen,
+**arama sets `min_size` at launch, and the matrix tests that size.** **Owner's
+decision, 2026-11-14: 760 × 520 logical px of content** (§7, option A).
+
+**The height** comes from the smallest common laptop screen,
 1366 × 768 at 125% scaling, is 1093 × 614 logical px; a taskbar (≈ 48) and a
 title bar (≈ 31) leave a maximised window about **1093 × 535** of content. A
 minimum must fit inside that — a minimum larger than the screen is a window the
 user cannot fit — so the height has to sit below 535, and 520 leaves a margin.
-The width, 960, is a starting guess at the narrowest the current layout can plausibly
-be designed for; Phase 0 (§3) reports what actually fits there today.
+
+**The width comes from use, not from today's layout.** A media-similarity tool
+is used beside a file manager, each on half the screen. The commonest laptop
+setting, 1920 × 1080 at 125 %, gives a half of **768** logical px; 760 leaves
+room for the window frame. (960, the architect's first candidate, was a guess at
+what the current layout fits; it would rule out side-by-side use on that
+setting.) **If the layout does not fit 760 today, the layout changes** — for
+example, the side pane collapses below a width — **not the minimum.** Phase 0
+(§3) reports what does not fit; the layout work goes to T063, whose *"narrow
+window"* this value now defines.
+
+**The launch size goes with it.** arama sets no window size today, so it opens
+at the toolkit's default, 1024 × 768 — taller than the 535 px of content the
+smallest laptop has. The launch size must fit the same screen as the minimum;
+the implementing task sets one (1024 × 520 or smaller).
 
 Enforcing it matters as much as testing it: a minimum the matrix tests and the
 window does not enforce is a promise the app does not keep.
@@ -118,7 +133,7 @@ arama's own colours, if it ever adds any, would join this matrix then.
 ### 2.4 Fonts — the same glyphs headless as on screen
 
 The matrix must measure Japanese with a real Japanese font, the same on CI as on
-a developer's machine. Two ways; §7 asks the owner to choose:
+a developer's machine. Two ways were put to the owner (§7); **(a) was chosen**:
 
 - **(a) Install a pinned font on the CI runner** (for example the distribution's
   Noto CJK package) and require the same locally. Cheapest. Leaves the real app
@@ -130,9 +145,33 @@ a developer's machine. Two ways; §7 asks the owner to choose:
   every Japanese label, and a Windows or macOS user sees whichever system font
   happens to be the fallback. Costs package size (a subset font is a few MB).
 
-The architect leans to **(b)** under the owner's first principle — it is the end
-state, where (a) fixes the test and leaves the users' problem in place — but it
-is a product decision, not a test one.
+**Owner's decision, 2026-11-14: (a)** — *"Does option (a) make the release asset
+slim? If so, (a). A user is not always use Japanese. However, possibly, plans
+like (b) should be considered in the future."* (a) adds nothing to any release
+asset: the font is installed on the Linux runner only.
+
+**How (a) is done:**
+
+- **Linux runner:** install the distribution's full Noto CJK package, pinned to
+  a version, so every Han variant a Linux user may have is present (see the
+  finding below — the engine may pick the Simplified Chinese one).
+- **macOS and Windows runners:** install nothing. They carry the system fonts
+  users of those platforms have, so the matrix there measures what those users
+  see.
+- **Locally:** the same Linux package; `docs/src/dev/testing.md` names it.
+
+**Finding, from source, for the future (b) — not yet observed.** When arama's
+default font lacks a glyph, `cosmic-text` 0.15.0 falls back by script. For Han
+(kanji) it chooses the Japanese font only when the locale is exactly `ja`
+(`src/font/fallback/{unix,windows,macos}.rs`, `han_unification`), but the
+locale it is given is the **system's**, as `sys_locale` reports it — `ja-JP`,
+not `ja` — and never arama's own language setting. Otherwise it chooses
+Simplified Chinese: Noto Sans CJK SC, Microsoft YaHei UI, PingFang SC. Kana
+always get the Japanese font. So arama may show kanji in Chinese letterforms,
+and one label in two fonts, on every platform. Phase 0 records which font the
+engine picks (§3, item 4). If it confirms this, it is the case for (b) — a
+bundled Japanese font set as the default font — or for a fix upstream, and is
+raised with the owner as its own RFC.
 
 ### 2.5 Where it runs
 
@@ -163,6 +202,10 @@ Before the matrix is built, one probe establishes three facts, each by a
 3. **Fonts:** the same Japanese label measured with and without the font from
    §2.4. Does the width differ? (It should; if it does not, the font is not being
    used.)
+4. **Which font draws kanji:** on each runner, the font face the engine selects
+   for a kanji in a Japanese label, and for a kana in the same label. Recorded,
+   not asserted — it is evidence for §2.4's finding, not a property of the
+   layout.
 
 Plus: the screen states that can be built headless (§2.1), and the matrix's run
 time.
@@ -198,10 +241,14 @@ not listed as checked.
   build, and asserts every property Phase 0 showed it can detect.
 - A failure names its combination (§2.6).
 - It runs on every CI push, on Linux, macOS and Windows, within budget.
-- Japanese is measured with the font §2.4 chose, on every runner.
+- Japanese is measured with a real Japanese font on every runner (§2.4): the
+  pinned package on Linux, the system fonts on macOS and Windows.
+- A launch size that fits the smallest laptop screen (§2.2).
 
 ## 7. For the owner
 
-1. **The minimum window size** — 960 × 520 logical px of content, or another value.
-2. **Fonts — (a) install on CI, or (b) bundle a Japanese font with arama.**
-   (b) changes what Linux users without CJK fonts see.
+Both decided 2026-11-14:
+
+1. **The minimum window size — A: 760 × 520** logical px of content (§2.2).
+2. **Fonts — (a): install on CI only**; nothing added to the release assets
+   (§2.4). (b) stays open for the future, with §2.4's finding as its evidence.
