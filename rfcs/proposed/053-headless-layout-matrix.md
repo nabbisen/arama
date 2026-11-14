@@ -1,7 +1,8 @@
 # RFC 053: A headless layout matrix — every text size, language, theme and window size, on every CI run
 
-**Status:** Proposed — **owner decisions recorded 2026-11-14** (§7): minimum
-window **760 × 520**; fonts **(a)**, installed on CI only.
+**Status:** **Accepted by the project owner, 2026-11-14** (*"Accepted."*). Owner
+decisions (§7): minimum window **760 × 520**; fonts **(a)**, installed on CI only.
+No task is authorized yet.
 **Raised by:** the architect, 2026-11-11, applying the owner's updated GUI test
 rules (*Test Optimization Rules*, 2026-11-11). The owner asked for this RFC on
 2026-11-14 (*"Yes."*).
@@ -152,8 +153,9 @@ asset: the font is installed on the Linux runner only.
 
 **How (a) is done:**
 
-- **Linux runner:** install the distribution's full Noto CJK package, pinned to
-  a version, so every Han variant a Linux user may have is present (see the
+- **Linux runner:** install the distribution's full Noto CJK package, its
+  version printed into the log (an exact pin breaks when the runner image
+  updates), so every Han variant a Linux user may have is present (see the
   finding below — the engine may pick the Simplified Chinese one).
 - **macOS and Windows runners:** install nothing. They carry the system fonts
   users of those platforms have, so the matrix there measures what those users

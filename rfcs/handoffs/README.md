@@ -101,6 +101,7 @@ it has no handoff.
 | T071 | [Model downloads refuse plain HTTP, redirects included](./T071-https-only-model-downloads-handoff.md) | RFC 021 | 2026-11-09 |
 | T072 | [`rustix` unsound and three `quinn` advisories, cleared by lockfile updates](./T072-rustix-and-quinn-advisories-handoff.md) | RFC 049 §3, §4 | 2026-11-14 |
 | T073 | [One GUI session script, and a fixtures folder](./T073-gui-session-script-and-fixtures-handoff.md) | — (the owner's GUI test rules) | 2026-11-14 |
+| T074 | [The headless layout matrix, and a minimum window size](./T074-headless-layout-matrix-handoff.md) | RFC 053 | not authorized |
 
 **Tasks written before 2026-11-08 are not here.** Until then they were kept in
 the working copy's `.git-exclude/tasks/dev-team/` — numbered `001`–`047`, then

@@ -18,7 +18,7 @@ permanent; implemented and archived RFCs are never deleted.
 | 050 | [Which device is actually running the model, and saying so](./proposed/050-compute-device-visibility.md) | Medium — portfolio review 2026-10-21; lifted out of RFC 042 |
 | 051 | [Flatpak distribution, and what a sandbox changes](./proposed/051-flatpak-distribution.md) | Medium — **accepted 2026-10-22**; sequenced after the AUR channel goes live. §2.2 corrected 2026-10-24: arama already handles an unreadable remembered root, so nothing here is liftable |
 | 052 | [A text-size setting, and reach for older readers](./proposed/052-text-size-and-reach.md) | High — **accepted 2026-11-04**. arama has no text-size control and no preset can substitute; colour and target sizes measured fine and are explicit non-goals |
-| 053 | [A headless layout matrix](./proposed/053-headless-layout-matrix.md) | High — **proposed 2026-11-14**. Layout checked headlessly across every text size, language, theme and window size, on every CI run (the owner's test rules); needs a minimum window size and a font decision |
+| 053 | [A headless layout matrix](./proposed/053-headless-layout-matrix.md) | High — **accepted 2026-11-14**. Layout checked headlessly across every text size, language, theme and window size, on every CI run (the owner's test rules); minimum window 760 × 520, Japanese font installed on CI only |
 
 ## Implemented
 
