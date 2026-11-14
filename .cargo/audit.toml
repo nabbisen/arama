@@ -53,7 +53,7 @@
 # see; see the ledger's "Resolved" section for the before/after.
 #
 # Task 072: RUSTSEC-2026-0338 through 0342 (quinn-proto 0.11.15,
-# unreachable - see Task 059's comment above, now historical) are
+# unreachable through reqwest's never-enabled `http3` feature) are
 # retired, not listed below any more - `cargo update -p quinn-proto`
 # moved the lock to 0.11.19, which also happens to fix RUSTSEC-2026-
 # 0523/0524 (never ignored - they were new, not pre-existing warnings,
@@ -71,10 +71,10 @@
 # target with `cargo tree -i pin-utils --target <t> -e normal,build`:
 # nothing to print for x86_64-unknown-linux-gnu, x86_64-pc-windows-msvc,
 # or aarch64-apple-darwin; a real path only for wasm32-unknown-unknown.
-# Same shape as `quinn-proto` above (RUSTSEC-2026-0338/etc.) - absent
-# from every shipped binary - but reached by a different route: that
-# one is an optional feature never enabled, this one is a target never
-# built. Revisit condition: that same per-target `cargo tree` command
+# The same shape as the retired quinn-proto ignores (Task 072 above) -
+# absent from every shipped binary - but reached by a different route:
+# that one was an optional feature never enabled, this one is a target
+# never built. Revisit condition: that same per-target `cargo tree` command
 # printing a path for linux-gnu, windows-msvc, or apple-darwin - not
 # "when upstream fixes it".
 ignore = [
