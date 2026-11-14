@@ -1,7 +1,6 @@
-> **NOT AUTHORIZED.** Written 2026-11-14 by the architect, the day the owner
-> accepted [RFC 053](../proposed/053-headless-layout-matrix.md) (*"Accepted."*).
-> Accepting an RFC does not authorize its task. Do not start until a grant
-> appears in this banner.
+> **AUTHORIZED 2026-11-14 — owner:** *"Authorized."* Written 2026-11-14 by the
+> architect, the day the owner accepted
+> [RFC 053](../proposed/053-headless-layout-matrix.md) (*"Accepted."*).
 >
 > **Order: after T070 (snora 0.52 → 0.57), before T063.** From snora 0.55,
 > controls grow with the text size, so a matrix measured on 0.52 would be
