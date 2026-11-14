@@ -1,5 +1,5 @@
-> **NOT AUTHORIZED YET.** Written 2026-11-14 by the architect. Do not start
-> until this banner is replaced by the owner's authorization.
+> **AUTHORIZED 2026-11-14 — owner:** *"Both authorized."* (T072 and T073)
+> Written 2026-11-14 by the architect.
 >
 > **Urgent once authorized: the next push to `main` fails `Audit`.** Four
 > advisories published since the last green run (`a6921ed`, 2026-11-09) reach

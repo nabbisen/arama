@@ -1,5 +1,5 @@
-> **NOT AUTHORIZED YET.** Written 2026-11-14 by the architect. Do not start
-> until this banner is replaced by the owner's authorization.
+> **AUTHORIZED 2026-11-14 — owner:** *"Both authorized."* (T072 and T073)
+> Written 2026-11-14 by the architect.
 >
 > **Independent of every open task.** T070's two captures may use it if it
 > lands first; they must not wait for it.
