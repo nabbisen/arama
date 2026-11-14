@@ -42,6 +42,14 @@
 > smaller items, among them a gallery fixture that is not reproducible (PNG date
 > stamps). Rework on top of `c8ef9f7`. The authorization above is unchanged.
 
+> **CHANGES REQUESTED 2026-11-14 — review 166**
+> (`.git-exclude/reviewed/166-t073-rework-review.md`). Review 165's items are
+> answered and verified. Two small items remain: **(R1)** the exit trap
+> installed twice records itself as the caller's trap — at exit it recurses
+> until the shell crashes (exit 139). **(R2)** the gallery script's `rm -rf`
+> guard admits any folder under `.git-exclude/`, `.git-exclude/fixtures`
+> included. Fix on top of `8e0ec5b`.
+
 # T073 Handoff — one GUI session script, and a fixtures folder
 
 No RFC. Test infrastructure, required by the owner's GUI test rules
