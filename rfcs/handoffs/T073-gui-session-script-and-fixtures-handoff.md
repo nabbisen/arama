@@ -50,6 +50,13 @@
 > guard admits any folder under `.git-exclude/`, `.git-exclude/fixtures`
 > included. Fix on top of `8e0ec5b`.
 
+> **CHANGES REQUESTED 2026-11-14 — review 168**
+> (`.git-exclude/reviewed/168-t073-rework-review.md`). R1 and R2 are fixed.
+> **(R3)** The nested compositor's own window is looked up once, without
+> waiting — the reported "X11 flake" is a race on every session start.
+> **(R4)** The gallery guard checks directories only, so an existing file is
+> still deleted. Fix on top of `65059de`.
+
 # T073 Handoff — one GUI session script, and a fixtures folder
 
 No RFC. Test infrastructure, required by the owner's GUI test rules
