@@ -12,9 +12,12 @@
 #
 # Default output-dir: .git-exclude/fixtures/gallery (git-ignored, not in the
 # repository - see .git-exclude/fixtures/README.md for how this fits the
-# rest of the fixtures). A given output-dir must resolve under the project's
-# own .git-exclude/ - this script starts with `rm -rf "$out_dir"`, so an
-# arbitrary caller-supplied path is refused rather than trusted.
+# rest of the fixtures). This script starts with `rm -rf "$out_dir"`, so an
+# output-dir is refused unless it is absent, empty, or already carries this
+# script's own GENERATED_WITH.txt marker (review 166, R2: resolving under
+# .git-exclude/ alone was not enough - `.git-exclude/fixtures` itself, one
+# path segment short of the default, resolves there too, and would delete
+# every fixture, not just the gallery this script made).
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -36,6 +39,20 @@ case "$resolved_out_dir" in
         ;;
 esac
 out_dir="$resolved_out_dir"
+
+# Being under .git-exclude/ is not enough on its own: .git-exclude/fixtures
+# itself (one path segment short of the default) resolves there too, and
+# holds every other fixture besides the gallery - deleting it would take
+# the ~940 MB models fixture with it. Delete only what this script made:
+# refuse unless the directory is absent, empty, or already carries this
+# script's own GENERATED_WITH.txt from a prior run (review 166, R2).
+if [ -d "$out_dir" ]; then
+    first_entry="$(find "$out_dir" -mindepth 1 -print -quit)"
+    if [ -n "$first_entry" ] && [ ! -f "$out_dir/GENERATED_WITH.txt" ]; then
+        echo "make-gallery-fixture: output-dir ($out_dir) already exists, is not empty, and has no GENERATED_WITH.txt from a prior run of this script - refusing to rm -rf it" >&2
+        exit 1
+    fi
+fi
 
 rm -rf "$out_dir"
 mkdir -p "$out_dir"

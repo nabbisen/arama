@@ -267,13 +267,31 @@ if o:
 # whatever `EXIT` trap the calling shell already had so the cleanup handler
 # can chain to it (review 165, item 7) - sourcing this script must not
 # silently discard a caller's own trap.
+#
+# Installs once per shell (review 166, R1): a second call in the same shell
+# - `gui_session_decoy_start` followed by `gui_session_start`, say - would
+# otherwise find *this very handler* already installed and save it as
+# "prior", and at exit the handler would `eval` itself, forever. Guarded by
+# a plain flag, not by inspecting the trap's own text, since this handler's
+# own name appearing in `trap -p EXIT`'s output is exactly the case to
+# avoid matching against.
+#
+# The prior command is extracted with `eval "set -- $prior"` in a
+# subshell (so the `set --` cannot clobber the caller's own positional
+# parameters) rather than by stripping a literal `trap -- '` prefix and
+# `' EXIT` suffix - the latter breaks on a prior command that itself
+# contains a single quote, since `trap -p` escapes those as `'\''` rather
+# than leaving them for a plain substring strip to undo.
 gui_session__install_exit_trap() {
+    if [ "${GUI_SESSION__TRAP_INSTALLED:-0}" = "1" ]; then
+        return 0
+    fi
+    GUI_SESSION__TRAP_INSTALLED=1
+
     local prior
     prior="$(trap -p EXIT)"
     if [ -n "$prior" ]; then
-        prior="${prior#trap -- \'}"
-        prior="${prior%\' EXIT}"
-        GUI_SESSION__PRIOR_EXIT_TRAP="$prior"
+        GUI_SESSION__PRIOR_EXIT_TRAP="$(eval "set -- $prior" && printf '%s' "$3")"
     else
         GUI_SESSION__PRIOR_EXIT_TRAP=""
     fi
