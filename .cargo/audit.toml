@@ -24,13 +24,11 @@
 # about an ignore that no longer matches anything) until its ledger entry
 # is moved to "Resolved" and this entry is removed in the same change.
 #
-# Task 059: the eleven IDs below follow the same convention - each has
-# its full dependency-path evidence and revisit condition in
+# Task 059: the IDs below follow the same convention - each has its
+# full dependency-path evidence and revisit condition in
 # rfcs/notes/audit-warning-burn-down.md's "Remaining Warnings" section,
-# not just here. Three groups:
-#   - quinn-proto x5 (0338-0342): resolved into Cargo.lock by reqwest's
-#     optional `http3` feature, which arama does not enable - confirmed
-#     unreachable via `cargo tree -i quinn-proto`, which prints nothing.
+# not just here. Two groups (a third, quinn-proto x5, was retired by
+# Task 072 - see that task's comment below):
 #   - zip x3 (0367-0369, each matching both zip 7.2.0 and 8.6.0 in the
 #     lock - one ID ignored here covers every version it matches): a
 #     real but upstream-blocked path through candle-core, and confirmed
@@ -54,6 +52,16 @@
 # major-upgrade retirement RFC 049 S4.1 says no automated detector can
 # see; see the ledger's "Resolved" section for the before/after.
 #
+# Task 072: RUSTSEC-2026-0338 through 0342 (quinn-proto 0.11.15,
+# unreachable - see Task 059's comment above, now historical) are
+# retired, not listed below any more - `cargo update -p quinn-proto`
+# moved the lock to 0.11.19, which also happens to fix RUSTSEC-2026-
+# 0523/0524 (never ignored - they were new, not pre-existing warnings,
+# so the update closed them outright rather than retiring a suppression
+# for them). Confirmed per ID: `cargo audit --deny warnings` exits 0
+# with all five removed from this list, not merely silenced. See the
+# ledger's "Resolved" section for the before/after.
+#
 # Task 068: RUSTSEC-2026-0441 (pin-utils 0.1.0) is in the lockfile but
 # in no binary arama ships - it reaches us only via
 # wasmtimer <- iced_futures, gated behind
@@ -73,11 +81,6 @@ ignore = [
     "RUSTSEC-2024-0436", # paste 1.0.15, unmaintained - candle/gemm, tokenizers, Apple rendering.
     "RUSTSEC-2026-0192", # ttf-parser 0.25.1, unmaintained - fontdb, cosmic-text, ab_glyph.
     "RUSTSEC-2026-0253", # lru 0.16.4, unsound - cryoglyph <- iced_wgpu <- iced.
-    "RUSTSEC-2026-0338", # quinn-proto 0.11.15, unreachable - reqwest's optional http3 feature, not enabled.
-    "RUSTSEC-2026-0339", # quinn-proto 0.11.15, unreachable - reqwest's optional http3 feature, not enabled.
-    "RUSTSEC-2026-0340", # quinn-proto 0.11.15, unreachable - reqwest's optional http3 feature, not enabled.
-    "RUSTSEC-2026-0341", # quinn-proto 0.11.15, unreachable - reqwest's optional http3 feature, not enabled.
-    "RUSTSEC-2026-0342", # quinn-proto 0.11.15, unreachable - reqwest's optional http3 feature, not enabled.
     "RUSTSEC-2026-0367", # zip 7.2.0/8.6.0, extract() not called - candle-core <- pt2safetensors/arama-ai.
     "RUSTSEC-2026-0368", # zip 7.2.0/8.6.0, extract() not called - candle-core <- pt2safetensors/arama-ai.
     "RUSTSEC-2026-0369", # zip 7.2.0/8.6.0, extract() not called - candle-core <- pt2safetensors/arama-ai.

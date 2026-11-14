@@ -193,43 +193,6 @@ snora 0.42.0 retired `rustybuzz` and moved neither of the others — recorded in
 the Resolved section. Grouping advisories by how they entered predicts nothing
 about how they leave.
 
-### `quinn-proto` 0.11.15 — added 2026-10-21
-
-RUSTSEC-2026-0338, 0339, 0340, 0341, 0342. Two (0340, 0341) are 7.5 high; the
-other three are unscored. All five are QUIC protocol-level DoS/panic issues —
-a malicious peer panicking `quinn-proto` with crafted STREAM/DATAGRAM frames,
-or bypassing its memory-exhaustion guards.
-
-**Not reachable at all, not merely mitigated.** `quinn`/`quinn-proto` enter
-`Cargo.lock` because `reqwest` 0.13.4 declares them as the optional
-dependencies of its own `http3` feature:
-
-```toml
-# reqwest 0.13.4's own Cargo.toml
-http3 = ["rustls", "dep:h3", "dep:h3-quinn", "dep:quinn", "tokio/macros"]
-```
-
-arama's workspace `Cargo.toml` enables only `["blocking", "multipart",
-"rustls", "stream"]` for `reqwest` — `http3` is not among them, and none of
-those four imply it. Cargo still resolves `quinn`/`quinn-proto` into the lock
-as a dormant optional-dependency entry because lock resolution covers the
-full feature graph, not only the active feature set; it does not mean the
-code is compiled or reachable.
-
-Confirmed independently, not merely asserted from the manifest reading:
-
-```sh
-$ cargo tree -i quinn-proto
-warning: nothing to print.
-$ cargo tree -i quinn-proto --target all -e normal,build,dev
-warning: nothing to print.
-```
-
-No edge, under any target, under any edge kind. **Revisit condition:**
-`reqwest`'s `http3` feature actually appearing in arama's or arama-ai's
-enabled feature set in `Cargo.toml` — a condition anyone can check by reading
-that file, not "when upstream fixes it."
-
 ### `pin-utils` 0.1.0 — added 2026-11-08
 
 RUSTSEC-2026-0441, *unmaintained* — the upstream repository was archived
@@ -379,6 +342,77 @@ upgrade clears this today.
 **Revisit condition:** `file-handle` and `mundy` both depending on `zbus
 >=6.0.0` — a version number on each, checkable the same way this entry was
 written, not "when upstream fixes it."
+
+## Resolved: `rustix`, and the five `quinn-proto` ignores retired by the same family of updates — 2026-11-14
+
+Four advisories, cleared by two targeted `cargo update -p` calls in one
+commit (Task 072) — the lockfile move is what made the five pre-existing
+`quinn-proto` ignores retirable, so both changes landed together per RFC
+049 §4 ("an ignore an update makes unnecessary is retired, not kept").
+
+**The two genuinely new advisories:**
+
+- **RUSTSEC-2026-0486, `rustix` 1.1.4 — unsound.** The six `xattr`
+  functions mark unwritten bytes as initialized when given a zero-length
+  buffer. Reached on every desktop target via `async-io` ← `async-process`
+  ← `zbus` ← `file-handle` / `mundy`. arama never calls any `xattr`
+  function directly or transitively through code it controls, but the fix
+  costs nothing, so it was not deferred behind a reachability argument —
+  RFC 049 §3's "determine reachability" standard is for advisories an
+  update can't clear for free, not a substitute for clearing one that can.
+  Fixed in 1.1.6.
+- **RUSTSEC-2026-0538, `quinn-udp` 0.5.14 — vulnerability.** Its receive
+  loop can spin after a truncated datagram. Same unreachability as
+  `quinn-proto` below (it enters the lock through the identical dormant
+  `reqwest` `http3` optional-dependency edge, confirmed by the same
+  per-target `cargo tree -i quinn-udp` check), but never ignored — it was
+  a new ID, not a pre-existing suppression, so the update closed it
+  outright. Fixed in 0.5.16.
+
+**`quinn-proto` 0.11.15 retired, its five ignores removed (RUSTSEC-2026-0338
+through 0342).** Task 059 determined these unreachable on 2026-10-21:
+`reqwest`'s `http3` feature, the only path that would compile
+`quinn`/`quinn-proto` in, is not enabled anywhere in arama's or arama-ai's
+`Cargo.toml`, confirmed via `cargo tree -i quinn-proto` printing nothing
+under any target. That subsection moves here, superseded, now that the
+lockfile move retires the ignores it supported. The same update also
+happens to clear two more advisories against the same crate that had
+never been ignored at all:
+
+- **RUSTSEC-2026-0523 — a `MAX_STREAM_DATA` frame can open streams beyond
+  the stream limit.**
+- **RUSTSEC-2026-0524 — a long Retry token can panic or exhaust memory in
+  a QUIC client.**
+
+Both fixed in 0.11.19, alongside the three already-ignored IDs.
+
+```sh
+cargo update -p rustix@1.1.4 -p quinn-proto -p quinn-udp
+```
+
+| Package | before | after |
+|---|---|---|
+| `rustix` (the 1.x line; `rustix` 0.38.44 is a separate, unaffected lock entry) | 1.1.4 | **1.1.6** |
+| `quinn-proto` | 0.11.15 | **0.11.19** |
+| `quinn-udp` | 0.5.14 | **0.5.16** |
+
+New: `chacha20` 0.10.2, `rand` 0.10.3 (alongside the pre-existing 0.9.4),
+`rand_core` 0.10.1 (alongside 0.9.5), `rand_pcg` 0.10.2. Removed:
+`windows-sys` 0.60.2 and the nine `windows_*`/`windows-targets` 0.53.x
+platform crates it alone required (0.52.6 siblings remain, used by other
+dependents). Total `[[package]]` block count: 703 before, 697 after.
+
+**Each of the four confirmed fixed, not merely silenced**, per RFC 049
+§3's standard: `cargo audit --deny warnings` exits 0 with all five
+`quinn-proto` ignores removed from `.cargo/audit.toml` in the same
+change — if any of the five IDs still applied to 0.11.19, removing its
+ignore would have turned `cargo audit` red again, and it did not.
+
+**No ignore was added.** `rustix` and `quinn-udp`'s two new advisories were
+closed by the version move itself, the same way `quinn-proto`'s own two
+new ones were — nothing here needed a reachability determination to stay
+green, only to decide the existing `quinn-proto` ignores were no longer
+necessary.
 
 ## Resolved: localcache 0.21.2 → 0.26.2, retiring the bincode warning — 2026-11-08
 
