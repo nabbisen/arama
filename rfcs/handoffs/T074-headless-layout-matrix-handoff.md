@@ -1,3 +1,9 @@
+> **PHASE 0 ACCEPTED 2026-11-16 — review 176**
+> (`.git-exclude/reviewed/176-t074-phase-0-review.md`). Delivery 2 may start,
+> under that review's five conditions — above all, the icon-font negative
+> control moves to its own test process, and the backend keeps the matrix under
+> 60 s on Windows.
+
 > **AUTHORIZED 2026-11-14 — owner:** *"Authorized."* Written 2026-11-14 by the
 > architect, the day the owner accepted
 > [RFC 053](../proposed/053-headless-layout-matrix.md) (*"Accepted."*).

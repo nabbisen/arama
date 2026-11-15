@@ -1,3 +1,5 @@
+> **ACCEPTED 2026-11-16 — review 174, follow-up.** Published as `3ea5710`, `c1c5ad4`.
+
 > **CHANGES REQUESTED 2026-11-16 — review 174**
 > (`.git-exclude/reviewed/174-t066-retirable-ignore-detection-review.md`).
 > **(R1)** The script can exit non-zero (strict mode), so a network failure
