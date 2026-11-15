@@ -1,3 +1,10 @@
+> **CHANGES REQUESTED 2026-11-16 — review 173**
+> (`.git-exclude/reviewed/173-t071-https-only-model-downloads-review.md`).
+> One item: the plain-HTTP test override must be `#[cfg(test)]`-only, so the
+> shipped binary has exactly one client construction site and no bypass.
+> (§7's description of the existing tests was wrong — the architect's error.)
+> Fix on top of `bc38bbe`.
+
 > **AUTHORIZED 2026-11-09 — owner:** *"Both accepted: `PRIVACY.md` and T071."*
 > Written 2026-11-09 by the architect.
 >
