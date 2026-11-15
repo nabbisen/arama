@@ -62,21 +62,17 @@
 # with all five removed from this list, not merely silenced. See the
 # ledger's "Resolved" section for the before/after.
 #
-# Task 068: RUSTSEC-2026-0441 (pin-utils 0.1.0) is in the lockfile but
-# in no binary arama ships - it reaches us only via
-# wasmtimer <- iced_futures, gated behind
-# `[target.'cfg(target_arch = "wasm32")'.dependencies.wasmtimer]` in
-# iced_futures 0.14.0's own manifest, and arama ships no wasm32 build
-# (five release variants: Linux x2, Windows x2, macOS). Confirmed per
-# target with `cargo tree -i pin-utils --target <t> -e normal,build`:
-# nothing to print for x86_64-unknown-linux-gnu, x86_64-pc-windows-msvc,
-# or aarch64-apple-darwin; a real path only for wasm32-unknown-unknown.
-# The same shape as the retired quinn-proto ignores (Task 072 above) -
-# absent from every shipped binary - but reached by a different route:
-# that one was an optional feature never enabled, this one is a target
-# never built. Revisit condition: that same per-target `cargo tree` command
-# printing a path for linux-gnu, windows-msvc, or apple-darwin - not
-# "when upstream fixes it".
+# Task 070: RUSTSEC-2026-0441 (pin-utils 0.1.0, ignored by Task 068 for
+# wasmtimer <- iced_futures, wasm32-only) is retired, not listed below
+# any more - snora's own 0.53 -> 0.54 migration guide (S5) notes that
+# wasmtimer 0.4.5 no longer depends on pin-utils at all, and
+# `cargo update -p wasmtimer` moved the lock from 0.4.3 to 0.4.5. The
+# architect accepted the original ignore without checking whether an
+# update already removed the crate - exactly the case RFC 049 S4's
+# detector (Task 066) exists to catch. Confirmed per ID: `cargo audit
+# --deny warnings` exits 0 with it removed from this list, and
+# `grep -c '^name = "pin-utils"$' Cargo.lock` -> 0. See the ledger's
+# "Resolved" section for the before/after.
 ignore = [
     "RUSTSEC-2024-0436", # paste 1.0.15, unmaintained - candle/gemm, tokenizers, Apple rendering.
     "RUSTSEC-2026-0192", # ttf-parser 0.25.1, unmaintained - fontdb, cosmic-text, ab_glyph.
@@ -88,5 +84,4 @@ ignore = [
     "RUSTSEC-2026-0371", # zbus_names 4.3.2, unmaintained - zbus 5.16.0 <- file-handle.
     "RUSTSEC-2026-0372", # zvariant_derive 5.12.0, unmaintained - zbus 5.16.0 <- file-handle/mundy.
     "RUSTSEC-2026-0429", # zip 7.2.0/8.6.0, extract() not called - candle-core <- pt2safetensors/arama-ai. Same path as 0367-0369.
-    "RUSTSEC-2026-0441", # pin-utils 0.1.0, unmaintained - wasmtimer <- iced_futures, wasm32-only, no wasm32 build shipped.
 ]

@@ -193,54 +193,6 @@ snora 0.42.0 retired `rustybuzz` and moved neither of the others — recorded in
 the Resolved section. Grouping advisories by how they entered predicts nothing
 about how they leave.
 
-### `pin-utils` 0.1.0 — added 2026-11-08
-
-RUSTSEC-2026-0441, *unmaintained* — the upstream repository was archived
-2026-10-01. Found mid-task during Task 065 (review package 158) and
-deliberately left out of scope there, since its reachability had not yet
-been determined.
-
-**This is the ledger's second entry of a specific shape: `cargo audit`
-reports it, and no binary arama ships contains it — for a different
-reason than the first.** `quinn-proto` above is absent because an
-*optional feature* (`reqwest`'s `http3`) is never enabled. `pin-utils` is
-absent because a *target* is never built. Worth naming the distinction
-explicitly, because `cargo tree --target all` (used to find the path
-below) deliberately includes every target cargo knows about, not only the
-ones a given project ships — a result from it is a claim about the full
-dependency graph, not about what gets compiled into a release.
-
-```text
-pin-utils 0.1.0 <- wasmtimer 0.4.3 <- iced_futures 0.14.0 <- iced <- arama
-```
-
-`iced_futures` 0.14.0's own manifest gates `wasmtimer` behind
-`[target.'cfg(target_arch = "wasm32")'.dependencies.wasmtimer]`. arama is a
-desktop application with five release variants — Linux ×2, Windows ×2,
-macOS — and ships no `wasm32` build. **Confirmed per target, not assumed
-from the cfg alone:**
-
-```sh
-$ cargo tree -i pin-utils --target x86_64-unknown-linux-gnu -e normal,build
-warning: nothing to print.
-$ cargo tree -i pin-utils --target x86_64-pc-windows-msvc -e normal,build
-warning: nothing to print.
-$ cargo tree -i pin-utils --target aarch64-apple-darwin -e normal,build
-warning: nothing to print.
-$ cargo tree -i pin-utils --target wasm32-unknown-unknown -e normal,build
-pin-utils v0.1.0
-└── wasmtimer v0.4.3
-    └── iced_futures v0.14.0
-    ...
-```
-
-A real edge exists only for the one target arama never builds. **Revisit
-condition:** that same per-target `cargo tree -i pin-utils --target <t>
--e normal,build` command printing a path for `x86_64-unknown-linux-gnu`,
-`x86_64-pc-windows-msvc`, or `aarch64-apple-darwin` — which would mean
-either arama gained that target or `iced_futures` widened the dependency
-beyond the wasm32 gate. Not "when upstream fixes it."
-
 ### `zip` 7.2.0 / 8.6.0 — added 2026-10-21, extended 2026-11-08
 
 RUSTSEC-2026-0367 (SUID/SGID preservation during extraction), 0368 (symlink
@@ -342,6 +294,43 @@ upgrade clears this today.
 **Revisit condition:** `file-handle` and `mundy` both depending on `zbus
 >=6.0.0` — a version number on each, checkable the same way this entry was
 written, not "when upstream fixes it."
+
+## Resolved: `pin-utils`, retired by snora's own upgrade path — 2026-11-15
+
+RUSTSEC-2026-0441 (added to the ignore list 2026-11-08, Task 068) is
+retired, not listed any more in `.cargo/audit.toml`. Task 070 (snora
+0.52 → 0.57) found it while reading snora's own 0.53 → 0.54 migration
+guide: its §5 notes that `wasmtimer` 0.4.5 no longer depends on
+`pin-utils` at all, where arama's lockfile still held `wasmtimer` 0.4.3.
+
+```sh
+$ cargo update -p wasmtimer --dry-run
+    Removing pin-utils v0.1.0
+    Updating wasmtimer v0.4.3 -> v0.4.5
+```
+
+**The architect accepted the original ignore (Task 068) without checking
+whether an update already removed the dependency** — the exact gap RFC
+049 §4's retirable-ignore detector (Task 066) exists to catch, the same
+shape Task 072 found for `quinn-proto`/`quinn-udp` a day earlier. The
+revisit condition the original entry named ("a real path for
+`x86_64-unknown-linux-gnu`, `x86_64-pc-windows-msvc` or
+`aarch64-apple-darwin`") never triggered; the crate left the graph by a
+different route — an upstream fix in a dependency already being bumped
+for an unrelated reason.
+
+Run for real, as its own commit before the snora version bump (so each
+lockfile change is attributable to the reason that caused it):
+
+```sh
+$ cargo update -p wasmtimer
+    Removing pin-utils v0.1.0
+    Updating wasmtimer v0.4.3 -> v0.4.5
+```
+
+Confirmed per ID, not merely silenced: `cargo audit --deny warnings`
+exits 0 with the ignore removed, and `grep -c '^name = "pin-utils"$'
+Cargo.lock` prints `0`.
 
 ## Resolved: `rustix`, and the five `quinn-proto` ignores retired by the same family of updates — 2026-11-14
 
