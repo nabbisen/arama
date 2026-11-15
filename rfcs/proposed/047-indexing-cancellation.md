@@ -1,6 +1,6 @@
 # RFC 047: Indexing that can be stopped, and async that actually awaits
 
-**Status:** Proposed
+**Status:** **Accepted by the project owner, 2026-11-15** (*"Yes, accepted."*). Implemented by T061 (reviews 161, 162, 170; Windows reaping proven by T076, review 171). Moves to `rfcs/done/` with the release that ships it.
 **Raised by:** the external audit of 0.41.2, 2026-09-01 (findings B2, C1, C4,
 A7, D4), verified in
 [`external-audit-2026-09-01-verification`](../notes/external-audit-2026-09-01-verification.md)
