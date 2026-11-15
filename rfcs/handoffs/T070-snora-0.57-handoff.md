@@ -1,3 +1,7 @@
+> **ACCEPTED 2026-11-15 — review 172** (`.git-exclude/reviewed/172-t070-snora-0-57-review.md`).
+> §2.5's dim row was the architect's misreading: the 0.53 dim change was to
+> snora's unstyled path only; arama's `design` path did not change.
+
 > **AUTHORIZED 2026-11-09 — owner:** *"T070 is accepted."* Written 2026-11-09
 > by the architect.
 >

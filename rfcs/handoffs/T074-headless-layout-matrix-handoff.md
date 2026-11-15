@@ -91,6 +91,11 @@ pass:
    property is then recorded as not checked, never claimed.
 3. **Fonts:** one Japanese label measured with the Japanese font present and
    absent. The widths must differ; if they do not, the font is not in use.
+   **And the icon font (added 2026-11-15, review 172):** a `Simulator` render
+   in T070's package showed every Lucide icon as a stray glyph or an empty box
+   — the icon font was not loaded. Show one icon measured and rendered with
+   `App::settings()`'s fonts, and failing — a different width, or the box —
+   without them.
 4. **Which font draws kanji** (RFC 053 §2.4's finding): on each of the three CI
    runners, the font face selected for one kanji and one kana in the same
    Japanese label, through the `cosmic-text` iced already uses
