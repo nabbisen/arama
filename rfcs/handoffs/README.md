@@ -103,6 +103,7 @@ it has no handoff.
 | T073 | [One GUI session script, and a fixtures folder](./T073-gui-session-script-and-fixtures-handoff.md) | — (the owner's GUI test rules) | 2026-11-14 |
 | T074 | [The headless layout matrix, and a minimum window size](./T074-headless-layout-matrix-handoff.md) | RFC 053 | 2026-11-14 |
 | T075 | [A `SHA256SUMS` file on every release, checked against GitHub's own digests](./T075-release-checksums-handoff.md) | RFC 034, RFC 037 | 2026-11-14 |
+| T076 | [Run `arama-cache`'s tests on macOS and Windows, and prove Windows reaps a grandchild](./T076-cache-tests-on-macos-and-windows-handoff.md) | RFC 047 | not authorized |
 
 **Tasks written before 2026-11-08 are not here.** Until then they were kept in
 the working copy's `.git-exclude/tasks/dev-team/` — numbered `001`–`047`, then
