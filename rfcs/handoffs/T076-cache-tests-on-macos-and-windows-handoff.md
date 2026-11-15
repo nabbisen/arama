@@ -1,3 +1,6 @@
+> **ACCEPTED 2026-11-15 — review 171** (`.git-exclude/reviewed/171-t076-cache-tests-macos-windows-review.md`).
+> Windows grandchild reaping proven on the runner.
+
 > **AUTHORIZED 2026-11-15 — owner:** *"T076 is accepted."* Written 2026-11-15 by
 > the architect, after accepting T061 (review 170).
 >
