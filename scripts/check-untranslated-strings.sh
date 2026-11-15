@@ -22,6 +22,12 @@
 #     used later (most of Task 034's own findings were exactly this shape)
 #   - user-facing text reaching any widget constructor not listed above
 #   - native OS API calls other than rfd's `set_title`
+#   - nothing in a test-module *file* is checked either: `tests.rs`, and
+#     every file under a `tests/` directory (`mod tests;` declared from
+#     the parent, e.g. app/src/core/tests/layout_probe.rs, T074). Same
+#     reason as the in-file `mod tests { ... }` exemption below - test
+#     fixtures render literal labels no user ever sees. A user-facing
+#     string must never live in such a file.
 #   - a string that is technically inside `mod tests` but the file
 #     structures its tests unusually (this script assumes one trailing
 #     `mod tests { ... }` block per file, matching this codebase's
@@ -67,7 +73,8 @@ while IFS= read -r -d '' file; do
             printf '%s:%s\n' "$file" "$line"
         done <<< "$matches"
     fi
-done < <(find app/src crates/ui -name '*.rs' -print0)
+done < <(find app/src crates/ui -name '*.rs' \
+    ! -name 'tests.rs' ! -path '*/tests/*' -print0)
 
 if [ "$fail" -ne 0 ]; then
     printf '\nuntranslated-strings check failed: widget call(s) above pass a bare string literal instead of t(...)/t_with(...).\n' >&2
