@@ -232,7 +232,7 @@ mod tests {
         // Every row that *was* compared still produced correct pairs -
         // cancellation must not corrupt the rows it did not skip.
         for (left, right, score) in &pairs {
-            assert!(left.0 < right.0 || right.0 < left.0, "{left:?}/{right:?}");
+            assert!(left.0 != right.0, "{left:?}/{right:?}");
             assert!((*score - 1.0).abs() < f32::EPSILON);
         }
     }

@@ -99,6 +99,15 @@ pub struct App {
     /// scan is running.
     similar_pairs_scan:
         Option<std::sync::Arc<arama_ai::pipeline::score::similarity::scan_control::ScanControl>>,
+    /// Review 162 (T061's second rework): incremented each time a pair
+    /// scan starts, and handed to that scan's `default_task` so its
+    /// eventual `EmbeddingsReady` carries the value it started with. A
+    /// close-then-reopen cannot abort the old, unabortable scan (see
+    /// `similar_pairs_scan`'s own comment); this is what lets
+    /// `handle_similar_pairs_dialog_message` tell its late, partial
+    /// result apart from the new scan's and drop it instead of accepting
+    /// it as current.
+    similar_pairs_scan_generation: u64,
     /// Currently displayed top-level page.
     nav_page: NavPage,
     /// Settings page widget — persistent so tab state is preserved across
@@ -318,6 +327,7 @@ impl App {
                 cancel_flag: None,
                 embedding_completed: false,
                 similar_pairs_scan: None,
+                similar_pairs_scan_generation: 0,
                 nav_page: NavPage::Explorer,
                 settings_page,
                 cache_page: CachePage::default(),

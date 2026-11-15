@@ -29,7 +29,13 @@ mod view;
 
 use types::SimilarPair;
 
-use crate::dialog::similar_pairs_dialog::types::{EmbeddingsReadyResult, SimilarPairItem};
+// Review 162: re-exported (not just `pub` inside a private `types` module)
+// so `app`'s own tests can construct a payload for `Message::EmbeddingsReady`
+// without widening anything else - `types` stays private, only this one
+// type, already shaped for exactly this (public fields, a hand-written
+// `Default`), becomes nameable from outside this crate.
+pub use crate::dialog::similar_pairs_dialog::types::EmbeddingsReadyResult;
+use crate::dialog::similar_pairs_dialog::types::SimilarPairItem;
 use crate::dialog::similarity_read_outcome::SimilarityReadOutcome;
 
 /// RFC 047 S3.3: one cap applied to the merged image-and-video list, not
@@ -104,6 +110,14 @@ impl SimilarPairsDialog {
         self.scan_progress
     }
 
+    /// `true` until `Message::EmbeddingsReady` has set `pairs`. Review
+    /// 162's test needs this from `app` (a separate crate) to assert a
+    /// stale, dropped result left the dialog untouched - everything else
+    /// about `pairs` stays private.
+    pub fn is_scanning(&self) -> bool {
+        self.pairs.is_none()
+    }
+
     /// RFC 047 S3.3/S6, review 161 #2/#3: the scan must be interruptible
     /// *and* report a determinate count, not only that it is running.
     ///
@@ -125,7 +139,14 @@ impl SimilarPairsDialog {
     /// method only has `&self`, not a place on `App` to store it - the
     /// caller (the dialog-open handler) keeps it to cancel on dialog
     /// close and to poll for progress.
-    pub fn default_task(&self) -> (Task<message::Message>, Arc<ScanControl>) {
+    ///
+    /// `generation` (review 162) is the caller's own scan counter,
+    /// incremented and captured at the moment this scan starts - carried
+    /// through unchanged to the result's `Message::EmbeddingsReady(generation,
+    /// _)`, so the caller can tell a result produced by *this* call apart
+    /// from one left over by an earlier, unabortable scan that is still
+    /// running when this one starts.
+    pub fn default_task(&self, generation: u64) -> (Task<message::Message>, Arc<ScanControl>) {
         let dir_node = self.dir_node.clone();
         let threshold = self.similarity_threshold;
         let ffmpeg_toolchain = self.ffmpeg_toolchain.clone();
@@ -140,7 +161,7 @@ impl SimilarPairsDialog {
                 .await
                 .unwrap_or_default()
             },
-            message::Message::EmbeddingsReady,
+            move |result| message::Message::EmbeddingsReady(generation, result),
         );
         (task, control)
     }

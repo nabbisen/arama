@@ -268,10 +268,20 @@ mod tests {
     /// itself, the shape of a launcher shim (a Chocolatey or scoop
     /// `ffmpeg` wrapper) whose real work happens one process down.
     /// Proven without a PID-existence check (no `libc` dependency
-    /// needed): the grandchild repeatedly stamps a heartbeat file while
-    /// alive; if it is still running after the parent is killed, the
-    /// stamp keeps advancing, and if it is dead, it stops - checked by
-    /// comparing two reads of the file a beat apart, after the kill.
+    /// needed): the grandchild repeatedly appends one line to a heartbeat
+    /// file while alive; if it is still running after the parent is
+    /// killed, the file keeps growing, and if it is dead, it stops -
+    /// checked by comparing the file's length at two reads a beat apart,
+    /// after the kill.
+    ///
+    /// Review 162: the first version of this test compared `date +%s%N`
+    /// timestamps instead of a length. BSD `date` (macOS) has no `%N`, so
+    /// the stamp there only changes once a second - two reads 250 ms
+    /// apart would usually land in the same second and match **whether
+    /// or not the grandchild was actually still alive**, making the
+    /// assertion vacuous on that platform. Appending a line per beat and
+    /// comparing length instead needs nothing from `date` at all, so it
+    /// means the same thing on every `sh`.
     #[cfg(unix)]
     #[test]
     fn killing_the_group_also_reaps_a_grandchild_it_spawned() {
@@ -284,7 +294,7 @@ mod tests {
         let mut command = Command::new("sh");
         command.args([
             "-c",
-            &format!("(while true; do date +%s%N > {heartbeat:?}; sleep 0.05; done) & wait",),
+            &format!("(while true; do echo x >> {heartbeat:?}; sleep 0.05; done) & wait",),
         ]);
 
         // Long enough that the grandchild has definitely written at
@@ -300,15 +310,15 @@ mod tests {
              not the property under test"
         );
 
-        let first = std::fs::read_to_string(&heartbeat).unwrap();
+        let first_len = std::fs::metadata(&heartbeat).unwrap().len();
         std::thread::sleep(Duration::from_millis(250));
-        let second = std::fs::read_to_string(&heartbeat).unwrap();
+        let second_len = std::fs::metadata(&heartbeat).unwrap().len();
 
         let _ = std::fs::remove_file(&heartbeat);
 
         assert_eq!(
-            first, second,
-            "the heartbeat kept advancing after the parent was killed - the grandchild is \
+            first_len, second_len,
+            "the heartbeat file kept growing after the parent was killed - the grandchild is \
              still alive, orphaned rather than reaped"
         );
     }

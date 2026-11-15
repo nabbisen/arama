@@ -968,3 +968,97 @@ fn embedding_finished_handler_sets_embedding_completed_true_through_real_app_upd
     }
     let _ = std::fs::remove_dir_all(&scratch);
 }
+
+/// Review 162 (T061's second rework): closing the pairs dialog and
+/// reopening it cannot abort the old scan (`ScanControl`'s own doc
+/// comment explains why `Task::abortable()` cannot either), so its
+/// eventual, partial result still arrives while the *new* scan's dialog
+/// is open. Without a generation check, that stale `EmbeddingsReady`
+/// would be accepted as the new scan's own: clearing
+/// `similar_pairs_scan` out from under the new scan (so closing the new
+/// dialog would no longer cancel it) and handing the new dialog the old
+/// scan's partial pairs as if they were complete (RFC 047 S3.3 / RFC
+/// 036). This drives both deliveries through the real `App::update`
+/// path, not the dialog's own `update` directly - the check lives in
+/// `handle_similar_pairs_dialog_message`, between the two.
+#[test]
+fn stale_embeddings_ready_from_a_closed_scan_is_dropped_the_current_one_is_accepted() {
+    use arama_ai::pipeline::score::similarity::scan_control::ScanControl;
+    use arama_ui_widgets::dialog::similar_pairs_dialog::{
+        EmbeddingsReadyResult, SimilarPairsDialog, message as similar_pairs_dialog_message,
+    };
+
+    let _guard = ARAMA_DATA_HOME_TEST_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
+    let scratch = scratch_data_home("stale-embeddings-ready-dropped");
+    unsafe {
+        std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
+    }
+
+    let mut app = App::new().0;
+
+    // Simulate "scan 2 is current, its dialog is open" directly - scan 1
+    // (generation 1) was abandoned by closing and reopening the dialog,
+    // which is exactly how generation 2 came to exist, but the scan
+    // itself is never actually constructible/runnable from here (it
+    // touches the real cache and filesystem); only its aftermath -
+    // the stale message arriving - is this test's subject.
+    app.similar_pairs_scan_generation = 2;
+    let scan_2_control = std::sync::Arc::new(ScanControl::new());
+    app.similar_pairs_scan = Some(scan_2_control.clone());
+    let dir_node = DirNode {
+        path: missing_test_path(),
+        sub_dirs: vec![],
+        files: vec![],
+    };
+    app.dialog = Some(Dialog::SimilarPairsDialog(SimilarPairsDialog::new(
+        dir_node, None, 0.0, None,
+    )));
+
+    // Scan 1's late, partial result arrives.
+    let _ = app.update(Message::SimilarPairsDialogMessage(
+        similar_pairs_dialog_message::Message::EmbeddingsReady(1, EmbeddingsReadyResult::default()),
+    ));
+
+    let Some(Dialog::SimilarPairsDialog(dialog)) = &app.dialog else {
+        panic!("the dialog must still be open - a dropped stale message must not touch it");
+    };
+    assert!(
+        dialog.is_scanning(),
+        "a stale (generation 1) result must not be accepted while generation 2 is current"
+    );
+    assert!(
+        app.similar_pairs_scan
+            .as_ref()
+            .is_some_and(|control| std::sync::Arc::ptr_eq(control, &scan_2_control)),
+        "scan 2's control must survive a stale generation-1 result untouched"
+    );
+
+    // Scan 2's own result arrives.
+    let _ = app.update(Message::SimilarPairsDialogMessage(
+        similar_pairs_dialog_message::Message::EmbeddingsReady(2, EmbeddingsReadyResult::default()),
+    ));
+
+    let Some(Dialog::SimilarPairsDialog(dialog)) = &app.dialog else {
+        panic!("the dialog must still be open");
+    };
+    assert!(
+        !dialog.is_scanning(),
+        "the current generation's own result must be accepted"
+    );
+    assert!(
+        app.similar_pairs_scan.is_none(),
+        "accepting the current scan's result must clear similar_pairs_scan - nothing is left \
+         to poll or cancel"
+    );
+
+    unsafe {
+        match &previous {
+            Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
+            None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
+        }
+    }
+    let _ = std::fs::remove_dir_all(&scratch);
+}

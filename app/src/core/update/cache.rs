@@ -852,7 +852,7 @@ mod tests {
     use std::path::PathBuf;
     use std::sync::{
         Arc,
-        atomic::{AtomicBool, AtomicUsize, Ordering},
+        atomic::{AtomicBool, Ordering},
     };
     use std::time::Instant;
 
@@ -995,32 +995,26 @@ mod tests {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let cancel_flag = Arc::new(AtomicBool::new(false));
 
-        // Review 161 #5: deterministic, not timed. `chunks_done` is
-        // advanced by the hook from *inside* the run, after each real
-        // chunk finishes; the canceller thread busy-polls it (reacting
-        // to actual progress, never to wall-clock time) and sets the
-        // flag the instant the first chunk is done - before the second
-        // chunk's `spawn_blocking` call is ever reached, on any machine,
-        // at any speed.
-        let chunks_done = Arc::new(AtomicUsize::new(0));
-        let canceller_chunks_done = chunks_done.clone();
-        let canceller_flag = cancel_flag.clone();
-
+        // Review 162 (T061's second rework): set *inside* the hook,
+        // which runs synchronously on the same thread right after a
+        // chunk's results are folded in and strictly before the loop's
+        // next iteration checks the flag (`run_thumbnail_phase_with_hook`
+        // - no `.await` happens in between). That ordering makes the
+        // result exactly one chunk's worth **by construction**, not by a
+        // separate thread racing to set the flag before the next
+        // `spawn_blocking` call happens to be reached - the previous
+        // version of this test raced a canceller thread against that
+        // window, which was real (the assertion allowed for it) but not
+        // a guarantee the comment above it claimed.
+        let hook_flag = cancel_flag.clone();
         let started = Instant::now();
-        let results = runtime.block_on(async move {
-            let canceller = tokio::task::spawn_blocking(move || {
-                while canceller_chunks_done.load(Ordering::Relaxed) == 0 {
-                    std::hint::spin_loop();
-                }
-                canceller_flag.store(true, Ordering::Relaxed);
-            });
-            let results = run_thumbnail_phase_with_hook(dir_node, cancel_flag, move |_| {
-                chunks_done.fetch_add(1, Ordering::Relaxed);
-            })
-            .await;
-            let _ = canceller.await;
-            results
-        });
+        let results = runtime.block_on(run_thumbnail_phase_with_hook(
+            dir_node,
+            cancel_flag,
+            move |_cumulative| {
+                hook_flag.store(true, Ordering::Relaxed);
+            },
+        ));
         let elapsed = started.elapsed();
 
         eprintln!(
@@ -1030,25 +1024,11 @@ mod tests {
             results.len()
         );
 
-        assert!(
-            results.len() < file_count,
-            "expected the cancel flag to stop the run before every chunk ran, got all \
-             {file_count} files processed"
-        );
-        assert!(
-            !results.is_empty(),
-            "the chunk already dispatched before cancellation should still have produced \
-             some results, got none at all"
-        );
-        // At most two chunks' worth: the triggering chunk, plus - in
-        // the worst case - one more dispatched before the flag check
-        // above it is observed. Anything more would mean the flag
-        // check is not actually gating dispatch.
-        assert!(
-            results.len() <= THUMBNAIL_CHUNK_SIZE * 2,
-            "expected at most two chunks' worth of results ({}), got {}",
-            THUMBNAIL_CHUNK_SIZE * 2,
-            results.len()
+        assert_eq!(
+            results.len(),
+            THUMBNAIL_CHUNK_SIZE,
+            "the flag is set inside the hook, before the loop's next iteration can check it - \
+             exactly one chunk's worth must run, not more and not fewer, by construction"
         );
 
         unsafe {

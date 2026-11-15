@@ -146,13 +146,18 @@ impl App {
                         self.ffmpeg_authority.toolchain().cloned(),
                     );
                     self.dialog = Some(Dialog::SimilarPairsDialog(dialog.clone()));
+                    // Review 162: a new scan, a new generation - before the
+                    // scan starts, so the task it spawns captures the value
+                    // this scan is identified by for the rest of its life.
+                    self.similar_pairs_scan_generation += 1;
                     // Review 161 #2: kept so the scan can actually be
                     // cancelled if the dialog closes before it finishes
                     // (`handle_dialog_close`) - a `Task::abortable`
                     // `Handle` cannot do this for a `spawn_blocking` task
                     // (see `ScanControl`'s own doc comment). Also read
                     // by `subscription()` below to poll progress.
-                    let (scan_task, control) = dialog.default_task();
+                    let (scan_task, control) =
+                        dialog.default_task(self.similar_pairs_scan_generation);
                     self.similar_pairs_scan = Some(control);
                     return scan_task.map(Message::SimilarPairsDialogMessage);
                 }
@@ -243,10 +248,27 @@ impl App {
         &mut self,
         message: similar_pairs_dialog::message::Message,
     ) -> Task<Message> {
+        // Review 162 (T061's second rework): a result from a scan that is
+        // no longer current - closed and reopened, so a new scan and a
+        // new generation are now running - is dropped here, before it
+        // touches anything. `ScanControl` cannot abort the old scan (its
+        // own doc comment explains why), so its eventual, partial result
+        // still arrives; accepting it would clear `similar_pairs_scan`
+        // out from under the *new* scan (so closing the new dialog would
+        // no longer cancel it) and hand the new dialog the old scan's
+        // partial pairs as if they were its own - RFC 047 S3.3 and RFC
+        // 036 both exist to prevent exactly a result that looks complete
+        // and is not.
+        if let similar_pairs_dialog::message::Message::EmbeddingsReady(generation, _) = &message
+            && *generation != self.similar_pairs_scan_generation
+        {
+            return Task::none();
+        }
+
         // The scan has produced its final result, whether it ran to
         // completion or stopped early after `cancel()` - either way
         // there is nothing left to poll progress from or to cancel.
-        if let similar_pairs_dialog::message::Message::EmbeddingsReady(_) = &message {
+        if let similar_pairs_dialog::message::Message::EmbeddingsReady(_, _) = &message {
             self.similar_pairs_scan = None;
         }
 
