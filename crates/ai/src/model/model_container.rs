@@ -62,16 +62,20 @@ pub struct ModelContainer {
     /// `arama_env::local_dir`'s own (private, `arama_env`-internal)
     /// `local_dir_with_override`.
     root_override: Option<PathBuf>,
-    /// T071: `false` in every production `ModelContainer` - `new` never
-    /// sets it, and nothing else can from outside this module. Tests that
-    /// drive `download()`/`download_with_progress()` end-to-end against a
+    /// T071 review 173 (R1): `#[cfg(test)]`, not merely private - a plain
+    /// `bool` field would still compile a bypass of `https_only` into the
+    /// shipped binary, gated only by field privacy nothing else in this
+    /// module is obligated to respect. Tests that drive
+    /// `download()`/`download_with_progress()` end-to-end against a
     /// plain-HTTP loopback fixture set this `true` directly (same
     /// private-field access as `root_override`), since there is no way to
     /// stand up a TLS certificate for `127.0.0.1` in a unit test. It
     /// changes only which builder [`download_client_builder`] starts
     /// from - the connect/overall timeouts `download_generation` adds on
     /// top, and the download path itself, stay exactly what production
-    /// runs.
+    /// runs. Absent entirely from a non-test build: see
+    /// [`download_client_builder`] for the other half of the gate.
+    #[cfg(test)]
     plain_http_override: bool,
 }
 
@@ -100,6 +104,7 @@ impl ModelContainer {
             max_model_bytes,
             max_config_bytes,
             root_override: None,
+            #[cfg(test)]
             plain_http_override: false,
         };
         validate_model_specification(&model)?;
@@ -152,15 +157,18 @@ impl ModelContainer {
     }
 
     /// The real [`model_download_client_builder`], unless this instance
-    /// carries a test-only [`plain_http_override`](Self::plain_http_override),
-    /// see its own comment. Mirrors [`models_dir`](Self::models_dir)'s shape
-    /// exactly.
+    /// carries a test-only [`plain_http_override`](Self::plain_http_override).
+    /// T071 review 173 (R1): the override branch is itself `#[cfg(test)]`,
+    /// not just the field - a non-test build has exactly one
+    /// `reqwest::Client::builder()` call anywhere, the one inside
+    /// [`model_download_client_builder`] itself, with no compiled-in way
+    /// around it.
     fn download_client_builder(&self) -> reqwest::ClientBuilder {
+        #[cfg(test)]
         if self.plain_http_override {
-            reqwest::Client::builder()
-        } else {
-            model_download_client_builder()
+            return reqwest::Client::builder();
         }
+        model_download_client_builder()
     }
 
     fn ready_in(&self, directory: &Path) -> bool {
