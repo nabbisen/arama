@@ -1,3 +1,5 @@
+> **ACCEPTED 2026-11-16 — review 175.** Published as `951beeb`.
+
 > **AUTHORIZED 2026-11-08 — owner:** *"Authorized."*, given to the architect's
 > question of whether to write this fix as a task. Recorded as authorizing both
 > the writing and the work — the same reading as *"Authorized. Proceed"* for

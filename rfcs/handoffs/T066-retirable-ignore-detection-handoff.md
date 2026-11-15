@@ -1,3 +1,9 @@
+> **CHANGES REQUESTED 2026-11-16 — review 174**
+> (`.git-exclude/reviewed/174-t066-retirable-ignore-detection-review.md`).
+> **(R1)** The script can exit non-zero (strict mode), so a network failure
+> turns `Audit` red. **(R2)** A failed `cargo audit` makes every ignore read as
+> retirable. Both reproduced. Fix on top of `8643f67`.
+
 > **AUTHORIZED 2026-11-04 — owner:** *"Authorized."* Written 2026-11-04 by the
 > architect.
 >
