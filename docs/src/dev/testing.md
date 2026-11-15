@@ -50,6 +50,12 @@ path, rationale, and revisit condition.
 
 ## `arama-cache` integration tests
 
+T076: `cargo test -p arama-cache` runs in CI on all three platforms —
+Linux (`msrv.yaml`), and macOS and Windows (`native-smoke.yaml`) — the
+latter two specifically so `thumbnail.rs`'s process-group/job-object
+reaping tests (including a Windows grandchild-reaping test) actually run
+on the platform their code is for, not only compile there.
+
 `crates/cache/tests/integration_tests.rs` is the **API compatibility
 contract** for the cache facade. The test file was written against the
 v1 (`file-feature-cache`) implementation and passes unchanged against

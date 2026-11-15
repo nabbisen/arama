@@ -112,6 +112,14 @@ jobs:
           echo "--- interpreting process-tree reaping result ---"
           grep "NATIVE_SMOKE_REAPING_" reaping-output.log
 
+      - name: T076 - arama-cache's own tests
+        # Until this step, `cargo test -p arama-cache` only ran on Linux
+        # (msrv.yaml) - macOS compiled this crate (it is a dependency of
+        # `arama`) but never ran its tests, including the
+        # `killing_the_group_also_reaps_a_grandchild_it_spawned` heartbeat
+        # test review 162 fixed for this exact platform.
+        run: cargo test -p arama-cache --locked
+
       - name: RFC 041 - platform-correct data locations
         # §7's four required checks, macOS half. `-p arama-env` covers the
         # read-only "models/cache resolve under the conventional macOS
@@ -290,6 +298,16 @@ jobs:
             --nocapture | tee reaping-output.log
           echo "--- interpreting process-tree reaping result ---"
           grep "NATIVE_SMOKE_REAPING_" reaping-output.log
+
+      - name: T076 - arama-cache's own tests
+        # Until this step, `cargo test -p arama-cache` only ran on Linux
+        # (msrv.yaml) - Windows compiled this crate (it is a dependency of
+        # `arama`) but never ran its tests, including the three
+        # `#[cfg(windows)]` ones already in `thumbnail.rs` and the new
+        # Windows grandchild-reaping test this task adds - command-group's
+        # Windows job-object path had never actually been exercised here
+        # before this step.
+        run: cargo test -p arama-cache --locked
 
       - name: RFC 041 - platform-correct data locations
         # §7's four required checks, Windows half - see the macOS job's

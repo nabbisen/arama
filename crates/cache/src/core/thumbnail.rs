@@ -391,6 +391,96 @@ mod tests {
         );
     }
 
+    /// T076: the Windows counterpart of
+    /// `killing_the_group_also_reaps_a_grandchild_it_spawned` - until this
+    /// test, `command-group`'s Windows job-object path (as opposed to its
+    /// Unix process-group path) had never been proven to reap a
+    /// grandchild at all; the three tests above only assert the direct
+    /// child's own exit status.
+    ///
+    /// Two `.bat` files, not one quoted one-liner: nesting `cmd /C
+    /// "..."` strings inside each other to pass a loop as a single
+    /// command-line argument is exactly the kind of quoting this
+    /// environment (Linux) cannot exercise or verify before it reaches a
+    /// real Windows runner, so this keeps every individual piece of cmd
+    /// syntax as plain and well-trodden as possible instead. `outer.bat`
+    /// (what `run_command_with_timeout` actually spawns, and so the
+    /// "direct child" `group_spawn` wraps) runs `cmd /C grandchild.bat`
+    /// as one plain, synchronous command - not `start`, which has its own
+    /// process-creation semantics this test does not need. That nested
+    /// `cmd.exe` is a real, separate process: a child of `outer.bat`'s
+    /// own `cmd.exe`, and so a grandchild of this test. `grandchild.bat`
+    /// is a `goto`-loop (not `for /L`, whose loop-variable escaping
+    /// differs between a command-line `/C` string and a script file
+    /// read from disk - one more way to get this wrong without a runner
+    /// to check it against) appending one line to the heartbeat file on
+    /// every pass, as fast as it can run - there is no `ping`-based sleep
+    /// here because `ping`'s own granularity (~1s) is too coarse against
+    /// this test's short timeout, and a tight append loop still proves
+    /// the same thing a slower one would: whether the file keeps growing
+    /// after the kill.
+    #[cfg(windows)]
+    #[test]
+    fn killing_the_group_on_windows_also_reaps_a_grandchild_it_spawned() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "arama-t076-windows-grandchild-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        std::fs::create_dir_all(&temp_dir).unwrap();
+
+        let heartbeat = temp_dir.join("heartbeat.txt");
+        let grandchild_bat = temp_dir.join("grandchild.bat");
+        let outer_bat = temp_dir.join("outer.bat");
+
+        // Full paths throughout, so neither script's meaning depends on
+        // whatever working directory `cmd.exe` happens to start in.
+        std::fs::write(
+            &grandchild_bat,
+            format!(
+                ":loop\r\necho x>>\"{}\"\r\ngoto loop\r\n",
+                heartbeat.display()
+            ),
+        )
+        .unwrap();
+        std::fs::write(
+            &outer_bat,
+            format!("cmd /C \"{}\"\r\n", grandchild_bat.display()),
+        )
+        .unwrap();
+
+        let outer_bat_arg = outer_bat.display().to_string();
+        let mut command = Command::new("cmd");
+        command.args(["/C", outer_bat_arg.as_str()]);
+
+        // Longer than the Unix test's 200ms: this fixture crosses two
+        // full Windows process creations (outer cmd.exe, then the nested
+        // cmd.exe it spawns) before the grandchild ever writes, where the
+        // Unix version only needs one shell plus a backgrounded subshell.
+        let result = run_command_with_timeout(command, Duration::from_millis(500));
+        assert!(
+            matches!(result, Err(CommandTimeoutError::TimedOut { .. })),
+            "expected TimedOut, got {result:?}"
+        );
+        assert!(
+            heartbeat.exists(),
+            "the grandchild never got to write even once - the fixture itself is broken, not \
+             the property under test"
+        );
+
+        let first_len = std::fs::metadata(&heartbeat).unwrap().len();
+        std::thread::sleep(Duration::from_millis(250));
+        let second_len = std::fs::metadata(&heartbeat).unwrap().len();
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
+
+        assert_eq!(
+            first_len, second_len,
+            "the heartbeat file kept growing after the direct child was killed - the \
+             grandchild is still alive, orphaned rather than reaped by the Windows job object"
+        );
+    }
+
     /// Not platform-gated: proves the stderr-draining thread does not
     /// itself deadlock a chatty child against a full pipe, which a
     /// manual poll loop does not get for free the way `Command::output`
