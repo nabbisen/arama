@@ -50,6 +50,9 @@
 > guard admits any folder under `.git-exclude/`, `.git-exclude/fixtures`
 > included. Fix on top of `8e0ec5b`.
 
+> **ACCEPTED 2026-11-15 — review 169** (`.git-exclude/reviewed/169-t073-rework-review.md`).
+> Published as `7643d41`. The rework banners below are history.
+
 > **CHANGES REQUESTED 2026-11-14 — review 168**
 > (`.git-exclude/reviewed/168-t073-rework-review.md`). R1 and R2 are fixed.
 > **(R3)** The nested compositor's own window is looked up once, without
