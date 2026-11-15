@@ -16,9 +16,10 @@ use sha2::{Digest, Sha256};
 use super::{
     CONFIG_JSON, GENERATION_MANIFEST, ModelContainer, ModelDownloadStatus, OPERATION_METADATA,
     PublishFilesystem, SAFETENSORS_MODEL, SourceUrl, acquire_model_lock,
-    acquire_model_lock_with_timeout, download_entry, finish_generation, next_operation_sequence,
-    publish_generation_with, reconcile_generations, reconcile_generations_with, select_generation,
-    sha256_hex, supervise_generation, wait_for_generation,
+    acquire_model_lock_with_timeout, download_entry, finish_generation,
+    model_download_client_builder, next_operation_sequence, publish_generation_with,
+    reconcile_generations, reconcile_generations_with, select_generation, sha256_hex,
+    supervise_generation, wait_for_generation,
 };
 
 struct FailingPublishFilesystem {
@@ -175,6 +176,11 @@ fn test_runtime() -> tokio::runtime::Runtime {
 /// alive (bound to a variable, not `_`) for as long as the model is used,
 /// including across an `.await` inside `test_runtime().block_on(...)`,
 /// since dropping it deletes the directory.
+///
+/// Task T071: also sets `plain_http_override`, so `download()` /
+/// `download_with_progress()` reach the `http://127.0.0.1:<port>`
+/// loopback fixtures below instead of the production client's
+/// `https_only(true)` refusing them before any connection is attempted.
 fn model_container(
     name: String,
     source_url: SourceUrl,
@@ -192,6 +198,7 @@ fn model_container(
         max_model_bytes,
         max_config_bytes,
         root_override: Some(scratch.path().to_path_buf()),
+        plain_http_override: true,
     };
     (scratch, model)
 }
@@ -231,6 +238,38 @@ fn cleanup_model(model: &ModelContainer) {
     if let Ok(directory) = model.model_dir() {
         let _ = fs::remove_dir_all(directory);
     }
+}
+
+/// T071: `reqwest` checks `https_only` synchronously in
+/// `Client::execute_request`, before any URI/connection work - confirmed
+/// directly against the locked version's own source
+/// (`async_impl/client.rs:2608-2610`). A plain-HTTP request through
+/// [`model_download_client_builder`] must therefore be refused without
+/// ever reaching this fixture listener, not merely fail after reaching
+/// it: the listener stays `set_nonblocking`, and `accept` must still be
+/// `WouldBlock` after the refused request, proving zero connections were
+/// ever accepted.
+#[test]
+fn production_client_refuses_plain_http_before_any_connection() {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind loopback fixture");
+    listener
+        .set_nonblocking(true)
+        .expect("non-blocking fixture listener");
+    let address = listener.local_addr().expect("fixture address");
+
+    let client = model_download_client_builder()
+        .build()
+        .expect("build https-only client");
+    let result = test_runtime().block_on(client.get(format!("http://{address}")).send());
+
+    assert!(
+        result.is_err(),
+        "a plain-http request must be refused, not {result:?}"
+    );
+    assert!(
+        matches!(listener.accept(), Err(error) if error.kind() == std::io::ErrorKind::WouldBlock),
+        "the refusal must happen before any TCP connection is attempted"
+    );
 }
 
 #[path = "tests/lifecycle.rs"]

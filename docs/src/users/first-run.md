@@ -19,6 +19,9 @@ Downloaded model files are checked against pinned HuggingFace revisions and
 SHA-256 digests before arama accepts them. If verification fails, the setup
 item stops with an error and the partial file is discarded.
 
+The model download, and the size check that precedes it, refuse to proceed
+over anything but HTTPS, including every redirect hop.
+
 On every supported platform, arama never downloads ffmpeg. Setup shows it as
 an external prerequisite with a re-check action. Install `ffmpeg` and
 `ffprobe` through a source you trust, then make the pair available together on

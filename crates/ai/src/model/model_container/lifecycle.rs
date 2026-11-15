@@ -253,7 +253,15 @@ impl ModelContainer {
             SourceUrl::PyTorch(url) => (url.as_str(), staging.join(PYTORCH_MODEL)),
         };
 
-        let client = reqwest::Client::builder()
+        // T071: the one client constructor for arama's only network
+        // traffic (`model_download_client_builder`, `https_only(true)`) -
+        // this caller adds its own timeouts on top of it. Goes through
+        // `self.download_client_builder()`, not the free function
+        // directly, so a test-only `plain_http_override` (see its own
+        // comment) can still exercise this exact path against a
+        // plain-HTTP loopback fixture.
+        let client = self
+            .download_client_builder()
             .connect_timeout(Duration::from_secs(10))
             .timeout(Duration::from_secs(30 * 60))
             .build()

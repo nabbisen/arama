@@ -62,6 +62,17 @@ pub struct ModelContainer {
     /// `arama_env::local_dir`'s own (private, `arama_env`-internal)
     /// `local_dir_with_override`.
     root_override: Option<PathBuf>,
+    /// T071: `false` in every production `ModelContainer` - `new` never
+    /// sets it, and nothing else can from outside this module. Tests that
+    /// drive `download()`/`download_with_progress()` end-to-end against a
+    /// plain-HTTP loopback fixture set this `true` directly (same
+    /// private-field access as `root_override`), since there is no way to
+    /// stand up a TLS certificate for `127.0.0.1` in a unit test. It
+    /// changes only which builder [`download_client_builder`] starts
+    /// from - the connect/overall timeouts `download_generation` adds on
+    /// top, and the download path itself, stay exactly what production
+    /// runs.
+    plain_http_override: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -89,6 +100,7 @@ impl ModelContainer {
             max_model_bytes,
             max_config_bytes,
             root_override: None,
+            plain_http_override: false,
         };
         validate_model_specification(&model)?;
         Ok(model)
@@ -139,6 +151,18 @@ impl ModelContainer {
         }
     }
 
+    /// The real [`model_download_client_builder`], unless this instance
+    /// carries a test-only [`plain_http_override`](Self::plain_http_override),
+    /// see its own comment. Mirrors [`models_dir`](Self::models_dir)'s shape
+    /// exactly.
+    fn download_client_builder(&self) -> reqwest::ClientBuilder {
+        if self.plain_http_override {
+            reqwest::Client::builder()
+        } else {
+            model_download_client_builder()
+        }
+    }
+
     fn ready_in(&self, directory: &Path) -> bool {
         directory.join(SAFETENSORS_MODEL).is_file()
             && (self.config_expected_sha256.is_none() || directory.join(CONFIG_JSON).is_file())
@@ -175,6 +199,34 @@ impl ModelContainer {
 
 fn models_dir() -> Result<PathBuf> {
     Ok(local_dir()?.join(MODEL_DIR))
+}
+
+/// T071: the one place a `reqwest` client for arama's only network traffic
+/// (the one-time model download, and the setup screen's size-check `HEAD`)
+/// is built - `https_only(true)` so a redirect to a plain-HTTP URL is
+/// refused before it connects, not just distrusted afterward. Confirmed
+/// directly against the locked `reqwest` version's own source (0.13.4, per
+/// `Cargo.lock`), not assumed from the handoff that first named it:
+/// `src/redirect.rs:324`, `if self.https_only && next_url.scheme() !=
+/// "https"`, returns `url_bad_scheme`; the builder method itself,
+/// `ClientBuilder::https_only`, is `src/async_impl/client.rs:2245-2246`,
+/// and it is wired into the redirect policy at `src/async_impl/client.rs:1018`
+/// (`.with_https_only(config.https_only)`). This is not a behaviour arama
+/// implements itself, so a future `reqwest` upgrade that changed it would
+/// change this function's own guarantee, not just its callers'.
+///
+/// Returns a builder, not a built `Client`, so each caller adds its own
+/// timeouts without this function needing to know both callers' different
+/// needs (a long download vs. a short metadata `HEAD`).
+///
+/// This does not replace the pinned SHA-256 checksum
+/// (`ModelContainer::expected_sha256`/`config_expected_sha256`), which
+/// remains the integrity guarantee regardless of scheme - it adds
+/// confidentiality of which model is being fetched, and refuses an
+/// on-path attacker breaking or falsifying what a plain-HTTP hop could
+/// otherwise tamper with.
+pub fn model_download_client_builder() -> reqwest::ClientBuilder {
+    reqwest::Client::builder().https_only(true)
 }
 
 #[cfg(test)]

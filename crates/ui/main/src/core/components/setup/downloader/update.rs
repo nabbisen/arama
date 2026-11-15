@@ -190,5 +190,10 @@ async fn content_length_mib(url: &str) -> Option<u64> {
 }
 
 fn metadata_client() -> Result<reqwest::Client, reqwest::Error> {
-    reqwest::Client::builder().timeout(METADATA_TIMEOUT).build()
+    // T071: the one client constructor for arama's only network traffic
+    // (`model_download_client_builder`, `https_only(true)`) - this is the
+    // setup screen's size-check `HEAD`, which adds its own short timeout.
+    arama_ai::model::model_container::model_download_client_builder()
+        .timeout(METADATA_TIMEOUT)
+        .build()
 }
