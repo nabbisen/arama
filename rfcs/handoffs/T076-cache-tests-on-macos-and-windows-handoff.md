@@ -1,5 +1,5 @@
-> **NOT AUTHORIZED.** Written 2026-11-15 by the architect, after accepting T061
-> (review 170). Do not start until a grant appears in this banner.
+> **AUTHORIZED 2026-11-15 — owner:** *"T076 is accepted."* Written 2026-11-15 by
+> the architect, after accepting T061 (review 170).
 >
 > **Independent of every open task.**
 
