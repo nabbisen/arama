@@ -81,6 +81,60 @@ Tests cover:
 the timestamp computation logic (`compute_sample_timestamps`). These
 are small and fast; they do not require model files.
 
+## Headless layout probe (T074 Phase 0)
+
+RFC 053 defines a headless layout matrix - every text size, language,
+theme and window size, checked by test instead of by capture. Before
+that matrix is built, `app/src/core/tests/layout_probe.rs` establishes
+what `iced_test::Simulator` can actually see, each through a planted
+defect shown failing before it is trusted to pass:
+
+- **Clipping is visible** to `visible_bounds` only through a
+  `scrollable` ancestor's viewport - a plain `Container::clip(true)` is
+  not: `iced_selector`'s own tree-walker narrows its tracked viewport
+  only inside `Finder::scrollable`, never for a plain container's own
+  bounds.
+- **A non-clipping overflow (the Japanese-footer shape, T055) is
+  invisible to every bounds-based check**, because a widget's `bounds`
+  is the box its parent allocated to it, not its intrinsic content size
+  - true with or without disabling word-wrap. A pixel check past the
+  container's edge, using `Simulator::snapshot` and decoding the PNG
+  `Snapshot::matches_image` writes (its raw pixels have no other public
+  accessor), does detect it.
+- **A font's presence changes measured width** - confirmed for the
+  bundled Lucide icon font (`Settings::fonts`); requesting a system font
+  *by name* that was never loaded into cosmic-text's own font database
+  does not (an unmatched name falls through to the same fallback
+  regardless of which name was given). `iced_graphics::text::
+  font_system()` is a process-wide singleton with no unload, so a test
+  comparing "with" and "without" a loaded font must measure "without"
+  first in the same test binary.
+- **Which font face draws a kanji vs. a kana in the same label**,
+  queried directly through `iced::advanced::graphics::text::cosmic_text`'s
+  shaping API rather than inferred from measured width - confirming RFC
+  053 §2.4's finding for real: a kanji can select a Simplified-Chinese
+  face while a kana in the same string selects the Japanese one, since
+  cosmic-text's fallback-by-script reads the **system** locale
+  (`sys_locale`), never arama's own language setting.
+- **The default headless backend (`wgpu`) costs roughly 100x a CPU
+  render** (`ICED_TEST_BACKEND=tiny-skia`) for the identical result on
+  every property above - relevant to keeping the full matrix inside its
+  CI time budget.
+
+**A Japanese font is required to run the probe's font items as
+intended** - `fonts-noto-cjk` on Linux (installed in `msrv.yaml` before
+`cargo test`, its installed version printed into the log rather than
+pinned to an exact package, since pinning breaks the next time the
+runner image updates); macOS and Windows runners use their own system
+fonts, installing nothing.
+
+**Not yet built**: the matrix itself (RFC 053 §2.1, every screen state
+× text size × locale × theme × window size), the enforced minimum/launch
+window size's effect on the matrix's own results, and
+`KNOWN_LAYOUT_DEFECTS` (combinations that fail at the 760 × 520 minimum
+today, each naming the task that owns fixing it). This section will be
+extended when that delivery lands.
+
 ## Release smoke with the UI
 
 There are no automated UI tests. For releases that include UI, setup,

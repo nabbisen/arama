@@ -157,11 +157,67 @@ fn setup_became_complete(was_complete: bool, finished: bool, ready: bool) -> boo
     !was_complete && setup_complete(finished, ready)
 }
 
+/// RFC 053 §2.2: half of a 1920 × 1080 screen at 125 % scaling (the
+/// commonest laptop setting), minus a margin for the window frame - so
+/// arama fits beside a file manager, each on half the screen. Below
+/// this, the layout changes (T063); the minimum itself does not grow to
+/// accommodate it.
+const MIN_WINDOW_WIDTH: f32 = 760.0;
+/// RFC 053 §2.2: the smallest common laptop screen, 1366 × 768 at 125 %
+/// scaling, is 1093 × 614 logical px; a taskbar (≈ 48) and a title bar
+/// (≈ 31) leave about 1093 × 535 of content on a maximised window. 520
+/// sits below that with a margin, so the minimum itself is never larger
+/// than the screen a user is trying to fit it on.
+const MIN_WINDOW_HEIGHT: f32 = 520.0;
+/// RFC 053 §2.2: the launch size must fit inside the same 1093 × 535
+/// logical px the minimum is sized against - Phase 0 (T074) found no
+/// combination that needs a *larger* initial window than the minimum
+/// width itself, so the launch size matches it exactly rather than
+/// opening wider than necessary.
+const LAUNCH_WINDOW_WIDTH: f32 = MIN_WINDOW_WIDTH;
+const LAUNCH_WINDOW_HEIGHT: f32 = MIN_WINDOW_HEIGHT;
+
+/// RFC 053 §6.2 (review 165, P1): the product name, exactly as
+/// `packaging/linux/arama.desktop`'s `Name=` spells it, in every
+/// locale - not the toolkit's own `"{title} - Iced"` default
+/// (`iced_program` 0.14.0, `src/lib.rs:90`), which every platform would
+/// otherwise show in the taskbar, window switcher and title bar.
+const WINDOW_TITLE: &str = "arama";
+/// RFC 053 §6.2: `packaging/linux/arama.desktop`'s own basename - the
+/// value iced's own documentation for `platform_specific.application_id`
+/// (`iced_core` 0.14.0, `window/settings/linux.rs`) advises matching, so
+/// a Linux desktop environment can group this window with that launcher
+/// entry and show its icon instead of a generic one. On X11, winit sets
+/// `WM_CLASS` from the same value.
+#[cfg(target_os = "linux")]
+const LINUX_APPLICATION_ID: &str = "arama";
+
+/// RFC 053 §6.2/§7: `App::start`'s own window configuration, extracted
+/// so a test can read it directly without launching a real window
+/// (`iced::Result`'s `.run()` blocks on the platform event loop).
+fn window_settings() -> iced::window::Settings {
+    #[cfg_attr(not(target_os = "linux"), allow(unused_mut))]
+    let mut platform_specific = iced::window::settings::PlatformSpecific::default();
+    #[cfg(target_os = "linux")]
+    {
+        platform_specific.application_id = LINUX_APPLICATION_ID.to_owned();
+    }
+
+    iced::window::Settings {
+        size: iced::Size::new(LAUNCH_WINDOW_WIDTH, LAUNCH_WINDOW_HEIGHT),
+        min_size: Some(iced::Size::new(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)),
+        platform_specific,
+        ..iced::window::Settings::default()
+    }
+}
+
 impl App {
     pub fn start() -> iced::Result {
         iced::application(App::new, App::update, App::view)
             .subscription(App::subscription)
             .settings(App::settings())
+            .window(window_settings())
+            .title(WINDOW_TITLE)
             .theme(app_theme)
             .run()
     }

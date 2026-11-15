@@ -63,5 +63,19 @@ jobs:
       - name: cargo check --workspace --locked
         run: cargo check --workspace --locked
 
+      # T074 (RFC 053 §2.4/§6.4): the layout matrix measures Japanese
+      # with a real Japanese font, the same on this runner as on a
+      # developer's machine - cosmic-text's own fallback-by-script
+      # (T074 Phase 0 item 4) reaches installed system fonts on demand,
+      # so this is the one step that makes a Japanese-covering face
+      # exist here at all. The package version is printed, not pinned:
+      # pinning breaks the moment the runner image updates, and the log
+      # records what was actually measured against instead.
+      - name: Install Noto CJK fonts (Linux, for the layout matrix's Japanese check)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y fonts-noto-cjk
+          dpkg-query -W fonts-noto-cjk
+
       - name: cargo test --workspace --locked
         run: cargo test --workspace --locked

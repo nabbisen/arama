@@ -42,3 +42,8 @@ tokio                       = { workspace = true }
 
 [dev-dependencies]
 iced_test                   = "0.14"
+# T074 Phase 0: decodes the PNG `iced_test::Snapshot::matches_image`
+# writes to a scratch path, to inspect specific pixels for a non-clipping
+# overflow check - already in Cargo.lock (iced_test uses it internally for
+# the same comparison), so this adds a usage edge, not a new package.
+png                         = "0.18"

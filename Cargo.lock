@@ -149,6 +149,7 @@ dependencies = [
  "iced",
  "iced_test",
  "lucide-icons",
+ "png",
  "rayon",
  "rfd",
  "snora",

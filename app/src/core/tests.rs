@@ -1200,3 +1200,82 @@ fn toast_attention_hold_survives_a_sweep_and_expires_once_released() {
     }
     let _ = std::fs::remove_dir_all(&scratch);
 }
+
+/// RFC 053 §6.2/§7: the minimum and launch window sizes are both set,
+/// both fit inside the smallest common laptop screen's content area
+/// (1093 x 535 logical px, RFC 053 §2.2), and the launch size is never
+/// smaller than the minimum - reading `window_settings()` directly
+/// (`App::start` itself cannot be called from a test: its `.run()`
+/// blocks on the platform event loop), so a change to the constants
+/// alone, with nothing calling them, cannot pass this silently.
+#[test]
+fn window_settings_minimum_and_launch_size_fit_the_smallest_laptop_screen() {
+    let settings = window_settings();
+
+    assert_eq!(
+        settings.min_size,
+        Some(iced::Size::new(760.0, 520.0)),
+        "the minimum must be exactly RFC 053's owner-decided 760 x 520"
+    );
+    assert_eq!(
+        settings.size,
+        iced::Size::new(760.0, 520.0),
+        "the launch size must fit inside 1093 x 535 - today it matches the minimum exactly"
+    );
+    assert!(
+        settings.size.width <= 1093.0 && settings.size.height <= 535.0,
+        "the launch size must fit the smallest common laptop screen's content area: \
+         {:?}",
+        settings.size
+    );
+    assert!(
+        settings.min_size.is_some_and(
+            |min| settings.size.width >= min.width && settings.size.height >= min.height
+        ),
+        "the launch size must never be smaller than the minimum the window itself \
+         enforces - opening below min_size is not a state the window can even reach"
+    );
+}
+
+/// RFC 053 §6.2 (review 165, P1)/§7: the window's title and, on Linux,
+/// its application id, both match `packaging/linux/arama.desktop`'s own
+/// name - read from that file directly, so renaming one without the
+/// other fails this test rather than only being noticed by a user.
+#[test]
+fn window_title_and_linux_application_id_match_the_desktop_file() {
+    let desktop_file = std::fs::read_to_string(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../packaging/linux/arama.desktop"
+    ))
+    .expect("packaging/linux/arama.desktop must exist and be readable");
+    let product_name = desktop_file
+        .lines()
+        .find_map(|line| line.strip_prefix("Name="))
+        .expect("arama.desktop must declare Name=");
+
+    assert_eq!(
+        WINDOW_TITLE, product_name,
+        "the window title must match arama.desktop's own Name= exactly"
+    );
+
+    #[cfg(target_os = "linux")]
+    {
+        let desktop_basename = std::path::Path::new("arama.desktop")
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .expect("arama.desktop's basename must be valid UTF-8");
+        assert_eq!(
+            LINUX_APPLICATION_ID, desktop_basename,
+            "the Linux application id must equal arama.desktop's own basename"
+        );
+        assert_eq!(
+            window_settings().platform_specific.application_id,
+            LINUX_APPLICATION_ID,
+            "window_settings() must actually set platform_specific.application_id, \
+             not merely declare the constant"
+        );
+    }
+}
+
+#[path = "tests/layout_probe.rs"]
+mod layout_probe;
