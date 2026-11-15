@@ -1,3 +1,6 @@
+> **ACCEPTED 2026-11-16 — review 173, follow-up.** Published as `a7a701c`,
+> `dd95068`, `5c10995`.
+
 > **CHANGES REQUESTED 2026-11-16 — review 173**
 > (`.git-exclude/reviewed/173-t071-https-only-model-downloads-review.md`).
 > One item: the plain-HTTP test override must be `#[cfg(test)]`-only, so the
