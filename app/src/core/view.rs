@@ -195,6 +195,10 @@ impl App {
         AppLayout::new(body)
             .toasts(self.toasts.clone())
             .toast_position(ToastPosition::BottomEnd)
+            // T070 (snora 0.52 -> 0.57, RFC-113/RFC-120): the end state,
+            // not the deprecated `on_toast_hover` - a toast waits while
+            // the reader's pointer *or* keyboard focus is on it.
+            .on_toast_attention(Message::ToastAttention)
     }
 }
 

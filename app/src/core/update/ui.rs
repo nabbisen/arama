@@ -62,7 +62,26 @@ impl App {
     }
 
     pub(super) fn handle_toast_sweep(&mut self) -> Task<Message> {
-        snora::toast::sweep_expired(&mut self.toasts, std::time::Instant::now());
+        // T070 (snora 0.52 -> 0.57): `snora::toast::sweep_expired` is
+        // removed in 0.57 - `Holds::sweep` is its replacement, and also
+        // respects whatever toast the reader is currently attending to
+        // (RFC-113/RFC-120), which the free function never knew about.
+        self.holds
+            .sweep(&mut self.toasts, std::time::Instant::now());
+        Task::none()
+    }
+
+    /// T070 (snora 0.52 -> 0.57, RFC-113/RFC-120): the end state, not the
+    /// deprecated `on_toast_hover`/`ToastHover`/`Holds::hover` trio (removed
+    /// in 0.59.0) - a toast now waits while the reader's pointer *or*
+    /// keyboard focus is on it, not only the pointer.
+    pub(super) fn handle_toast_attention(
+        &mut self,
+        id: u64,
+        attention: snora::ToastAttention,
+    ) -> Task<Message> {
+        self.holds
+            .attend(id, attention, &mut self.toasts, std::time::Instant::now());
         Task::none()
     }
 

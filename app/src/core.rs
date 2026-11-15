@@ -55,6 +55,11 @@ pub struct App {
     dialog: Option<Dialog>,
     toasts: Vec<Toast<Message>>,
     toast_id_counter: u64,
+    /// T070 (snora 0.52 -> 0.57): `snora::toast::sweep_expired` (a free
+    /// function) is removed in 0.57 - a toast's hold-while-attended state
+    /// (RFC-113/RFC-120) has to live somewhere between sweeps, so the
+    /// replacement is a type on `App`, not another free function.
+    holds: snora::toast::Holds,
     settings: Settings,
     ffmpeg_runtime: FfmpegDiscoveryRuntime,
     ffmpeg_authority: update::ffmpeg::state::FfmpegAuthority<FfmpegToolchain>,
@@ -317,6 +322,7 @@ impl App {
                 dialog,
                 toasts: startup_toasts,
                 toast_id_counter,
+                holds: snora::toast::Holds::default(),
                 settings,
                 ffmpeg_runtime,
                 ffmpeg_authority,

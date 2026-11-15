@@ -438,8 +438,26 @@ fn tier_2_f6_moves_focus_zone_through_real_app_update() {
     let _ = std::fs::remove_dir_all(&scratch);
 }
 
+/// T070 (snora 0.52 -> 0.57): this test's premise through 0.52 was that
+/// `Message::KeyPressed(Escape)` reaches `App::update` while an overlay is
+/// open, the same as any other key. From 0.55 that stopped being true:
+/// snora's own engine captures Escape itself, before
+/// `iced::keyboard::listen()`'s subscription ever produces a message for
+/// it, whenever `on_close_modals`/`on_close_menus` are set (`view.rs` sets
+/// both) - so on 0.57 the second half below would pass for the wrong
+/// reason (nothing closes the dialog, `app.update` is simply never asked
+/// to), not the right one.
+///
+/// Re-pointed to press Escape through `iced_test::Simulator` on the real
+/// rendered view instead - the only way left to exercise the real path,
+/// since `App::update` is no longer on it. The first half (nothing open)
+/// is unchanged: with no overlay, `on_close_modals`/`on_close_menus` do
+/// not apply, so Escape still reaches `Message::KeyPressed` the ordinary
+/// way and must still do nothing.
 #[test]
 fn tier_2_escape_closes_a_real_open_dialog() {
+    use iced::keyboard::{Key, Modifiers, key::Named};
+
     let _guard = ARAMA_DATA_HOME_TEST_LOCK
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
@@ -450,13 +468,19 @@ fn tier_2_escape_closes_a_real_open_dialog() {
     }
 
     let mut app = App::new().0;
+    app.setup.finished = true;
+
+    // First half, unchanged: nothing open, Escape via the real `update`
+    // path must not synthesize a close.
     let _ = app.update(Message::KeyPressed(
-        iced::keyboard::Key::Named(iced::keyboard::key::Named::Escape),
-        iced::keyboard::Modifiers::default(),
+        Key::Named(Named::Escape),
+        Modifiers::default(),
     ));
-    // Nothing open yet - Escape must not panic or synthesize a close.
     assert!(app.dialog.is_none());
 
+    // Second half, re-pointed: a real dialog open, rendered for real,
+    // Escape pressed through the Simulator on that rendered view -
+    // snora's engine, not `App::update` directly, is what claims it now.
     app.dialog = Some(Dialog::MediaFocusDialog(
         dialog::media_focus_dialog::MediaFocusDialog::new(
             PathBuf::from("/does/not/need/to/exist.jpg"),
@@ -467,13 +491,52 @@ fn tier_2_escape_closes_a_real_open_dialog() {
     ));
     assert!(app.dialog.is_some());
 
-    let _ = app.update(Message::KeyPressed(
-        iced::keyboard::Key::Named(iced::keyboard::key::Named::Escape),
-        iced::keyboard::Modifiers::default(),
-    ));
+    let element = app.view();
+    let mut simulator = iced_test::Simulator::new(element);
+    let status = simulator.tap_key(Key::Named(Named::Escape));
+    let messages: Vec<Message> = simulator.into_messages().collect();
+    assert!(
+        messages
+            .iter()
+            .any(|message| matches!(message, Message::DialogClose)),
+        "Escape on the rendered overlay must produce DialogClose - got {messages:?}, \
+         event status {status:?}"
+    );
+    for message in messages {
+        let _ = app.update(message);
+    }
     assert!(
         app.dialog.is_none(),
-        "Escape must close the real dialog through the real update path"
+        "the real DialogClose message, fed back through update, must actually close the dialog"
+    );
+
+    // Same shape, for an open context menu: `ContextMenuState::ImageCell`
+    // is what `is_open()` checks, and what makes `view()` populate
+    // snora's `context_menu` slot (activating its own Escape/backdrop
+    // dismissal) - not constructible without a real path, so a throwaway
+    // one is enough; nothing here reads the file.
+    app.context_menu.state = arama_ui_widgets::context_menu::ContextMenuState::ImageCell(
+        PathBuf::from("/does/not/need/to/exist.jpg"),
+    );
+    assert!(app.context_menu.is_open());
+
+    let element = app.view();
+    let mut simulator = iced_test::Simulator::new(element);
+    let status = simulator.tap_key(Key::Named(Named::Escape));
+    let messages: Vec<Message> = simulator.into_messages().collect();
+    assert!(
+        messages
+            .iter()
+            .any(|message| matches!(message, Message::CloseMenus)),
+        "Escape on the rendered context menu must produce CloseMenus - got {messages:?}, \
+         event status {status:?}"
+    );
+    for message in messages {
+        let _ = app.update(message);
+    }
+    assert!(
+        !app.context_menu.is_open(),
+        "the real CloseMenus message, fed back through update, must actually close the menu"
     );
 
     unsafe {
@@ -1052,6 +1115,81 @@ fn stale_embeddings_ready_from_a_closed_scan_is_dropped_the_current_one_is_accep
         app.similar_pairs_scan.is_none(),
         "accepting the current scan's result must clear similar_pairs_scan - nothing is left \
          to poll or cancel"
+    );
+
+    unsafe {
+        match &previous {
+            Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
+            None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
+        }
+    }
+    let _ = std::fs::remove_dir_all(&scratch);
+}
+
+/// T070 (snora 0.52 -> 0.57, RFC-113/RFC-120), §5: the toast attention
+/// hold, through the real `App::update` path (`Message::ToastAttention`,
+/// `Message::ToastSweep`) - never by calling `Holds::attend`/`Holds::sweep`
+/// directly, which would prove the type works but not that it is wired in.
+#[test]
+fn toast_attention_hold_survives_a_sweep_and_expires_once_released() {
+    let _guard = ARAMA_DATA_HOME_TEST_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
+    let scratch = scratch_data_home("toast-attention-hold");
+    unsafe {
+        std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
+    }
+
+    let mut app = App::new().0;
+    let id = 1;
+    // A short real lifetime, not a mocked clock: `handle_toast_sweep`/
+    // `handle_toast_attention` call `Instant::now()` internally (matching
+    // every other real caller), so there is no injectable time to control
+    // from here - the same shape as this file's other short-real-sleep
+    // timing tests (e.g. the thumbnail-phase ones).
+    app.toasts.push(
+        snora::Toast::new(
+            id,
+            snora::ToastIntent::Info,
+            "t",
+            "m",
+            Message::ToastDismiss(id),
+        )
+        .with_lifetime(snora::ToastLifetime::Transient(
+            std::time::Duration::from_millis(50),
+        )),
+    );
+
+    let _ = app.update(Message::ToastAttention(
+        id,
+        snora::ToastAttention::PointerEntered,
+    ));
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    let _ = app.update(Message::ToastSweep);
+    assert!(
+        app.toasts.iter().any(|t| t.id == id),
+        "a toast with attention held must survive a sweep past its own lifetime"
+    );
+
+    // Released: the countdown restarts in full from now, so an
+    // immediate sweep must not expire it either.
+    let _ = app.update(Message::ToastAttention(
+        id,
+        snora::ToastAttention::PointerLeft,
+    ));
+    let _ = app.update(Message::ToastSweep);
+    assert!(
+        app.toasts.iter().any(|t| t.id == id),
+        "releasing attention must restart the countdown in full, not expire the toast instantly"
+    );
+
+    // Now past the restarted deadline, with nothing holding it.
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    let _ = app.update(Message::ToastSweep);
+    assert!(
+        !app.toasts.iter().any(|t| t.id == id),
+        "once attention has ended and its restarted lifetime has passed, the toast must expire"
     );
 
     unsafe {

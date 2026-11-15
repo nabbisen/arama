@@ -10,6 +10,7 @@ use arama_ui_widgets::{
     dialog::{confirm_dialog, media_focus_dialog, settings_dialog, similar_pairs_dialog},
 };
 use iced::Point;
+use snora::ToastAttention;
 
 use super::NavPage;
 
@@ -65,6 +66,11 @@ pub enum Message {
     CloseMenus,
     ToastDismiss(u64),
     ToastSweep,
+    /// T070 (snora 0.52 -> 0.57, RFC-113/RFC-120): the reader's pointer or
+    /// keyboard focus reached or left a toast - forwarded to
+    /// `self.holds.attend(...)`, which is what makes a toast wait while
+    /// someone is still reading it instead of expiring mid-sentence.
+    ToastAttention(u64, ToastAttention),
     /// RFC 047 S6 / review 161 #3: a non-capturing subscription tick
     /// (`subscription()`) - it carries no state itself, since
     /// `Subscription::map`'s closure must not capture anything.
@@ -74,8 +80,10 @@ pub enum Message {
     /// inside `update` rather than inside the subscription closure.
     SimilarPairsProgressTick,
     CursorMove(Point),
-    /// RFC 044: every key press, routed through `snora::keyboard`'s pure
-    /// helpers (`dismiss_on_escape`, `cycle_zones`) in `update` - this
+    /// RFC 044: every key press, routed through `snora::keyboard::cycle_zones`
+    /// in `update` (its sibling `dismiss_on_escape` was removed in snora
+    /// 0.57 - snora's own engine has handled Escape since 0.55, via
+    /// `on_close_modals`/`on_close_menus` in `view.rs`) - this
     /// variant carries the raw event rather than a pre-decided intent so
     /// arama installs exactly one keyboard subscription for everything
     /// this RFC adds.

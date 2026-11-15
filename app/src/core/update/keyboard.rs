@@ -18,24 +18,17 @@ pub(crate) fn zone_after_cycle(
 }
 
 impl App {
-    /// RFC 044 §2.1/§2.2: routes a key `iced::keyboard::listen()` reports
-    /// as unclaimed (Phase 0.1 found every key arama cares about is
-    /// unclaimed today) through snora's pure helpers, modal-dismissal
-    /// first - the same precedence order `next_zone` enforces internally
-    /// for cycling, so a key that could mean either never does both.
+    /// RFC 044 §2.2: routes a key `iced::keyboard::listen()` reports as
+    /// unclaimed through snora's pure zone-cycling helper. T070 (snora
+    /// 0.52 -> 0.57): this used to check `snora::keyboard::dismiss_on_escape`
+    /// first, but snora's own engine has handled Escape since 0.55 -
+    /// capturing it before `iced::keyboard::listen()` ever sees it,
+    /// whenever `on_close_modals`/`on_close_menus` are set (`view.rs`
+    /// sets both) - so that call never ran here on 0.57 even before it
+    /// was removed; this is only cycling now.
     pub(super) fn handle_key_pressed(&mut self, key: Key, modifiers: Modifiers) -> Task<Message> {
         let has_modal = self.dialog.is_some();
         let has_menu = self.context_menu.is_open();
-
-        if let Some(message) = snora::keyboard::dismiss_on_escape(
-            has_modal,
-            has_menu,
-            Some(Message::DialogClose),
-            Some(Message::CloseMenus),
-            key.clone(),
-        ) {
-            return self.update(message);
-        }
 
         if let Some(cycle) = snora::keyboard::cycle_zones(key, modifiers)
             && let Some(zone) = zone_after_cycle(self.focus_zone, cycle, has_modal, has_menu)
@@ -133,51 +126,11 @@ mod tests {
         }
     }
 
-    #[test]
-    fn escape_dismisses_a_modal_before_a_menu() {
-        let result = snora::keyboard::dismiss_on_escape(
-            true,
-            true,
-            Some(Message::DialogClose),
-            Some(Message::CloseMenus),
-            Key::Named(iced::keyboard::key::Named::Escape),
-        );
-        assert!(matches!(result, Some(Message::DialogClose)));
-    }
-
-    #[test]
-    fn escape_dismisses_a_menu_when_no_modal_is_open() {
-        let result = snora::keyboard::dismiss_on_escape(
-            false,
-            true,
-            Some(Message::DialogClose),
-            Some(Message::CloseMenus),
-            Key::Named(iced::keyboard::key::Named::Escape),
-        );
-        assert!(matches!(result, Some(Message::CloseMenus)));
-    }
-
-    #[test]
-    fn escape_does_nothing_with_no_overlay_open() {
-        let result = snora::keyboard::dismiss_on_escape(
-            false,
-            false,
-            Some(Message::DialogClose),
-            Some(Message::CloseMenus),
-            Key::Named(iced::keyboard::key::Named::Escape),
-        );
-        assert!(result.is_none());
-    }
-
-    #[test]
-    fn a_non_escape_key_never_dismisses_anything() {
-        let result = snora::keyboard::dismiss_on_escape(
-            true,
-            true,
-            Some(Message::DialogClose),
-            Some(Message::CloseMenus),
-            Key::Named(iced::keyboard::key::Named::Enter),
-        );
-        assert!(result.is_none());
-    }
+    // T070 (snora 0.52 -> 0.57): the four `dismiss_on_escape` tests that
+    // used to live here tested snora's own helper, not arama - removed
+    // along with the removed call (review 162's own comment on the
+    // predecessor of this review already named them as such). Escape's
+    // real behaviour is now `tier_2_escape_closes_a_real_open_dialog` in
+    // `app/src/core/tests.rs`, pressed through `iced_test::Simulator` on
+    // the real rendered overlay rather than calling a helper directly.
 }
