@@ -157,7 +157,8 @@ impl ModelContainer {
     }
 
     /// The real [`model_download_client_builder`], unless this instance
-    /// carries a test-only [`plain_http_override`](Self::plain_http_override).
+    /// carries the test-only `plain_http_override` field (absent from
+    /// non-test builds, so not linked here).
     /// T071 review 173 (R1): the override branch is itself `#[cfg(test)]`,
     /// not just the field - a non-test build has exactly one
     /// `reqwest::Client::builder()` call anywhere, the one inside
