@@ -40,6 +40,14 @@ case "$resolved_out_dir" in
 esac
 out_dir="$resolved_out_dir"
 
+# An existing path that is not a directory at all (review 168, R4 - e.g.
+# pointed at a file such as .git-exclude/fixtures/SHA256SUMS) is never
+# something this script should touch, `-d` below would simply skip it.
+if [ -e "$out_dir" ] && [ ! -d "$out_dir" ]; then
+    echo "make-gallery-fixture: output-dir ($out_dir) exists and is not a directory - refusing to rm -rf it" >&2
+    exit 1
+fi
+
 # Being under .git-exclude/ is not enough on its own: .git-exclude/fixtures
 # itself (one path segment short of the default) resolves there too, and
 # holds every other fixture besides the gallery - deleting it would take

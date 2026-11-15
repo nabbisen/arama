@@ -416,8 +416,14 @@ EOF
         return 1
     fi
 
-    local outer_window_json
-    outer_window_json="$(niri msg -j windows | python3 -c "
+    # Polled, not looked up once (review 168, R3): the nested niri's own
+    # toplevel is not always mapped in the outer compositor the instant its
+    # IPC socket appears - a race on every session start, not an X11
+    # quirk. Same bound as every other wait in this function (0.1 s steps,
+    # 5 s total).
+    local outer_window_json="" outer_waited=0
+    while [ "$outer_waited" -lt 50 ]; do
+        outer_window_json="$(niri msg -j windows | python3 -c "
 import json, sys
 windows = json.load(sys.stdin)
 for w in windows:
@@ -425,10 +431,15 @@ for w in windows:
         print(json.dumps(w))
         break
 ")"
+        [ -n "$outer_window_json" ] && break
+        sleep 0.1
+        outer_waited=$((outer_waited + 1))
+    done
     if [ -z "$outer_window_json" ]; then
-        gui_session_fail "could not find the nested niri's own window in the outer session"
+        gui_session_fail "could not find the nested niri's own window in the outer session within 5s"
         return 1
     fi
+    gui_session_log "nested niri's own window found in the outer session after $outer_waited poll(s)"
     local outer_window_id outer_workspace_id
     outer_window_id="$(printf '%s' "$outer_window_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
     outer_workspace_id="$(printf '%s' "$outer_window_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["workspace_id"])')"
