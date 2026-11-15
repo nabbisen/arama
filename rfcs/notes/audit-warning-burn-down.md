@@ -113,7 +113,7 @@ four as a result. No ignore, patch, or override was needed.
 
 ## Remaining Warnings
 
-### `paste` 1.0.15
+### `paste` 1.0.15 — RUSTSEC-2024-0436
 
 Observed through multiple transitive owners, including:
 
@@ -138,7 +138,7 @@ source-code dependency. Revisit when the iced rendering stack, `resvg`, or
 `usvg` expose a compatible path away from the unmaintained `rustybuzz` line, or
 when arama changes renderer/SVG support.
 
-### `ttf-parser` 0.25.1
+### `ttf-parser` 0.25.1 — RUSTSEC-2026-0192
 
 Observed through the font/rendering stack, including `fontdb`, `cosmic-text`,
 `iced_wgpu`, `owned_ttf_parser`, `ab_glyph`, `usvg`, `resvg`, and `rustybuzz`

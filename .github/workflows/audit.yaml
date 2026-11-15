@@ -70,3 +70,16 @@ jobs:
 
       - name: cargo audit --deny warnings
         run: cargo audit --deny warnings
+
+      # Task 066 (RFC 049 §4, §5, §8): a non-failing notice, never a
+      # gate - the script itself is written to always exit 0, so this
+      # step cannot turn this job red regardless of what it finds. It
+      # asks two questions the step above cannot: whether a currently
+      # ignored advisory's retiring condition has already been met by an
+      # update nobody ran (`rustybuzz` and `quick-xml` both sat retirable
+      # for months before anyone noticed by accident), and whether
+      # .cargo/audit.toml and the ledger are still in sync by identity.
+      # Writes to $GITHUB_STEP_SUMMARY so a finding appears beside the
+      # job's own result, not in a log nobody opens.
+      - name: T066 - retirable-ignore / ledger-sync notice
+        run: bash .github/workflows/scripts/detect-retirable-ignores.sh

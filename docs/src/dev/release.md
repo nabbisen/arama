@@ -37,7 +37,9 @@ CUDA-equipped verification environment and record that separately.
 yanked crate fails the gate unless it is ignored by ID. Confirm each
 `.cargo/audit.toml` ignore still has a current dependency path, rationale, and
 revisit condition in `rfcs/notes/audit-warning-burn-down.md` (RFC 049 §3), and
-that no update has made it unnecessary (RFC 049 §4).
+run `bash .github/workflows/scripts/detect-retirable-ignores.sh` to check
+whether an update has already made one unnecessary (RFC 049 §4) and that the
+ignore list and the ledger are still in sync by identity (RFC 049 §8).
 
 For releases that include UI, setup, cache, first-run, or recoverable-error
 changes, also consider the manual release smoke checklist in
