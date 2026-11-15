@@ -170,11 +170,11 @@ const MIN_WINDOW_WIDTH: f32 = 760.0;
 /// than the screen a user is trying to fit it on.
 const MIN_WINDOW_HEIGHT: f32 = 520.0;
 /// RFC 053 §2.2: the launch size must fit inside the same 1093 × 535
-/// logical px the minimum is sized against - Phase 0 (T074) found no
-/// combination that needs a *larger* initial window than the minimum
-/// width itself, so the launch size matches it exactly rather than
-/// opening wider than necessary.
-const LAUNCH_WINDOW_WIDTH: f32 = MIN_WINDOW_WIDTH;
+/// logical px the minimum is sized against - the handoff's own default,
+/// kept as-is because Phase 0 (T074) investigated what the harness can
+/// measure, not what launch width the layout itself prefers, so it
+/// established no reason to deviate from it.
+const LAUNCH_WINDOW_WIDTH: f32 = 1024.0;
 const LAUNCH_WINDOW_HEIGHT: f32 = MIN_WINDOW_HEIGHT;
 
 /// RFC 053 §6.2 (review 165, P1): the product name, exactly as

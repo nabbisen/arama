@@ -1219,8 +1219,9 @@ fn window_settings_minimum_and_launch_size_fit_the_smallest_laptop_screen() {
     );
     assert_eq!(
         settings.size,
-        iced::Size::new(760.0, 520.0),
-        "the launch size must fit inside 1093 x 535 - today it matches the minimum exactly"
+        iced::Size::new(1024.0, 520.0),
+        "the launch size must be the handoff's own default, 1024 x 520, absent a reason \
+         Phase 0 established to deviate from it"
     );
     assert!(
         settings.size.width <= 1093.0 && settings.size.height <= 535.0,
