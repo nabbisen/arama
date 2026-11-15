@@ -1,3 +1,7 @@
+> **ACCEPTED 2026-11-15 — review 170** (`.git-exclude/reviewed/170-t061-second-rework-review.md`).
+> Published as `c1c167a`, `a8c891f`, `a95a210`. The rework banners below are
+> history.
+
 > **AUTHORIZED 2026-10-21 — owner:** *"All of them are authorized."*
 >
 > **Correction to this banner's earlier text.** It said RFC 047 was "authorized
