@@ -24,7 +24,10 @@ use arama_ui_main::views::cache_page;
 use iced::{Task, wgpu::naga::FastHashMap};
 use swdir::{DirNode, FilterRule, Recurse, Swdir};
 
-use super::super::{App, message::Message};
+use super::super::{
+    App,
+    message::{Message, ThumbnailPhaseResult},
+};
 
 /// RFC 047 S3.2: how many `UpsertImageRequest`s one `spawn_blocking` call
 /// processes before the loop in `handle_cache_require` checks whether it
@@ -60,7 +63,7 @@ const THUMBNAIL_CHUNK_SIZE: usize = 24;
 async fn run_thumbnail_phase(
     dir_node: DirNode,
     cancel_flag: Arc<AtomicBool>,
-) -> Vec<(PathBuf, Arc<arama_cache::Result<()>>)> {
+) -> ThumbnailPhaseResult {
     run_thumbnail_phase_with_hook(dir_node, cancel_flag, |_cumulative_results| {}).await
 }
 
@@ -74,13 +77,24 @@ async fn run_thumbnail_phase_with_hook(
     dir_node: DirNode,
     cancel_flag: Arc<AtomicBool>,
     mut after_chunk: impl FnMut(usize),
-) -> Vec<(PathBuf, Arc<arama_cache::Result<()>>)> {
-    let Ok(cache_path) = cache_storage_path() else {
-        return vec![];
-    };
-    let Ok(writer) = ImageCacheWriter::onetime(arama_cache::DbLocation::Custom(cache_path)) else {
-        return vec![];
-    };
+) -> ThumbnailPhaseResult {
+    // T069: these two opens used to both collapse into an empty `vec![]`,
+    // indistinguishable from "nothing to do" once it reached
+    // `handle_thumbnail_cache_finished` - a permissions problem, a full
+    // disk, a corrupt database, or a schema this build does not
+    // recognise (the T067 one-way v6 migration makes the last one a real
+    // case, not a hypothetical) then surfaced nothing at all. Each `Err`
+    // here carries an already-localized body naming which open failed,
+    // the same two-way split the reload phase makes one level up between
+    // its image/video readers.
+    let cache_path = cache_storage_path().map_err(|err| {
+        format!(
+            "{}: {err}",
+            t("toast.indexing_unavailable.storage_path.body")
+        )
+    })?;
+    let writer = ImageCacheWriter::onetime(arama_cache::DbLocation::Custom(cache_path))
+        .map_err(|err| format!("{}: {err}", t("toast.indexing_unavailable.writer.body")))?;
     let paths = dir_node.flatten_paths();
 
     let mut results: Vec<(PathBuf, Arc<arama_cache::Result<()>>)> = Vec::new();
@@ -107,7 +121,7 @@ async fn run_thumbnail_phase_with_hook(
         results.extend(chunk_results.into_iter().map(|(p, r)| (p, Arc::new(r))));
         after_chunk(results.len());
     }
-    results
+    Ok(results)
 }
 
 impl App {
@@ -144,8 +158,22 @@ impl App {
 
     pub(super) fn handle_thumbnail_cache_finished(
         &mut self,
-        ret: Vec<(PathBuf, Arc<arama_cache::Result<()>>)>,
+        ret: ThumbnailPhaseResult,
     ) -> Task<Message> {
+        // T069: the cache-could-not-be-opened case is distinguished from
+        // "nothing to index" (both used to collapse into the same empty
+        // `vec![]`) by surfacing it here, then treating `ret` as empty
+        // for everything below - the same effect the silent version had
+        // on the embedding-skip decision just below, now with the user
+        // actually told why.
+        let ret = match ret {
+            Ok(ret) => ret,
+            Err(err) => {
+                self.push_error_toast(t("toast.indexing_unavailable.title"), err);
+                vec![]
+            }
+        };
+
         let errors: Vec<_> = ret.iter().filter(|x| x.1.is_err()).collect();
         if !errors.is_empty() {
             let detail = errors
@@ -857,9 +885,10 @@ mod tests {
     use std::time::Instant;
 
     use arama_env::DATA_HOME_ENV_VAR;
+    use arama_i18n::t;
     use swdir::DirNode;
 
-    use super::super::super::ARAMA_DATA_HOME_TEST_LOCK;
+    use super::super::super::{ARAMA_DATA_HOME_TEST_LOCK, App, message::Message};
     use super::{THUMBNAIL_CHUNK_SIZE, run_thumbnail_phase, run_thumbnail_phase_with_hook};
 
     /// A syntactically valid 1x1 JPEG - enough for `image::open` to
@@ -943,7 +972,9 @@ mod tests {
 
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let cancel_flag = Arc::new(AtomicBool::new(false));
-        let results = runtime.block_on(run_thumbnail_phase(dir_node, cancel_flag));
+        let results = runtime
+            .block_on(run_thumbnail_phase(dir_node, cancel_flag))
+            .expect("the isolated fixture cache opens cleanly");
 
         assert_eq!(
             results.len(),
@@ -1008,13 +1039,15 @@ mod tests {
         // a guarantee the comment above it claimed.
         let hook_flag = cancel_flag.clone();
         let started = Instant::now();
-        let results = runtime.block_on(run_thumbnail_phase_with_hook(
-            dir_node,
-            cancel_flag,
-            move |_cumulative| {
-                hook_flag.store(true, Ordering::Relaxed);
-            },
-        ));
+        let results = runtime
+            .block_on(run_thumbnail_phase_with_hook(
+                dir_node,
+                cancel_flag,
+                move |_cumulative| {
+                    hook_flag.store(true, Ordering::Relaxed);
+                },
+            ))
+            .expect("the isolated fixture cache opens cleanly");
         let elapsed = started.elapsed();
 
         eprintln!(
@@ -1059,11 +1092,66 @@ mod tests {
 
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let cancel_flag = Arc::new(AtomicBool::new(true));
-        let results = runtime.block_on(run_thumbnail_phase(dir_node, cancel_flag));
+        let results = runtime
+            .block_on(run_thumbnail_phase(dir_node, cancel_flag))
+            .expect("the isolated fixture cache opens cleanly");
 
         assert!(
             results.is_empty(),
             "a flag already set before the first chunk must produce no results"
+        );
+
+        unsafe {
+            match &previous {
+                Some(value) => std::env::set_var(DATA_HOME_ENV_VAR, value),
+                None => std::env::remove_var(DATA_HOME_ENV_VAR),
+            }
+        }
+        let _ = std::fs::remove_dir_all(&data_home);
+        let _ = std::fs::remove_dir_all(&source_dir);
+    }
+
+    /// T069: a cache that cannot be opened must tell the user, not
+    /// quietly produce the same empty `vec![]` as "nothing to index."
+    /// Forces the realistic review-159 shape (a schema/format this
+    /// build's `ImageCacheWriter` refuses) the simplest reliable way: a
+    /// *directory* sitting where the cache file itself must be, which no
+    /// SQLite engine can open as a database on any platform.
+    #[test]
+    fn an_unopenable_cache_tells_the_user_instead_of_claiming_nothing_to_index() {
+        let _guard = ARAMA_DATA_HOME_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let previous = std::env::var_os(DATA_HOME_ENV_VAR);
+        let (data_home, source_dir, dir_node) = thumbnail_phase_fixture("unopenable-cache", 3);
+        unsafe {
+            std::env::set_var(DATA_HOME_ENV_VAR, &data_home);
+        }
+
+        let cache_path =
+            arama_env::cache_storage_path().expect("resolves under the isolated data home");
+        std::fs::create_dir_all(&cache_path)
+            .expect("stage a directory where the cache file must be");
+
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let cancel_flag = Arc::new(AtomicBool::new(false));
+        let result = runtime.block_on(run_thumbnail_phase(dir_node, cancel_flag));
+
+        let err = result.expect_err("a directory in place of the cache file must not open");
+        assert!(
+            err.contains(&t("toast.indexing_unavailable.writer.body")),
+            "the error must name which open failed, not just that something did: {err}"
+        );
+
+        let mut app = App::new().0;
+        let _ = app.update(Message::ThumbnailCacheFinished(Err(err)));
+        assert!(
+            app.toasts
+                .iter()
+                .any(|toast| toast.title == t("toast.indexing_unavailable.title")),
+            "the user must be told the cache could not be opened, not left with silence \
+             (toasts: {:?})",
+            app.toasts.iter().map(|t| &t.title).collect::<Vec<_>>()
         );
 
         unsafe {

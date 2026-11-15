@@ -341,6 +341,11 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "toast.cache_reload_failed.storage_path.body" => {
             "キャッシュの保存場所を解決できませんでした"
         }
+        "toast.indexing_unavailable.title" => "インデックスを実行できません",
+        "toast.indexing_unavailable.storage_path.body" => {
+            "キャッシュの保存場所を解決できませんでした"
+        }
+        "toast.indexing_unavailable.writer.body" => "キャッシュを書き込み用に開けませんでした",
         "toast.indexed_with_warnings.title" => "警告付きでインデックスしました",
         "toast.embedding_error.title" => "埋め込みエラー",
         "toast.embedding_error.body" => "埋め込みを計算できませんでした",

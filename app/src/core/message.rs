@@ -14,6 +14,15 @@ use snora::ToastAttention;
 
 use super::NavPage;
 
+/// T069: named so the `Message` variant and `run_thumbnail_phase`'s own
+/// return type (`app/src/core/update/cache.rs`) stay exactly in sync
+/// without clippy's `type_complexity` lint on the nested
+/// `Result<Vec<(_, _)>, _>` at either site. `Err` means the cache could
+/// not even be opened for writing - distinguished from an empty
+/// `Ok(vec![])` ("nothing to index"), which the two used to collapse
+/// into indistinguishably.
+pub type ThumbnailPhaseResult = Result<Vec<(PathBuf, Arc<arama_cache::Result<()>>)>, String>;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum FfmpegRequestIntent {
     Startup,
@@ -35,7 +44,7 @@ pub enum Message {
     CacheClearFinished(Result<usize, String>),
     /// Async cache prune finished: report or error.
     CachePruneFinished(Result<arama_cache::CachePruneReport, String>),
-    ThumbnailCacheFinished(Vec<(PathBuf, Arc<arama_cache::Result<()>>)>),
+    ThumbnailCacheFinished(ThumbnailPhaseResult),
     EmbeddingCacheFinished(
         Result<arama_ai::pipeline::encode::image::embeddings::EmbeddingRunReport, String>,
     ),

@@ -285,6 +285,11 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         "toast.cache_reload_failed.storage_path.body" => {
             "Could not resolve the cache storage location"
         }
+        "toast.indexing_unavailable.title" => "Indexing unavailable",
+        "toast.indexing_unavailable.storage_path.body" => {
+            "Could not resolve the cache storage location"
+        }
+        "toast.indexing_unavailable.writer.body" => "Could not open the cache for writing",
         "toast.indexed_with_warnings.title" => "Indexed with warnings",
         "toast.embedding_error.title" => "Embedding error",
         "toast.embedding_error.body" => "Could not compute embeddings",
