@@ -228,6 +228,69 @@ fn text_scale_round_trips_through_settings_json_without_rescaling_live() {
     let _ = std::fs::remove_dir_all(&scratch);
 }
 
+/// T064 (handoff condition 4): snora's side-bar items are reachable as
+/// `Target::Focusable` (RFC 116 - a plain `button` is not focusable in
+/// iced 0.14, which is one reason this task moved to snora's own rail).
+/// Isolated from every other focusable target on the explorer screen
+/// (a header dropdown and the aside/filter area, confirmed by a
+/// one-off diagnostic run to measure far wider and sit further right)
+/// by `x + width` staying within the rail's own strip - snora's
+/// `RAIL_WIDTH` is 64 logical px (`snora-widgets-0.57.0/src/
+/// sidebar.rs`, not public, so not referenced directly); 70 gives a
+/// small margin without being so loose it could catch an unrelated
+/// widget.
+#[test]
+fn side_bar_items_are_focusable_and_clear_wcag_2_5_5_targets() {
+    let _guard = ARAMA_DATA_HOME_TEST_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
+    let scratch = scratch_data_home("t064-side-bar-targets");
+    unsafe {
+        std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
+    }
+
+    let mut app = App::new().0;
+    app.setup.finished = true;
+    let found = layout_probe::find_all_focusable_with(
+        App::settings(),
+        iced::window::Settings::default().size,
+        app.view(),
+    );
+    let side_bar_items: Vec<iced::Rectangle> = found
+        .iter()
+        .map(|t| t.bounds())
+        .filter(|b| b.x + b.width <= 70.0)
+        .collect();
+
+    assert_eq!(
+        side_bar_items.len(),
+        3,
+        "expected exactly the three side-bar items (explorer/cache/settings) \
+         within the rail's own strip - found {side_bar_items:?} among all focusable \
+         targets {found:?}"
+    );
+
+    for bounds in &side_bar_items {
+        eprintln!("=== T064 side-bar item target: {bounds:?} ===");
+        assert!(
+            bounds.width >= 44.0 && bounds.height >= 44.0,
+            "a side-bar item measures {}x{} logical px, below WCAG 2.5.5's \
+             enhanced 44x44 floor",
+            bounds.width,
+            bounds.height
+        );
+    }
+
+    unsafe {
+        match &previous {
+            Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
+            None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
+        }
+    }
+    let _ = std::fs::remove_dir_all(&scratch);
+}
+
 #[test]
 #[ignore]
 fn native_smoke_settings_path_is_independent_of_working_directory() {

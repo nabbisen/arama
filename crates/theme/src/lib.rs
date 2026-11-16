@@ -382,4 +382,44 @@ mod tests {
 
         set_text_scale(TextScale::default());
     }
+
+    /// T064 (handoff condition 3, WCAG 1.4.11 non-text contrast): the
+    /// side-bar rail's active-item fill (`snora::style::
+    /// sidebar_active_color`, `extended_palette().primary.strong.color`,
+    /// derived by iced from the theme rather than a token value read
+    /// directly) against the rail's own unselected background
+    /// (`extended_palette().background.base.color`, the same baseline
+    /// `snora-widgets`' own `sidebar_button_style_text_meets_aa` test
+    /// uses for its non-active case), for each of arama's four presets.
+    /// 1.4.11 floors non-text UI-component contrast at 3:1, looser than
+    /// 1.4.3's 4.5:1 for body text.
+    #[test]
+    fn side_bar_active_fill_meets_wcag_1_4_11_non_text_contrast_every_preset() {
+        let _guard = THEME_TEST_LOCK.lock().unwrap();
+
+        fn as_design_color(c: iced::Color) -> snora::design::Color {
+            snora::design::Color::rgba(c.r, c.g, c.b, c.a)
+        }
+
+        for preset in ThemePreset::all() {
+            set_theme(*preset);
+            let theme = iced_theme();
+            let active_fill = as_design_color(snora::style::sidebar_active_color(&theme));
+            let page_background = as_design_color(theme.extended_palette().background.base.color);
+            let ratio = snora::design::contrast::contrast_ratio(active_fill, page_background);
+            eprintln!(
+                "=== T064 side-bar active-fill contrast: {preset:?} = {ratio:.2}:1 \
+                 (WCAG 1.4.11 floor 3.0) ==="
+            );
+
+            assert!(
+                ratio >= 3.0,
+                "{preset:?}: the side bar's active-item fill contrasts {ratio:.2}:1 \
+                 against the page background, below WCAG 1.4.11's 3:1 floor for \
+                 non-text UI components"
+            );
+        }
+
+        set_theme(ThemePreset::default());
+    }
 }

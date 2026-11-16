@@ -19,7 +19,8 @@ areas:
 └──────────────────────────────────────────────────────────┘
 ```
 
-**Side nav** (far left) — three icon buttons:
+**Side nav** (far left) — three destinations, each icon with its name
+shown beneath it:
 - 📁 Explorer (current page)
 - 🗃 Cache
 - ⚙ Settings

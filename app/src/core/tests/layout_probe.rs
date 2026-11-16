@@ -104,6 +104,50 @@ pub(super) fn find_all_text_with<'a, Message: Clone + 'a>(
         .unwrap()
 }
 
+/// As [`CollectAllText`], for `Target::Focusable` instead - T064's own
+/// need (measuring the side-bar rail's items as focus targets, RFC 116)
+/// rather than a reason specific to the matrix.
+#[derive(Clone)]
+struct CollectAllFocusable {
+    collected: std::sync::Arc<std::sync::Mutex<Vec<iced_test::selector::Target>>>,
+}
+
+impl iced_test::Selector for CollectAllFocusable {
+    type Output = ();
+
+    fn select(&mut self, candidate: iced_test::selector::Candidate<'_>) -> Option<Self::Output> {
+        if matches!(candidate, iced_test::selector::Candidate::Focusable { .. }) {
+            self.collected
+                .lock()
+                .unwrap()
+                .push(iced_test::selector::Target::from(candidate));
+        }
+        None
+    }
+
+    fn description(&self) -> String {
+        "collect every Target::Focusable in the tree".to_owned()
+    }
+}
+
+/// As [`find_all_text_with`], for every `Target::Focusable` instead.
+pub(super) fn find_all_focusable_with<'a, Message: Clone + 'a>(
+    settings: iced::Settings,
+    size: impl Into<iced::Size>,
+    element: impl Into<iced::Element<'a, Message, iced::Theme, iced::Renderer>>,
+) -> Vec<iced_test::selector::Target> {
+    let collected = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let selector = CollectAllFocusable {
+        collected: collected.clone(),
+    };
+    let mut simulator = iced_test::Simulator::with_size(settings, size, element.into());
+    let _ = simulator.find(selector);
+    std::sync::Arc::try_unwrap(collected)
+        .expect("no other reference survives Simulator::find")
+        .into_inner()
+        .unwrap()
+}
+
 #[test]
 fn infrastructure_find_all_text_sees_every_label_not_just_the_first() {
     use iced::widget::{column, container, text};

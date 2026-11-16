@@ -344,6 +344,32 @@ combination runs, the matrix queries cosmic-text's own shaping API
 directly (the same technique as `layout_probe.rs`'s item 4) for a face
 covering a kana glyph, and fails - never skips - if none is found.
 
+## Side-bar navigation (T064)
+
+Three checks in `crates/theme/src/lib.rs` and `app/src/core/tests.rs`,
+added when the rail moved from three hand-built `tooltip(button(...))`
+items to snora's own `app_side_bar_with(..., SideBarLabels::Beneath)`:
+
+- **Contrast (WCAG 1.4.11)**: `side_bar_active_fill_meets_wcag_1_4_11_
+  non_text_contrast_every_preset` computes `snora::design::contrast::
+  contrast_ratio` between the active item's fill
+  (`snora::style::sidebar_active_color`) and the page background, for
+  each of arama's four presets, and prints the measured ratio
+  (`eprintln!`) regardless of pass/fail. All four clear the 3:1 floor
+  comfortably (4.19-8.25:1 measured).
+- **Target size (WCAG 2.5.5)**: `side_bar_items_are_focusable_and_
+  clear_wcag_2_5_5_targets` finds every `Target::Focusable` in a
+  rendered explorer screen via a new `find_all_focusable_with` helper
+  (`layout_probe.rs`, the `Target::Focusable` twin of the existing
+  `find_all_text_with`), isolates the three within the rail's own
+  strip (`x + width <= 70`, snora's `RAIL_WIDTH` is 64), and asserts
+  each clears 44x44 logical px.
+- **The 72-combination layout matrix** (above) is the regression proof
+  that the rail's names fit at every text size, locale, theme and
+  window size - including Larger at the 760x520 minimum, which is also
+  the one case still verified by a real capture (narrow window, worst-
+  case Japanese label width), per the project's GUI evidence rules.
+
 ## Release smoke with the UI
 
 There are no automated UI tests. For releases that include UI, setup,

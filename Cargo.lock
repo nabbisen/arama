@@ -5388,6 +5388,7 @@ checksum = "cbfa27aba478d167aff0be58532b5b9438d2c8f93dd9b33b52433653d51e9308"
 dependencies = [
  "iced",
  "iced_runtime",
+ "lucide-icons",
  "snora-core",
  "snora-design",
  "snora-interaction",
@@ -5400,6 +5401,9 @@ name = "snora-core"
 version = "0.57.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aafe6040447770bd23e0665c67270c7b8275f04b3cb6ccb69a919152288700da"
+dependencies = [
+ "lucide-icons",
+]
 
 [[package]]
 name = "snora-design"
@@ -5434,6 +5438,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3665759f3f3b7a9cff1fc8eee26619717a6bc6d482d2c93b99a5930d1015c6d6"
 dependencies = [
  "iced",
+ "lucide-icons",
  "snora-core",
  "snora-design",
  "snora-interaction",

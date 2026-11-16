@@ -36,6 +36,14 @@ impl CachePage {
             .map(|f| human_size(f.total_bytes))
             .unwrap_or_else(|| t("cache.footprint.unavailable"));
         let prune_target_valid = parse_mib_target(&self.prune_target_input).is_some();
+        // T064: the side-bar rail now shows names beneath its icons
+        // (snora's own, replacing three hand-built icon-only buttons),
+        // which is wider than before - at `ja`/Larger/760x520 this row
+        // no longer had enough width left for all four elements on one
+        // line, and the prune button's own label ("削減") wrapped to
+        // zero width. `.wrap()` (same fix as the settings dialog's
+        // button rows and the footer's status group, T063) moves
+        // whichever element does not fit onto its own row instead.
         let prune_row = row![
             text(format!("{}: {footprint}", t("cache.footprint"))),
             text_input(&t("cache.prune.placeholder"), &self.prune_target_input)
@@ -49,7 +57,8 @@ impl CachePage {
                     Some(Message::Internal(Internal::PrunePressed))
                 }),
         ]
-        .spacing(10);
+        .spacing(10)
+        .wrap();
 
         let prune_result: Element<'_, Message> = self
             .last_prune_report

@@ -4,11 +4,15 @@ use iced::{
     Length::Fill,
     widget::{button, column, container, mouse_area, row, text, tooltip},
 };
-use lucide_icons::iced::{
-    icon_database, icon_folder, icon_panel_left_close, icon_panel_left_open, icon_settings,
-};
+use lucide_icons::iced::{icon_panel_left_close, icon_panel_left_open};
 use snora::focus::FocusZone;
-use snora::{AppLayout, Dialog as SnoraDialog, ToastPosition, design::render};
+use snora::{
+    AppLayout, Dialog as SnoraDialog, Icon, LayoutDirection, SideBar, SideBarItem, ToastPosition,
+    design::{
+        render,
+        widget::{SideBarLabels, app_side_bar_with},
+    },
+};
 
 #[cfg(test)]
 use super::ARAMA_DATA_HOME_TEST_LOCK;
@@ -44,48 +48,49 @@ impl App {
         }
 
         // ── Side-bar nav rail ─────────────────────────────────────────
+        // T064 (RFC 052 §3, decided 2026-11-16): snora's own rail
+        // (`SideBarLabels::Beneath`) in place of three hand-built
+        // `tooltip(button(...))` items - the names are drawn, not shown
+        // only on hover, and the rail's items are keyboard focus targets
+        // (iced 0.14 cannot focus a plain `button`). `tooltip` here is
+        // the drawn name in this label mode, not a hover tooltip -
+        // removing the old `tooltip()` wrapper is correct, not a
+        // regression (handoff §5: "a tooltip repeating it is noise").
         let side_bar: Element<Message> = {
-            let explorer = tooltip(
-                button(icon_folder())
-                    .style(if self.nav_page == NavPage::Explorer {
-                        arama_theme::primary
-                    } else {
-                        arama_theme::ghost
-                    })
-                    .on_press(Message::NavTo(NavPage::Explorer)),
-                text(t("nav.explorer")),
-                tooltip::Position::Right,
-            );
+            let nav_side_bar = SideBar {
+                items: vec![
+                    SideBarItem {
+                        view_id: NavPage::Explorer,
+                        icon: Icon::Lucide(lucide_icons::Icon::Folder),
+                        tooltip: t("nav.explorer"),
+                        on_press: Message::NavTo(NavPage::Explorer),
+                    },
+                    SideBarItem {
+                        view_id: NavPage::Cache,
+                        icon: Icon::Lucide(lucide_icons::Icon::Database),
+                        tooltip: t("nav.cache"),
+                        on_press: Message::NavTo(NavPage::Cache),
+                    },
+                    SideBarItem {
+                        view_id: NavPage::Settings,
+                        icon: Icon::Lucide(lucide_icons::Icon::Settings),
+                        tooltip: t("nav.settings"),
+                        on_press: Message::NavTo(NavPage::Settings),
+                    },
+                ],
+                active: self.nav_page.clone(),
+            };
 
-            let cache = tooltip(
-                button(icon_database())
-                    .style(if self.nav_page == NavPage::Cache {
-                        arama_theme::primary
-                    } else {
-                        arama_theme::ghost
-                    })
-                    .on_press(Message::NavTo(NavPage::Cache)),
-                text(t("nav.cache")),
-                tooltip::Position::Right,
-            );
-
-            let settings = tooltip(
-                button(icon_settings())
-                    .style(if self.nav_page == NavPage::Settings {
-                        arama_theme::primary
-                    } else {
-                        arama_theme::ghost
-                    })
-                    .on_press(Message::NavTo(NavPage::Settings)),
-                text(t("nav.settings")),
-                tooltip::Position::Right,
-            );
-
-            container(column![explorer, cache, settings].spacing(4).padding(8))
-                .style(arama_theme::focus_ring_style(
-                    self.is_zone_focused(FocusZone::SideBar),
-                ))
-                .into()
+            container(app_side_bar_with(
+                &arama_theme::tokens(),
+                nav_side_bar,
+                LayoutDirection::Ltr,
+                SideBarLabels::Beneath,
+            ))
+            .style(arama_theme::focus_ring_style(
+                self.is_zone_focused(FocusZone::SideBar),
+            ))
+            .into()
         };
 
         // ── Page body ─────────────────────────────────────────────────
