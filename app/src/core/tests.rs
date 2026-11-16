@@ -1278,5 +1278,7 @@ fn window_title_and_linux_application_id_match_the_desktop_file() {
     }
 }
 
+#[path = "tests/layout_matrix.rs"]
+mod layout_matrix;
 #[path = "tests/layout_probe.rs"]
 mod layout_probe;

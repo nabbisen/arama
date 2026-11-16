@@ -93,7 +93,13 @@ defect shown failing before it is trusted to pass:
   `scrollable` ancestor's viewport - a plain `Container::clip(true)` is
   not: `iced_selector`'s own tree-walker narrows its tracked viewport
   only inside `Finder::scrollable`, never for a plain container's own
-  bounds.
+  bounds. **It does not clip the painted pixels either**, confirmed on
+  both `wgpu` and `tiny-skia` - a pixel check cannot distinguish a
+  `clip(true)` container from one without it. This is why the matrix
+  (below) checks neither property for `crates/ui/layout/src/footer/
+  view.rs`'s path label, the one production `Wrapping::None` +
+  `clip(true)` site in the codebase (T055): it is a real, open gap, not
+  a silent claim.
 - **A non-clipping overflow (the Japanese-footer shape, T055) is
   invisible to every bounds-based check**, because a widget's `bounds`
   is the box its parent allocated to it, not its intrinsic content size
@@ -128,12 +134,57 @@ pinned to an exact package, since pinning breaks the next time the
 runner image updates); macOS and Windows runners use their own system
 fonts, installing nothing.
 
-**Not yet built**: the matrix itself (RFC 053 §2.1, every screen state
-× text size × locale × theme × window size), the enforced minimum/launch
-window size's effect on the matrix's own results, and
-`KNOWN_LAYOUT_DEFECTS` (combinations that fail at the 760 × 520 minimum
-today, each naming the task that owns fixing it). This section will be
-extended when that delivery lands.
+## Headless layout matrix (T074 delivery 2)
+
+`app/src/core/tests/layout_matrix.rs` runs every screen state it covers
+against 24 combinations - `en`/`ja` × the four theme presets × 760×520
+(the enforced minimum) / 1280×720 / 1920×1080 (text size stays at
+`Default` until T063 wires that dimension) - checking the one property
+Phase 0 proved: every `Target::Text`'s `visible_bounds` equals its
+`bounds` within a small floating-point epsilon, i.e. nothing is clipped
+by a `scrollable` ancestor. An empty-string target (a conditional
+placeholder with nothing to show) is skipped - it has no content to be
+clipped.
+
+**Screen states covered**: the setup wizard, an empty gallery, Settings,
+the Cache page, the Media Focus dialog, the Similar Pairs dialog
+(scanning, with results, and all three RFC 036 absence states - driven
+through the real `Message::SimilarPairsDialogMessage(..EmbeddingsReady..)`
+path, not a private field poke), the Confirm dialog, and a toast. **Not
+covered**: a gallery populated from a fixture (RFC 053 §2.1 names it;
+Phase 0 already flagged it "buildable, not yet built" - it needs real,
+decodable image files and a seeded cache, heavier than the states above,
+and is left to whichever task next needs it, most likely T063).
+
+**Backend**: `ICED_TEST_BACKEND=tiny-skia`, set once per process before
+any `Simulator` is built. Phase 0 item 6 measured the default `wgpu`
+backend at up to ~258ms/combination on Windows; 24 combinations across a
+dozen screen states would risk RFC 053 §2.5's 60s budget. `tiny-skia`
+measured roughly 100x faster for an identical result on every property
+this file or `layout_probe.rs` checks.
+
+**Isolation**: every matrix test takes `ARAMA_DATA_HOME_TEST_LOCK` before
+mutating the process-global locale and theme, and restores both to their
+defaults afterward. This is safe only because every test in this binary
+that constructs an `App` already takes the same lock first (for its own,
+unrelated reason - resolving `ARAMA_DATA_HOME`) - the same serialization
+`app/src/core/tests.rs`'s own comment on locale races, and
+`crates/ui/layout/src/footer/view.rs`'s test module, both already
+document. A new test added to this binary that constructs an `App`
+without that lock would reintroduce the exact race those two comments
+describe.
+
+**`KNOWN_LAYOUT_DEFECTS`** (RFC 053 §6.5): a list in `layout_matrix.rs`
+of combinations that fail property 1 today, each naming the text, the
+combination, and the task that owns the fix; each entry is asserted to
+still fail, so a landed fix without the entry removed fails the test
+instead of going unnoticed. Empty today - every covered state passed at
+every combination, including the 760 × 520 minimum, on this tree.
+
+**The kana-face gate** (RFC 053 §6.4): before any `ja`-locale
+combination runs, the matrix queries cosmic-text's own shaping API
+directly (the same technique as `layout_probe.rs`'s item 4) for a face
+covering a kana glyph, and fails - never skips - if none is found.
 
 ## Release smoke with the UI
 

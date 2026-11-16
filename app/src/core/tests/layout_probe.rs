@@ -63,15 +63,38 @@ impl iced_test::Selector for CollectAllText {
 /// Runs [`CollectAllText`] over `element` and returns every text target
 /// found, in traversal order. Generic over `Message` so it accepts both
 /// a throwaway element built directly in a test (`Message = ()`) and a
-/// real `App::view()` (`Message = core::message::Message`).
-fn find_all_text<'a, Message: Clone + 'a>(
+/// real `App::view()` (`Message = core::message::Message`). Uses
+/// `iced_test`'s own default `Settings` and window size - for a real
+/// `App::view()` at a real combination's own fonts and window size, see
+/// [`find_all_text_with`].
+///
+/// `pub(super)`: `layout_matrix` (RFC 053 §2, delivery 2) reuses this
+/// exact mechanism rather than a second copy - both are siblings under
+/// `tests`, so private-to-this-module visibility alone would not reach it.
+pub(super) fn find_all_text<'a, Message: Clone + 'a>(
+    element: impl Into<iced::Element<'a, Message, iced::Theme, iced::Renderer>>,
+) -> Vec<iced_test::selector::Target> {
+    find_all_text_with(
+        iced::Settings::default(),
+        iced::window::Settings::default().size,
+        element,
+    )
+}
+
+/// As [`find_all_text`], with the given `Settings` (fonts, default text
+/// size) and window size - what `layout_matrix` needs to measure a real
+/// `App::view()` the way `App::start()` actually renders it, at each
+/// combination's own window size.
+pub(super) fn find_all_text_with<'a, Message: Clone + 'a>(
+    settings: iced::Settings,
+    size: impl Into<iced::Size>,
     element: impl Into<iced::Element<'a, Message, iced::Theme, iced::Renderer>>,
 ) -> Vec<iced_test::selector::Target> {
     let collected = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
     let selector = CollectAllText {
         collected: collected.clone(),
     };
-    let mut simulator = iced_test::Simulator::new(element.into());
+    let mut simulator = iced_test::Simulator::with_size(settings, size, element.into());
     // `Err(SelectorNotFound)` is the expected, permanent result of this
     // selector - see the module doc above.
     let _ = simulator.find(selector);
@@ -170,6 +193,110 @@ fn item_1_b_container_clip_alone_does_not_shrink_visible_bounds() {
          changes (an iced upgrade), this is the property to re-check before the matrix \
          starts relying on plain Container::clip for anything - bounds={bounds:?} \
          visible={visible:?}"
+    );
+}
+
+#[test]
+fn item_1_c_container_clip_also_does_not_prevent_the_painted_overflow() {
+    use iced::widget::{container, text};
+
+    // Found while building the matrix (delivery 2), not anticipated by
+    // the handoff: item 1b already showed `Container::clip(true)` does
+    // not shrink `visible_bounds`. This goes one step further and asks
+    // whether it at least clips the *painted pixels*, which would still
+    // let a pixel check (item 2's candidate 3) validate it even without
+    // `visible_bounds`'s help. It does not, on either backend - reading
+    // `iced_widget-0.14.2/src/container.rs:351-371` shows `clip: true`
+    // narrows the `viewport` rectangle passed into the child's own
+    // `draw()`, and `iced_core-0.14.0/src/widget/text.rs:352-357` does
+    // forward that `viewport` into `Renderer::fill_paragraph` - the
+    // wiring exists - but the rendered output below is identical with
+    // `clip` `true` or `false`, confirmed under both
+    // `ICED_TEST_BACKEND=wgpu` and `=tiny-skia`. Whether this is a real
+    // `iced` gap or something specific to headless screenshot rendering
+    // is not determined here; what matters for RFC 053 is that
+    // `Simulator`-based pixel checks cannot distinguish "clipped" from
+    // "not clipped" for this exact shape - including arama's own
+    // production use of it (`crates/ui/layout/src/footer/view.rs`'s
+    // path label, the one real `Wrapping::None` site in the codebase,
+    // and the reason T055 added `clip(true)` there in the first place).
+    fn rightmost_ink_past_edge(clip: bool) -> usize {
+        let scratch =
+            std::env::temp_dir().join(format!("arama-t074-item1c-{}-{}", clip, std::process::id()));
+        let _ = std::fs::remove_dir_all(&scratch);
+        std::fs::create_dir_all(&scratch).unwrap();
+
+        const CONTAINER_WIDTH: f32 = 20.0;
+        let element: iced::Element<'_, (), iced::Theme, iced::Renderer> = container(
+            text("this label is much wider than the fixed-width box around it")
+                .wrapping(iced::widget::text::Wrapping::None)
+                .color(iced::Color::WHITE),
+        )
+        .width(CONTAINER_WIDTH)
+        .height(30.0)
+        .clip(clip)
+        .style(|_theme| container::Style {
+            background: Some(iced::Color::BLACK.into()),
+            ..container::Style::default()
+        })
+        .into();
+
+        let mut simulator = iced_test::Simulator::with_size(
+            iced::Settings::default(),
+            iced::Size::new(200.0, 60.0),
+            element,
+        );
+        let theme = arama_theme::iced_theme();
+        let snapshot = simulator.snapshot(&theme).expect("snapshot must render");
+        let image_path = scratch.join("frame.png");
+        snapshot
+            .matches_image(&image_path)
+            .expect("writing the reference PNG must not fail");
+
+        let written = std::fs::read_dir(&scratch)
+            .unwrap()
+            .filter_map(|entry| entry.ok())
+            .map(|entry| entry.path())
+            .find(|path| path.extension().is_some_and(|ext| ext == "png"))
+            .expect("matches_image must have written exactly one PNG");
+        let file = std::io::BufReader::new(std::fs::File::open(&written).unwrap());
+        let decoder = png::Decoder::new(file);
+        let mut reader = decoder.read_info().unwrap();
+        let mut buffer = vec![0; reader.output_buffer_size().unwrap()];
+        let info = reader.next_frame(&mut buffer).unwrap();
+        let rgba = &buffer[..info.buffer_size()];
+        let width = info.width as usize;
+        let height = info.height as usize;
+        let edge_x = (CONTAINER_WIDTH * 2.0).round() as usize;
+
+        let mut rightmost = 0;
+        for y in 0..height {
+            for x in edge_x..width {
+                let i = (y * width + x) * 4;
+                let (r, g, b, a) = (rgba[i], rgba[i + 1], rgba[i + 2], rgba[i + 3]);
+                if a > 0 && (r, g, b) != (0, 0, 0) {
+                    rightmost = rightmost.max(x);
+                }
+            }
+        }
+        let _ = std::fs::remove_dir_all(&scratch);
+        rightmost
+    }
+
+    let rightmost_clipped = rightmost_ink_past_edge(true);
+    let rightmost_unclipped = rightmost_ink_past_edge(false);
+
+    eprintln!(
+        "=== T074 Phase 0 item 1c: rightmost overflow ink with clip(true)={rightmost_clipped}, \
+         clip(false)={rightmost_unclipped} ==="
+    );
+    assert_eq!(
+        rightmost_clipped, rightmost_unclipped,
+        "recording the finding: Container::clip(true) must make NO observable difference \
+         to Simulator's rendered pixels here, confirming a pixel check cannot tell clipped \
+         apart from unclipped for this shape - if this ever changes (an iced upgrade), the \
+         matrix (delivery 2) should revisit whether a footer-specific overflow check is \
+         possible after all"
     );
 }
 
@@ -345,44 +472,15 @@ fn item_2_candidate_3_a_pixel_check_past_the_edge_sees_non_clipping_overflow() {
 // ---------------------------------------------------------------------
 // Item 3 (RFC 053 §3.3): fonts - the icon font and the Japanese font.
 // ---------------------------------------------------------------------
-
-#[test]
-fn item_3_a_icon_measured_width_differs_with_and_without_the_lucide_font() {
-    use lucide_icons::LUCIDE_FONT_BYTES;
-
-    fn measured_width(settings: iced::Settings) -> f32 {
-        let icon = lucide_icons::iced::icon_database();
-        let element: iced::Element<'_, (), iced::Theme, iced::Renderer> = icon.into();
-        let mut simulator = iced_test::Simulator::with_settings(settings, element);
-        let found = simulator
-            .find("\u{e0ad}")
-            .expect("the icon's own text content must be findable either way");
-        found.bounds().width
-    }
-
-    // Order matters, and is itself a finding: `iced_graphics::text::
-    // font_system()` is a process-wide `OnceLock` singleton (confirmed
-    // by reading `iced_graphics-0.14.0/src/text.rs:115-134`), and
-    // `Settings::fonts` bytes are loaded into it permanently -
-    // `FontSystem::load_font` has no corresponding unload. "Without"
-    // must run first in this process, or any earlier test in the same
-    // binary that already loaded Lucide would make this comparison
-    // measure nothing (an earlier draft of this test got exactly that
-    // false negative by measuring "with" first).
-    let without_lucide = measured_width(iced::Settings::default());
-    let with_lucide = measured_width(iced::Settings {
-        fonts: vec![LUCIDE_FONT_BYTES.into()],
-        ..iced::Settings::default()
-    });
-
-    assert_ne!(
-        with_lucide, without_lucide,
-        "the icon's measured width must differ depending on whether the Lucide font \
-         App::settings() loads is actually present (with={with_lucide}, \
-         without={without_lucide}) - otherwise review 172's stray-glyph/empty-box \
-         finding would be invisible to a headless measurement"
-    );
-}
+//
+// Item 3a (the icon font, with vs. without Lucide loaded) lives in
+// `app/tests/icon_font_isolation.rs`, its own integration-test binary -
+// review 176's condition 1: this lib test binary will, once the layout
+// matrix lands below, also run tests that render through
+// `App::settings()` (which always loads Lucide into the same
+// process-wide `font_system()` singleton, with no unload), which would
+// silently poison that control's "without" measurement depending on
+// test execution order.
 
 #[test]
 fn item_3_b_measuring_japanese_by_requesting_a_font_name_does_not_distinguish_coverage() {
