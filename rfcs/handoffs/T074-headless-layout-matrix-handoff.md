@@ -1,3 +1,7 @@
+> **ACCEPTED 2026-11-16 — review 177, follow-up. T074 is complete.** Published
+> as `57266c6`. T063 now proves its layout with this matrix (populated gallery
+> and Larger text are its to add).
+
 > **DELIVERY 2: CHANGES REQUESTED 2026-11-16 — review 177**
 > (`.git-exclude/reviewed/177-t074-delivery-2-review.md`). `App::new()`
 > overwrites each combination's locale and theme, so the matrix never renders
