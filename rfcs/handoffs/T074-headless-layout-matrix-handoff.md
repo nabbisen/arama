@@ -1,3 +1,9 @@
+> **DELIVERY 2: CHANGES REQUESTED 2026-11-16 — review 177**
+> (`.git-exclude/reviewed/177-t074-delivery-2-review.md`). `App::new()`
+> overwrites each combination's locale and theme, so the matrix never renders
+> Japanese or a non-default theme — shown by planted defects. Fix on top of
+> `9282e85`, with a per-combination self-check.
+
 > **PHASE 0 ACCEPTED 2026-11-16 — review 176**
 > (`.git-exclude/reviewed/176-t074-phase-0-review.md`). Delivery 2 may start,
 > under that review's five conditions — above all, the icon-font negative
