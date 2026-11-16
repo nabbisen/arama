@@ -1,3 +1,22 @@
+> **FOLLOW-UP F1 REQUIRED 2026-11-16 — review 178** (`.git-exclude/reviewed/178-t063-text-size-setting-review.md`,
+> last section). A defect in delivered work, within this task's authorization:
+>
+> 1. **Choose the backend deterministically for the whole test process** —
+>    no `std::env::set_var` at run time in a parallel test binary. For example,
+>    `ICED_TEST_BACKEND` set for the whole `cargo test` run (`.cargo/config.toml`
+>    `[env]`, or the CI steps plus `docs/src/dev/testing.md`). Justify the
+>    choice, and show every probe and matrix test runs on that one backend.
+> 2. **`item_1_c` failed on macOS** (`left: 0, right: 399`): there, `clip(true)`
+>    *was* drawn. Determine, per backend and per runner (Linux, macOS,
+>    Windows), whether `clip(true)` is drawn. Replace the equality assertion
+>    with what is true. If the chosen backend draws the clip on all three
+>    runners, add the footer path-label check the matrix currently cannot make
+>    (RFC 053 §2.3 property 2, by pixels), and remove the gap note from
+>    `docs/src/dev/testing.md`. If not, record per runner, and keep the gap.
+> 3. Show it stable: the `arama` lib suite five times locally, and one CI run
+>    green on all three runners. Plants, if any, in a scratch worktree with its
+>    own target directory.
+
 > **ACCEPTED 2026-11-16 — review 177, follow-up. T074 is complete.** Published
 > as `57266c6`. T063 now proves its layout with this matrix (populated gallery
 > and Larger text are its to add).
