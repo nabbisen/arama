@@ -139,12 +139,44 @@ fonts, installing nothing.
 `app/src/core/tests/layout_matrix.rs` runs every screen state it covers
 against 24 combinations - `en`/`ja` × the four theme presets × 760×520
 (the enforced minimum) / 1280×720 / 1920×1080 (text size stays at
-`Default` until T063 wires that dimension) - checking the one property
-Phase 0 proved: every `Target::Text`'s `visible_bounds` equals its
-`bounds` within a small floating-point epsilon, i.e. nothing is clipped
-by a `scrollable` ancestor. An empty-string target (a conditional
-placeholder with nothing to show) is skipped - it has no content to be
-clipped.
+`Default` until T063 wires that dimension) - checking two properties:
+
+1. Every `Target::Text`'s `visible_bounds` equals its `bounds` within a
+   small floating-point epsilon, i.e. nothing is clipped by a
+   `scrollable` ancestor (Phase 0's own property).
+2. Every `Target::Text`'s `bounds` fits inside the combination's own
+   window size. Needed as its own, separate check: `iced_selector`'s
+   `Finder` starts its tracked viewport at `Rectangle::INFINITE` and
+   never narrows it to the window's own size - only a `scrollable`
+   ancestor narrows it at all - so property 1 by itself cannot see a
+   label that simply grows past the window's edge with nothing
+   scrollable in the way. Found by planting a real, if extreme, defect
+   (review 177's required demonstration): an ~4000-kanji label in
+   `settings_page` (no `scrollable` anywhere in that dialog).
+
+**A third, related finding from that same plant, with no separate
+check of its own**: a `Fill`-constrained `Column` without scrolling,
+once an over-long child consumes more than its share, does not push
+later siblings to positive, off-window bounds - it starves them to
+`height: 0.0` (or width) instead. Several real labels (`"類似度"`,
+`"言語"`, both theme buttons, both locale buttons) were observed with
+`visible_bounds: None` on a zero-area `bounds` this way. This already
+falls under property 1 (`visible_bounds` is `None`, not equal to
+`bounds`) - the only change needed was *not skipping it*: the zero-area
+exclusion, which exists for a genuinely empty label or a single icon
+glyph, is narrowed to exactly those two cases (checked by content, not
+by area alone) so a real, multi-character label starved to zero size is
+still caught rather than silently passed over.
+
+Confirmed working on real Japanese content, not just English: both
+plants above (the depth label, and a separate one on the
+`settings.general.include_image` checkbox's own label - `iced_widget`'s
+`Checkbox::operate` calls `operation.text(None, layout.bounds(),
+label)`, the exact same hook a plain `text()` widget uses, so the
+selector does see a checkbox's label) made `settings_page` fail at
+`ja / Light / 760x520`; reverting either made it pass again. Neither
+plant is a real defect - both were removed before this delivery was
+reviewed.
 
 **Screen states covered**: the setup wizard, an empty gallery, Settings,
 the Cache page, the Media Focus dialog, the Similar Pairs dialog

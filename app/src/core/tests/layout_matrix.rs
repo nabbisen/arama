@@ -201,6 +201,63 @@ fn rectangle_eq_within_epsilon(a: iced::Rectangle, b: iced::Rectangle) -> bool {
         && (a.height - b.height).abs() <= VISIBILITY_EPSILON
 }
 
+/// True only for content with legitimately nothing to show: an empty
+/// label (a conditional placeholder), or a single icon glyph (one
+/// private-use-area codepoint, U+E000-U+F8FF - Lucide's own range,
+/// confirmed by `icon_database()`'s `"\u{e0ad}"` in
+/// `lucide-icons-1.21.0/src/iced.rs`), which can be allocated zero
+/// width in a given spot without its *content* being empty. Multi-
+/// character real text with a zero-area `bounds` is never legitimate -
+/// it means the layout gave that label no space at all, which is a
+/// defect `assert_property_1` must still catch, not skip.
+fn is_legitimately_zero_area(content: &str) -> bool {
+    content.is_empty()
+        || (content.chars().count() == 1
+            && content
+                .chars()
+                .all(|c| ('\u{E000}'..='\u{F8FF}').contains(&c)))
+}
+
+/// Found while demonstrating the detector for review 177's required
+/// item 4: `iced_selector`'s `Finder` starts its tracked viewport at
+/// `Rectangle::INFINITE` (`iced_selector-0.14.0/src/find.rs:127`) and
+/// nothing in the whole call chain ever narrows it to the *window's*
+/// own size - only a `scrollable` ancestor narrows it at all (item 1a).
+/// So property 1 (`visible_bounds == bounds`) cannot, by itself, see a
+/// label that grows past the window's own edge with no `scrollable` in
+/// the way. A real plant (settings_page, which has no `scrollable`
+/// anywhere) showed the companion failure mode this check exists for:
+/// a `Fill`-constrained `Column` without scrolling does not let an
+/// over-long child push its siblings to positive, off-window bounds -
+/// it starves them to `height: 0.0` instead (see
+/// `is_legitimately_zero_area` below, which is what actually catches
+/// that shape in practice). This geometric check remains for whatever
+/// *does* end up with positive, out-of-window bounds - e.g. a wide
+/// single-line label with wrapping disabled - which `bounds` and
+/// `combo.window` (both logical px, the same coordinate space) compare
+/// directly, no pixel heuristic needed.
+fn assert_within_window_bounds(
+    state: &str,
+    combo: Combination,
+    bounds: iced::Rectangle,
+    content: &str,
+) {
+    let (window_width, window_height) = combo.window;
+    let within = bounds.x >= -VISIBILITY_EPSILON
+        && bounds.y >= -VISIBILITY_EPSILON
+        && bounds.x + bounds.width <= window_width + VISIBILITY_EPSILON
+        && bounds.y + bounds.height <= window_height + VISIBILITY_EPSILON;
+    if !within {
+        if is_known_defect(state, combo, content) {
+            return;
+        }
+        panic!(
+            "{state}: \"{content}\" extends past the {window_width}x{window_height} window \
+             at {combo} - bounds={bounds:?}"
+        );
+    }
+}
+
 /// RFC 053 §2.6: a failure names its combination, the text's own
 /// content, and both rectangles.
 fn assert_property_1(state: &str, combo: Combination, found: Vec<iced_test::selector::Target>) {
@@ -212,18 +269,25 @@ fn assert_property_1(state: &str, combo: Combination, found: Vec<iced_test::sele
             ..
         } = target
         {
-            // A zero-area allocation (an empty label, or - found while
-            // fixing review 177 - an icon glyph allocated no width in
-            // this particular spot) has nothing to be clipped: a
-            // zero-area rectangle's intersection with any viewport is
-            // empty by construction (`visible_bounds: None`), which is
-            // not a sign anything is hidden. Checked on the bounds
-            // themselves, not on `content.is_empty()` - an icon's
-            // content is a non-empty private-use codepoint that prints
-            // as nothing visible, so that check alone missed this case.
-            if bounds.width <= 0.0 || bounds.height <= 0.0 {
+            // A zero-area allocation has nothing to be clipped - but
+            // only when there is legitimately nothing to show: an empty
+            // label, or an icon glyph (a single private-use codepoint)
+            // allocated no width in this particular spot. Narrowed to
+            // exactly those two cases after a real plant showed why a
+            // blanket zero-area skip is wrong: a `Fill`-constrained
+            // column with no `scrollable`, once an earlier child
+            // over-consumes space, starves *later* real-text children
+            // to zero height rather than letting them overflow with
+            // positive bounds - "類似度"/"言語"/theme and locale buttons
+            // all got `height: 0.0, visible_bounds: None` this way,
+            // and a blanket skip would have hidden exactly the
+            // real-content case this matrix exists to catch.
+            if is_legitimately_zero_area(&content) {
                 continue;
             }
+
+            assert_within_window_bounds(state, combo, bounds, &content);
+
             let fully_visible =
                 visible_bounds.is_some_and(|v| rectangle_eq_within_epsilon(v, bounds));
             if !fully_visible {
