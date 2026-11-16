@@ -13,6 +13,7 @@ has four tabs.
 | **Similarity** | Cosine-similarity threshold used by the focus view and the similarity pairs finder. Range 0.50–1.00; higher = stricter (fewer, more exact matches). | 0.86 |
 | **Language** | Display language. EN (English) or 日本語 (Japanese). Takes effect immediately with no restart. | EN |
 | **Theme** | Application theme: Light, Dark, High contrast light, or High contrast dark. Takes effect immediately with no restart. High-contrast applies fully to arama's own controls, and the six core palette roles are mapped into standard iced widgets such as text inputs, sliders, scrollbars, and checkboxes. | Light |
+| **Text size** | Text size: Default (16px body text), Large (20px), or Larger (24px) - every text role in the interface scales by the same factor. **Takes effect after arama restarts**, unlike theme and language above. | Default |
 
 Changes to media type or subdirectory depth take effect immediately:
 the currently selected directory is re-indexed with the new parameters.

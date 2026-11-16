@@ -134,12 +134,13 @@ pinned to an exact package, since pinning breaks the next time the
 runner image updates); macOS and Windows runners use their own system
 fonts, installing nothing.
 
-## Headless layout matrix (T074 delivery 2)
+## Headless layout matrix (T074 delivery 2, text size wired in T063)
 
 `app/src/core/tests/layout_matrix.rs` runs every screen state it covers
-against 24 combinations - `en`/`ja` × the four theme presets × 760×520
-(the enforced minimum) / 1280×720 / 1920×1080 (text size stays at
-`Default` until T063 wires that dimension) - checking two properties:
+against 72 combinations - `en`/`ja` × the four theme presets × 760×520
+(the enforced minimum) / 1280×720 / 1920×1080 × the three text-size
+steps (RFC 052 §2: `Default`/`Large`/`Larger`) - checking two
+properties:
 
 1. Every `Target::Text`'s `visible_bounds` equals its `bounds` within a
    small floating-point epsilon, i.e. nothing is clipped by a
@@ -178,6 +179,82 @@ selector does see a checkbox's label) made `settings_page` fail at
 plant is a real defect - both were removed before this delivery was
 reviewed.
 
+### T063: wiring text size surfaced three real defects, each fixed
+
+Wiring `TextScale` as a third dimension (`combinations()`) immediately
+failed three of the twelve covered states at `Large`/`Larger` and the
+760×520 minimum - all pre-existing fragility this larger text exposed,
+not something T063's own addition caused on its own:
+
+1. **`setup_wizard`**: the download button ended up below the window's
+   own bottom edge. `Setup::view()` centred its content with
+   `.center(Fill)` and no `scrollable` - content taller than the
+   viewport overflows both edges equally, pushing the lower half out of
+   reach with nothing to scroll with. Fixed by wrapping the page in a
+   `scrollable` (`crates/ui/main/src/core/views/setup/view.rs`).
+2. **`cache_page`**: the empty-state message ("no cached directories")
+   was starved to `height: 0.0` - the same Fill-column-without-
+   scrollable mechanism review 177 found in `settings_page`, this time
+   on the page's own outer column. Fixed the same way: the whole page
+   is now wrapped in a `scrollable`
+   (`crates/ui/main/src/core/views/cache_page/view.rs`); the table's
+   own inner `scrollable` for a populated row list is unaffected.
+3. **`settings_page`**: two separate defects once text size itself was
+   wired in. First, the dialog's fixed 600×400 box
+   (`settings_dialog/view.rs`) had no `scrollable` of its own, so a
+   growing General tab (made worse by T063's own two new rows)
+   starved later rows to zero height - fixed by scrolling the tab's
+   content inside that fixed box. Second, with vertical scrolling
+   fixed, the locale/theme/text-size button rows (plain `row!`s) still
+   overflowed the box *horizontally* at Larger Japanese labels (e.g.
+   "ハイコントラスト（暗）" pushed past x=600) - fixed with iced 0.14's
+   native `Row::wrap()`, which the original rows did not use.
+
+**Property 1 and the window-bounds check both needed a scrolling-aware
+refinement**, once pages legitimately scroll instead of starving or
+overflowing:
+
+- `visible_bounds: None` on a *positive-area* `Target::Text` now means
+  "outside the current scroll position of some `scrollable` ancestor" -
+  reachable, not clipped. Only a *zero*-area allocation (still excluded
+  by the narrow `is_legitimately_zero_area` check, same as before) is
+  treated as starved.
+- The window-bounds check (previously called unconditionally) now only
+  runs when Finder itself reports full visibility (`visible_bounds ==
+  bounds`) - exactly the case Finder's own `Rectangle::INFINITE`
+  starting viewport cannot distinguish from a real window-edge
+  overflow. Once *something* narrows `visible_bounds` (a `scrollable`
+  ancestor), that narrowing already accounts for content legitimately
+  extending past the window on the scroll axis - applying the
+  window-bounds check there as well would fail every label below the
+  fold in a now-scrolling page.
+
+**Re-verified the detector still catches a real defect after these
+relaxations**: replanted the architect's own `ja.rs` plant (`"深"`
+repeated 2000 times on `settings.general.sub_dir_depth`) in the working
+tree - `settings_page` still failed, with the same `"0" is not fully
+visible ... bounds={width: 0.0, height: 0.0}` shape as review 177's own
+finding, at `TextScale::Default` even. Reverted before committing.
+
+### A fourth defect the matrix cannot see at all: the footer at Larger
+
+A real GUI capture (narrow window, Larger text, both locales - the one
+check the handoff explicitly allows a screenshot for) found a fourth
+defect neither property above can detect: `crates/ui/layout/src/footer/
+view.rs`'s status group (thumbnail slider, file/dir counts, the F6 hint)
+used plain `row!`s with no `scrollable` and no `wrap()`. At `ja` /
+Larger / 760×520, the F6 hint text wrapped *vertically*, one character
+per line, running off the bottom of the footer - unreadable, and this
+file's own doc comment already states why the matrix's property 1
+cannot see it (the footer's path label is `clip(true)`-protected and
+explicitly out of scope; the status group next to it has no
+`scrollable` either, so a starved or wrapped label there is invisible
+to headless bounds checks the same way). Fixed with `Row::wrap()` on
+both the status group and its inner counts+hint row - confirmed by
+recapturing: English now fits on one line (previously wrapped onto
+three despite fitting), and Japanese cleanly splits onto three readable
+lines, nothing cut off, at the 760×520 minimum.
+
 **Screen states covered**: the setup wizard, an empty gallery, Settings,
 the Cache page, the Media Focus dialog, the Similar Pairs dialog
 (scanning, with results, and all three RFC 036 absence states - driven
@@ -186,18 +263,20 @@ path, not a private field poke), the Confirm dialog, and a toast. **Not
 covered**: a gallery populated from a fixture (RFC 053 §2.1 names it;
 Phase 0 already flagged it "buildable, not yet built" - it needs real,
 decodable image files and a seeded cache, heavier than the states above,
-and is left to whichever task next needs it, most likely T063).
+and is left to whichever task next needs it).
 
 **Backend**: `ICED_TEST_BACKEND=tiny-skia`, set once per process before
 any `Simulator` is built. Phase 0 item 6 measured the default `wgpu`
-backend at up to ~258ms/combination on Windows; 24 combinations across a
-dozen screen states would risk RFC 053 §2.5's 60s budget. `tiny-skia`
-measured roughly 100x faster for an identical result on every property
-this file or `layout_probe.rs` checks.
+backend at up to ~258ms/combination on Windows; 72 combinations across a
+dozen screen states would risk RFC 053 §2.5's 60s budget at that
+backend (~223s projected). `tiny-skia` measured roughly 100x faster for
+an identical result on every property this file or `layout_probe.rs`
+checks, which is what keeps 72 combinations inside budget (~2.5s
+measured on this tree).
 
 **Isolation**: every matrix test takes `ARAMA_DATA_HOME_TEST_LOCK` before
-mutating the process-global locale and theme, and restores both to their
-defaults afterward. This is safe only because every test in this binary
+mutating the process-global locale, theme, and text scale, and restores
+all three to their defaults afterward. This is safe only because every test in this binary
 that constructs an `App` already takes the same lock first (for its own,
 unrelated reason - resolving `ARAMA_DATA_HOME`) - the same serialization
 `app/src/core/tests.rs`'s own comment on locale races, and

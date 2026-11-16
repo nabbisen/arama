@@ -57,6 +57,24 @@ impl Footer {
                         self.thumbnail_size_slider
                             .view()
                             .map(Message::ThumbnailSizeSliderMessage),
+                        // T063: plain `row!`s here let a single `text`
+                        // widget (the F6 hint) wrap *vertically*, one
+                        // character per line, once Larger Japanese text
+                        // at the 760x520 minimum left less width than
+                        // the group's own content needed - found with a
+                        // real capture, not the headless matrix (which
+                        // already documents it cannot see this group's
+                        // shape: no `scrollable`, and this status group
+                        // is exactly the area `is_legitimately_zero_area`
+                        // would wrongly treat an eventually-starved label
+                        // from, which is why this is fixed here rather
+                        // than relied on to fail loudly there).
+                        // `Row::wrap()` moves an item that does not fit
+                        // onto a new row instead - "0 files"/"(1 dirs
+                        // scanned)" stay one line, and the hint moves to
+                        // its own line when space runs out, rather than
+                        // every glyph in it stacking into an unreadable
+                        // column.
                         row![
                             text(files_line(self.files_count)).style(text::secondary),
                             text(dirs_line(self.dirs_count)).style(text::secondary),
@@ -74,8 +92,10 @@ impl Footer {
                             text(t("footer.f6_hint")).style(text::secondary),
                         ]
                         .spacing(10)
+                        .wrap()
                     ]
                     .spacing(30)
+                    .wrap()
                 )
                 .align_right(Shrink),
             ]

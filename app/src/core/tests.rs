@@ -163,6 +163,71 @@ fn nothing_is_written_outside_arama_data_home() {
     );
 }
 
+// --- T063 (RFC 052 §2) verification --------------------------------
+
+/// The setting round-trips through `settings.json` via the real message
+/// path (`Message::SettingsDialogMessage(...TextScaleChanged...)`, the
+/// same one the settings page's own button sends), and the handler does
+/// not call `arama_theme::set_text_scale` - RFC 052 §2.2: unlike theme
+/// and locale, text size is read once at startup
+/// (`App::settings()`'s `default_text_size`), so applying it again
+/// mid-session would only re-scale the `snora` chrome, producing the
+/// half-scaled interface RFC 052 §1 rejected. A restart notice, not a
+/// live re-scale, is the correct response to this change - see
+/// `general_settings/view.rs`'s own `text_scale_note`.
+#[test]
+fn text_scale_round_trips_through_settings_json_without_rescaling_live() {
+    let _guard = ARAMA_DATA_HOME_TEST_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
+    let scratch = scratch_data_home("text-scale-round-trip");
+    unsafe {
+        std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
+    }
+
+    let mut app = App::new().0;
+    assert_eq!(
+        app.settings.text_scale,
+        arama_env::TextScale::Default,
+        "a fresh scratch profile must start at the default step"
+    );
+    let scale_before_change = arama_theme::current_text_scale();
+
+    let _ = app.update(Message::SettingsDialogMessage(
+        arama_ui_widgets::dialog::settings_dialog::message::Message::TextScaleChanged(
+            arama_env::TextScale::Larger,
+        ),
+    ));
+
+    assert_eq!(app.settings.text_scale, arama_env::TextScale::Larger);
+    assert_eq!(
+        arama_theme::current_text_scale(),
+        scale_before_change,
+        "changing the setting must not call set_text_scale - that would \
+         re-scale only the snora chrome, not default_text_size, which is \
+         frozen until restart"
+    );
+
+    let reloaded = app_json_settings::ConfigManager::<Settings>::new()
+        .with_root_dir(&scratch)
+        .load_or_default()
+        .expect("the scratch settings.json must still parse");
+    assert_eq!(
+        reloaded.text_scale,
+        arama_env::TextScale::Larger,
+        "the changed step must have been persisted to settings.json"
+    );
+
+    unsafe {
+        match &previous {
+            Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
+            None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
+        }
+    }
+    let _ = std::fs::remove_dir_all(&scratch);
+}
+
 #[test]
 #[ignore]
 fn native_smoke_settings_path_is_independent_of_working_directory() {

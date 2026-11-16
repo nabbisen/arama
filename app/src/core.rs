@@ -211,8 +211,40 @@ fn window_settings() -> iced::window::Settings {
     }
 }
 
+/// RFC 052 §2.2: `.settings(App::settings())` below is evaluated eagerly,
+/// as `start()`'s own expression is built - entirely before `.run()`
+/// starts the event loop and calls `App::new()` for the first time. By
+/// then it is too late for `App::new()`'s own `arama_theme::set_theme`/
+/// `set_text_scale` calls to affect `App::settings()`'s
+/// `default_text_size`, which has already been computed from whatever
+/// the globals held at their process-start defaults (`Light`,
+/// `TextScale::Default`). Theme got away with this by coincidence: all
+/// four built-in presets share one `Typography` (RFC 043 §3.1's own
+/// comment already notes this), so a wrong preset here was never
+/// observable. Text size does not share that coincidence - without this
+/// preload, a persisted `Large`/`Larger` choice would never be visible
+/// in `default_text_size`, even after a restart.
+///
+/// Loads the same way `App::new()` does and applies only the two
+/// globals that `App::settings()` reads from; `App::new()` still reloads
+/// and reapplies both afterward (redundant, not wrong - see its own
+/// comment), so a failure here has no user-visible effect beyond the
+/// one `App::new()` already reports through its normal startup-notice
+/// path.
+fn preload_theme_and_text_scale() {
+    let Ok(locations) = data_locations::resolve_and_prepare_locations() else {
+        return;
+    };
+    let Ok(settings) = locations.settings_manager.load_or_default() else {
+        return;
+    };
+    arama_theme::set_theme(settings.theme);
+    arama_theme::set_text_scale(settings.text_scale);
+}
+
 impl App {
     pub fn start() -> iced::Result {
+        preload_theme_and_text_scale();
         iced::application(App::new, App::update, App::view)
             .subscription(App::subscription)
             .settings(App::settings())
@@ -299,8 +331,19 @@ impl App {
         let locale = settings.locale;
         set_locale(locale);
         let theme = settings.theme;
+        let text_scale = settings.text_scale;
         let ffmpeg_location = settings.ffmpeg_location;
         arama_theme::set_theme(theme);
+        // RFC 052 §2.2: redundant with `start()`'s own preload below
+        // (which runs first and is what `App::settings()` actually
+        // observes) - kept here too, same as `set_theme` just above,
+        // so `arama_theme::tokens()` is correct for every `view()` call
+        // even if the preload step is ever refactored away. Safe to
+        // call again: nothing has rendered yet, so this cannot produce
+        // the half-scaled interface the settings-change handler must
+        // avoid (RFC 052 §1) - that risk is specific to calling it
+        // *after* a render has already happened with the old scale.
+        arama_theme::set_text_scale(text_scale);
 
         let startup_root =
             startup_dir_node(&root_dir_path, &target_media_type, sub_dir_depth_limit);
@@ -318,6 +361,7 @@ impl App {
             similarity_threshold,
             locale,
             theme,
+            text_scale,
             ffmpeg_location,
         };
 
@@ -336,6 +380,7 @@ impl App {
             settings.similarity_threshold,
             settings.locale,
             settings.theme,
+            settings.text_scale,
             settings.ffmpeg_location.clone(),
         );
 
@@ -430,6 +475,7 @@ impl App {
             similarity_threshold: self.settings.similarity_threshold,
             locale: self.settings.locale,
             theme: self.settings.theme,
+            text_scale: self.settings.text_scale,
             ffmpeg_location: self.settings.ffmpeg_location.clone(),
         }) {
             Ok(()) => true,

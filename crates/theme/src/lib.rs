@@ -26,12 +26,12 @@
 
 use std::sync::atomic::{AtomicU8, Ordering};
 
-use arama_env::ThemePreset;
+use arama_env::{TextScale, ThemePreset};
 use iced::{
     Border, Theme, theme,
     widget::{button, container},
 };
-use snora::design::{Tokens, style::color::to_iced_color};
+use snora::design::{Tokens, Typography, style::color::to_iced_color};
 
 // ---------------------------------------------------------------------------
 // Global preset state
@@ -54,6 +54,38 @@ pub fn current_theme() -> ThemePreset {
     }
 }
 
+static TEXT_SCALE_ID: AtomicU8 = AtomicU8::new(0 /* TextScale::Default */);
+
+/// Set the active text-size scale. Safe to call from any thread, the
+/// same lock-free pattern as [`set_theme`] - but unlike theme and
+/// locale, **production code must call this at most once, at startup,
+/// before `App::settings()` is evaluated** (RFC 052 §2.2). The route
+/// 118 of 120 `text(` sites depend on, `iced::Settings.
+/// default_text_size`, is read once when the application starts and
+/// never again; calling this again afterward would re-scale only the
+/// `snora` chrome that reads [`tokens`] on every render, reproducing the
+/// half-scaled interface RFC 052 §1 measured and rejected. The settings
+/// dialog's own change handler persists a new choice to `settings.json`
+/// and shows a restart notice - it must never call this function.
+///
+/// Mutable (not a one-shot `OnceLock`) because the headless layout
+/// matrix (RFC 053 §2.1) needs to exercise all three steps within one
+/// test binary; production's own single-call discipline is enforced by
+/// review, the same way nothing but the theme-change handler calls
+/// [`set_theme`].
+pub fn set_text_scale(scale: TextScale) {
+    TEXT_SCALE_ID.store(scale as u8, Ordering::Relaxed);
+}
+
+/// Return the currently active text-size scale.
+pub fn current_text_scale() -> TextScale {
+    match TEXT_SCALE_ID.load(Ordering::Relaxed) {
+        1 => TextScale::Large,
+        2 => TextScale::Larger,
+        _ => TextScale::Default,
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Preset → tokens (layers A / B) and → iced Theme (layer C)
 // ---------------------------------------------------------------------------
@@ -64,8 +96,19 @@ pub fn current_theme() -> ThemePreset {
 /// style closures anyway, so this avoids any `'static` lifetime constraint.
 /// `Tokens` is small and `Clone`; the per-button clone cost in `view()` is
 /// negligible.
+///
+/// RFC 052 §2.1: scales [`Typography`] by [`current_text_scale`] before
+/// returning - the one place that matters, since every typography
+/// accessor below (`body_size`, `label_size`, ...) and
+/// `App::settings()`'s own `default_text_size` all read `tokens()`
+/// rather than `tokens_for_preset()` directly. `iced_theme()` below
+/// calls `tokens_for_preset()` instead, deliberately unscaled: it only
+/// ever reads `tokens.palette` (colour), never `typography`, so scaling
+/// it there would be dead code, not a second place this needs doing.
 pub fn tokens() -> Tokens {
-    tokens_for_preset(current_theme())
+    let mut tokens = tokens_for_preset(current_theme());
+    tokens.typography = scale_typography(tokens.typography, current_text_scale());
+    tokens
 }
 
 fn tokens_for_preset(preset: ThemePreset) -> Tokens {
@@ -74,6 +117,26 @@ fn tokens_for_preset(preset: ThemePreset) -> Tokens {
         ThemePreset::Dark => Tokens::dark(),
         ThemePreset::HighContrastLight => Tokens::high_contrast_light(),
         ThemePreset::HighContrastDark => Tokens::high_contrast_dark(),
+    }
+}
+
+/// Scales every [`snora::design::TextRole::size`] in `typography` by
+/// `scale.factor()`. `line_height` is left untouched: it is already a
+/// multiplier relative to `size` (`TextRole`'s own doc comment), so it
+/// stays proportionally correct without being scaled a second time.
+fn scale_typography(typography: Typography, scale: TextScale) -> Typography {
+    let factor = scale.factor();
+    let scale_role = |role: snora::design::TextRole| snora::design::TextRole {
+        size: role.size * factor,
+        line_height: role.line_height,
+    };
+    Typography {
+        body: scale_role(typography.body),
+        body_small: scale_role(typography.body_small),
+        label: scale_role(typography.label),
+        title: scale_role(typography.title),
+        heading: scale_role(typography.heading),
+        display: scale_role(typography.display),
     }
 }
 
@@ -272,5 +335,51 @@ mod tests {
 
         set_theme(ThemePreset::HighContrastDark);
         assert_ne!(iced_theme().palette(), theme::Palette::DARK);
+    }
+
+    /// RFC 052 §2.1: every role scales by the same factor, and
+    /// `line_height` never changes - it is already relative to `size`.
+    #[test]
+    fn text_scale_scales_every_typography_role_and_leaves_line_height_alone() {
+        let _guard = THEME_TEST_LOCK.lock().unwrap();
+        let unscaled = tokens_for_preset(ThemePreset::Light).typography;
+
+        for scale in TextScale::all() {
+            set_text_scale(*scale);
+            let scaled = tokens().typography;
+            let factor = scale.factor();
+
+            for (unscaled_role, scaled_role) in [
+                (unscaled.body, scaled.body),
+                (unscaled.body_small, scaled.body_small),
+                (unscaled.label, scaled.label),
+                (unscaled.title, scaled.title),
+                (unscaled.heading, scaled.heading),
+                (unscaled.display, scaled.display),
+            ] {
+                assert_eq!(scaled_role.size, unscaled_role.size * factor);
+                assert_eq!(scaled_role.line_height, unscaled_role.line_height);
+            }
+        }
+
+        set_text_scale(TextScale::default());
+    }
+
+    /// The exact numbers `App::settings()` derives `default_text_size`
+    /// from - stated plainly, matching `arama-env`'s own
+    /// `text_scale_factors_and_default` test.
+    #[test]
+    fn text_scale_resulting_body_px_per_step() {
+        let _guard = THEME_TEST_LOCK.lock().unwrap();
+        set_theme(ThemePreset::Light);
+
+        set_text_scale(TextScale::Default);
+        assert_eq!(tokens().typography.body.size, 16.0);
+        set_text_scale(TextScale::Large);
+        assert_eq!(tokens().typography.body.size, 20.0);
+        set_text_scale(TextScale::Larger);
+        assert_eq!(tokens().typography.body.size, 24.0);
+
+        set_text_scale(TextScale::default());
     }
 }

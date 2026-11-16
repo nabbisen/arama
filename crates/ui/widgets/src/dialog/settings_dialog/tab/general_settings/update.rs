@@ -12,6 +12,7 @@ impl GeneralSettings {
             Message::SimilarityThresholdChanged(v) => self.similarity_threshold = v,
             Message::LocaleChanged(l) => self.locale = l,
             Message::ThemeChanged(t) => self.theme = t,
+            Message::TextScaleChanged(s) => self.text_scale = s,
         }
         Task::none()
     }

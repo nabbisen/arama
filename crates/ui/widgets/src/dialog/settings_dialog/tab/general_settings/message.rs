@@ -1,5 +1,5 @@
-use arama_env::ThemePreset;
 use arama_env::target_media_type::TargetMediaType;
+use arama_env::{TextScale, ThemePreset};
 use arama_i18n::Locale;
 
 #[allow(clippy::enum_variant_names)]
@@ -10,4 +10,5 @@ pub enum Message {
     SimilarityThresholdChanged(f32),
     LocaleChanged(Locale),
     ThemeChanged(ThemePreset),
+    TextScaleChanged(TextScale),
 }

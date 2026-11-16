@@ -1,6 +1,7 @@
 use iced::{
     Element,
-    widget::{button, column, container, row, text},
+    Length::Fill,
+    widget::{button, column, container, row, scrollable, text},
 };
 
 use super::{SettingsDialog, Tab, message::Message};
@@ -25,8 +26,21 @@ impl SettingsDialog {
             Tab::About => self.about.view().map(Message::AboutTabMessage),
         };
 
-        column![tab_menus, container(tab).width(600).height(400)]
-            .spacing(10)
-            .into()
+        // T063 (RFC 052 §2): a fixed-size, non-scrolling box here let a
+        // `Fill`-constrained column (`general_settings::view`, no
+        // `scrollable` of its own) starve later rows to zero height
+        // once content grew past 400px - first seen with the Larger
+        // text step at the 760x520 minimum window. Scrolling the tab's
+        // own content, not just its container, keeps the box's size
+        // stable while letting content that outgrows it scroll instead
+        // of being silently dropped.
+        column![
+            tab_menus,
+            container(scrollable(tab).height(Fill))
+                .width(600)
+                .height(400)
+        ]
+        .spacing(10)
+        .into()
     }
 }

@@ -1,5 +1,5 @@
-use arama_env::ThemePreset;
 use arama_env::target_media_type::TargetMediaType;
+use arama_env::{TextScale, ThemePreset};
 use arama_i18n::{Locale, t};
 use iced::{
     Element,
@@ -29,7 +29,8 @@ impl GeneralSettings {
                     })
                 })
         ]
-        .spacing(10);
+        .spacing(10)
+        .wrap();
 
         let sub_dir_depth_limit = row![
             text(t("settings.general.sub_dir_depth")),
@@ -67,39 +68,51 @@ impl GeneralSettings {
         ]
         .spacing(8);
 
-        let locale_buttons = Locale::all().iter().fold(
-            row![text(t("settings.general.language"))].spacing(8),
-            |row, locale| {
-                let btn = button(locale.display_name())
-                    .style(if &self.locale == locale {
-                        arama_theme::primary
-                    } else {
-                        arama_theme::ghost
-                    })
-                    .on_press(Message::LocaleChanged(*locale));
-                row.push(btn)
-            },
-        );
+        // T063: `.wrap()` (iced 0.14's native wrapping row) rather than a
+        // plain `row!`, found necessary once Larger text made these
+        // overflow the 600px-wide settings dialog box horizontally at
+        // 760x520 - a real plant (`ja.rs`) showed
+        // "ハイコントラスト（暗）" pushed past x=600 with the row's own
+        // alignment otherwise unchanged.
+        let locale_buttons = Locale::all()
+            .iter()
+            .fold(
+                row![text(t("settings.general.language"))].spacing(8),
+                |row, locale| {
+                    let btn = button(locale.display_name())
+                        .style(if &self.locale == locale {
+                            arama_theme::primary
+                        } else {
+                            arama_theme::ghost
+                        })
+                        .on_press(Message::LocaleChanged(*locale));
+                    row.push(btn)
+                },
+            )
+            .wrap();
 
-        let theme_buttons = ThemePreset::all().iter().fold(
-            row![text(t("settings.general.theme"))].spacing(8),
-            |row, preset| {
-                let label = match preset {
-                    ThemePreset::Light => t("settings.general.theme.light"),
-                    ThemePreset::Dark => t("settings.general.theme.dark"),
-                    ThemePreset::HighContrastLight => t("settings.general.theme.hc_light"),
-                    ThemePreset::HighContrastDark => t("settings.general.theme.hc_dark"),
-                };
-                let btn = button(text(label))
-                    .style(if &self.theme == preset {
-                        arama_theme::primary
-                    } else {
-                        arama_theme::ghost
-                    })
-                    .on_press(Message::ThemeChanged(*preset));
-                row.push(btn)
-            },
-        );
+        let theme_buttons = ThemePreset::all()
+            .iter()
+            .fold(
+                row![text(t("settings.general.theme"))].spacing(8),
+                |row, preset| {
+                    let label = match preset {
+                        ThemePreset::Light => t("settings.general.theme.light"),
+                        ThemePreset::Dark => t("settings.general.theme.dark"),
+                        ThemePreset::HighContrastLight => t("settings.general.theme.hc_light"),
+                        ThemePreset::HighContrastDark => t("settings.general.theme.hc_dark"),
+                    };
+                    let btn = button(text(label))
+                        .style(if &self.theme == preset {
+                            arama_theme::primary
+                        } else {
+                            arama_theme::ghost
+                        })
+                        .on_press(Message::ThemeChanged(*preset));
+                    row.push(btn)
+                },
+            )
+            .wrap();
 
         // RFC 043 §2: this note explains the high-contrast themes, so
         // rendering it at 12px with reduced contrast worked against the
@@ -110,6 +123,38 @@ impl GeneralSettings {
             .size(arama_theme::body_small_size())
             .line_height(arama_theme::body_small_line_height());
 
+        let text_scale_buttons = TextScale::all()
+            .iter()
+            .fold(
+                row![text(t("settings.general.text_size"))].spacing(8),
+                |row, scale| {
+                    let label = match scale {
+                        TextScale::Default => t("settings.general.text_size.default"),
+                        TextScale::Large => t("settings.general.text_size.large"),
+                        TextScale::Larger => t("settings.general.text_size.larger"),
+                    };
+                    let btn = button(text(label))
+                        .style(if &self.text_scale == scale {
+                            arama_theme::primary
+                        } else {
+                            arama_theme::ghost
+                        })
+                        .on_press(Message::TextScaleChanged(*scale));
+                    row.push(btn)
+                },
+            )
+            .wrap();
+
+        // RFC 052 §2.2: text size is read once at startup
+        // (`App::settings()`'s `default_text_size`), unlike theme and
+        // locale, which both take effect immediately - so a changed
+        // choice needs its own, visible notice. `body_small` for the
+        // same reason as `theme_note` just above: this note states a
+        // real behavior the reader needs to act on, not filler.
+        let text_scale_note = text(t("settings.general.text_size.restart_notice"))
+            .size(arama_theme::body_small_size())
+            .line_height(arama_theme::body_small_line_height());
+
         container(
             column![
                 target_media_types,
@@ -117,7 +162,9 @@ impl GeneralSettings {
                 threshold_slider,
                 locale_buttons,
                 theme_buttons,
-                theme_note
+                theme_note,
+                text_scale_buttons,
+                text_scale_note
             ]
             .spacing(10),
         )

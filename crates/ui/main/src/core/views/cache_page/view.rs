@@ -131,17 +131,29 @@ impl CachePage {
         ))
         .style(text::secondary);
 
-        column![
-            add_form,
-            prune_row,
-            prune_result,
-            load_error,
-            filter_row,
-            table,
-            summary
-        ]
-        .spacing(15)
-        .padding(20)
+        // T063: the whole page used to be a plain, unscrollable column
+        // inside the app body's `Fill`-height container
+        // (`app/src/core/view.rs`) - fine while every row fit, but
+        // Larger text at the 760x520 minimum window could overflow the
+        // available height before reaching `table`, starving it to
+        // `height: 0.0` (same mechanism review 177 found in
+        // `settings_page`). `table`'s own inner `scrollable` for a
+        // populated list is unaffected - it scrolls within whatever
+        // height this outer one gives it.
+        scrollable(
+            column![
+                add_form,
+                prune_row,
+                prune_result,
+                load_error,
+                filter_row,
+                table,
+                summary
+            ]
+            .spacing(15)
+            .padding(20),
+        )
+        .height(Fill)
         .into()
     }
 

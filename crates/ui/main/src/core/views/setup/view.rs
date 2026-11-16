@@ -5,7 +5,7 @@ use iced::{
     Alignment::{self, Center},
     Element,
     Length::Fill,
-    widget::{Text, button, column, container, row, text},
+    widget::{Text, button, column, container, row, scrollable, text},
 };
 
 use super::{Setup, message::Message};
@@ -51,10 +51,17 @@ impl Setup {
         }
         content = content.push(buttons);
 
-        container(content)
-            .width(Fill)
+        // T063: `.center(Fill)` alone let the download button end up
+        // below the window's own bottom edge once Larger text (RFC 052
+        // §2) made the centered content taller than the 760x520
+        // minimum window - centering a column taller than its viewport
+        // pushes its lower half out of view with nothing to scroll
+        // with. Scrolling keeps every control reachable; the centered
+        // look survives for content that already fits, since a
+        // scrollable's viewport is at least as tall as its content in
+        // that case.
+        scrollable(container(content).width(Fill).center_x(Fill))
             .height(Fill)
-            .center(Fill)
             .into()
     }
 }

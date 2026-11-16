@@ -34,15 +34,16 @@ use super::*;
 //
 // Phase 0 item 6 measured the default backend (`wgpu`, first in
 // `Simulator`'s own fallback candidate list) at ~190ms/combination on
-// Linux and ~258ms on Windows - the slowest runner. 24 combinations
-// (locale x theme x window size; text size stays at Default until T063
-// wires that dimension) across the dozen screen states below would be
-// roughly 24 x 12 x 258ms =~ 74s on Windows alone, over RFC 053 §2.5's
-// 60s budget. `ICED_TEST_BACKEND=tiny-skia` measured ~100x faster for
-// every one of Phase 0's properties, with identical results on both
-// backends (confirmed in `layout_probe.rs`'s own item 1c, item 2
-// candidate 3, and every other property check). Chosen here,
-// unconditionally, for every matrix combination.
+// Linux and ~258ms on Windows - the slowest runner. 72 combinations
+// (locale x theme x window size x text-size step, T063's own dimension
+// now wired in) across the dozen screen states below would be roughly
+// 72 x 12 x 258ms =~ 223s on Windows alone, far over RFC 053 §2.5's 60s
+// budget at this backend. `ICED_TEST_BACKEND=tiny-skia` measured ~100x
+// faster for every one of Phase 0's properties, with identical results
+// on both backends (confirmed in `layout_probe.rs`'s own item 1c, item 2
+// candidate 3, and every other property check), which is what keeps 72
+// combinations inside budget. Chosen here, unconditionally, for every
+// matrix combination.
 fn use_fast_backend() {
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {
@@ -73,34 +74,39 @@ struct Combination {
     locale: arama_i18n::Locale,
     theme: arama_env::ThemePreset,
     window: (f32, f32),
+    text_scale: arama_env::TextScale,
 }
 
 impl std::fmt::Display for Combination {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{} / {:?} / {}x{}",
+            "{} / {:?} / {}x{} / {:?}",
             self.locale.code(),
             self.theme,
             self.window.0,
-            self.window.1
+            self.window.1,
+            self.text_scale,
         )
     }
 }
 
-/// 2 locales x 4 theme presets x 3 window sizes = 24. Text size stays at
-/// `Default` (RFC 053 §2.1: "until T063 lands: Default only, with the
-/// dimension wired").
+/// 2 locales x 4 theme presets x 3 window sizes x 3 text-size steps = 72
+/// (RFC 053 §2.1's dimension, wired now that T063 lands it; review 177
+/// left this "Default only" with the dimension already in place).
 fn combinations() -> Vec<Combination> {
-    let mut out = Vec::with_capacity(2 * 4 * 3);
+    let mut out = Vec::with_capacity(2 * 4 * 3 * 3);
     for &locale in arama_i18n::Locale::all() {
         for &theme in arama_env::ThemePreset::all() {
             for &window in &WINDOW_SIZES {
-                out.push(Combination {
-                    locale,
-                    theme,
-                    window,
-                });
+                for &text_scale in arama_env::TextScale::all() {
+                    out.push(Combination {
+                        locale,
+                        theme,
+                        window,
+                        text_scale,
+                    });
+                }
             }
         }
     }
@@ -236,6 +242,15 @@ fn is_legitimately_zero_area(content: &str) -> bool {
 /// single-line label with wrapping disabled - which `bounds` and
 /// `combo.window` (both logical px, the same coordinate space) compare
 /// directly, no pixel heuristic needed.
+///
+/// T063: only called from `assert_property_1` when Finder itself
+/// reports full visibility (`visible_bounds == bounds`) - once a page
+/// scrolls its own content (needed once Larger text could outgrow
+/// 760x520), its content legitimately extends past the window on the
+/// scroll axis, which Finder's `visible_bounds` already accounts for
+/// (`None` there, not a false "fully visible"). Applying this check
+/// unconditionally would fail every scrolled-past-the-fold label in a
+/// now-scrolling page, which is reachable, not clipped.
 fn assert_within_window_bounds(
     state: &str,
     combo: Combination,
@@ -286,19 +301,43 @@ fn assert_property_1(state: &str, combo: Combination, found: Vec<iced_test::sele
                 continue;
             }
 
-            assert_within_window_bounds(state, combo, bounds, &content);
-
-            let fully_visible =
+            let fully_visible_per_finder =
                 visible_bounds.is_some_and(|v| rectangle_eq_within_epsilon(v, bounds));
-            if !fully_visible {
-                if is_known_defect(state, combo, &content) {
-                    continue;
-                }
-                panic!(
-                    "{state}: \"{content}\" is not fully visible at {combo} - \
-                     bounds={bounds:?} visible_bounds={visible_bounds:?}"
-                );
+
+            if fully_visible_per_finder {
+                // Finder itself saw nothing clipping this - but item 4
+                // showed `Finder`'s own tracked viewport starts at
+                // `Rectangle::INFINITE` and only a `scrollable` ancestor
+                // ever narrows it, never the window. So "Finder saw no
+                // clipping" does not rule out the window's own edge;
+                // this is the one case `assert_within_window_bounds`
+                // exists for.
+                assert_within_window_bounds(state, combo, bounds, &content);
+                continue;
             }
+
+            // Finder itself says this is not (fully) visible: either
+            // genuinely starved to nothing by an earlier sibling
+            // over-consuming space (zero area - still a failure, the
+            // shape review 177's starving fix exists for), or T063:
+            // outside the *current* scroll position of some
+            // `scrollable` ancestor, now that pages scroll their
+            // content instead of starving it once Larger text outgrows
+            // the 760x520 minimum window. Positive area here means real
+            // layout space was given - reachable by scrolling, not
+            // lost. A window-edge check does not apply inside a
+            // scrollable: a scrollable's content is expected to extend
+            // past the window, that is what scrolling is for.
+            if bounds.width > VISIBILITY_EPSILON && bounds.height > VISIBILITY_EPSILON {
+                continue;
+            }
+            if is_known_defect(state, combo, &content) {
+                continue;
+            }
+            panic!(
+                "{state}: \"{content}\" is not fully visible at {combo} - \
+                 bounds={bounds:?} visible_bounds={visible_bounds:?}"
+            );
         }
     }
 
@@ -422,6 +461,7 @@ fn run_matrix(state_name: &'static str, mut build: impl FnMut(&mut App, Combinat
             .save(&arama_env::Settings {
                 locale: combo.locale,
                 theme: combo.theme,
+                text_scale: combo.text_scale,
                 ..arama_env::Settings::default()
             })
             .expect("writing the scratch settings.json must not fail");
@@ -432,10 +472,20 @@ fn run_matrix(state_name: &'static str, mut build: impl FnMut(&mut App, Combinat
         // The self-check review 177 required: assert the combination
         // actually reached the rendered view, not just the settings
         // file - the same shape of gap that let B1 through unnoticed.
+        // Text scale joins the same check (T063): `App::new()` applies
+        // it the same way it applies theme (`arama_theme::set_text_scale`,
+        // `app/src/core.rs`), redundantly with `App::start`'s own
+        // preload - which this harness never calls, so this is the only
+        // place that call happens for the matrix.
         assert_eq!(
             arama_theme::current_theme(),
             combo.theme,
             "{state_name}: App::new() did not apply the combination's own theme at {combo}"
+        );
+        assert_eq!(
+            arama_theme::current_text_scale(),
+            combo.text_scale,
+            "{state_name}: App::new() did not apply the combination's own text scale at {combo}"
         );
 
         let element = app.view();
@@ -447,6 +497,7 @@ fn run_matrix(state_name: &'static str, mut build: impl FnMut(&mut App, Combinat
 
     arama_i18n::set_locale(arama_i18n::Locale::default());
     arama_theme::set_theme(arama_env::ThemePreset::default());
+    arama_theme::set_text_scale(arama_env::TextScale::default());
     unsafe {
         match &previous_env {
             Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),

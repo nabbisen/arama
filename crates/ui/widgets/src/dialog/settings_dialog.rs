@@ -5,7 +5,7 @@ mod view;
 mod tab;
 
 use arama_env::target_media_type::TargetMediaType;
-use arama_env::{ThemePreset, ffmpeg_location::FfmpegLocationPreference};
+use arama_env::{TextScale, ThemePreset, ffmpeg_location::FfmpegLocationPreference};
 use arama_i18n::Locale;
 use tab::{
     Tab, about::About, ai_settings::AiSettings, file_system_settings::FileSystemSettings,
@@ -28,6 +28,7 @@ impl SettingsDialog {
         similarity_threshold: f32,
         locale: Locale,
         theme: ThemePreset,
+        text_scale: TextScale,
         ffmpeg_preference: FfmpegLocationPreference,
     ) -> Self {
         Self {
@@ -38,6 +39,7 @@ impl SettingsDialog {
                 similarity_threshold,
                 locale,
                 theme,
+                text_scale,
             ),
             ai_settings: AiSettings::new(ffmpeg_preference),
             file_system_settings: FileSystemSettings::default(),

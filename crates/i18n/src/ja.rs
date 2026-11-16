@@ -281,6 +281,15 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
             "ハイコントラストは標準ウィジェットの基本色にも反映されます。arama 独自のコントロールには完全なハイコントラストパレットが適用されます。"
         }
 
+        // Text size selector (RFC 052 §2)
+        "settings.general.text_size" => "文字サイズ",
+        "settings.general.text_size.default" => "デフォルト",
+        "settings.general.text_size.large" => "大",
+        "settings.general.text_size.larger" => "特大",
+        "settings.general.text_size.restart_notice" => {
+            "文字サイズはaramaの再起動後に反映されます。"
+        }
+
         // Startup
         "startup.fatal_error.title" => "aramaを起動できませんでした",
         "startup.fatal_error.body" => {

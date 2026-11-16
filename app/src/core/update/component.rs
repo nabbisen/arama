@@ -363,6 +363,18 @@ impl App {
                 arama_theme::set_theme(theme);
                 self.save_settings();
             }
+            // RFC 052 §2.2: unlike theme and locale above, text size is
+            // read once at startup (`App::settings()`'s
+            // `default_text_size`) and never again - calling
+            // `arama_theme::set_text_scale` here would re-scale only the
+            // `snora` chrome that reads `tokens()` on every render,
+            // producing the half-scaled interface RFC 052 §1 rejected.
+            // Persist the choice and let the settings page's own notice
+            // say a restart is needed.
+            settings_dialog::message::Message::TextScaleChanged(scale) => {
+                self.settings.text_scale = scale;
+                self.save_settings();
+            }
             _ => (),
         }
 

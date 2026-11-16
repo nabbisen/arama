@@ -212,6 +212,15 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
             "High-contrast maps core colors into standard widgets; arama controls use the full high-contrast palette."
         }
 
+        // Text size selector (RFC 052 §2)
+        "settings.general.text_size" => "Text size",
+        "settings.general.text_size.default" => "Default",
+        "settings.general.text_size.large" => "Large",
+        "settings.general.text_size.larger" => "Larger",
+        "settings.general.text_size.restart_notice" => {
+            "Text size takes effect after arama restarts."
+        }
+
         // Startup
         "startup.fatal_error.title" => "arama could not start",
         "startup.fatal_error.body" => {

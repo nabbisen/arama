@@ -12,6 +12,7 @@ impl SettingsDialog {
             | Message::SimilarityThresholdChanged(_)
             | Message::LocaleChanged(_)
             | Message::ThemeChanged(_)
+            | Message::TextScaleChanged(_)
             | Message::FfmpegRecheckRequested
             | Message::FfmpegSelectRequested
             | Message::FfmpegClearRequested
@@ -61,6 +62,9 @@ impl SettingsDialog {
                     }
                     general_settings::message::Message::ThemeChanged(t) => {
                         Task::batch([task, Task::done(Message::ThemeChanged(t))])
+                    }
+                    general_settings::message::Message::TextScaleChanged(s) => {
+                        Task::batch([task, Task::done(Message::TextScaleChanged(s))])
                     }
                 }
             }

@@ -1,5 +1,5 @@
-use arama_env::ThemePreset;
 use arama_env::target_media_type::TargetMediaType;
+use arama_env::{TextScale, ThemePreset};
 use arama_i18n::Locale;
 
 pub mod message;
@@ -13,6 +13,7 @@ pub struct GeneralSettings {
     similarity_threshold: f32,
     locale: Locale,
     theme: ThemePreset,
+    text_scale: TextScale,
 }
 
 impl GeneralSettings {
@@ -22,6 +23,7 @@ impl GeneralSettings {
         similarity_threshold: f32,
         locale: Locale,
         theme: ThemePreset,
+        text_scale: TextScale,
     ) -> Self {
         Self {
             target_media_type: target_media_type.to_owned(),
@@ -29,6 +31,7 @@ impl GeneralSettings {
             similarity_threshold,
             locale,
             theme,
+            text_scale,
         }
     }
 }
