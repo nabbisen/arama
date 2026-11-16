@@ -20,6 +20,71 @@
 > are; if you have work in progress, report what exists. The authorization above
 > is unchanged.
 
+> **DECIDED 2026-11-16 — the architect, as §2 below promised after T070.**
+> T070 landed on 2026-11-15; this decision should have followed it, and did not
+> until the dev team asked. **Start now.** The decision replaces §2, and
+> amends §5 and §6. Everything else stands.
+>
+> **Adopt snora's own sidebar, names beneath the icons:** the `design`-path
+> `app_side_bar_with(side_bar, LayoutDirection::Ltr, SideBarLabels::Beneath, …)`
+> (`snora-widgets` 0.57.0, `src/design/widget.rs:208-230`, re-exported through
+> `snora`), in place of the three hand-built `tooltip(button(…))` items in
+> `app/src/core/view.rs`. `SideBar { items, active: self.nav_page }` with
+> `NavPage` as the view id; each item's `tooltip` field carries
+> `t("nav.explorer")` / `t("nav.cache")` / `t("nav.settings")` (it is the
+> drawn name in this form, not a tooltip); `on_press: Message::NavTo(…)`.
+>
+> **Why this, and not the alternatives:**
+> - **Labels on arama's own buttons** would rebuild, in arama, a component the
+>   design system already solved and measured: naming, wrapping at a cap
+>   (240 px, measured across snora's examples), active contrast (snora's
+>   `sidebar_button_style_text_meets_aa`), RTL. And iced 0.14 cannot focus a
+>   plain `button`, while snora's items are focus targets (`control`). Two rails
+>   to maintain is not the final design.
+> - **An expand/collapse rail** brings back the discovery problem this task
+>   exists to remove (§2, §11), and adds a state to remember.
+> - **`Beside`** puts each name next to its icon. That is wider than
+>   `Beneath`, at a cost to the gallery on every screen. **`Tooltip`** is
+>   today's behaviour.
+> - `Beneath` keeps the rail narrow: an icon, with its name under it, the rail
+>   only as wide as the longest name, wrapping at the cap.
+>
+> **Conditions:**
+> 1. **Icons:** enable snora's `lucide-icons` feature on the workspace `snora`
+>    line, and pass `Icon::Lucide(…)` for the same three glyphs. snora's
+>    `lucide-icons` dependency is `"1"`, which resolves to the `lucide-icons`
+>    1.21.0 already locked. **List every lockfile change. If any package other
+>    than a feature edge moves, stop and report.**
+> 2. **Keep RFC 044 as it is:** wrap the returned rail in the same
+>    `container(…).style(arama_theme::focus_ring_style(self.is_zone_focused(FocusZone::SideBar)))`,
+>    so F6 zone cycling and the zone ring keep working. **The RFC 044 tests pass
+>    unmodified.** If one cannot, stop and report. **Tab routing stays out of
+>    scope** (as in T070 §4).
+> 3. **More than colour (§3, WCAG 1.4.1):** snora marks the active item with a
+>    filled background. Report the contrast of that fill against the page
+>    background, computed from each of arama's four presets' palettes, **at
+>    least 3:1** (WCAG 1.4.11). If any preset falls short, stop and report; the
+>    architect writes to snora.
+> 4. **Targets:** snora's items are at least 48 × 48 (its own icon box), so §3's
+>    44 × 44 holds. State the measured size.
+> 5. **Tooltips:** removed. `Beneath` draws the name, and a tooltip repeating it
+>    is noise.
+> 6. **Evidence (amends §5), cheapest level first:** the T074 layout matrix,
+>    all 72 combinations, every state, green with the new rail. That is the
+>    proof the names fit at Larger, in both locales, at 760 × 520. Then **two
+>    captures** through `scripts/gui-session.sh` (pre-seeded `settings.json`, no
+>    clicks): the worst case, `ja` / Larger / 760 × 520, and its baseline, `en` /
+>    Default / 1280 × 720. Before and after are not needed; the matrix is the
+>    regression proof.
+> 7. **Scope (amends §6):** `Cargo.toml` (one feature), `Cargo.lock` (if a
+>    feature edge appears), `app/src/core/view.rs`, tests, and
+>    `docs/src/users/using-arama.md`.
+>
+> **Rules from this session that apply here:** plants only in a scratch worktree
+> with its own target directory; start an arama binary only through `cargo
+> test`, `cargo run` with isolation, or `scripts/gui-session.sh` — never a file
+> under `target/` by name or glob.
+
 # T064 Handoff — show the navigation labels without hover
 
 Companion to [RFC 052](../proposed/052-text-size-and-reach.md) §3.
