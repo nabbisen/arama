@@ -1,3 +1,5 @@
+> **ACCEPTED 2026-11-16 — review 180.** Published as `d17229c`.
+
 > **AUTHORIZED 2026-11-04 — owner:** *"Yes. Authorized. Proceed on the
 > improvements and enhancement."* Written 2026-11-04 by the architect.
 >
