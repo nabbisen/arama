@@ -212,12 +212,16 @@ fn assert_property_1(state: &str, combo: Combination, found: Vec<iced_test::sele
             ..
         } = target
         {
-            // An empty label (a conditional placeholder with nothing to
-            // show) has no content to be clipped - confirmed by its
-            // zero-width `bounds` and `visible_bounds: None` (a
+            // A zero-area allocation (an empty label, or - found while
+            // fixing review 177 - an icon glyph allocated no width in
+            // this particular spot) has nothing to be clipped: a
             // zero-area rectangle's intersection with any viewport is
-            // empty by construction, not a sign anything is hidden).
-            if content.is_empty() {
+            // empty by construction (`visible_bounds: None`), which is
+            // not a sign anything is hidden. Checked on the bounds
+            // themselves, not on `content.is_empty()` - an icon's
+            // content is a non-empty private-use codepoint that prints
+            // as nothing visible, so that check alone missed this case.
+            if bounds.width <= 0.0 || bounds.height <= 0.0 {
                 continue;
             }
             let fully_visible =
@@ -252,6 +256,63 @@ fn assert_property_1(state: &str, combo: Combination, found: Vec<iced_test::sele
     }
 }
 
+/// True for a kana (Hiragana U+3040-U+309F, Katakana U+30A0-U+30FF) or a
+/// kanji (CJK Unified Ideographs U+4E00-U+9FFF) codepoint. Ordinary
+/// English text never contains one, so this is enough to tell the two
+/// locales' own rendered text apart without needing to distinguish
+/// Japanese from Chinese.
+fn contains_kana_or_kanji(text: &str) -> bool {
+    text.chars().any(|c| {
+        ('\u{3040}'..='\u{309F}').contains(&c)
+            || ('\u{30A0}'..='\u{30FF}').contains(&c)
+            || ('\u{4E00}'..='\u{9FFF}').contains(&c)
+    })
+}
+
+/// Review 177 (B1): the check that would have caught `App::new()`
+/// silently overwriting the combination's locale - assert the rendered
+/// view actually reflects it, not just that `settings.json` asked for
+/// it. `ja` must show at least one kana/kanji label somewhere in the
+/// tree; `en` must show none anywhere.
+///
+/// `settings_page`'s own language picker is the one legitimate
+/// exception: it renders a button for *every* `Locale::display_name()`
+/// (`crates/ui/widgets/src/dialog/settings_dialog/tab/general_settings/
+/// view.rs:73`) so a user can switch *to* Japanese from English - "日本語"
+/// is on screen there regardless of which locale is currently active, by
+/// design, not a leak. Found the hard way: the first version of this
+/// check failed `settings_page`'s own `en` combinations on exactly that
+/// button. Excluded by exact match on both locales' own display names,
+/// not by state name, so a future screen that does the same thing is
+/// covered too.
+fn assert_combination_actually_rendered(
+    state: &str,
+    combo: Combination,
+    found: &[iced_test::selector::Target],
+) {
+    let any_cjk = found.iter().any(|target| match target {
+        iced_test::selector::Target::Text { content, .. } => {
+            content != arama_i18n::Locale::Ja.display_name()
+                && content != arama_i18n::Locale::En.display_name()
+                && contains_kana_or_kanji(content)
+        }
+        _ => false,
+    });
+
+    match combo.locale {
+        arama_i18n::Locale::Ja => assert!(
+            any_cjk,
+            "{state}: no rendered text contains a kana or kanji character at {combo} - \
+             the combination's locale is not actually reaching the view"
+        ),
+        arama_i18n::Locale::En => assert!(
+            !any_cjk,
+            "{state}: rendered text contains a kana or kanji character at {combo}, which \
+             is locale `en` - the previous combination's locale leaked into this one"
+        ),
+    }
+}
+
 /// Isolation (RFC 053 §6.3/§7, mirroring `tests.rs`'s own convention):
 /// every matrix test takes `ARAMA_DATA_HOME_TEST_LOCK` and points
 /// `ARAMA_DATA_HOME` at a scratch directory - the same serialization
@@ -282,13 +343,40 @@ fn run_matrix(state_name: &'static str, mut build: impl FnMut(&mut App, Combinat
             assert_a_japanese_face_is_available();
             japanese_face_checked = true;
         }
-        arama_i18n::set_locale(combo.locale);
-        arama_theme::set_theme(combo.theme);
+
+        // Review 177 (B1): `App::new()` reads the persisted `Settings`
+        // and applies *its own* `locale`/`theme` unconditionally
+        // (`app/src/core.rs:299-303`), overwriting any `set_locale`/
+        // `set_theme` call made before it - confirmed the hard way, by
+        // an architect-planted Japanese defect the matrix missed
+        // entirely while reporting 12/12 passed. Writing the
+        // combination into `settings.json` first, through the same
+        // `ConfigManager` production startup uses, is how a real user's
+        // choice actually reaches the UI - not a shortcut around it.
+        app_json_settings::ConfigManager::<arama_env::Settings>::new()
+            .with_root_dir(&scratch)
+            .save(&arama_env::Settings {
+                locale: combo.locale,
+                theme: combo.theme,
+                ..arama_env::Settings::default()
+            })
+            .expect("writing the scratch settings.json must not fail");
 
         let mut app = App::new().0;
         build(&mut app, combo);
+
+        // The self-check review 177 required: assert the combination
+        // actually reached the rendered view, not just the settings
+        // file - the same shape of gap that let B1 through unnoticed.
+        assert_eq!(
+            arama_theme::current_theme(),
+            combo.theme,
+            "{state_name}: App::new() did not apply the combination's own theme at {combo}"
+        );
+
         let element = app.view();
         let found = find_all_text_with(App::settings(), combo.window, element);
+        assert_combination_actually_rendered(state_name, combo, &found);
 
         assert_property_1(state_name, combo, found);
     }
