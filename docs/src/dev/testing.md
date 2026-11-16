@@ -109,18 +109,24 @@ defect shown failing before it is trusted to pass:
   probe test in the same parallel process that read the same variable -
   fixed by setting it once, declaratively, in `.cargo/config.toml`'s
   `[env]`, so every test in this binary now observes the same backend
-  regardless of execution order; (2) with the race gone, it is still
-  unconfirmed whether that one fixed backend (`tiny-skia`) behaves the
-  same on macOS and Windows as it does here. `item_1_c` now records its
+  regardless of execution order; (2) with the race gone, the one fixed
+  backend (`tiny-skia`) behaves the same on all three CI runners
+  (confirmed 2026-11-16, run on `7c777b9`). `item_1_c` now records its
   finding (`os`, `backend`, both pixel measurements) rather than
   asserting a cross-platform universal — read its `eprintln!` line from
   each runner's own CI log:
 
   | Runner | Backend | Clip visible in pixels? |
   |---|---|---|
-  | Linux (this project's dev machine) | `tiny-skia` (now fixed) | No - confirmed |
-  | macOS | `tiny-skia` (now fixed) | Not yet re-confirmed under the fixed backend - a prior run under an *indeterminate* backend (the race above) showed it **was** visible |
-  | Windows | `tiny-skia` (now fixed) | Not yet observed |
+  | Linux | `tiny-skia` | No — 399 / 399 columns of overflow ink, clip on / off |
+  | macOS | `tiny-skia` | No — 399 / 399 |
+  | Windows | `tiny-skia` | No — 399 / 399 |
+
+  So under the matrix's backend, a pixel check cannot tell `clip(true)` from no
+  clip on any runner, and **the footer's path label stays outside the matrix**:
+  it is checked by a real-UI capture (narrow window, Larger text, both locales),
+  as T063 did. The earlier macOS observation of a visible clip came from that
+  runner's GPU (`wgpu`) backend, which the race had selected.
 
   If a future CI run confirms `tiny-skia` draws the clip on all three
   runners, the footer's path label gains a real pixel check (RFC 053

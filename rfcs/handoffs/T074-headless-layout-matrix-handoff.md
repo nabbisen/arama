@@ -1,3 +1,5 @@
+> **F1 CLOSED 2026-11-16 — review 179** (`7c777b9`): one backend, `tiny-skia`, via `.cargo/config.toml`; `clip(true)` not visible on any runner, so the footer gap stays.
+
 > **FOLLOW-UP F1 REQUIRED 2026-11-16 — review 178** (`.git-exclude/reviewed/178-t063-text-size-setting-review.md`,
 > last section). A defect in delivered work, within this task's authorization:
 >

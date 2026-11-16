@@ -43,6 +43,11 @@ toolkit uses. `App::new()` writes its data locations and default settings before
 any window exists, so no run of the binary is harmless without this. Scratch
 files, fixtures and evidence stay inside the project. A write into the home
 directory that cannot be avoided is named in the package, with the reason.
+**An arama binary is started only through `cargo test` / `cargo run` with
+the task's isolation, or `scripts/gui-session.sh`** (from 2026-11-16, after a
+second stray write). Never run a file under `target/` by name or glob:
+`target/debug/deps/arama-*` matches builds of the application itself, which
+write default settings before any window exists.
 
 **References to `.git-exclude/…`** point at files in the working copy that are
 not part of the repository: the local rules, the architect's schedule, and the
