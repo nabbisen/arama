@@ -1,0 +1,12 @@
+[env]
+# T074 follow-up F1 (review 178): `app/src/core/tests/layout_matrix.rs`
+# used to flip this at runtime (`std::env::set_var`, inside a
+# `std::sync::Once`) the first time a matrix test ran - but `cargo test`
+# runs tests in the same process, in parallel, with no guaranteed order.
+# A probe test (`layout_probe.rs`) that happened to run before any
+# matrix test observed the default backend; one that ran after observed
+# `tiny-skia` - confirmed the cause of a flaky `item_1_c` failure on the
+# macOS CI runner (review 178). Set once here instead, for every `cargo`
+# invocation in this workspace, so every test in the `arama` binary
+# observes the same backend regardless of execution order.
+ICED_TEST_BACKEND = "tiny-skia"

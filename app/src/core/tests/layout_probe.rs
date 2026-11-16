@@ -205,22 +205,40 @@ fn item_1_c_container_clip_also_does_not_prevent_the_painted_overflow() {
     // not shrink `visible_bounds`. This goes one step further and asks
     // whether it at least clips the *painted pixels*, which would still
     // let a pixel check (item 2's candidate 3) validate it even without
-    // `visible_bounds`'s help. It does not, on either backend - reading
+    // `visible_bounds`'s help. Reading
     // `iced_widget-0.14.2/src/container.rs:351-371` shows `clip: true`
     // narrows the `viewport` rectangle passed into the child's own
     // `draw()`, and `iced_core-0.14.0/src/widget/text.rs:352-357` does
     // forward that `viewport` into `Renderer::fill_paragraph` - the
-    // wiring exists - but the rendered output below is identical with
-    // `clip` `true` or `false`, confirmed under both
-    // `ICED_TEST_BACKEND=wgpu` and `=tiny-skia`. Whether this is a real
-    // `iced` gap or something specific to headless screenshot rendering
-    // is not determined here; what matters for RFC 053 is that
-    // `Simulator`-based pixel checks cannot distinguish "clipped" from
-    // "not clipped" for this exact shape - including arama's own
-    // production use of it (`crates/ui/layout/src/footer/view.rs`'s
-    // path label, the one real `Wrapping::None` site in the codebase,
-    // and the reason T055 added `clip(true)` there in the first place).
-    fn rightmost_ink_past_edge(clip: bool) -> usize {
+    // wiring exists.
+    //
+    // T074 follow-up F1 (review 178): an earlier version of this test
+    // asserted the rendered output is identical with `clip` `true` or
+    // `false` - true on Linux under both backends at the time, but
+    // **not** true in general: the architect found a CI run where this
+    // same assertion failed on the macOS runner, with the clip visibly
+    // applied. That failure's own backend was not determinate - a
+    // separate bug (fixed above, `.cargo/config.toml`) let a different
+    // test in this same parallel process flip `ICED_TEST_BACKEND` at
+    // runtime, so *which* backend macOS actually measured that day is
+    // unknown. With the backend now fixed process-wide, this test
+    // records what it finds, per runner and per backend, rather than
+    // asserting a cross-platform universal that was never actually
+    // verified beyond this one development machine. See
+    // `docs/src/dev/testing.md` for the running tally once CI reports
+    // for macOS and Windows under the now-fixed backend - what matters
+    // for RFC 053 is whether `Simulator`-based pixel checks can
+    // distinguish "clipped" from "not clipped" for arama's own
+    // production use of this shape (`crates/ui/layout/src/footer/
+    // view.rs`'s path label, the one real `Wrapping::None` site in the
+    // codebase, and the reason T055 added `clip(true)` there).
+    /// Returns `(rightmost ink column past the container's edge, the
+    /// snapshot's own decoded width)` - the width is returned rather
+    /// than assumed, since `Simulator::snapshot` renders at a fixed 2x
+    /// physical-pixel scale (`layout_matrix.rs`'s own
+    /// `VISIBILITY_EPSILON` comment), so the 200-logical-px element
+    /// below decodes as a 400px-wide PNG, not 200.
+    fn rightmost_ink_past_edge(clip: bool) -> (usize, usize) {
         let scratch =
             std::env::temp_dir().join(format!("arama-t074-item1c-{}-{}", clip, std::process::id()));
         let _ = std::fs::remove_dir_all(&scratch);
@@ -280,23 +298,41 @@ fn item_1_c_container_clip_also_does_not_prevent_the_painted_overflow() {
             }
         }
         let _ = std::fs::remove_dir_all(&scratch);
-        rightmost
+        (rightmost, width)
     }
 
-    let rightmost_clipped = rightmost_ink_past_edge(true);
-    let rightmost_unclipped = rightmost_ink_past_edge(false);
+    let (rightmost_clipped, width_clipped) = rightmost_ink_past_edge(true);
+    let (rightmost_unclipped, width_unclipped) = rightmost_ink_past_edge(false);
+    let backend = std::env::var("ICED_TEST_BACKEND").unwrap_or_else(|_| "wgpu (default)".into());
+    let clip_is_visible_in_pixels = rightmost_clipped < rightmost_unclipped;
 
+    // Recorded, not asserted as a cross-platform universal (review 178):
+    // this line is the durable, per-runner evidence - read it from each
+    // of the three CI runners' logs for this one, now-fixed backend,
+    // rather than relying on a single development machine's result.
     eprintln!(
-        "=== T074 Phase 0 item 1c: rightmost overflow ink with clip(true)={rightmost_clipped}, \
-         clip(false)={rightmost_unclipped} ==="
+        "=== T074 item 1c: os={os} backend={backend} rightmost overflow ink with \
+         clip(true)={rightmost_clipped}, clip(false)={rightmost_unclipped} - \
+         clip_is_visible_in_pixels={clip_is_visible_in_pixels} ===",
+        os = std::env::consts::OS,
     );
-    assert_eq!(
-        rightmost_clipped, rightmost_unclipped,
-        "recording the finding: Container::clip(true) must make NO observable difference \
-         to Simulator's rendered pixels here, confirming a pixel check cannot tell clipped \
-         apart from unclipped for this shape - if this ever changes (an iced upgrade), the \
-         matrix (delivery 2) should revisit whether a footer-specific overflow check is \
-         possible after all"
+
+    // What is actually guaranteed, regardless of platform: the unclipped
+    // render must show ink past the container's edge at all (otherwise
+    // the test fixture itself is broken, not measuring anything), and
+    // neither measurement can exceed its own snapshot's decoded width -
+    // a sanity bound on the measurement, not a claim about clipping.
+    assert!(
+        rightmost_unclipped > 0,
+        "the unclipped render shows no overflow ink past the container's edge - \
+         this test fixture is not measuring what it claims to (backend={backend})"
+    );
+    assert!(
+        rightmost_clipped < width_clipped && rightmost_unclipped < width_unclipped,
+        "a measured rightmost pixel is at or past its own snapshot's decoded \
+         width - corrupt decode, not a real finding (clipped={rightmost_clipped}/\
+         {width_clipped}, unclipped={rightmost_unclipped}/{width_unclipped}, \
+         backend={backend})"
     );
 }
 

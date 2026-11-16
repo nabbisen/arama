@@ -93,13 +93,40 @@ defect shown failing before it is trusted to pass:
   `scrollable` ancestor's viewport - a plain `Container::clip(true)` is
   not: `iced_selector`'s own tree-walker narrows its tracked viewport
   only inside `Finder::scrollable`, never for a plain container's own
-  bounds. **It does not clip the painted pixels either**, confirmed on
-  both `wgpu` and `tiny-skia` - a pixel check cannot distinguish a
-  `clip(true)` container from one without it. This is why the matrix
-  (below) checks neither property for `crates/ui/layout/src/footer/
-  view.rs`'s path label, the one production `Wrapping::None` +
-  `clip(true)` site in the codebase (T055): it is a real, open gap, not
-  a silent claim.
+  bounds. This is why the matrix (below) never relies on `visible_bounds`
+  alone for `crates/ui/layout/src/footer/view.rs`'s path label, the one
+  production `Wrapping::None` + `clip(true)` site in the codebase
+  (T055).
+
+  **Whether `clip(true)` also clips the painted pixels is backend- and
+  platform-dependent - not settled yet (T074 follow-up F1, review
+  178).** An earlier version of this probe asserted it never does,
+  "confirmed on both `wgpu` and `tiny-skia`" - true on this project's
+  Linux development machine, but a CI run then failed that same
+  assertion on **macOS**, with the clip visibly applied. The cause
+  traced to two separate things: (1) the matrix (below) used to flip
+  `ICED_TEST_BACKEND` with `std::env::set_var` at runtime, racing any
+  probe test in the same parallel process that read the same variable -
+  fixed by setting it once, declaratively, in `.cargo/config.toml`'s
+  `[env]`, so every test in this binary now observes the same backend
+  regardless of execution order; (2) with the race gone, it is still
+  unconfirmed whether that one fixed backend (`tiny-skia`) behaves the
+  same on macOS and Windows as it does here. `item_1_c` now records its
+  finding (`os`, `backend`, both pixel measurements) rather than
+  asserting a cross-platform universal — read its `eprintln!` line from
+  each runner's own CI log:
+
+  | Runner | Backend | Clip visible in pixels? |
+  |---|---|---|
+  | Linux (this project's dev machine) | `tiny-skia` (now fixed) | No - confirmed |
+  | macOS | `tiny-skia` (now fixed) | Not yet re-confirmed under the fixed backend - a prior run under an *indeterminate* backend (the race above) showed it **was** visible |
+  | Windows | `tiny-skia` (now fixed) | Not yet observed |
+
+  If a future CI run confirms `tiny-skia` draws the clip on all three
+  runners, the footer's path label gains a real pixel check (RFC 053
+  §2.3 property 2) and this table is replaced by that result. Until
+  then, the matrix checks neither property for that one label - a real,
+  open gap, not a silent claim.
 - **A non-clipping overflow (the Japanese-footer shape, T055) is
   invisible to every bounds-based check**, because a widget's `bounds`
   is the box its parent allocated to it, not its intrinsic content size
@@ -265,14 +292,28 @@ Phase 0 already flagged it "buildable, not yet built" - it needs real,
 decodable image files and a seeded cache, heavier than the states above,
 and is left to whichever task next needs it).
 
-**Backend**: `ICED_TEST_BACKEND=tiny-skia`, set once per process before
-any `Simulator` is built. Phase 0 item 6 measured the default `wgpu`
-backend at up to ~258ms/combination on Windows; 72 combinations across a
-dozen screen states would risk RFC 053 §2.5's 60s budget at that
-backend (~223s projected). `tiny-skia` measured roughly 100x faster for
-an identical result on every property this file or `layout_probe.rs`
-checks, which is what keeps 72 combinations inside budget (~2.5s
-measured on this tree).
+**Backend**: `ICED_TEST_BACKEND=tiny-skia`, set in `.cargo/config.toml`'s
+`[env]` - for every `cargo` invocation in this workspace, not at
+runtime. Phase 0 item 6 measured the default `wgpu` backend at up to
+~258ms/combination on Windows; 72 combinations across a dozen screen
+states would risk RFC 053 §2.5's 60s budget at that backend (~223s
+projected). `tiny-skia` measured roughly 100x faster for an identical
+result on every property this file or `layout_probe.rs` checks, which
+is what keeps 72 combinations inside budget (~2.5s measured on this
+tree).
+
+**T074 follow-up F1 (review 178)**: this used to be set at runtime
+(`std::env::set_var`, inside a `std::sync::Once`, the first time a
+matrix test ran). `cargo test` runs every test in this binary in one
+process, in parallel, with no guaranteed order - a probe test
+(`layout_probe.rs`) that happened to run *before* the first matrix test
+observed the default backend instead; one that ran *after* observed
+`tiny-skia`. This made `item_1_c` (above) flaky on the macOS CI runner:
+which backend it measured depended on test scheduling, not on anything
+set intentionally. Fixed by moving the setting to `.cargo/config.toml`,
+which `cargo` applies to every test binary it runs before any test
+starts - `layout_matrix.rs`'s `assert_fast_backend_is_set` now confirms
+it landed rather than setting it itself.
 
 **Isolation**: every matrix test takes `ARAMA_DATA_HOME_TEST_LOCK` before
 mutating the process-global locale, theme, and text scale, and restores

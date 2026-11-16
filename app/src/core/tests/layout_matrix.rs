@@ -38,25 +38,32 @@ use super::*;
 // (locale x theme x window size x text-size step, T063's own dimension
 // now wired in) across the dozen screen states below would be roughly
 // 72 x 12 x 258ms =~ 223s on Windows alone, far over RFC 053 §2.5's 60s
-// budget at this backend. `ICED_TEST_BACKEND=tiny-skia` measured ~100x
-// faster for every one of Phase 0's properties, with identical results
-// on both backends (confirmed in `layout_probe.rs`'s own item 1c, item 2
-// candidate 3, and every other property check), which is what keeps 72
-// combinations inside budget. Chosen here, unconditionally, for every
-// matrix combination.
-fn use_fast_backend() {
-    static ONCE: std::sync::Once = std::sync::Once::new();
-    ONCE.call_once(|| {
-        // SAFETY: called once, from `run_matrix` before any `Simulator`
-        // is constructed in this process, under the same
-        // `ARAMA_DATA_HOME_TEST_LOCK` every App-constructing test in this
-        // binary already takes (see that lock's own doc comment) - no
-        // other test can be reading or writing this specific variable
-        // concurrently.
-        unsafe {
-            std::env::set_var("ICED_TEST_BACKEND", "tiny-skia");
-        }
-    });
+// budget at this backend. `tiny-skia` measured ~100x faster for every
+// one of Phase 0's properties this matrix relies on, which is what
+// keeps 72 combinations inside budget.
+//
+// T074 follow-up F1 (review 178): this used to be set here at runtime
+// (`std::env::set_var`, guarded by a `std::sync::Once`) - but `cargo
+// test` runs every test in this binary in one process, in parallel,
+// with no guaranteed order, so a *different* test reading this same
+// variable (`layout_probe.rs`'s `item_1_c`) observed whichever backend
+// happened to be active at the moment *it* ran: the default, if it ran
+// before the first matrix test; `tiny-skia`, if after. That is what
+// made `item_1_c` flaky on the macOS CI runner. The backend is now set
+// once, declaratively, for the whole process (`.cargo/config.toml`'s
+// `[env]`), so every test here observes the same value regardless of
+// order - this function only confirms it landed, rather than setting
+// it itself.
+fn assert_fast_backend_is_set() {
+    assert_eq!(
+        std::env::var("ICED_TEST_BACKEND").as_deref(),
+        Ok("tiny-skia"),
+        "ICED_TEST_BACKEND must be \"tiny-skia\" for every `cargo test` in this \
+         workspace (set in .cargo/config.toml's [env]) - the 72-combination matrix \
+         would otherwise risk RFC 053 §2.5's 60s budget on the default backend, and \
+         a different value here would silently diverge from what layout_probe.rs's \
+         own tests (reading the same variable) were measured against"
+    );
 }
 
 // ---------------------------------------------------------------------
@@ -428,7 +435,7 @@ fn assert_combination_actually_rendered(
 /// comment and `crates/ui/layout/src/footer/view.rs`'s test comment
 /// both already document and work around.
 fn run_matrix(state_name: &'static str, mut build: impl FnMut(&mut App, Combination)) {
-    use_fast_backend();
+    assert_fast_backend_is_set();
 
     let _guard = ARAMA_DATA_HOME_TEST_LOCK
         .lock()
