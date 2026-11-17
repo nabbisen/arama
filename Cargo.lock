@@ -176,7 +176,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "swdir",
  "tempfile",
  "tokio",
 ]
@@ -238,11 +237,8 @@ dependencies = [
 name = "arama-ui-layout"
 version = "0.42.0"
 dependencies = [
- "arama-ai",
- "arama-cache",
  "arama-env",
  "arama-i18n",
- "arama-ui-widgets",
  "iced",
  "iced-swdir-tree",
  "lucide-icons",
@@ -254,19 +250,16 @@ dependencies = [
 name = "arama-ui-main"
 version = "0.42.0"
 dependencies = [
- "anyhow",
  "arama-ai",
  "arama-cache",
  "arama-env",
  "arama-i18n",
  "arama-theme",
- "arama-ui-widgets",
  "chrono",
  "disk-space",
  "iced",
  "lucide-icons",
  "reqwest",
- "swdir",
  "tokio-stream",
 ]
 

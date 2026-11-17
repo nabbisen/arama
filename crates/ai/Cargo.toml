@@ -38,7 +38,6 @@ rayon                       = { workspace = true }
 serde                       = { workspace = true }
 serde_json                  = { workspace = true }
 sha2                        = { workspace = true }
-swdir                       = { workspace = true }
 
 # huggingface candle series
 [target.'cfg(not(target_os = "macos"))'.dependencies]
