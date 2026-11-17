@@ -1,3 +1,5 @@
+> **ACCEPTED 2026-11-17 — review 183.**
+
 > **AUTHORIZED 2026-11-17 — owner:** *"The three are approved."* (T077, T078,
 > T079). Written 2026-11-17 by the architect.
 >
