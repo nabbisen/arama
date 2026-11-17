@@ -202,7 +202,13 @@ mod tests {
     /// (falling back to `~/.local/share`/`~/.cache`). Overriding those env
     /// vars, unlike `ARAMA_DATA_HOME`, exercises the real `directories`
     /// resolution path rather than bypassing it - still zero filesystem
-    /// I/O, so still safe anywhere.
+    /// I/O, so still safe anywhere. `ARAMA_DATA_HOME` is cleared for the
+    /// duration of this test (T083): `local_dir()`/`cache_dir()` check it
+    /// first, so a caller running this suite under the isolation every
+    /// handoff requires (`ARAMA_DATA_HOME` set into `.git-exclude/tmp/`)
+    /// would otherwise see this test short-circuit before ever reaching
+    /// the `XDG_*` values it exists to check - exactly the "push people to
+    /// drop the isolation" failure mode this task closes.
     ///
     /// Task 023: this is the one test in this file still allowed to mutate
     /// real process environment, and it is safe only because nothing else
@@ -217,6 +223,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "linux")]
     fn linux_local_and_cache_dirs_respect_xdg_overrides() {
+        let previous_data_home = env::var_os(DATA_HOME_ENV_VAR);
         let previous_data = env::var_os("XDG_DATA_HOME");
         let previous_cache = env::var_os("XDG_CACHE_HOME");
         let scratch = std::env::temp_dir().join(format!(
@@ -224,6 +231,7 @@ mod tests {
             std::process::id()
         ));
         unsafe {
+            env::remove_var(DATA_HOME_ENV_VAR);
             env::set_var("XDG_DATA_HOME", scratch.join("data"));
             env::set_var("XDG_CACHE_HOME", scratch.join("cache"));
         }
@@ -232,6 +240,10 @@ mod tests {
         let cache = cache_dir().unwrap();
 
         unsafe {
+            match &previous_data_home {
+                Some(value) => env::set_var(DATA_HOME_ENV_VAR, value),
+                None => env::remove_var(DATA_HOME_ENV_VAR),
+            }
             match &previous_data {
                 Some(value) => env::set_var("XDG_DATA_HOME", value),
                 None => env::remove_var("XDG_DATA_HOME"),
