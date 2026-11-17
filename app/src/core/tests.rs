@@ -1254,6 +1254,125 @@ fn stale_embeddings_ready_from_a_closed_scan_is_dropped_the_current_one_is_accep
     let _ = std::fs::remove_dir_all(&scratch);
 }
 
+/// T079 (review 170 follow-up 1): the test above sets
+/// `similar_pairs_scan_generation` and `similar_pairs_scan` by hand, so
+/// it never actually exercises the `+= 1` the whole guard depends on -
+/// deleting that line would still pass it. This one drives the real
+/// open -> close -> open sequence through `App::update`
+/// (`header::message::Event::SimilarPairsDialogOpen`,
+/// `Message::DialogClose`), reading the generation and the control back
+/// from where the handler stores them rather than assuming either.
+#[test]
+fn stale_pair_scan_guard_holds_through_the_real_open_close_open_path() {
+    use arama_ui_layout::header;
+    use arama_ui_widgets::dialog::similar_pairs_dialog::{
+        EmbeddingsReadyResult, message as similar_pairs_dialog_message,
+    };
+
+    let _guard = ARAMA_DATA_HOME_TEST_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
+    let scratch = scratch_data_home("stale-pair-scan-guard-real-open-path");
+    unsafe {
+        std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
+    }
+
+    let mut app = App::new().0;
+    app.dir_node = Some(DirNode {
+        path: missing_test_path(),
+        sub_dirs: vec![],
+        files: vec![],
+    });
+
+    let open = || {
+        Message::HeaderMessage(header::message::Message::Event(
+            header::message::Event::SimilarPairsDialogOpen,
+        ))
+    };
+
+    // 1. The real open event: generation 1, a control stored.
+    let _ = app.update(open());
+    assert_eq!(
+        app.similar_pairs_scan_generation, 1,
+        "the real open handler must increment the generation, not start at 0"
+    );
+    let scan_1_control = app
+        .similar_pairs_scan
+        .clone()
+        .expect("opening the dialog with a dir_node present must store a scan control");
+
+    // 2. The real close message: scan 1's control is cancelled and cleared.
+    let _ = app.update(Message::DialogClose);
+    assert!(app.dialog.is_none(), "closing must clear the dialog");
+    assert!(
+        app.similar_pairs_scan.is_none(),
+        "closing must clear the stored scan control"
+    );
+    assert!(
+        scan_1_control.is_cancelled(),
+        "closing must cancel scan 1's own control"
+    );
+
+    // 3. The real open event again: generation 2, a new control.
+    let _ = app.update(open());
+    assert_eq!(
+        app.similar_pairs_scan_generation, 2,
+        "a second real open must increment the generation again, not reset it"
+    );
+    let scan_2_control = app
+        .similar_pairs_scan
+        .clone()
+        .expect("reopening with a dir_node present must store a new scan control");
+    assert!(
+        !std::sync::Arc::ptr_eq(&scan_1_control, &scan_2_control),
+        "the second open must store a genuinely new control, not scan 1's"
+    );
+
+    // 4. Scan 1's late, partial result arrives - dropped: the dialog is
+    // still scanning, and the stored control is still scan 2's.
+    let _ = app.update(Message::SimilarPairsDialogMessage(
+        similar_pairs_dialog_message::Message::EmbeddingsReady(1, EmbeddingsReadyResult::default()),
+    ));
+    let Some(Dialog::SimilarPairsDialog(dialog)) = &app.dialog else {
+        panic!("the dialog must still be open - a dropped stale message must not touch it");
+    };
+    assert!(
+        dialog.is_scanning(),
+        "a stale (generation 1) result must not be accepted while generation 2 is current"
+    );
+    assert!(
+        app.similar_pairs_scan
+            .as_ref()
+            .is_some_and(|control| std::sync::Arc::ptr_eq(control, &scan_2_control)),
+        "scan 2's control must survive a stale generation-1 result untouched"
+    );
+
+    // 5. Scan 2's own result arrives - accepted: not scanning, control cleared.
+    let _ = app.update(Message::SimilarPairsDialogMessage(
+        similar_pairs_dialog_message::Message::EmbeddingsReady(2, EmbeddingsReadyResult::default()),
+    ));
+    let Some(Dialog::SimilarPairsDialog(dialog)) = &app.dialog else {
+        panic!("the dialog must still be open");
+    };
+    assert!(
+        !dialog.is_scanning(),
+        "the current generation's own result must be accepted"
+    );
+    assert!(
+        app.similar_pairs_scan.is_none(),
+        "accepting the current scan's result must clear similar_pairs_scan"
+    );
+
+    unsafe {
+        match &previous {
+            Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
+            None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
+        }
+    }
+    let _ = std::fs::remove_dir_all(&scratch);
+}
+
 /// T070 (snora 0.52 -> 0.57, RFC-113/RFC-120), §5: the toast attention
 /// hold, through the real `App::update` path (`Message::ToastAttention`,
 /// `Message::ToastSweep`) - never by calling `Holds::attend`/`Holds::sweep`
