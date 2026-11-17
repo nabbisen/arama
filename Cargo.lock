@@ -239,6 +239,7 @@ version = "0.42.0"
 dependencies = [
  "arama-env",
  "arama-i18n",
+ "arama-theme",
  "iced",
  "iced-swdir-tree",
  "lucide-icons",

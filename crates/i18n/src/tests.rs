@@ -193,6 +193,8 @@ fn task_034_plain_keys_resolve_to_real_text_in_both_locales() {
         "context_menu.open_with_default",
         "context_menu.file_manager",
         "header.dir_nav.folder_select_title",
+        "header.similarity_pairs",
+        "header.similarity_pairs.unavailable",
     ];
 
     for locale in Locale::all() {

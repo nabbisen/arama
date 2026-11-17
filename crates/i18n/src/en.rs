@@ -193,6 +193,8 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         // Header
         "header.folder" => "Folder",
         "header.dir_nav.folder_select_title" => "Folder select",
+        "header.similarity_pairs" => "Similarity pairs",
+        "header.similarity_pairs.unavailable" => "Available when indexing finishes",
 
         // Gallery
         "gallery.empty" => "No file to render.",

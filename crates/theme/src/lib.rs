@@ -28,7 +28,7 @@ use std::sync::atomic::{AtomicU8, Ordering};
 
 use arama_env::{TextScale, ThemePreset};
 use iced::{
-    Border, Theme, theme,
+    Border, Shadow, Theme, theme,
     widget::{button, container},
 };
 use snora::design::{Tokens, Typography, style::color::to_iced_color};
@@ -198,6 +198,46 @@ pub fn secondary(_theme: &Theme, status: button::Status) -> button::Style {
 /// Danger button style — destructive actions such as "Stop".
 pub fn danger(_theme: &Theme, status: button::Status) -> button::Style {
     snora::design::style::button::danger(&tokens(), status)
+}
+
+/// `primary`, except its `Disabled` arm keeps the label fully readable
+/// and marks "off" by shape - no fill, an outline - instead of a
+/// uniform alpha fade (RFC 052 §4, T077).
+///
+/// `primary`'s own `Disabled` arm (`snora-style` 0.57.0's
+/// `disabled_alpha`, ×0.45 on both the fill and the text, composited
+/// over the page) measures 1.49-1.83:1 across arama's four presets
+/// (measured directly: `composite_over` the faded fill over
+/// `palette.surface` - the role `iced_theme()` actually paints the
+/// app's background from, not `palette.background` - then the faded
+/// text over that), far below WCAG 1.4.3's 4.5:1 floor. A control
+/// whose disabled state *is* the message (RFC 052 §4) needs to stay
+/// readable while disabled, not just legible when enabled.
+///
+/// `text_primary` against `palette.surface` measures 15.55-21.00:1 on
+/// the same four presets - comfortably clear regardless of which
+/// `Disabled` arm is actually painted over, since the fill is gone
+/// entirely. The outline (`palette.border`, the dedicated "borders and
+/// separators" role) is what marks the button as inactive (WCAG 1.4.1:
+/// not by colour alone) - a border carries no contrast requirement of
+/// its own, only the text and fill do.
+pub fn primary_readable_when_disabled(theme: &Theme, status: button::Status) -> button::Style {
+    match status {
+        button::Status::Disabled => {
+            let t = tokens();
+            button::Style {
+                background: None,
+                text_color: to_iced_color(t.palette.text_primary),
+                border: Border::default()
+                    .width(1.0)
+                    .color(to_iced_color(t.palette.border))
+                    .rounded(t.radius.md),
+                shadow: Shadow::default(),
+                ..button::Style::default()
+            }
+        }
+        other => primary(theme, other),
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -417,6 +457,69 @@ mod tests {
                 "{preset:?}: the side bar's active-item fill contrasts {ratio:.2}:1 \
                  against the page background, below WCAG 1.4.11's 3:1 floor for \
                  non-text UI components"
+            );
+        }
+
+        set_theme(ThemePreset::default());
+    }
+
+    /// T077 (RFC 052 §4, WCAG 1.4.3): `primary`'s own `Disabled` arm
+    /// (`disabled_alpha`, ×0.45 on both fill and text, in
+    /// `snora-style`) measured 1.49-1.83:1 across the four presets
+    /// during development - confirmed before building the replacement
+    /// below, not re-asserted here since `primary_readable_when_
+    /// disabled` no longer uses that arm at all. This test covers what
+    /// the handoff asks for: the disabled button's own
+    /// label against its background, and the "unavailable" line's
+    /// colour (full-strength `text_primary`, the same role a plain
+    /// `text(...)` widget already resolves to with no `.style(...)`
+    /// override - see `iced_palette_from_tokens`) against the page.
+    /// Both read `tokens().palette.surface` directly, matching what
+    /// `primary_readable_when_disabled` and the page's own real
+    /// background (`iced_theme()`'s own `background: to_iced_color(
+    /// palette.surface)` mapping) actually use - not
+    /// `palette.background`, a different, unused-for-rendering role.
+    #[test]
+    fn t077_disabled_button_and_unavailable_line_meet_wcag_1_4_3_every_preset() {
+        use snora::design::contrast::contrast_ratio;
+        let _guard = THEME_TEST_LOCK.lock().unwrap();
+
+        for preset in ThemePreset::all() {
+            set_theme(*preset);
+            let t = tokens();
+            let page = t.palette.surface;
+
+            let disabled_style =
+                primary_readable_when_disabled(&iced_theme(), button::Status::Disabled);
+            let disabled_text = snora::design::Color::rgba(
+                disabled_style.text_color.r,
+                disabled_style.text_color.g,
+                disabled_style.text_color.b,
+                disabled_style.text_color.a,
+            );
+            let disabled_ratio = contrast_ratio(disabled_text, page);
+
+            let unavailable_ratio = contrast_ratio(t.palette.text_primary, page);
+
+            eprintln!(
+                "=== T077 {preset:?}: disabled button label = {disabled_ratio:.2}:1, \
+                 unavailable line = {unavailable_ratio:.2}:1 (WCAG 1.4.3 floor 4.5) ==="
+            );
+
+            assert!(
+                disabled_ratio >= 4.5,
+                "{preset:?}: the disabled Similarity-pairs button's label contrasts \
+                 {disabled_ratio:.2}:1 against its background, below WCAG 1.4.3's 4.5:1"
+            );
+            assert!(
+                unavailable_ratio >= 4.5,
+                "{preset:?}: the unavailable line contrasts {unavailable_ratio:.2}:1 \
+                 against the page, below WCAG 1.4.3's 4.5:1"
+            );
+            assert!(
+                disabled_style.background.is_none(),
+                "{preset:?}: the disabled style must have no fill - WCAG 1.4.1, \
+                 \"off\" is marked by shape (the outline), not colour alone"
             );
         }
 

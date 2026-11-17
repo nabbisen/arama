@@ -260,6 +260,8 @@ pub(crate) fn get(key: &str) -> Option<&'static str> {
         // Header
         "header.folder" => "\u{30d5}\u{30a9}\u{30eb}\u{30c0}\u{30fc}", // フォルダー
         "header.dir_nav.folder_select_title" => "フォルダーを選択",
+        "header.similarity_pairs" => "類似ペア",
+        "header.similarity_pairs.unavailable" => "インデックス作成が終わると使えます",
 
         // Gallery
         "gallery.empty" => {

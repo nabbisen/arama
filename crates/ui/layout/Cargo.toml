@@ -14,6 +14,7 @@ keywords.workspace     = true
 [dependencies]
 arama-env = { workspace = true }
 arama-i18n = { workspace = true }
+arama-theme = { workspace = true }
 iced-swdir-tree = { workspace = true }
 
 iced = { workspace = true }

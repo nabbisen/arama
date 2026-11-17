@@ -25,10 +25,12 @@ shown beneath it:
 - 🗃 Cache
 - ⚙ Settings
 
-**Header bar** — directory path input and the **Similarity Pairs**
-button (the pairs button enables once the gallery has cached
-thumbnails to compare, which happens before AI embeddings are
-computed — it does not wait for the full indexing pass to finish).
+**Header bar** — directory path input and the **Similarity pairs**
+button, labelled beside its icon rather than shown only on hover. It
+stays disabled until embedding has completed for the directory (see
+"Selecting a directory" below); while disabled, a line beside it reads
+"Available when indexing finishes" so the reason is never only a
+colour change.
 
 **Directory tree** (left panel) — shows the folder hierarchy. Click
 any folder to select it and start indexing its contents.

@@ -1525,6 +1525,66 @@ fn window_title_and_linux_application_id_match_the_desktop_file() {
     }
 }
 
+/// T077 (RFC 052 §4): through `App::view()`, the same way every other
+/// state in this file is exercised (not a standalone `Header::view()`
+/// unit test) - `embedding_cached` false must render both the name and
+/// the reason; true must render the name and *not* the reason.
+#[test]
+fn similarity_pairs_button_names_itself_and_says_why_when_disabled() {
+    let _guard = ARAMA_DATA_HOME_TEST_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
+    let scratch = scratch_data_home("similarity-pairs-button-name-and-reason");
+    unsafe {
+        std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
+    }
+
+    let mut app = App::new().0;
+    app.setup.finished = true;
+
+    let contains = |app: &App, needle: &str| {
+        layout_probe::find_all_text_with(
+            App::settings(),
+            iced::window::Settings::default().size,
+            app.view(),
+        )
+        .into_iter()
+        .any(|target| match target {
+            iced_test::selector::Target::Text { content, .. } => content.contains(needle),
+            _ => false,
+        })
+    };
+
+    app.header.set_embedding_cached(false);
+    assert!(
+        contains(&app, "Similarity pairs"),
+        "the button must show its name even while disabled"
+    );
+    assert!(
+        contains(&app, "Available when indexing finishes"),
+        "while disabled, the reason must be shown in words"
+    );
+
+    app.header.set_embedding_cached(true);
+    assert!(
+        contains(&app, "Similarity pairs"),
+        "the button must still show its name once enabled"
+    );
+    assert!(
+        !contains(&app, "Available when indexing finishes"),
+        "once enabled, the reason must not be shown"
+    );
+
+    unsafe {
+        match &previous {
+            Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
+            None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
+        }
+    }
+    let _ = std::fs::remove_dir_all(&scratch);
+}
+
 #[path = "tests/layout_matrix.rs"]
 mod layout_matrix;
 #[path = "tests/layout_probe.rs"]
