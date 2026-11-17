@@ -38,7 +38,6 @@ path = "tests/maintenance.rs"
 [dependencies]
 localcache = { workspace = true }
 
-anyhow = { workspace = true }
 blake3 = { workspace = true }
 # Review 161 #4: `run_command_with_timeout` (thumbnail.rs) kills the whole
 # process group on timeout, not just the one child - already a workspace
@@ -51,4 +50,7 @@ serde = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
+# Used only by the doctests in src/lib.rs (`anyhow::Result<()>` as the
+# example `main`'s return type); doctests see dev-dependencies (T078).
+anyhow = { workspace = true }
 tempfile = { workspace = true }
