@@ -263,8 +263,8 @@ cargo update -p pt2safetensors
 Removed entirely: `candle-core` 0.10.2 (the `pt2safetensors`-only
 instance - the `arama-ai`-direct `candle-core` 0.11.1 from T080
 remains, now the only one in the lock), `onig` 6.5.3, `onig_sys`
-69.9.3, `safetensors` 0.7.0 (the `arama-ai`-direct 0.8.0 from T081
-remains), `tokenizers` 0.22.2 (0.23.2 remains), `typed-path` 0.12.3
+69.9.3, `safetensors` 0.7.0 (0.8.0 remains, through `candle-core`,
+`candle-nn` and `pt2safetensors` 0.2.0), `tokenizers` 0.22.2 (0.23.2 remains), `typed-path` 0.12.3
 (0.13.0 remains), `zip` 7.2.0 itself. Nothing else moved - confirmed
 against the architect's own pre-measured list (review of T081,
 `cargo update -p pt2safetensors` run and reverted) before this
@@ -285,15 +285,157 @@ architect) is what this lockfile move now pulls into arama's own
 graph; this task did not repeat that comparison, since `rust-version`
 and the lockfile move alone do not touch it.
 
-**Both per-ID reachability writeups above (the `zip` 7.2.0/8.6.0 entry
-and the RUSTSEC-2026-0545 through 0548 entry) are superseded by this
-section**, now that their shared revisit condition is met in full -
+**Both per-ID reachability entries below (the `zip` 7.2.0/8.6.0 entry
+and the RUSTSEC-2026-0545 through 0548 entry), kept as they stood when
+retired, are superseded by this section**, now that their shared revisit condition is met in full -
 the finding itself (no `.extract()`, no `ZipStreamReader`, neither
 `aes-crypto` nor `legacy-zip` compiled, confirmed against `candle-core`
 0.10.2's own source and the lockfile's own dependency list for `zip`
 7.2.0) remains true as a historical record; it is simply no longer
 needed, since `zip` 7.2.0 is gone from the lock entirely rather than
 merely unreachable within it.
+
+### Record, as retired: `zip` 7.2.0 / 8.6.0 — added 2026-10-21, extended 2026-11-08
+
+RUSTSEC-2026-0367 (SUID/SGID preservation during extraction), 0368 (symlink
+escape outside the destination directory), 0369 (9.1 critical — applies Unix
+permissions through symlinks without confining the target). Matched **both**
+`zip` versions in the lock when first ignored (2026-10-21), so three IDs
+covered six `cargo audit` entries; **since T080 (2026-11-17) removed `zip`
+8.6.0** (see below), each now matches only `zip` 7.2.0, one entry apiece —
+confirmed directly, by temporarily un-ignoring all four of this section's
+IDs and reading `cargo audit`'s own output, not inferred from the version
+bump alone.
+
+**RUSTSEC-2026-0429, added 2026-11-08 (Task 065) — the same function,
+determined once, cited rather than re-derived.** 7.5 high: `ZipArchive::
+extract` aborts the process on a symlink entry with a large declared size.
+One identity; matched both `zip` versions when added, now (T080) only
+`zip` 7.2.0. This is the same `extract()` family the reachability finding below
+already covers — re-confirmed, not assumed, that `candle-core` is still the
+only `zip` consumer in the lock, in either version, before relying on the
+existing finding:
+
+```sh
+$ cargo tree -i zip@7.2.0 --target all -e normal,build,dev   # candle-core 0.10.2 only
+$ cargo tree -i zip@8.6.0 --target all -e normal,build,dev   # candle-core 0.11.0 only
+```
+
+**This is RFC 049 §2.1's determination-reuse paying for itself for the first
+time**: no fresh source-reading was needed, because the finding below already
+answers the only question a new `extract()` advisory could raise — whether
+anything in this chain calls `extract()` rather than `by_name()`/`by_index()`.
+It doesn't, in either version, confirmed 2026-10-21 and still true today.
+Revisit condition unchanged: `candle-core` depending on `zip >=9.0.0`.
+
+**Two different packages pull two different `zip` versions, and the
+duplicate is ours:**
+
+```
+zip 7.2.0 <- candle-core 0.10.2 <- pt2safetensors 0.1.3 <- arama-ai
+zip 9.5.1 <- candle-core 0.11.1 <- arama-ai   # was zip 8.6.0 <- candle-core 0.11.0, T080
+```
+
+**T080 (2026-11-17) moved the second line's half of this duplicate
+past the revisit condition** — `cargo update -p candle-core@0.11.0`
+(only that) moved it to 0.11.1, which depends on `zip >=9.0.0`
+(locked to 9.5.1). The first line is untouched: `pt2safetensors`
+0.1.3 still pins `candle-core ^0.10`, and no newer release exists
+(T081, in progress, targets exactly this). **The revisit condition
+below is not yet fully met** — it was written for "`candle-core`"
+as a whole, and one of its two instances in the lock still depends
+on `zip` 7.2.0. See the new entry below (RUSTSEC-2026-0545 through
+0548) for the IDs introduced after this one was first ignored, found
+on `zip` 7.2.0 only (the second line's `zip` 8.6.0 is gone, so those
+cannot match it any more).
+
+`pt2safetensors` 0.1.3 requires `candle-core ^0.10`; it is the only published
+version (checked against the crates.io index, 2026-10-21) and cannot be
+updated to track candle 0.11 — no newer release exists. **Not collapsed, and
+not forced**: RFC 021 already documents this exact duplicate and the
+condition for removing `pt2safetensors` (a direct SafeTensors source being
+selected first); that condition still has not been met, and dropping it here
+to shrink an advisory count would override a decision this ledger does not
+get to override.
+
+**The remaining edge, since T080, is only `pt2safetensors`'s half.**
+`candle-core` 0.11.1 (the `arama-ai`-direct path, moved by T080) depends on
+`zip` 9.5.1, already past the fix (`>=9.0.0`). `pt2safetensors` 0.1.3 still
+pins `candle-core ^0.10` (latest published version of `pt2safetensors`,
+checked against the crates.io index, 2026-11-17), which still depends on
+`zip` 7.2.0. Revisit when `pt2safetensors` depends on `candle-core
+>=0.11.1` (T081).
+
+**Whether arama's model path reaches the vulnerable function — determined,
+not assumed.** All three advisories concern `ZipArchive::extract()` /
+`ZipStreamReader::extract()` specifically (confirmed by reading each
+advisory's own text, not the task's paraphrase of it): extraction to disk,
+not reading an archive's entries. arama never calls `zip` directly —
+`pt2safetensors` doesn't either (`grep -rn "zip\b" pt2safetensors-0.1.3/src`
+finds nothing); the only consumer in this entire chain is `candle-core`
+itself, reading PyTorch `.bin` checkpoints via its `pickle`/`npy` modules.
+Checked both versions' source directly:
+
+```sh
+$ grep -rn "\.extract(" candle-core-0.11.0/src/ candle-core-0.10.2/src/
+# (no matches, either version)
+$ grep -n "zip::" candle-core-0.11.0/src/pickle.rs
+677:    let mut zip = zip::ZipArchive::new(zip_reader)?;
+689:        let reader = zip.by_name(file_name)?;
+```
+
+**Zero calls to `extract()` in either version.** Every use is `by_name()` /
+`by_index()` — reading one entry's bytes into memory, never writing extracted
+files to a destination directory. **The critical does not apply to arama's
+actual usage, determined rather than guessed**: the only code that could call
+the vulnerable function doesn't, in either version in the lock.
+
+### Record, as retired: `zip` 7.2.0 — RUSTSEC-2026-0545 through 0548, added 2026-11-17 (T080)
+
+Four new IDs, observed first on both `zip` 7.2.0 and 8.6.0 (`Audit` red on
+`main` since `89a69a3`); T080's `cargo update -p candle-core@0.11.0` (only
+that) removed `zip` 8.6.0 from the lock entirely (see the `zip`
+7.2.0/8.6.0 entry above), so all four now match only `zip` 7.2.0 — the
+same `candle-core` 0.10.2 `<- pt2safetensors` 0.1.3 `<- arama-ai` path the
+entry above already traces. Per-ID, checked against the source, not
+assumed from the shared path alone:
+
+- **RUSTSEC-2026-0546** (`ZipArchive::extract` writes outside the
+  destination through symlinks): not called. `grep -n "zip::" candle-core
+  -0.10.2/src/*.rs` finds `zip::ZipArchive::new`/`.by_name()` in
+  `pickle.rs` (both `read_pth_tensor_info` and `PthTensors::get`) and
+  `npy.rs` — never `.extract()` or `.extract_unwrapped_root_dir()`,
+  anywhere in the crate.
+- **RUSTSEC-2026-0548** (`ZipStreamReader` extracts under local-header
+  names that can differ from the central directory): `ZipStreamReader` is
+  never referenced in `candle-core` 0.10.2 at all — only `ZipArchive`.
+- **RUSTSEC-2026-0545** (AES entries returned without checking their
+  authentication code): `aes-crypto` is `zip`'s own default feature, but
+  `candle-core` 0.10.2 declares `zip` with `default-features = false` and
+  adds nothing back (`candle-core-0.10.2/Cargo.toml:243-245`) — confirmed
+  in the lock itself: `zip` 7.2.0's own `dependencies` list in
+  `Cargo.lock` is exactly `crc32fast`, `indexmap`, `memchr`, `typed-path`
+  — none of `aes`/`hmac`/`pbkdf2`/`sha1`/`zeroize` (`aes-crypto`'s own
+  dependency list) are present, so the feature cannot be compiled in,
+  regardless of whether anything would open an encrypted entry.
+- **RUSTSEC-2026-0547** (legacy Shrink/Reduce/Implode decoders preallocate
+  the declared size): the controlling feature is `legacy-zip =
+  ["bitstream-io"]`, also not in `zip`'s default set and not re-added —
+  same `default-features = false` declaration. `bitstream-io` *is* in the
+  lock, but `cargo tree -i bitstream-io --target all` traces it to
+  `rav1e` (pre-existing, unrelated to `zip` entirely — confirmed by
+  reading `zip` 7.2.0's own `[[package]].dependencies` list in
+  `Cargo.lock`, which does not include it), not to any `zip` feature.
+
+**Every input this parser ever sees is arama's own downloaded, SHA-256-
+verified model file** (`crates/ai/src/model/model_container/clip.rs`'s
+pinned checksum) — stated per the task's own instruction, but not relied
+on in place of the four findings above: an unreachable API is the
+stronger reason in every case.
+
+**Revisit condition:** `pt2safetensors` depending on `candle-core
+>=0.11.1` (no `zip` 7.x left in the lock at all) — the same condition
+T081 targets for the pre-existing 0367/0368/0369/0429 ignores above.
 
 ## Resolved: `pin-utils`, retired by snora's own upgrade path — 2026-11-15
 

@@ -1,3 +1,5 @@
+> **ACCEPTED 2026-11-18 — review 187** (`92cf7d6`, ledger fix by the architect).
+
 > **AUTHORIZED 2026-11-17 — owner:** *"Authorized."* Written 2026-11-17 by the
 > architect, after `pt2safetensors` 0.2.0 was published (owner and architect, the
 > same day).
