@@ -1,3 +1,6 @@
+> **ACCEPTED 2026-11-17 — review 185** (pt2safetensors `13a2677`, `c97ff62`; not
+> pushed). The release is the owner's and the architect's; T082 follows it.
+
 > **REWORK 2026-11-17 — review 185.** The conversion is byte-identical to 0.1.3's
 > output (reproduced by the architect). Owner, on raising the minimum to Rust
 > 1.94 in both crates: *"Authorized."* (`candle-core` 0.11.1 compiles on x86_64

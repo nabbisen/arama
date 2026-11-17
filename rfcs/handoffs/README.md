@@ -48,6 +48,10 @@ the task's isolation, or `scripts/gui-session.sh`** (from 2026-11-16, after a
 second stray write). Never run a file under `target/` by name or glob:
 `target/debug/deps/arama-*` matches builds of the application itself, which
 write default settings before any window exists.
+**A Rust toolchain that is not installed yet** goes into a project-local
+`RUSTUP_HOME` under `.git-exclude/tmp/` (from 2026-11-17): check
+`rustup toolchain list` for the exact name first. `cargo +1.90.0` installs a
+new 1.3 GB toolchain into the home directory when only `1.90` exists.
 
 **References to `.git-exclude/…`** point at files in the working copy that are
 not part of the repository: the local rules, the architect's schedule, and the

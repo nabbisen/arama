@@ -1,3 +1,5 @@
+> **ACCEPTED 2026-11-17 — review 184** (`a2502e2`, `e5a6a8b`). Rust baseline 1.94.
+
 > **REWORK 2026-11-17 — review 184: raise the Rust baseline to 1.94.** Owner, on
 > option A ("raise the minimum to Rust 1.94 in both crates"): *"Authorized."*
 > `candle-core` 0.11.1 compiles on x86_64 only from Rust 1.94.0: `__cpuid_count`
