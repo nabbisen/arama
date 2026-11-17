@@ -1,9 +1,15 @@
 > **AUTHORIZED 2026-11-18 — owner:** *"T084 is accepted."* Written 2026-11-18 by
 > the architect, as part of the 0.43.0 release plan (`.git-exclude/schedule/README.md`).
 >
-> **Starts after the architect's release-preparation commit** (version 0.43.0,
-> `CHANGELOG.md`, RFC moves). The architect names that commit in this banner
-> when it lands. Every pass below runs **on that commit**.
+> **The release commit is `d445ced`** ("0.43.0 release preparation"). Every pass
+> below runs **on that commit**. Check out exactly it, in a worktree with its own
+> `CARGO_TARGET_DIR` if you prefer. A later docs-only commit (the downgrade note,
+> from your §6.5.5 observation) does not change the binary, and the architect
+> will say so if one is made.
+>
+> **Read the draft downgrade note** in `CHANGELOG.md` under [0.43.0] → Changed.
+> §6.5.5 confirms or corrects it, step by step: delete the `cache` folder, then
+> the older arama indexes again from the start.
 > **Cutting the release (tag, publish) is not part of this task.** It is the
 > owner's and the architect's.
 
