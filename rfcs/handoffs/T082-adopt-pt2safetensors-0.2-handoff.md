@@ -1,5 +1,6 @@
-> **NOT AUTHORIZED — awaiting the owner.** Written 2026-11-17 by the architect,
-> after `pt2safetensors` 0.2.0 was published (owner and architect, the same day).
+> **AUTHORIZED 2026-11-17 — owner:** *"Authorized."* Written 2026-11-17 by the
+> architect, after `pt2safetensors` 0.2.0 was published (owner and architect, the
+> same day).
 >
 > **Independent of T083.**
 
