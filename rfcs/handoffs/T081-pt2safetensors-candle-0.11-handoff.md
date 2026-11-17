@@ -1,3 +1,25 @@
+> **REWORK 2026-11-17 — review 185.** The conversion is byte-identical to 0.1.3's
+> output (reproduced by the architect). Owner, on raising the minimum to Rust
+> 1.94 in both crates: *"Authorized."* (`candle-core` 0.11.1 compiles on x86_64
+> only from Rust 1.94.0; see review 184 and T080's rework banner.) In the
+> pt2safetensors repository, **one commit on top of `13a2677`**:
+>
+> 1. **Remove the empty `[workspace]`** from `Cargo.toml`. It existed only because
+>    the clone sits inside arama's tree, and it must not ship in the owner's
+>    manifest. arama now excludes `.git-exclude` from its workspace, which is
+>    what makes cargo work there without it. Confirm `cargo build` still runs.
+> 2. **`rust-version = "1.94"`.** Prove it with the toolchain T080's rework
+>    installs under `.git-exclude/tmp/rustup-1.94` (same `RUSTUP_HOME`, no
+>    home-directory write): `cargo +1.94 check` and `cargo +1.94 test` in the
+>    crate. **Also show that `cargo +1.93` fails** if you can install it the same
+>    way. The crate has no CI, so this is the only proof of the floor it declares.
+>    If 1.93 cannot be installed that way, say so.
+> 3. All gates again (build, test, clippy `-D warnings`, `fmt --check`). There is
+>    no need to repeat the real-model comparison: `rust-version` and `[workspace]`
+>    do not reach the conversion.
+>
+> `version` still unchanged; no push, tag or publish.
+
 > **AUTHORIZED 2026-11-17 — owner:** *"You and dev team may update it. It is my
 > project."* Written 2026-11-17 by the architect.
 >

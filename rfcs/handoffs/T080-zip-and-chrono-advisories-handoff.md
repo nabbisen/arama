@@ -1,3 +1,33 @@
+> **REWORK 2026-11-17 — review 184: raise the Rust baseline to 1.94.** Owner, on
+> option A ("raise the minimum to Rust 1.94 in both crates"): *"Authorized."*
+> `candle-core` 0.11.1 compiles on x86_64 only from Rust 1.94.0: `__cpuid_count`
+> became safe there (stdarch PR #1935; `pub unsafe fn` at the 1.93.0 tag, `pub fn`
+> at 1.94.0). Your `dfea607` stands. Add **one commit on top of it**:
+>
+> 1. `[workspace.package] rust-version = "1.94"` in the root `Cargo.toml`, the one
+>    normative declaration (`MSRV` reads it). Its mirrors:
+>    `docs/src/users/installation.md` (line 18), `docs/src/dev/workflow.md`
+>    (line 6), and the comment in `.github/workflows/clippy.yaml` (line 20). No
+>    other file names the baseline (`grep -rn '1\.91'` outside `rfcs/`,
+>    `CHANGELOG.md` and `Cargo.lock`, to confirm).
+> 2. `cargo update -p candle-nn@0.11.0 -p candle-transformers@0.11.0`, so the
+>    candle family is on one patch level (my §6.1 expected this from
+>    `-p candle-core`, and it does not reach them). List every package that moves.
+>    **Stop if anything beyond `candle-*` and their own new dependencies moves.**
+> 3. **Prove 1.94 without writing to the home directory:** install the toolchain
+>    into the project, using
+>    `RUSTUP_HOME="$PWD/.git-exclude/tmp/rustup-1.94" rustup toolchain install 1.94 --profile minimal`.
+>    Then run, with the same `RUSTUP_HOME`, `cargo +1.94 check --workspace --locked`
+>    and `cargo +1.94 test -p arama-ai --locked`. If rustup writes anything
+>    outside that folder, stop and report. Keep the folder: T081 uses it too.
+> 4. All gates on the default toolchain again, plus T066's script (still 15, in
+>    sync). The architect pushes `dfea607` and this commit together, so `MSRV`
+>    never sees one without the other.
+>
+> The architect added `exclude = [".git-exclude"]` to the workspace (pushed
+> separately). Rebase onto `origin/main` before you start; `dfea607` gets a new
+> hash, so report it.
+
 > **AUTHORIZED 2026-11-17 — owner:** *"Authorized."* Written 2026-11-17 by the
 > architect. The end state (no `zip` 7.x) follows through T081 (pt2safetensors) and
 > T082 (arama adopts its release); this task gets `main` green meanwhile.
