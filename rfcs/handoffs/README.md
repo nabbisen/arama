@@ -118,6 +118,8 @@ it has no handoff.
 | T079 | [Prove the stale pair-scan guard through the real open path](./T079-stale-pair-scan-test-through-open-path-handoff.md) | RFC 047 §3.3 | 2026-11-17 |
 | T080 | [Four new `zip` advisories, and `chrono` unmaintained](./T080-zip-and-chrono-advisories-handoff.md) | RFC 049 §3, §4 | 2026-11-17 |
 | T081 | [`pt2safetensors` on `candle-core` 0.11 (in the owner's crate)](./T081-pt2safetensors-candle-0.11-handoff.md) | RFC 049 | 2026-11-17 |
+| T082 | [Adopt `pt2safetensors` 0.2.0, and retire the eight `zip` ignores](./T082-adopt-pt2safetensors-0.2-handoff.md) | RFC 049 §3, §4, §8 | — (awaiting the owner) |
+| T083 | [The XDG test passes under the isolation every run uses](./T083-env-xdg-test-under-arama-data-home-handoff.md) | RFC 041 | 2026-11-17 |
 
 **Tasks written before 2026-11-08 are not here.** Until then they were kept in
 the working copy's `.git-exclude/tasks/dev-team/` — numbered `001`–`047`, then
