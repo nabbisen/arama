@@ -1,7 +1,7 @@
 > **AUTHORIZED 2026-11-08 — owner:** *"Authorized."* Written 2026-11-08 by the
 > architect.
 >
-> **Governed by [RFC 049](../proposed/049-advisory-maintenance-policy.md)
+> **Governed by [RFC 049](../done/049-advisory-maintenance-policy.md)
 > §3** — this task adds an ignore.
 >
 > **This is the last thing between `main` and a green `Audit`.** T065 and T067
@@ -12,7 +12,7 @@
 
 # T068 Handoff — RUSTSEC-2026-0441, `pin-utils`: wasm32-only
 
-Companion to [RFC 049](../proposed/049-advisory-maintenance-policy.md) — maintenance under its §3 and §6.
+Companion to [RFC 049](../done/049-advisory-maintenance-policy.md) — maintenance under its §3 and §6.
 
 Found by the dev team during T065 (review package 158) and correctly left alone
 there as out of scope. **Its reachability is already determined** — by the

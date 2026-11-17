@@ -33,7 +33,7 @@ and it met the spec; the spec was too weak. This task closes the gap.
 
 ## 3. Applicable RFC and requirements
 
-[RFC 047](../proposed/047-indexing-cancellation.md) §3.3; RFC 036 (no result that
+[RFC 047](../done/047-indexing-cancellation.md) §3.3; RFC 036 (no result that
 looks complete and is not).
 
 ## 4. Change scope

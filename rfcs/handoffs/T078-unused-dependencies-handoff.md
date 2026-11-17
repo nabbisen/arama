@@ -30,7 +30,7 @@ Recorded since review 163 (2026-11-14) and noted in several packages as
 
 ## 3. Applicable RFC and requirements
 
-[RFC 049](../proposed/049-advisory-maintenance-policy.md) (a smaller graph is
+[RFC 049](../done/049-advisory-maintenance-policy.md) (a smaller graph is
 fewer advisories to track). No new design.
 
 ## 4. Change scope

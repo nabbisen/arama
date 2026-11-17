@@ -1,6 +1,6 @@
 # RFC 052: A text-size setting, and reach for older readers
 
-**Status:** **Accepted by the project owner, 2026-11-04** (*"Yes. Authorized.
+**Status:** Implemented (0.43.0). **Accepted by the project owner, 2026-11-04** (*"Yes. Authorized.
 Proceed on the improvements and enhancement."*)
 **Raised by:** the owner, 2026-11-04, asking whether layout, typography and
 colour could be improved *"especially for elder people"*

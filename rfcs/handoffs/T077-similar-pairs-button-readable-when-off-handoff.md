@@ -3,7 +3,7 @@
 > **AUTHORIZED 2026-11-17 — owner:** *"The three are approved."* (T077, T078,
 > T079). Written 2026-11-17 by the architect.
 >
-> **Implements [RFC 052](../proposed/052-text-size-and-reach.md) §4**, which was
+> **Implements [RFC 052](../done/052-text-size-and-reach.md) §4**, which was
 > held until T061 (RFC 047) landed. T061 is accepted (review 170). Independent
 > of T078 and T079.
 

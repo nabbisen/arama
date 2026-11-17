@@ -12,13 +12,9 @@ permanent; implemented and archived RFCs are never deleted.
 | 042 | [Windows Store distribution and the CPU/GPU binary](./proposed/042-windows-store-distribution.md) | Medium — Phase 0 answered; route undecided |
 | 045 | [Automated Microsoft Store submission](./proposed/045-automated-store-submission.md) | Medium — owner requested 2026-08-25; blocked on credentials + gating decision |
 | 046 | [Audio model fidelity, and the gap that let it survive](./proposed/046-audio-model-fidelity.md) | **Critical** — external audit 2026-09-01; narrowed to route A or B 2026-10-21, decision owner-reserved |
-| 047 | [Indexing that can be stopped, and async that actually awaits](./proposed/047-indexing-cancellation.md) | High — **accepted 2026-11-15**, implemented by T061. External audit 2026-09-01; absorbed RFC 048 §3 and settled its own §7 on 2026-10-21 |
 | 048 | [Library scale — rendering cost and ordering](./proposed/048-library-scale.md) | High — external audit 2026-09-01; phased 2026-10-21, §3 moved to RFC 047 |
-| 049 | [Advisory maintenance as a standing policy](./proposed/049-advisory-maintenance-policy.md) | High — **accepted 2026-10-24**. §3 and §6 apply now; §8's scheduled check has no task yet |
 | 050 | [Which device is actually running the model, and saying so](./proposed/050-compute-device-visibility.md) | Medium — portfolio review 2026-10-21; lifted out of RFC 042 |
 | 051 | [Flatpak distribution, and what a sandbox changes](./proposed/051-flatpak-distribution.md) | Medium — **accepted 2026-10-22**; sequenced after the AUR channel goes live. §2.2 corrected 2026-10-24: arama already handles an unreadable remembered root, so nothing here is liftable |
-| 052 | [A text-size setting, and reach for older readers](./proposed/052-text-size-and-reach.md) | High — **accepted 2026-11-04**. arama has no text-size control and no preset can substitute; colour and target sizes measured fine and are explicit non-goals |
-| 053 | [A headless layout matrix](./proposed/053-headless-layout-matrix.md) | High — **accepted 2026-11-14**. Layout checked headlessly across every text size, language, theme and window size, on every CI run (the owner's test rules); minimum window 760 × 520, Japanese font installed on CI only |
 
 ## Implemented
 
@@ -67,6 +63,10 @@ permanent; implemented and archived RFCs are never deleted.
 | 041 | [Application data locations](./done/041-application-data-locations.md) | 0.40.0 |
 | 043 | [Typography roles and prose readability](./done/043-typography-roles-and-prose-readability.md) | 0.41.0 |
 | 044 | [Keyboard operability](./done/044-keyboard-operability.md) | 0.41.0 |
+| 047 | [Indexing that can be stopped, and async that actually awaits](./done/047-indexing-cancellation.md) | 0.43.0 |
+| 049 | [Advisory maintenance as a standing policy](./done/049-advisory-maintenance-policy.md) | 0.43.0 |
+| 052 | [A text-size setting, and reach for older readers](./done/052-text-size-and-reach.md) | 0.43.0 |
+| 053 | [A headless layout matrix](./done/053-headless-layout-matrix.md) | 0.43.0 |
 
 ## Archive
 

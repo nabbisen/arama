@@ -8,7 +8,7 @@
 
 # T072 Handoff — `rustix` unsound and three `quinn` advisories, cleared by lockfile updates
 
-Governed by [RFC 049](../proposed/049-advisory-maintenance-policy.md) — §3
+Governed by [RFC 049](../done/049-advisory-maintenance-policy.md) — §3
 (the ignore list pairs with the ledger) and §4 (an ignore an update makes
 unnecessary is retired, not kept).
 

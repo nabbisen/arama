@@ -43,7 +43,7 @@ conformance**, and 2.23:1 is hard to read for anyone whose contrast sensitivity
 has declined.
 
 It matters here specifically because **arama's most meaningful disabled control
-is the Similar Pairs button**, and [RFC 047](../proposed/047-indexing-cancellation.md)
+is the Similar Pairs button**, and [RFC 047](../done/047-indexing-cancellation.md)
 is about to make that state carry *more* information — §3.4 makes it mean
 "embedding completed", and §7.1 makes it the visible consequence of a partial
 index. A control whose state is the message should be readable when it is off.

@@ -3,7 +3,7 @@
 > **AUTHORIZED 2026-11-04 — owner:** *"Yes. Authorized. Proceed on the
 > improvements and enhancement."* Written 2026-11-04 by the architect.
 >
-> **Implements [RFC 052](../proposed/052-text-size-and-reach.md) §2**,
+> **Implements [RFC 052](../done/052-text-size-and-reach.md) §2**,
 > accepted the same day. Read the RFC first — §1 explains why the obvious
 > approach produces a half-scaled interface, which is worse than no setting.
 >
@@ -22,7 +22,7 @@
 > above is unchanged.
 
 > **Added 2026-11-14 — "a narrow window" now has a value: 760 × 520 logical px
-> of content.** The owner chose it for [RFC 053](../proposed/053-headless-layout-matrix.md)
+> of content.** The owner chose it for [RFC 053](../done/053-headless-layout-matrix.md)
 > §2.2 (option A): half of a 1920 × 1080 screen at 125 %, so arama fits beside a
 > file manager. Wherever this handoff says *"narrow window"*, read that size.
 > **If the layout does not fit it at the largest step, fix the layout, not the
@@ -31,7 +31,7 @@
 
 # T063 Handoff — a text-size setting: Default / Large / Larger
 
-Companion to [RFC 052](../proposed/052-text-size-and-reach.md) §2.
+Companion to [RFC 052](../done/052-text-size-and-reach.md) §2.
 
 ## 1. Why the obvious approach is wrong
 

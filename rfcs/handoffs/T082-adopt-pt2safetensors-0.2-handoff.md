@@ -40,7 +40,7 @@ then removed, and recorded as resolved.
 
 ## 3. Applicable RFC and requirements
 
-[RFC 049](../proposed/049-advisory-maintenance-policy.md) §3, §4 (an ignore
+[RFC 049](../done/049-advisory-maintenance-policy.md) §3, §4 (an ignore
 whose condition is met is retired, with evidence), §8 (ignore list and ledger in
 sync).
 

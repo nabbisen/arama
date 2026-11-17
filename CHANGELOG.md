@@ -9,6 +9,97 @@ Releases follow the archive naming `arama-X.Y.Z.tar.gz`.
 
 ---
 
+## [0.43.0]
+
+**A release about doing what it says, for more people.** Stop now stops: before
+this release, indexing and the similar-pairs scan carried on after you asked
+them to end, because nothing in them ever paused to notice. Text can be made
+larger, the navigation is labelled, and arama's dependencies are clear of every
+security advisory that reached them.
+
+**Upgrading needs nothing from you.** Your cache is upgraded in place the first
+time 0.43.0 opens it. **Going back to 0.42.0 or older afterwards needs one step,
+described under Changed:** an older arama cannot read the upgraded cache.
+
+### Added
+
+- **A text-size setting.** *Settings → General → Text size* offers Default, Large
+  and Larger. The whole interface scales with it, controls and spacing as well as
+  text. It takes effect after arama restarts, and says so.
+- **The navigation names its pages.** Each icon in the side rail now has its name
+  shown beneath it, not only when you point at it.
+- **Every release now carries a `SHA256SUMS` file.** Check your download against
+  it before extracting; the steps for Linux, macOS and Windows are in
+  [Verifying a download](docs/src/users/installation.md#verifying-a-download).
+  Each digest is checked against GitHub's own record of the file before the
+  release is published.
+- **A privacy policy** (`PRIVACY.md`): what arama sends over the network (the
+  two model downloads, from Hugging Face, and nothing else) and what stays on
+  your machine.
+- **An app icon.**
+
+### Changed
+
+- **Stop really stops.** Stopping indexing ends it once the file in progress is
+  done, and the folder tree is usable again right away. Closing the *Similarity pairs* dialog ends its scan,
+  which now shows its progress while it runs. A scan you closed can no longer
+  deliver its late result into one you opened afterwards.
+- **The *Similarity pairs* button says why it is off.** It is available once
+  indexing has finished, and until then it reads *"Available when indexing
+  finishes"* rather than sitting greyed out with no explanation. Disabled, it is
+  still readable.
+- **The window has a minimum size, 760 × 520,** below which the layout would
+  cut off its own content. Its title is now just *arama*, and on Linux the
+  window is identified as `arama`, so desktop environments match it to its icon.
+- **Model downloads refuse plain HTTP, redirects included.** They were always
+  HTTPS and checked against pinned SHA-256 digests. Now an insecure redirect is
+  refused too, rather than followed.
+- **The cache database is upgraded to a newer format** (`localcache` 0.26.2).
+  This brings SQLite 3.54.1, which fixes CVE-2026-119375 (uninitialized memory
+  returned from a query on a crafted database file).
+
+  **The upgrade is one-way.** arama 0.42.0 and older cannot open the upgraded
+  cache. They do not damage it, but they then index nothing and cannot clear it
+  from inside the app. **Before going back to an older arama, delete the
+  `cache` folder yourself.** It is in your platform's cache location, listed
+  under [Data locations](docs/src/users/installation.md#data-locations). Your
+  settings, your models and your media files are elsewhere and are not affected.
+  The older arama then indexes your folders again from the start.
+- **Building from source needs Rust 1.94 or newer** (was 1.91). The model
+  library arama uses, `candle`, needs 1.94 in its current release on x86_64.
+- **Visual refinements** from the snora design system (0.42 → 0.57): small
+  changes to spacing and toast sizes.
+
+### Fixed
+
+- **Indexing no longer finishes silently with nothing when the cache cannot be
+  opened.** A cache that could not be opened (no permission, a full disk, a
+  damaged file) made indexing look finished while it had produced nothing. It now
+  tells you.
+- **Japanese text in the footer is no longer clipped,** and the layout is now
+  checked automatically in both languages, every theme and text size, and three
+  window sizes.
+
+### Security
+
+Every advisory reported against arama's dependencies during this cycle is fixed,
+or recorded with the evidence that it cannot reach arama. Fixed: `rustls` and
+`rustls-webpki` on the model-download path, `tokio`, `rustix`, `quinn-proto`,
+`quick-xml`, two yanked crates (`clipboard-win`, `async-executor`), and eight
+advisories in `zip` below 9.0, now gone from arama entirely. The `zip` fix came
+through [`pt2safetensors`](https://crates.io/crates/pt2safetensors) 0.2.0, the
+model-conversion crate arama depends on. Seven warnings remain tracked (six
+unmaintained crates, and one unsound function in `lru`), each with its reason
+and the condition for revisiting it, in
+[the advisory ledger](rfcs/notes/audit-warning-burn-down.md).
+
+### For packagers
+
+- Arch Linux packaging files (`PKGBUILD`s for `arama` and `arama-bin`, a desktop
+  entry and icons) are in `packaging/linux/`.
+
+---
+
 ## [0.42.0]
 
 **A release about not losing your work, and about arama describing itself

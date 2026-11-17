@@ -22,7 +22,7 @@
 > lands. Both tasks also edit `rfcs/notes/audit-warning-burn-down.md`, so they
 > must not run concurrently.
 >
-> **Implements [RFC 049](../proposed/049-advisory-maintenance-policy.md)
+> **Implements [RFC 049](../done/049-advisory-maintenance-policy.md)
 > §4, §5 and §8.** Read §5 first — its trigger was **corrected on 2026-11-04**
 > after the owner pointed out the project has no weekly routine, and the
 > corrected version is what this task builds.
@@ -35,7 +35,7 @@
 
 # T066 Handoff — detect an ignore whose condition has already been met
 
-Companion to [RFC 049](../proposed/049-advisory-maintenance-policy.md) §4, §5 and §8.
+Companion to [RFC 049](../done/049-advisory-maintenance-policy.md) §4, §5 and §8.
 
 ## 1. The one thing no existing gate can catch
 

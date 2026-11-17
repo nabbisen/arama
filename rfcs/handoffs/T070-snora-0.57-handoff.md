@@ -23,7 +23,7 @@
 No RFC. Dependency maintenance, the same kind as T052 (snora 0.42 → 0.52).
 Constrained by [RFC 044](../done/044-keyboard-operability.md) (keyboard), which
 this upgrade must not regress, and by
-[RFC 049](../proposed/049-advisory-maintenance-policy.md) §3 (the audit
+[RFC 049](../done/049-advisory-maintenance-policy.md) §3 (the audit
 ignore list), which §2.6 touches.
 
 ## 1. Purpose

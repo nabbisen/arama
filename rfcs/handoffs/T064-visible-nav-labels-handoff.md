@@ -3,7 +3,7 @@
 > **AUTHORIZED 2026-11-04 — owner:** *"Yes. Authorized. Proceed on the
 > improvements and enhancement."* Written 2026-11-04 by the architect.
 >
-> **Implements [RFC 052](../proposed/052-text-size-and-reach.md) §3**,
+> **Implements [RFC 052](../done/052-text-size-and-reach.md) §3**,
 > accepted the same day.
 >
 > **Independent of T063 and T061**, but it touches `app/src/core/view.rs`, which
@@ -89,7 +89,7 @@
 
 # T064 Handoff — show the navigation labels without hover
 
-Companion to [RFC 052](../proposed/052-text-size-and-reach.md) §3.
+Companion to [RFC 052](../done/052-text-size-and-reach.md) §3.
 
 ## 1. The finding
 

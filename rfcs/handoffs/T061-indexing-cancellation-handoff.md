@@ -79,9 +79,9 @@
 
 # T061 Handoff — indexing that can actually be stopped (RFC 047)
 
-Companion to [RFC 047](../proposed/047-indexing-cancellation.md). **Read the RFC first** — this handoff settles what it left open and names the traps.
+Companion to [RFC 047](../done/047-indexing-cancellation.md). **Read the RFC first** — this handoff settles what it left open and names the traps.
 
-**RFC:** `rfcs/proposed/047-indexing-cancellation.md` — read it first and in
+**RFC:** `rfcs/done/047-indexing-cancellation.md` — read it first and in
 full. This task does not restate its analysis.
 
 ## 1. The shape of the problem, in one line each

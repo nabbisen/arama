@@ -38,7 +38,7 @@ compiles it there.
 
 ## 3. Applicable RFC and requirements
 
-[RFC 047](../proposed/047-indexing-cancellation.md) — Stop ends the work,
+[RFC 047](../done/047-indexing-cancellation.md) — Stop ends the work,
 including the external processes it started. The owner's test rules: check each
 property at the cheapest level that proves it — here, a test on the platform
 whose code it is.

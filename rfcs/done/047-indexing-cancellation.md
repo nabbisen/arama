@@ -1,6 +1,6 @@
 # RFC 047: Indexing that can be stopped, and async that actually awaits
 
-**Status:** **Accepted by the project owner, 2026-11-15** (*"Yes, accepted."*). Implemented by T061 (reviews 161, 162, 170; Windows reaping proven by T076, review 171). Moves to `rfcs/done/` with the release that ships it.
+**Status:** Implemented (0.43.0). **Accepted by the project owner, 2026-11-15** (*"Yes, accepted."*). Implemented by T061 (reviews 161, 162, 170; Windows reaping proven by T076, review 171).
 **Raised by:** the external audit of 0.41.2, 2026-09-01 (findings B2, C1, C4,
 A7, D4), verified in
 [`external-audit-2026-09-01-verification`](../notes/external-audit-2026-09-01-verification.md)
@@ -107,7 +107,7 @@ what lets the flag be observed.** Both are required.
 
 **3.3 A bound, honest counts, and a progress signal for the pair scan.**
 
-> **Moved here from [RFC 048](./048-library-scale.md) §3 on 2026-10-21**, with
+> **Moved here from [RFC 048](../proposed/048-library-scale.md) §3 on 2026-10-21**, with
 > the owner's agreement. The two were halves of one user-visible behaviour: 047
 > made the scan stoppable, 048 made its result honest. Shipping 047 alone would
 > have produced a pair scan that stops cleanly and still misreports how much it
@@ -149,7 +149,7 @@ should mean what its name says.
 
 **Not blocking 0.42.0.** Nothing here loses user data or crashes. The cost is
 CPU burned on abandoned work, a UI that misdescribes itself, and — with
-[RFC 048](./048-library-scale.md)'s scale findings — an application that gets
+[RFC 048](../proposed/048-library-scale.md)'s scale findings — an application that gets
 slower to abandon the larger the library.
 
 **But it interacts with a real hazard.** The audit's B3 records that media-path
@@ -164,8 +164,8 @@ work rather than after it.
   Streaming partial results is a larger design and nobody has asked for it.
 - **Replacing exact search with an ANN index.** §1.3 argues exact search is
   right at this scale. It needs a bound, not an index.
-- **The gallery's rendering cost.** [RFC 048](./048-library-scale.md).
-- **Model fidelity.** [RFC 046](./046-audio-model-fidelity.md).
+- **The gallery's rendering cost.** [RFC 048](../proposed/048-library-scale.md).
+- **Model fidelity.** [RFC 046](../proposed/046-audio-model-fidelity.md).
 
 ## 6. Acceptance
 

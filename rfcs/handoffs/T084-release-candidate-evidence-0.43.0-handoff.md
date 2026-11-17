@@ -1,5 +1,5 @@
-> **NOT AUTHORIZED — awaiting the owner.** Written 2026-11-18 by the architect,
-> as part of the 0.43.0 release plan (`.git-exclude/schedule/README.md`).
+> **AUTHORIZED 2026-11-18 — owner:** *"T084 is accepted."* Written 2026-11-18 by
+> the architect, as part of the 0.43.0 release plan (`.git-exclude/schedule/README.md`).
 >
 > **Starts after the architect's release-preparation commit** (version 0.43.0,
 > `CHANGELOG.md`, RFC moves). The architect names that commit in this banner

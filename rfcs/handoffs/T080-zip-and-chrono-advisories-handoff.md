@@ -80,7 +80,7 @@ action. This task only states the condition.
 
 ## 3. Applicable RFC and requirements
 
-[RFC 049](../proposed/049-advisory-maintenance-policy.md) §3 (each ignore with
+[RFC 049](../done/049-advisory-maintenance-policy.md) §3 (each ignore with
 its path, its reasoning and its revisit condition, in
 `rfcs/notes/audit-warning-burn-down.md`, in sync with `.cargo/audit.toml` —
 checked by T066's script), §4.

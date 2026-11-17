@@ -1,6 +1,6 @@
 # RFC 053: A headless layout matrix — every text size, language, theme and window size, on every CI run
 
-**Status:** **Accepted by the project owner, 2026-11-14** (*"Accepted."*). Owner
+**Status:** Implemented (0.43.0). **Accepted by the project owner, 2026-11-14** (*"Accepted."*). Owner
 decisions (§7): minimum window **760 × 520**; fonts **(a)**, installed on CI only.
 No task is authorized yet.
 **Raised by:** the architect, 2026-11-11, applying the owner's updated GUI test

@@ -7,7 +7,7 @@
 # a warning, exit 0. Expected and accepted, not an oversight to fix.
 
 pkgname=arama-bin
-pkgver=0.42.0
+pkgver=0.43.0
 pkgrel=1
 pkgdesc="Find similar images and videos, entirely on your own machine (prebuilt binary)"
 arch=('x86_64')

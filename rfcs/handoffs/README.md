@@ -120,7 +120,7 @@ it has no handoff.
 | T081 | [`pt2safetensors` on `candle-core` 0.11 (in the owner's crate)](./T081-pt2safetensors-candle-0.11-handoff.md) | RFC 049 | 2026-11-17 |
 | T082 | [Adopt `pt2safetensors` 0.2.0, and retire the eight `zip` ignores](./T082-adopt-pt2safetensors-0.2-handoff.md) | RFC 049 §3, §4, §8 | 2026-11-17 |
 | T083 | [The XDG test passes under the isolation every run uses](./T083-env-xdg-test-under-arama-data-home-handoff.md) | RFC 041 | 2026-11-17 |
-| T084 | [Release-candidate evidence for 0.43.0](./T084-release-candidate-evidence-0.43.0-handoff.md) | `docs/src/dev/release.md` | — (awaiting the owner) |
+| T084 | [Release-candidate evidence for 0.43.0](./T084-release-candidate-evidence-0.43.0-handoff.md) | `docs/src/dev/release.md` | 2026-11-18 |
 
 **Tasks written before 2026-11-08 are not here.** Until then they were kept in
 the working copy's `.git-exclude/tasks/dev-team/` — numbered `001`–`047`, then

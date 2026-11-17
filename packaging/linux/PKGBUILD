@@ -12,7 +12,7 @@
 # answer - leave the tag off.
 
 pkgname=arama
-pkgver=0.42.0
+pkgver=0.43.0
 pkgrel=1
 pkgdesc="Find similar images and videos, entirely on your own machine"
 arch=('x86_64')
