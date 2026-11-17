@@ -85,7 +85,7 @@ archive, so the test is whether a future arama contributor needs the document
 to understand the project — not whether it concerns the project. A record of
 *what was found and why arama acted on it* belongs here; a letter written to
 an external team about those findings does not, and lives under
-`.git-exclude/correspondence/`. The report that opened the snora exchange is
+`.git-exclude/upstream/<project>/send/`. The report that opened the snora exchange is
 the former, because it explains why arama sits on the snora version it does;
 arama's replies are the latter.
 
