@@ -77,7 +77,7 @@ tokio-stream        = { version = "0.1", default-features = false, features = ["
 naga                = "27"
 # - model loader
 reqwest             = { version = "0.13", default-features = false, features = ["blocking", "multipart", "rustls", "stream"] }
-pt2safetensors      = "0.1.3"
+pt2safetensors      = "0.2.0"
 
 # cache
 localcache          = "0.26.2"
