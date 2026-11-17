@@ -73,15 +73,32 @@
 # --deny warnings` exits 0 with it removed from this list, and
 # `grep -c '^name = "pin-utils"$' Cargo.lock` -> 0. See the ledger's
 # "Resolved" section for the before/after.
+#
+# Task 080 (2026-11-17): `cargo update -p candle-core@0.11.0` (only
+# that) moved the arama-ai-direct candle-core to 0.11.1, which depends
+# on zip >=9.0.0 (locked to 9.5.1) - zip 8.6.0 is gone from the lock
+# entirely, so 0367/0368/0369/0429 above now match only zip 7.2.0 (the
+# pt2safetensors <- candle-core 0.10.2 path, T081's target), one entry
+# each instead of two. Four new IDs appeared on both zip versions at
+# first observation and now match only the remaining zip 7.2.0 for the
+# same reason - see the ledger's "zip 7.2.0 - RUSTSEC-2026-0545 through
+# 0548" entry for the per-ID reachability finding. RUSTSEC-2026-0543
+# (chrono, unmaintained) is a separate crate and path, also new; see
+# the ledger's own entry for both paths and the revisit condition.
 ignore = [
     "RUSTSEC-2024-0436", # paste 1.0.15, unmaintained - candle/gemm, tokenizers, Apple rendering.
     "RUSTSEC-2026-0192", # ttf-parser 0.25.1, unmaintained - fontdb, cosmic-text, ab_glyph.
     "RUSTSEC-2026-0253", # lru 0.16.4, unsound - cryoglyph <- iced_wgpu <- iced.
-    "RUSTSEC-2026-0367", # zip 7.2.0/8.6.0, extract() not called - candle-core <- pt2safetensors/arama-ai.
-    "RUSTSEC-2026-0368", # zip 7.2.0/8.6.0, extract() not called - candle-core <- pt2safetensors/arama-ai.
-    "RUSTSEC-2026-0369", # zip 7.2.0/8.6.0, extract() not called - candle-core <- pt2safetensors/arama-ai.
+    "RUSTSEC-2026-0367", # zip 7.2.0, extract() not called - candle-core 0.10.2 <- pt2safetensors <- arama-ai. zip 8.6.0 half retired by T080.
+    "RUSTSEC-2026-0368", # zip 7.2.0, extract() not called - candle-core 0.10.2 <- pt2safetensors <- arama-ai. zip 8.6.0 half retired by T080.
+    "RUSTSEC-2026-0369", # zip 7.2.0, extract() not called - candle-core 0.10.2 <- pt2safetensors <- arama-ai. zip 8.6.0 half retired by T080.
     "RUSTSEC-2026-0370", # zvariant 5.12.0, unmaintained - zbus 5.16.0 <- file-handle/mundy.
     "RUSTSEC-2026-0371", # zbus_names 4.3.2, unmaintained - zbus 5.16.0 <- file-handle.
     "RUSTSEC-2026-0372", # zvariant_derive 5.12.0, unmaintained - zbus 5.16.0 <- file-handle/mundy.
-    "RUSTSEC-2026-0429", # zip 7.2.0/8.6.0, extract() not called - candle-core <- pt2safetensors/arama-ai. Same path as 0367-0369.
+    "RUSTSEC-2026-0429", # zip 7.2.0, extract() not called - candle-core 0.10.2 <- pt2safetensors <- arama-ai. Same path as 0367-0369; zip 8.6.0 half retired by T080.
+    "RUSTSEC-2026-0545", # zip 7.2.0, aes-crypto feature not compiled (default-features = false) - candle-core 0.10.2 <- pt2safetensors <- arama-ai.
+    "RUSTSEC-2026-0546", # zip 7.2.0, extract()/extract_unwrapped_root_dir() not called - candle-core 0.10.2 <- pt2safetensors <- arama-ai.
+    "RUSTSEC-2026-0547", # zip 7.2.0, legacy-zip feature not compiled (default-features = false) - candle-core 0.10.2 <- pt2safetensors <- arama-ai.
+    "RUSTSEC-2026-0548", # zip 7.2.0, ZipStreamReader not used - candle-core 0.10.2 <- pt2safetensors <- arama-ai.
+    "RUSTSEC-2026-0543", # chrono 0.4.45, unmaintained - trash <- file-handle, and arama-ui-main's own direct use.
 ]
