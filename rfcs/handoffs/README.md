@@ -109,6 +109,9 @@ it has no handoff.
 | T074 | [The headless layout matrix, and a minimum window size](./T074-headless-layout-matrix-handoff.md) | RFC 053 | 2026-11-14 |
 | T075 | [A `SHA256SUMS` file on every release, checked against GitHub's own digests](./T075-release-checksums-handoff.md) | RFC 034, RFC 037 | 2026-11-14 |
 | T076 | [Run `arama-cache`'s tests on macOS and Windows, and prove Windows reaps a grandchild](./T076-cache-tests-on-macos-and-windows-handoff.md) | RFC 047 | 2026-11-15 |
+| T077 | [The Similar Pairs button says what it is, and why it is off](./T077-similar-pairs-button-readable-when-off-handoff.md) | RFC 052 §4 | 2026-11-17 |
+| T078 | [Remove the four unused dependencies](./T078-unused-dependencies-handoff.md) | RFC 049 | 2026-11-17 |
+| T079 | [Prove the stale pair-scan guard through the real open path](./T079-stale-pair-scan-test-through-open-path-handoff.md) | RFC 047 §3.3 | 2026-11-17 |
 
 **Tasks written before 2026-11-08 are not here.** Until then they were kept in
 the working copy's `.git-exclude/tasks/dev-team/` — numbered `001`–`047`, then
