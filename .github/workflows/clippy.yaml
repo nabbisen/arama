@@ -17,7 +17,7 @@ name: Clippy
 # narrow, separately-scoped job living outside the release path"), not a
 # step added there. msrv.yaml's own header says so explicitly ("Format,
 # Clippy, cargo audit, feature-matrix, and cross-target verification are
-# out of scope for this job") and pins the exact MSRV toolchain (1.91) on
+# out of scope for this job") and pins the exact MSRV toolchain (1.94) on
 # purpose, to prove the floor still builds. A clippy job pinned to that
 # same floor would never have caught this: the lint that broke ships in
 # 1.98, three minors past MSRV. This job therefore deliberately runs on

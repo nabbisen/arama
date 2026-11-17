@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Rust toolchain via [rustup.rs](https://rustup.rs/) (stable channel), Rust
-  1.91 or newer — the workspace's verified contributor-setup baseline
+  1.94 or newer — the workspace's verified contributor-setup baseline
   (`[workspace.package].rust-version` in the root `Cargo.toml` is the single
   normative declaration; this line and `docs/src/users/installation.md`
   mirror it)
