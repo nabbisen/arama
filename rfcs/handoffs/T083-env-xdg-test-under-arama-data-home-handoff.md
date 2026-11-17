@@ -1,3 +1,5 @@
+> **ACCEPTED 2026-11-17 — review 186** (`f9b8036`).
+
 > **AUTHORIZED 2026-11-17 — owner:** *"Authorized."* (the follow-up from review
 > 184). Written 2026-11-17 by the architect.
 >
