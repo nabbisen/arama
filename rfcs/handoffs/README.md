@@ -112,6 +112,7 @@ it has no handoff.
 | T077 | [The Similar Pairs button says what it is, and why it is off](./T077-similar-pairs-button-readable-when-off-handoff.md) | RFC 052 §4 | 2026-11-17 |
 | T078 | [Remove the four unused dependencies](./T078-unused-dependencies-handoff.md) | RFC 049 | 2026-11-17 |
 | T079 | [Prove the stale pair-scan guard through the real open path](./T079-stale-pair-scan-test-through-open-path-handoff.md) | RFC 047 §3.3 | 2026-11-17 |
+| T080 | [Four new `zip` advisories, and `chrono` unmaintained](./T080-zip-and-chrono-advisories-handoff.md) | RFC 049 §3, §4 | not authorized |
 
 **Tasks written before 2026-11-08 are not here.** Until then they were kept in
 the working copy's `.git-exclude/tasks/dev-team/` — numbered `001`–`047`, then
