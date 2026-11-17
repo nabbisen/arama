@@ -1,5 +1,6 @@
-> **NOT AUTHORIZED.** Written 2026-11-17 by the architect. Do not start until a
-> grant appears in this banner.
+> **AUTHORIZED 2026-11-17 — owner:** *"Authorized."* Written 2026-11-17 by the
+> architect. The end state (no `zip` 7.x) follows through T081 (pt2safetensors) and
+> T082 (arama adopts its release); this task gets `main` green meanwhile.
 >
 > **`main` is red on `Audit` until this lands.** Every push since `89a69a3` fails
 > that one workflow. Independent of every other task.
