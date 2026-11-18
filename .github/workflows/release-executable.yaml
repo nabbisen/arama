@@ -62,15 +62,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Both Linux variants build on a named Ubuntu, never
+          # ubuntu-latest. The glibc of the build image is the oldest
+          # glibc the binary runs on, so moving it is a compatibility
+          # change for users and belongs in a release note, not in an
+          # image rollover. ubuntu-24.04 gives glibc 2.39, the same as
+          # 0.42.0. It also has the CUDA_VERSION packages: NVIDIA's
+          # ubuntu2604 repository has no cuda-13-2.
           - name: Linux-x64-gnu-cpu
             target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
+            os: ubuntu-24.04
             bin-ext:
             archive-ext: .tar.gz
             cuda_enabled: false
           - name: Linux-x64-gnu-gpu-cuda
             target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
+            os: ubuntu-24.04
             bin-ext:
             archive-ext: .tar.gz
             cuda_enabled: true
