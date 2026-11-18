@@ -1,9 +1,9 @@
-> **NOT AUTHORIZED.** Written 2026-11-18 by the architect, as item 6 of the
+> **AUTHORIZED 2026-11-18 — owner:** *"Authorized."* Written 2026-11-18 by the architect, as item 6 of the
 > 0.44.0 plan (`.git-exclude/schedule/README.md`, owner: *"Authorized."*).
-> **[RFC 048](../proposed/048-library-scale.md) is still Proposed.** This task
-> implements only its phase 1 (§0, §2, §4), and needs the owner to accept that
-> phase as well as to authorize the task. Do not start until a banner here says
-> so.
+> **[RFC 048](../proposed/048-library-scale.md): only phase 1 is accepted.** This task
+> implements only that phase (§0, §2, §4). The owner's *"Authorized."* answered
+> the request to accept that phase and authorize this task together; phase 2 stays
+> Proposed.
 >
 > **Independent of T085–T088.**
 

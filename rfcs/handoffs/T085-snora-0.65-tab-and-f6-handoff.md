@@ -1,7 +1,7 @@
-> **NOT AUTHORIZED.** Written 2026-11-18 by the architect, as item 2 of the
+> **AUTHORIZED 2026-11-18 — owner:** *"Authorized."* Written 2026-11-18 by the architect, as item 2 of the
 > 0.44.0 plan (`.git-exclude/schedule/README.md`, owner: *"Authorized."*) under
-> [RFC 054](../proposed/054-keyboard-reach.md) (owner: *"Accepted."*). Neither is
-> authorization of this task. Do not start until a banner here says so.
+> [RFC 054](../proposed/054-keyboard-reach.md) (owner: *"Accepted."*). Neither was
+> authorization of this task; this banner is.
 >
 > **First of three keyboard tasks** (T085 → T086 → T087). Independent of T088 and
 > T089.

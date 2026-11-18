@@ -1,7 +1,6 @@
-> **NOT AUTHORIZED.** Written 2026-11-18 by the architect, as item 5 of the
+> **AUTHORIZED 2026-11-18 — owner:** *"Authorized."* Written 2026-11-18 by the architect, as item 5 of the
 > 0.44.0 plan (`.git-exclude/schedule/README.md`, owner: *"Authorized."*). The
-> plan is not authorization of this task. Do not start until a banner here says
-> so.
+> plan was not authorization of this task; this banner is.
 >
 > **Independent of T085–T087 and T089.**
 

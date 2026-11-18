@@ -1,6 +1,6 @@
 # RFC 048: Library scale — rendering cost, ordering, and silent truncation
 
-**Status:** Proposed
+**Status:** Proposed. **Phase 1 (§0, §2, §4) accepted by the project owner, 2026-11-18** (*"Authorized."*, answering the request to accept it with T089). Phase 2 remains proposed.
 **Raised by:** the external audit of 0.41.2, 2026-09-01 (findings C2, A6, A8,
 C3), verified in
 [`external-audit-2026-09-01-verification`](../notes/external-audit-2026-09-01-verification.md)
