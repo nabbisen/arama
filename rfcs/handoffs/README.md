@@ -122,6 +122,7 @@ it has no handoff.
 | T083 | [The XDG test passes under the isolation every run uses](./T083-env-xdg-test-under-arama-data-home-handoff.md) | RFC 041 | 2026-11-17 |
 | T084 | [Release-candidate evidence for 0.43.0](./T084-release-candidate-evidence-0.43.0-handoff.md) | `docs/src/dev/release.md` | 2026-11-18 |
 | T085 | [snora 0.65: Tab and F6 move real focus, and the Phase 0 questions](./T085-snora-0.65-tab-and-f6-handoff.md) | RFC 054 §3.1, §4 | 2026-11-18 |
+| T086 | [Every control is a Tab stop](./T086-every-control-a-tab-stop-handoff.md) | RFC 054 §3.2–§3.4 | 2026-11-19 |
 | T088 | [Every media subprocess is bounded, and Stop stops the one running](./T088-bounded-media-subprocesses-handoff.md) | RFC 047 §4, §7 | 2026-11-18 |
 | T089 | [Files in a stable order, and no file-system calls while drawing](./T089-stable-order-and-pure-views-handoff.md) | RFC 048 §0, §2, §4 | 2026-11-18 |
 

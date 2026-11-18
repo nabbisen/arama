@@ -110,7 +110,7 @@ behind it.
 
 | Dialog | Focus starts on | Reason |
 |---|---|---|
-| Confirm (cache delete) | **Cancel** | Destructive: Enter on open must not delete. |
+| Confirm (Settings → File system → *Cache delete*, its only use) | **Cancel** | Destructive: Enter on open must not delete. |
 | Media focus | the current item of the similar strip (§3.5); Close if the strip is empty | |
 | Similar pairs | the first pair (§3.5); Close while scanning or empty | |
 
@@ -223,8 +223,9 @@ A "no" to Q1 changes §3.5 to its fallback. It does not stop the release.
 6. Settings (a page, reached from the rail): change the language, the theme and
    the text size; toggle *include videos*; move the similarity slider; return to
    the explorer from the rail.
-7. Cache page: filter; delete. The confirm dialog opens on **Cancel**; Enter
-   cancels; then Tab to the delete action and confirm.
+7. Cache page: filter, and use each action. Settings → File system → *Cache
+   delete*: the confirm dialog opens on **Cancel**; Enter cancels; then open it
+   again, Tab to the delete action and confirm.
 8. F6 through every region, forward and back.
 
 At each step: the ring is visible, and nothing outside an open dialog reacts.

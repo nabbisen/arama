@@ -1,3 +1,5 @@
+> **F1 ACCEPTED 2026-11-19 — review 192** (evidence only). T085 is closed; T086 is written.
+
 > **ACCEPTED 2026-11-18 — review 189** (`e6d60fc`, published alone). **T085 F1
 > (evidence only) is open:** the Tab-stop inventory per screen (why the first Tab
 > shows no ring), button colours per state 0.57 vs 0.65, and the ring's contrast
