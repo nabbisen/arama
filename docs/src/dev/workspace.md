@@ -130,8 +130,11 @@ would not be meaningful.
 `arama-theme` adopts the Snora Design system (RFC 010). It holds the
 active design tokens globally (`Tokens::light()` by default) and exposes
 drop-in iced button style functions (`primary`, `ghost`, `secondary`,
-`danger`) with verified WCAG AA contrast. The app and UI crates depend on
-it for button styling.
+`danger`), which take their colours from snora. On snora 0.57 they meet
+WCAG AA contrast at rest, but some hovered and pressed labels fall below
+it: snora's 0.65.0 notice corrects its own claim, and snora 0.63 is the
+first release where it holds in every state. The app and UI crates depend
+on it for button styling.
 
 ### `env`
 
