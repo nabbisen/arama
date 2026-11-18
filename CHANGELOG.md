@@ -14,12 +14,12 @@ Releases follow the archive naming `arama-X.Y.Z.tar.gz`.
 **A release about doing what it says, for more people.** Stop now stops: before
 this release, indexing and the similar-pairs scan carried on after you asked
 them to end, because nothing in them ever paused to notice. Text can be made
-larger, the navigation is labelled, and arama's dependencies are clear of every
-security advisory that reached them.
+larger, the navigation is labelled, and every vulnerability reported against
+arama's dependencies is fixed.
 
 **Upgrading needs nothing from you.** Your cache is upgraded in place the first
 time 0.43.0 opens it. **Going back to 0.42.0 or older afterwards needs one step,
-described under Changed:** an older arama cannot read the upgraded cache.
+described under Changed,** because an older arama cannot read the upgraded cache.
 
 ### Added
 
@@ -58,13 +58,16 @@ described under Changed:** an older arama cannot read the upgraded cache.
   This brings SQLite 3.54.1, which fixes CVE-2026-119375 (uninitialized memory
   returned from a query on a crafted database file).
 
-  **The upgrade is one-way.** arama 0.42.0 and older cannot open the upgraded
-  cache. They do not damage it, but they then index nothing and cannot clear it
-  from inside the app. **Before going back to an older arama, delete the
-  `cache` folder yourself.** It is in your platform's cache location, listed
-  under [Data locations](docs/src/users/installation.md#data-locations). Your
-  settings, your models and your media files are elsewhere and are not affected.
-  The older arama then indexes your folders again from the start.
+  **The upgrade is one-way.** arama 0.42.0 and older cannot read the upgraded
+  cache. They leave it untouched and say so (*"Cache reload failed"*), but show
+  no thumbnails while it is there. **To go back to 0.42.0, choose
+  *Settings → File system → Cache delete* in it, then restart it.** It indexes
+  your folders again from the start. The *Cache* page's own per-folder actions
+  cannot open the upgraded cache, so use the button in Settings. For a version
+  older than 0.42.0, quit arama and delete the `cache` folder yourself instead;
+  it is in your platform's cache location, listed under
+  [Data locations](docs/src/users/installation.md#data-locations). Your
+  settings, your models and your media files are not affected.
 - **Building from source needs Rust 1.94 or newer** (was 1.91). The model
   library arama uses, `candle`, needs 1.94 in its current release on x86_64.
 - **Visual refinements** from the snora design system (0.42 → 0.57): small
@@ -82,15 +85,15 @@ described under Changed:** an older arama cannot read the upgraded cache.
 
 ### Security
 
-Every advisory reported against arama's dependencies during this cycle is fixed,
-or recorded with the evidence that it cannot reach arama. Fixed: `rustls` and
-`rustls-webpki` on the model-download path, `tokio`, `rustix`, `quinn-proto`,
-`quick-xml`, two yanked crates (`clipboard-win`, `async-executor`), and eight
-advisories in `zip` below 9.0, now gone from arama entirely. The `zip` fix came
-through [`pt2safetensors`](https://crates.io/crates/pt2safetensors) 0.2.0, the
-model-conversion crate arama depends on. Seven warnings remain tracked (six
-unmaintained crates, and one unsound function in `lru`), each with its reason
-and the condition for revisiting it, in
+Every vulnerability reported against arama's dependencies during this cycle is
+fixed: in `rustls` and `rustls-webpki` on the model-download path, `tokio`,
+`rustix`, `quinn-proto`, `quick-xml`, and eight in `zip` below 9.0, which is now
+gone from arama entirely. The `zip` fix came through
+[`pt2safetensors`](https://crates.io/crates/pt2safetensors) 0.2.0, the
+model-conversion crate arama depends on. Two yanked crates (`clipboard-win`,
+`async-executor`) were replaced. Seven warnings remain tracked (six unmaintained
+crates, and one unsound function in `lru`), each with its reason and the
+condition for revisiting it, in
 [the advisory ledger](rfcs/notes/audit-warning-burn-down.md).
 
 ### For packagers
