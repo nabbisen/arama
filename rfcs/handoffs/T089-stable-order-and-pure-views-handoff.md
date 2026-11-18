@@ -1,3 +1,9 @@
+> **REWORK 2026-11-18 — review 191.** One regression: the File system tab is
+> refreshed only on tab selection or after Cache delete, and Settings is a page
+> whose tab survives navigation, so *Cache delete* stays disabled after indexing
+> creates a cache. Refresh on arriving at the Settings page, with an `App`-level
+> test. One commit on `t089-delivery-1` rebased onto `origin/main`.
+
 > **AUTHORIZED 2026-11-18 — owner:** *"Authorized."* Written 2026-11-18 by the architect, as item 6 of the
 > 0.44.0 plan (`.git-exclude/schedule/README.md`, owner: *"Authorized."*).
 > **[RFC 048](../proposed/048-library-scale.md): only phase 1 is accepted.** This task

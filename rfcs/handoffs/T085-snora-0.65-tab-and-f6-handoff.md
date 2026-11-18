@@ -1,3 +1,9 @@
+> **ACCEPTED 2026-11-18 — review 189** (`e6d60fc`, published alone). **T085 F1
+> (evidence only) is open:** the Tab-stop inventory per screen (why the first Tab
+> shows no ring), button colours per state 0.57 vs 0.65, and the ring's contrast
+> on the active rail item and a primary button. See review 189. T086 is written
+> after F1.
+
 > **AUTHORIZED 2026-11-18 — owner:** *"Authorized."* Written 2026-11-18 by the architect, as item 2 of the
 > 0.44.0 plan (`.git-exclude/schedule/README.md`, owner: *"Authorized."*) under
 > [RFC 054](../proposed/054-keyboard-reach.md) (owner: *"Accepted."*). Neither was

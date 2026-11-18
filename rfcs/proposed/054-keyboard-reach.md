@@ -103,10 +103,14 @@ changed screen in the layout matrix, before and after.
 Every dialog sets focus when it opens, so Enter never acts on something hidden
 behind it.
 
+> **Corrected 2026-11-18 (review 189).** This table used to list Settings.
+> Settings is a page (`NavPage::Settings`), not a dialog: it is reached from the
+> rail, Escape has nothing to close, and focus stays on the rail item that
+> opened it. The dev team found this in T085.
+
 | Dialog | Focus starts on | Reason |
 |---|---|---|
 | Confirm (cache delete) | **Cancel** | Destructive: Enter on open must not delete. |
-| Settings | the active tab | |
 | Media focus | the current item of the similar strip (§3.5); Close if the strip is empty | |
 | Similar pairs | the first pair (§3.5); Close while scanning or empty | |
 
@@ -147,6 +151,13 @@ there (principle 5).
   `text_input`, snora's slider, radio group and menus all capture arrows, so a
   free arrow means focus is on a plain control, or nowhere. That is not enough:
   an arrow pressed on the *Similar pairs* button must not move the gallery.
+  **Answered by T085 (review 189): yes.** `focusable::find_focused()` returns a
+  `snora::control`'s own `.id()`, at about 44 µs per call over 1,000 widgets.
+  In production it needs either iced's `advanced` feature or a direct
+  `iced_runtime` dependency (both already in the lockfile; the probe used
+  `iced_test`'s re-exports, which only tests have). It runs as a `Task` that
+  reports the focused id as a message, so an arrow becomes key → task → message
+  → move. T087 chooses between the two routes.
 - **If Q1 cannot be answered within arama:** ask snora for a roving-group
   primitive, the `radio_group` mechanism opened to the application's own
   content. Ship the gallery as one Tab stop where Enter opens the current item,
@@ -209,8 +220,9 @@ A "no" to Q1 changes §3.5 to its fallback. It does not stop the release.
 4. In the media focus dialog: change the strategy, use one of the two file
    actions, close; focus is back on the thumbnail.
 5. Open Similar pairs; move through it; open a pair; close.
-6. Settings: change the language, the theme and the text size; toggle *include
-   videos*; move the similarity slider; close; focus is back on the opener.
+6. Settings (a page, reached from the rail): change the language, the theme and
+   the text size; toggle *include videos*; move the similarity slider; return to
+   the explorer from the rail.
 7. Cache page: filter; delete. The confirm dialog opens on **Cancel**; Enter
    cancels; then Tab to the delete action and confirm.
 8. F6 through every region, forward and back.

@@ -1,3 +1,9 @@
+> **REWORK 2026-11-18 — review 190.** Two small items, one commit on
+> `t088-delivery-1` rebased onto `origin/main`: **C1** no subprocess starts after
+> Stop (the runner checks the flag before spawning; the extractor loops stop at
+> the first `Cancelled`); **C2** the CHANGELOG and user docs say what Stop does
+> when analysis is already running, not "at once".
+
 > **AUTHORIZED 2026-11-18 — owner:** *"Authorized."* Written 2026-11-18 by the architect, as item 5 of the
 > 0.44.0 plan (`.git-exclude/schedule/README.md`, owner: *"Authorized."*). The
 > plan was not authorization of this task; this banner is.
