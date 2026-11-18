@@ -121,6 +121,9 @@ it has no handoff.
 | T082 | [Adopt `pt2safetensors` 0.2.0, and retire the eight `zip` ignores](./T082-adopt-pt2safetensors-0.2-handoff.md) | RFC 049 §3, §4, §8 | 2026-11-17 |
 | T083 | [The XDG test passes under the isolation every run uses](./T083-env-xdg-test-under-arama-data-home-handoff.md) | RFC 041 | 2026-11-17 |
 | T084 | [Release-candidate evidence for 0.43.0](./T084-release-candidate-evidence-0.43.0-handoff.md) | `docs/src/dev/release.md` | 2026-11-18 |
+| T085 | [snora 0.65: Tab and F6 move real focus, and the Phase 0 questions](./T085-snora-0.65-tab-and-f6-handoff.md) | RFC 054 §3.1, §4 | 2026-11-18 |
+| T088 | [Every media subprocess is bounded, and Stop stops the one running](./T088-bounded-media-subprocesses-handoff.md) | RFC 047 §4, §7 | 2026-11-18 |
+| T089 | [Files in a stable order, and no file-system calls while drawing](./T089-stable-order-and-pure-views-handoff.md) | RFC 048 §0, §2, §4 | 2026-11-18 |
 
 **Tasks written before 2026-11-08 are not here.** Until then they were kept in
 the working copy's `.git-exclude/tasks/dev-team/` — numbered `001`–`047`, then

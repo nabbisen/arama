@@ -1,6 +1,6 @@
 # RFC 054: Keyboard reach — everything a pointer does, the keyboard does
 
-**Status:** Proposed. Written 2026-11-18 by the architect, as item 1 of the
+**Status:** **Accepted by the project owner, 2026-11-18** (*"Accepted."*). Written 2026-11-18 by the architect, as item 1 of the
 0.44.0 plan (owner: *"Authorized."*). Acceptance of this RFC is not authorization
 of T085–T087; each has its own banner.
 **Raised by:** the snora 0.65.0 notice (`.git-exclude/upstream/snora/receive/0.65.0/`)
