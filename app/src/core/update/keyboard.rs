@@ -1,46 +1,58 @@
 use iced::Task;
+use iced::keyboard::key::Named;
 use iced::keyboard::{Key, Modifiers};
-use snora::focus::{Cycle, FocusZone};
+use snora::focus::Cycle;
 
 use super::super::{App, message::Message};
 
-/// RFC 044 §2.2: the zone `F6` / `Shift+F6` should move focus to, given
-/// arama's own static [`App::zone_presence`] and the two overlay flags -
-/// pure, so Tier 1 can assert wrapping, slot-skipping and modal
-/// suspension without constructing an `App`.
-pub(crate) fn zone_after_cycle(
-    current: FocusZone,
-    cycle: Cycle,
-    has_modal: bool,
-    has_menu: bool,
-) -> Option<FocusZone> {
-    snora::focus::next_zone(current, cycle, App::zone_presence(), has_modal, has_menu)
+/// What a key press means, independent of any widget tree (RFC 054 §3.1).
+/// Exists only because `snora::keyboard::traverse`/`focus_zone` return an
+/// opaque `Task`, so a routing decision cannot be asserted by calling them
+/// directly - this is the pure half, tested without constructing an `App`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum KeyRoute {
+    /// Tab / Shift+Tab: move between the controls that can take focus.
+    Traverse,
+    /// F6 / Shift+F6: move focus into the next/previous region.
+    Zone(Cycle),
+}
+
+/// Plain Tab or Shift+Tab only - not `Ctrl+Tab`, `Alt+Tab` or `Logo+Tab`,
+/// which mean other things (switching tabs, switching windows) and must
+/// fall through rather than move focus. Mirrors the gate
+/// `snora::keyboard::traverse` applies internally; duplicated here only
+/// because that gate is not otherwise observable (`traverse` returns an
+/// opaque `Task`, not a reason).
+fn is_plain_tab(key: &Key, modifiers: Modifiers) -> bool {
+    *key == Key::Named(Named::Tab) && !modifiers.control() && !modifiers.alt() && !modifiers.logo()
+}
+
+/// Tab is tested first, then F6 (RFC 054 §3.1, §6.2) - the two never
+/// overlap, but the order matches the handoff's own description and
+/// `handle_key_pressed`'s dispatch below.
+pub(crate) fn route_key(key: &Key, modifiers: Modifiers) -> Option<KeyRoute> {
+    if is_plain_tab(key, modifiers) {
+        return Some(KeyRoute::Traverse);
+    }
+    snora::keyboard::cycle_zones(key.clone(), modifiers).map(KeyRoute::Zone)
 }
 
 impl App {
-    /// RFC 044 §2.2: routes a key `iced::keyboard::listen()` reports as
-    /// unclaimed through snora's pure zone-cycling helper. T070 (snora
-    /// 0.52 -> 0.57): this used to check `snora::keyboard::dismiss_on_escape`
-    /// first, but snora's own engine has handled Escape since 0.55 -
-    /// capturing it before `iced::keyboard::listen()` ever sees it,
-    /// whenever `on_close_modals`/`on_close_menus` are set (`view.rs`
-    /// sets both) - so that call never ran here on 0.57 even before it
-    /// was removed; this is only cycling now.
+    /// RFC 054 §3.1: routes Tab/Shift+Tab to `snora::keyboard::traverse`
+    /// and F6/Shift+F6 to `snora::keyboard::focus_zone`. arama keeps no
+    /// zone state and passes no modal/menu flags: snora already contains
+    /// focus to an open dialog, sheet or menu-with-backdrop on its own
+    /// (RFC 054 §2, "Containment in a dialog"), so there is nothing
+    /// special to do here while one is open. Every other key is
+    /// unclaimed and returns `Task::none()`, as before.
     pub(super) fn handle_key_pressed(&mut self, key: Key, modifiers: Modifiers) -> Task<Message> {
-        let has_modal = self.dialog.is_some();
-        let has_menu = self.context_menu.is_open();
-
-        if let Some(cycle) = snora::keyboard::cycle_zones(key, modifiers)
-            && let Some(zone) = zone_after_cycle(self.focus_zone, cycle, has_modal, has_menu)
-        {
-            self.focus_zone = zone;
-            // First real cycle: start rendering the ring. Never reset -
-            // once a keyboard user exists, hiding the ring again on a
-            // later mouse click would be its own invisible-focus defect.
-            self.focus_visible = true;
+        match route_key(&key, modifiers) {
+            Some(KeyRoute::Traverse) => {
+                snora::keyboard::traverse(key, modifiers).unwrap_or_else(Task::none)
+            }
+            Some(KeyRoute::Zone(cycle)) => snora::keyboard::focus_zone(cycle),
+            None => Task::none(),
         }
-
-        Task::none()
     }
 }
 
@@ -48,89 +60,62 @@ impl App {
 mod tests {
     use super::*;
 
+    const TAB: Key = Key::Named(Named::Tab);
+    const F6: Key = Key::Named(Named::F6);
+
     #[test]
-    fn zone_presence_matches_aramas_static_layout() {
-        // Header lives inside `body` (view.rs) - never its own slot.
-        // SideBar and Footer are always populated.
+    fn plain_tab_routes_to_traverse() {
         assert_eq!(
-            App::zone_presence(),
-            snora::focus::ZonePresence::none()
-                .side_bar(true)
-                .footer(true)
+            route_key(&TAB, Modifiers::empty()),
+            Some(KeyRoute::Traverse)
         );
     }
 
     #[test]
-    fn f6_cycles_forward_through_aramas_three_zones() {
-        assert_eq!(
-            zone_after_cycle(FocusZone::SideBar, Cycle::Forward, false, false),
-            Some(FocusZone::Body)
-        );
-        assert_eq!(
-            zone_after_cycle(FocusZone::Body, Cycle::Forward, false, false),
-            Some(FocusZone::Footer)
-        );
-        assert_eq!(
-            zone_after_cycle(FocusZone::Footer, Cycle::Forward, false, false),
-            Some(FocusZone::SideBar),
-            "must wrap past the absent Header slot straight back to SideBar"
-        );
+    fn shift_tab_also_routes_to_traverse() {
+        assert_eq!(route_key(&TAB, Modifiers::SHIFT), Some(KeyRoute::Traverse));
     }
 
     #[test]
-    fn shift_f6_cycles_backward() {
-        assert_eq!(
-            zone_after_cycle(FocusZone::Body, Cycle::Backward, false, false),
-            Some(FocusZone::SideBar)
-        );
-        assert_eq!(
-            zone_after_cycle(FocusZone::SideBar, Cycle::Backward, false, false),
-            Some(FocusZone::Footer),
-            "must wrap past the absent Header slot straight back to Footer"
-        );
-    }
-
-    #[test]
-    fn a_modal_suspends_cycling_regardless_of_menu() {
-        assert_eq!(
-            zone_after_cycle(FocusZone::Body, Cycle::Forward, true, false),
-            None
-        );
-        assert_eq!(
-            zone_after_cycle(FocusZone::Body, Cycle::Forward, true, true),
-            None,
-            "modal takes priority even with a menu also open"
-        );
-    }
-
-    #[test]
-    fn a_menu_alone_does_not_suspend_cycling() {
-        assert_eq!(
-            zone_after_cycle(FocusZone::Body, Cycle::Forward, false, true),
-            Some(FocusZone::Footer)
-        );
-    }
-
-    #[test]
-    fn header_never_appears_because_it_is_never_present() {
-        for start in [FocusZone::SideBar, FocusZone::Body, FocusZone::Footer] {
-            for cycle in [Cycle::Forward, Cycle::Backward] {
-                let next = zone_after_cycle(start, cycle, false, false)
-                    .expect("Body is always present, so a next zone always exists");
-                assert_ne!(
-                    next,
-                    FocusZone::Header,
-                    "F6 must never stop on Header - it lives inside Body by construction"
-                );
-            }
+    fn ctrl_tab_alt_tab_and_logo_tab_are_not_tab() {
+        for modifiers in [Modifiers::CTRL, Modifiers::ALT, Modifiers::LOGO] {
+            assert_eq!(
+                route_key(&TAB, modifiers),
+                None,
+                "Tab with {modifiers:?} must not route to Traverse"
+            );
         }
     }
 
-    // T070 (snora 0.52 -> 0.57): the four `dismiss_on_escape` tests that
-    // used to live here tested snora's own helper, not arama - removed
-    // along with the removed call (review 162's own comment on the
-    // predecessor of this review already named them as such). Escape's
-    // real behaviour is now `tier_2_escape_closes_a_real_open_dialog` in
-    // `app/src/core/tests.rs`, pressed through `iced_test::Simulator` on
-    // the real rendered overlay rather than calling a helper directly.
+    #[test]
+    fn plain_f6_routes_to_zone_forward() {
+        assert_eq!(
+            route_key(&F6, Modifiers::empty()),
+            Some(KeyRoute::Zone(Cycle::Forward))
+        );
+    }
+
+    #[test]
+    fn shift_f6_routes_to_zone_backward() {
+        assert_eq!(
+            route_key(&F6, Modifiers::SHIFT),
+            Some(KeyRoute::Zone(Cycle::Backward))
+        );
+    }
+
+    #[test]
+    fn other_keys_route_nowhere() {
+        assert_eq!(
+            route_key(&Key::Named(Named::Enter), Modifiers::empty()),
+            None
+        );
+        assert_eq!(
+            route_key(&Key::Named(Named::Escape), Modifiers::empty()),
+            None
+        );
+        assert_eq!(
+            route_key(&Key::Character("a".into()), Modifiers::empty()),
+            None
+        );
+    }
 }

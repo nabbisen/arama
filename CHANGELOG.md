@@ -7,6 +7,15 @@ Releases follow the archive naming `arama-X.Y.Z.tar.gz`.
 
 ## [Unreleased]
 
+### Changed
+
+- **Tab now moves between the controls that can take focus,** and **F6 moves
+  focus into the next panel** (Shift+Tab and Shift+F6, backward) - both used to
+  do nothing, or only move a visual ring with nothing behind it. Enter and Space
+  act on whatever F6 or Tab last reached.
+- **Visual refinements** from the snora design system (0.57 → 0.65): colour
+  corrections to several interface states.
+
 ---
 
 ## [0.43.0]

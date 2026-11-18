@@ -435,17 +435,18 @@ fn native_smoke_migration_prefers_new_location_when_both_are_populated() {
     let _ = std::fs::remove_dir_all(&legacy_local);
 }
 
-// --- RFC 044 Phase 0.1: what does the keyboard do in arama today? --
+// --- RFC 044 Phase 0.1, kept current under T085 (RFC 054 §6.4) -----
 //
-// Answered by running, not reading (handoff §4): `Simulator::tap_key`
-// returns `event::Status::{Captured, Ignored}`, so "does anything
-// consume this key today" is assertable in-process, per key, without
-// a window or a compositor. arama installs no keyboard subscription
-// and no focus operation anywhere (`subscription.rs` carries only the
-// toast sweep), so the expectation is `Ignored` everywhere except
-// wherever iced's own widgets already claim a key on arama's behalf -
-// this test exists to find out where that is, not to assert a
-// pre-decided answer.
+// Answered by running, not reading: `Simulator::tap_key` returns
+// `event::Status::{Captured, Ignored}`, so "does anything consume this
+// key today, at the widget-tree level, independent of `App::update`"
+// is assertable in-process, per key, without a window or a compositor.
+// Re-run unchanged after the snora 0.65 upgrade and the Tab/F6 routing
+// rewrite: still `Ignored` everywhere, confirming Tab and F6 are still
+// handled nowhere in the widget tree itself - only in `App::update`,
+// through `update::keyboard::route_key`. Kept, not removed: it is the
+// one check that would catch a future snora widget starting to claim
+// Tab or F6 for itself, which `route_key`'s own tests cannot see.
 #[test]
 fn phase_0_1_keyboard_baseline_on_gallery_and_settings() {
     use iced::keyboard::{Key, key::Named};
@@ -498,74 +499,25 @@ fn phase_0_1_keyboard_baseline_on_gallery_and_settings() {
     let _ = std::fs::remove_dir_all(&scratch);
 }
 
-// --- RFC 044 Tier 2: in-process, headless, on real App state -------
+// RFC 044 Tier 2 (`tier_2_f6_moves_focus_zone_through_real_app_update`)
+// removed under T085 (RFC 054 §3.1): it drove `Message::KeyPressed(F6)`
+// through `App::update` and asserted `app.focus_zone`/`app.focus_visible`
+// - arama's own zone-state fields, removed in this same change because
+// snora 0.65 keeps none of its own (`focus_zone`'s doc comment: "the app
+// keeps no zone state"). There is no in-process replacement: snora's
+// `focus_zone`/`traverse` return an opaque `iced::Task` whose effect is a
+// widget `Operation`, which only a real, running `iced` program applies -
+// `iced_test::Simulator` has no method that runs one (confirmed by
+// reading `iced_test-0.14.0/src/simulator.rs`'s full public API: `tap_key`
+// and `simulate` dispatch raw `iced::Event`s through the widget tree's own
+// `on_event`, which is a different, narrower path than running a `Task`'s
+// `Operation` against it). What Tier 2 approximated is covered two other
+// ways instead: `update::keyboard::route_key`'s own tests (above `impl
+// App` in `keyboard.rs`) assert the pure routing decision Tier 2 used to
+// exercise indirectly, and §6.7's real-window pass (this package's
+// evidence) observes that the resulting `Task` actually moves focus,
+// which Tier 2 could only ever infer from state that no longer exists.
 //
-// Phase 0.1 (above) already proved F6 is `Ignored` by every widget on
-// the gallery and settings screens - so in the real application it
-// reaches `subscription.rs`'s keyboard listener and becomes
-// `Message::KeyPressed`. This test drives that exact message through
-// `App::update` (not `Simulator`, which only exercises the widget
-// tree, not `update`) and asserts the zone this RFC's own state
-// actually moved to - no window, no compositor, no rendering.
-#[test]
-fn tier_2_f6_moves_focus_zone_through_real_app_update() {
-    use iced::keyboard::{Key, Modifiers, key::Named};
-
-    let _guard = ARAMA_DATA_HOME_TEST_LOCK
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
-    let scratch = scratch_data_home("tier-2-f6-focus-zone");
-    unsafe {
-        std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
-    }
-
-    let mut app = App::new().0;
-    assert_eq!(
-        app.focus_zone,
-        snora::focus::FocusZone::Body,
-        "starting zone, before any cycling"
-    );
-    assert!(
-        !app.focus_visible,
-        "the ring must not render before a keyboard user is known to exist"
-    );
-
-    let f6 = Key::Named(Named::F6);
-    let _ = app.update(Message::KeyPressed(f6.clone(), Modifiers::default()));
-    assert_eq!(
-        app.focus_zone,
-        snora::focus::FocusZone::Footer,
-        "forward from Body skips the never-present Header and lands on Footer"
-    );
-    assert!(
-        app.focus_visible,
-        "the first real cycle must turn the ring on"
-    );
-
-    let _ = app.update(Message::KeyPressed(f6.clone(), Modifiers::default()));
-    assert_eq!(
-        app.focus_zone,
-        snora::focus::FocusZone::SideBar,
-        "forward from Footer wraps past Header to SideBar"
-    );
-
-    let _ = app.update(Message::KeyPressed(f6, Modifiers::SHIFT));
-    assert_eq!(
-        app.focus_zone,
-        snora::focus::FocusZone::Footer,
-        "Shift+F6 from SideBar goes backward, past Header, to Footer"
-    );
-
-    unsafe {
-        match &previous {
-            Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
-            None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
-        }
-    }
-    let _ = std::fs::remove_dir_all(&scratch);
-}
-
 /// T070 (snora 0.52 -> 0.57): this test's premise through 0.52 was that
 /// `Message::KeyPressed(Escape)` reaches `App::update` while an overlay is
 /// open, the same as any other key. From 0.55 that stopped being true:
@@ -688,8 +640,6 @@ fn tier_2_escape_closes_a_real_open_dialog() {
 // work." Reported in the review package either way.
 #[test]
 fn phase_0_2b_does_simulator_snapshot_render_here() {
-    use iced::keyboard::{Key, Modifiers, key::Named};
-
     let _guard = ARAMA_DATA_HOME_TEST_LOCK
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
@@ -701,14 +651,6 @@ fn phase_0_2b_does_simulator_snapshot_render_here() {
 
     let mut app = App::new().0;
     app.setup.finished = true;
-    // Move focus so the ring is actually present in the frame this
-    // snapshots - a snapshot of the pre-`focus_visible` state would
-    // prove nothing about the indicator.
-    let _ = app.update(Message::KeyPressed(
-        Key::Named(Named::F6),
-        Modifiers::default(),
-    ));
-    assert!(app.focus_visible);
 
     let element = app.view();
     let mut simulator = iced_test::Simulator::new(element);
@@ -751,174 +693,71 @@ fn phase_0_2b_does_simulator_snapshot_render_here() {
     let _ = std::fs::remove_dir_all(&scratch);
 }
 
-/// Task 032: the RFC 044 Tier 2 tests above only ever check
-/// `App::focus_zone`, arama's own enum - if `view.rs` wrapped the
-/// wrong container in `focus_ring_style`, every one of them would
-/// still pass. This asserts against snora's own compatibility-surface
-/// identifiers instead (`docs/src/reference/rendered-surface-identifiers.md`,
-/// `snora-0.39.1/src/identifiers.rs`: `HEADER_REGION`/`SIDEBAR_REGION`/
-/// `BODY_REGION`/`FOOTER_REGION`, `"snora-header"`/`"snora-sidebar"`/
-/// `"snora-body"`/`"snora-footer"`) - the region snora itself thinks a
-/// zone is, not just the label arama gives that zone internally.
+/// T085 (RFC 054 §3.1): the two F6-zone-correlation tests that used to
+/// follow this (`tier_2_focus_ring_zones_resolve_to_snoras_own_region_ids`'s
+/// F6-driven half, and `is_focused_selector_cannot_see_aramas_zone_ring_containers`)
+/// are removed - both asserted against `app.focus_zone`/`app.focus_visible`,
+/// arama's own now-deleted state, and the second one's entire premise ("arama's
+/// ring is a plain styled container with no `Focusable` state of its own - F6
+/// zone cycling is arama's own enum, entirely outside iced's native focus
+/// system") is no longer true: F6 now moves real, `iced`-native focus through
+/// `snora::keyboard::focus_zone`. Neither had a working in-process
+/// replacement to move to - see the comment above
+/// `tier_2_f6_moves_focus_zone_through_real_app_update`'s removal, same
+/// reason: `iced_test::Simulator` has no method that runs the `Task` these
+/// functions return, so nothing in-process can observe whether it actually
+/// moved focus. That is `route_key`'s tests (the pure routing decision) and
+/// §6.7's real-window pass (this package's evidence) now, not a headless
+/// `App::update` assertion.
 ///
-/// `iced_selector::Selector for widget::Id` is confirmed present at
-/// `iced_selector-0.14.0/src/lib.rs:99,146` and reachable through the
-/// `iced_test` dev-dependency already added for RFC 044 - no new
-/// dependency.
-///
-/// What this can and cannot prove: `Simulator::find` returns a
-/// `Target::Container { id, bounds, visible_bounds }` -
-/// `iced_selector-0.14.0/src/target.rs:11-15` - bounds only, no style.
-/// It cannot see the ring's own border colour or width; snora's
-/// region container is the *outer* wrapper, arama's ring-styled
-/// container is nested one level inside it (`app/src/core/view.rs`'s
-/// `side_bar`/`body`/`footer` locals are handed to snora's
-/// `AppLayout::side_bar`/`body`/`footer`, which wraps each in its own
-/// `.id(...)`-carrying container). So this test proves the slot
-/// snora considers "the sidebar"/"the body"/"the footer" exists and
-/// is where arama's own `FocusZone` enum says it should be, and that
-/// snora's `header` region is correctly absent (arama sets no
-/// `AppLayout::header`) - it does not and cannot reach into whether
-/// the ring is actually drawn there.
+/// What survives here: snora's own region identifiers
+/// (`docs/src/reference/rendered-surface-identifiers.md`,
+/// `"snora-header"`/`"snora-sidebar"`/`"snora-body"`/`"snora-footer"`) still
+/// resolve where arama's skeleton places them, independent of any focus
+/// state - that fact does not depend on F6 having been pressed at all.
 #[test]
-fn tier_2_focus_ring_zones_resolve_to_snoras_own_region_ids() {
-    use iced::keyboard::{Key, Modifiers, key::Named};
+fn snora_skeleton_regions_resolve_to_their_own_identifiers() {
     use iced_test::selector::id;
 
     let _guard = ARAMA_DATA_HOME_TEST_LOCK
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
-    let scratch = scratch_data_home("tier-2-focus-ring-snora-slot");
+    let scratch = scratch_data_home("snora-skeleton-region-identifiers");
     unsafe {
         std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
     }
 
     let mut app = App::new().0;
     app.setup.finished = true;
-
-    // Every skeleton slot arama populates is present regardless of
-    // which zone currently holds focus - `side_bar`/`body`/`footer`
-    // are unconditional in `view.rs`. Checked once, before any F6
-    // press, so the presence assertion is not entangled with the
-    // focus-cycling assertions below.
-    {
-        let mut simulator = iced_test::Simulator::new(app.view());
-        assert!(
-            simulator
-                .find(id(iced::widget::Id::new("snora-sidebar")))
-                .is_ok(),
-            "snora's sidebar region must exist"
-        );
-        assert!(
-            simulator
-                .find(id(iced::widget::Id::new("snora-body")))
-                .is_ok(),
-            "snora's body region must exist"
-        );
-        assert!(
-            simulator
-                .find(id(iced::widget::Id::new("snora-footer")))
-                .is_ok(),
-            "snora's footer region must exist"
-        );
-        // arama never populates `AppLayout::header` - confirms the
-        // Tier 1 `header_never_appears_because_it_is_never_present`
-        // assumption holds at the snora-region level too, not just
-        // in `ZonePresence`.
-        assert!(
-            simulator
-                .find(id(iced::widget::Id::new("snora-header")))
-                .is_err(),
-            "snora's header region must be absent - arama sets no AppLayout::header"
-        );
-    }
-
-    // F6 from the Body start zone lands on Footer first (RFC 044:
-    // Header is skipped because `ZonePresence` reports it absent).
-    let f6 = Key::Named(Named::F6);
-    let _ = app.update(Message::KeyPressed(f6.clone(), Modifiers::default()));
-    assert_eq!(app.focus_zone, snora::focus::FocusZone::Footer);
-    {
-        let mut simulator = iced_test::Simulator::new(app.view());
-        assert!(
-            simulator
-                .find(id(iced::widget::Id::new("snora-footer")))
-                .is_ok(),
-            "snora-footer must resolve while arama's own state says Footer is focused"
-        );
-    }
-
-    let _ = app.update(Message::KeyPressed(f6.clone(), Modifiers::default()));
-    assert_eq!(app.focus_zone, snora::focus::FocusZone::SideBar);
-    {
-        let mut simulator = iced_test::Simulator::new(app.view());
-        assert!(
-            simulator
-                .find(id(iced::widget::Id::new("snora-sidebar")))
-                .is_ok(),
-            "snora-sidebar must resolve while arama's own state says SideBar is focused"
-        );
-    }
-
-    let _ = app.update(Message::KeyPressed(f6, Modifiers::default()));
-    assert_eq!(app.focus_zone, snora::focus::FocusZone::Body);
-    {
-        let mut simulator = iced_test::Simulator::new(app.view());
-        assert!(
-            simulator
-                .find(id(iced::widget::Id::new("snora-body")))
-                .is_ok(),
-            "snora-body must resolve while arama's own state says Body is focused"
-        );
-    }
-
-    unsafe {
-        match &previous {
-            Some(value) => std::env::set_var(arama_env::DATA_HOME_ENV_VAR, value),
-            None => std::env::remove_var(arama_env::DATA_HOME_ENV_VAR),
-        }
-    }
-    let _ = std::fs::remove_dir_all(&scratch);
-}
-
-/// The `is_focused()` alternative the review for package 122 raised
-/// (`iced_selector-0.14.0/src/lib.rs:154`) - tried and rejected, with
-/// evidence rather than assumption. It matches `Candidate::Focusable`,
-/// which only iced's own keyboard-focusable widgets (`text_input` and
-/// similar) produce. arama's ring is a plain styled `container` with
-/// no `Focusable` state of its own - F6 zone cycling is arama's own
-/// enum, entirely outside iced's native focus system - so this must
-/// find nothing, on every zone, confirming `id(...)` (above) is the
-/// only one of the two that can reach these containers at all.
-#[test]
-fn is_focused_selector_cannot_see_aramas_zone_ring_containers() {
-    use iced::keyboard::{Key, Modifiers, key::Named};
-    use iced_test::selector::is_focused;
-
-    let _guard = ARAMA_DATA_HOME_TEST_LOCK
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    let previous = std::env::var_os(arama_env::DATA_HOME_ENV_VAR);
-    let scratch = scratch_data_home("is-focused-selector-experiment");
-    unsafe {
-        std::env::set_var(arama_env::DATA_HOME_ENV_VAR, &scratch);
-    }
-
-    let mut app = App::new().0;
-    app.setup.finished = true;
-    let _ = app.update(Message::KeyPressed(
-        Key::Named(Named::F6),
-        Modifiers::default(),
-    ));
-    assert!(app.focus_visible);
 
     let mut simulator = iced_test::Simulator::new(app.view());
-    let result = simulator.find(is_focused());
     assert!(
-        result.is_err(),
-        "is_focused() must not see arama's ring containers - they carry no \
-         iced-native Focusable state, only app-level FocusZone/style; got {result:?}"
+        simulator
+            .find(id(iced::widget::Id::new("snora-sidebar")))
+            .is_ok(),
+        "snora's sidebar region must exist"
+    );
+    assert!(
+        simulator
+            .find(id(iced::widget::Id::new("snora-body")))
+            .is_ok(),
+        "snora's body region must exist"
+    );
+    assert!(
+        simulator
+            .find(id(iced::widget::Id::new("snora-footer")))
+            .is_ok(),
+        "snora's footer region must exist"
+    );
+    // arama never populates `AppLayout::header` - confirms the Tier 1
+    // `header_never_appears_because_it_is_never_present` assumption holds
+    // at the snora-region level too.
+    assert!(
+        simulator
+            .find(id(iced::widget::Id::new("snora-header")))
+            .is_err(),
+        "snora's header region must be absent - arama sets no AppLayout::header"
     );
 
     unsafe {

@@ -125,20 +125,6 @@ pub struct App {
     /// Closed by default so the gallery has full width on startup.
     /// Session-only: not persisted across restarts.
     aside_open: bool,
-    /// RFC 044 §2.2: which skeleton zone F6 / Shift+F6 cycling currently
-    /// treats as focused. arama's own state, not iced's - `next_zone` is
-    /// pure and knows nothing about widgets. Drives 2.3's visible ring,
-    /// gated by `focus_visible` below. Session-only, like `aside_open`: a
-    /// page switch does not change which zones exist, so this
-    /// deliberately does not reset on `NavTo`.
-    focus_zone: snora::focus::FocusZone,
-    /// RFC 044 §2.3: whether the ring should render at all. `focus_zone`
-    /// defaults to `Body` before any key is pressed - rendering its ring
-    /// unconditionally would draw a permanent border around the whole
-    /// gallery for every mouse-only user from first launch, which is not
-    /// what "focus must be visible when it *moves*" means. Set `true` the
-    /// first time zone cycling actually runs; never reset afterward.
-    focus_visible: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -439,24 +425,9 @@ impl App {
                 settings_page,
                 cache_page: CachePage::default(),
                 aside_open: false,
-                focus_zone: snora::focus::FocusZone::Body,
-                focus_visible: false,
             },
             task,
         )
-    }
-
-    /// RFC 044 §2.2: which skeleton slots arama's layout populates, in
-    /// `next_zone`'s vocabulary. `ZonePresence` describes slot
-    /// *occupancy* (`AppLayout::header`/`side_bar`/`footer` being
-    /// `Some`), not visual presence - arama composes its header into
-    /// `body` (`view.rs`), so it never populates the `header` slot and
-    /// `next_zone` will never stop there, by construction. Static for
-    /// arama's layout today, so this takes no argument.
-    pub(crate) fn zone_presence() -> snora::focus::ZonePresence {
-        snora::focus::ZonePresence::none()
-            .side_bar(true)
-            .footer(true)
     }
 
     fn save_settings(&mut self) -> bool {

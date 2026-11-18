@@ -5,7 +5,6 @@ use iced::{
     widget::{button, column, container, mouse_area, row, text, tooltip},
 };
 use lucide_icons::iced::{icon_panel_left_close, icon_panel_left_open};
-use snora::focus::FocusZone;
 use snora::{
     AppLayout, Dialog as SnoraDialog, Icon, LayoutDirection, SideBar, SideBarItem, ToastPosition,
     design::{
@@ -19,14 +18,6 @@ use super::ARAMA_DATA_HOME_TEST_LOCK;
 use super::{App, Dialog, NavPage, message::Message, setup_complete};
 
 impl App {
-    /// RFC 044 §2.3: whether `zone`'s focus ring should render - both
-    /// that it is the current zone *and* that cycling has actually run
-    /// at least once (`focus_visible`), so a mouse-only session never
-    /// sees a ring around `Body` from first launch.
-    fn is_zone_focused(&self, zone: FocusZone) -> bool {
-        self.focus_visible && self.focus_zone == zone
-    }
-
     pub fn view(&self) -> Element<'_, Message> {
         // RFC 041, RFC 017 Fatal-startup tier: no toast layer, no
         // AppLayout skeleton, nothing dismissible - arama has nowhere to
@@ -81,16 +72,12 @@ impl App {
                 active: self.nav_page.clone(),
             };
 
-            container(app_side_bar_with(
+            app_side_bar_with(
                 &arama_theme::tokens(),
                 nav_side_bar,
                 LayoutDirection::Ltr,
                 SideBarLabels::Beneath,
-            ))
-            .style(arama_theme::focus_ring_style(
-                self.is_zone_focused(FocusZone::SideBar),
-            ))
-            .into()
+            )
         };
 
         // ── Page body ─────────────────────────────────────────────────
@@ -151,20 +138,11 @@ impl App {
             .padding(20)
             .into(),
         };
-        let body: Element<Message> = container(body)
-            .width(Fill)
-            .height(Fill)
-            .style(arama_theme::focus_ring_style(
-                self.is_zone_focused(FocusZone::Body),
-            ))
-            .into();
+        let body: Element<Message> = container(body).width(Fill).height(Fill).into();
 
         // ── AppLayout skeleton ────────────────────────────────────────
-        let footer: Element<Message> = container(self.footer.view().map(Message::FooterMessage))
-            .style(arama_theme::focus_ring_style(
-                self.is_zone_focused(FocusZone::Footer),
-            ))
-            .into();
+        let footer: Element<Message> =
+            container(self.footer.view().map(Message::FooterMessage)).into();
 
         let mut layout = self
             .toast_layout(body)

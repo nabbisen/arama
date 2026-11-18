@@ -89,13 +89,13 @@ pub enum Message {
     /// inside `update` rather than inside the subscription closure.
     SimilarPairsProgressTick,
     CursorMove(Point),
-    /// RFC 044: every key press, routed through `snora::keyboard::cycle_zones`
-    /// in `update` (its sibling `dismiss_on_escape` was removed in snora
-    /// 0.57 - snora's own engine has handled Escape since 0.55, via
-    /// `on_close_modals`/`on_close_menus` in `view.rs`) - this
-    /// variant carries the raw event rather than a pre-decided intent so
-    /// arama installs exactly one keyboard subscription for everything
-    /// this RFC adds.
+    /// RFC 054 §3.1: every key press, routed through `update::keyboard::route_key`
+    /// to `snora::keyboard::traverse` (Tab/Shift+Tab) or `focus_zone`
+    /// (F6/Shift+F6) in `update` (Escape is not routed here - snora's own
+    /// engine has handled it since 0.55, via `on_close_modals`/
+    /// `on_close_menus` in `view.rs`) - this variant carries the raw
+    /// event rather than a pre-decided intent so arama installs exactly
+    /// one keyboard subscription for everything this RFC adds.
     KeyPressed(iced::keyboard::Key, iced::keyboard::Modifiers),
     /// The keyboard subscription's fallback for events this RFC does not
     /// use (`KeyReleased`, `ModifiersChanged`) - `Subscription::map`
